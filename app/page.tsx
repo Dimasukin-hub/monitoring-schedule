@@ -18,6 +18,7 @@ import PengolahanView from '@/components/PengolahanView';
 import TanamView from '@/components/TanamView';
 import BibitView from '@/components/BibitView';
 import PanenView from '@/components/PanenView';
+import PlantingView from '@/components/PlantingView';
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<string>('overview');
@@ -100,6 +101,8 @@ export default function DashboardPage() {
         return 'Tahapan Aktivitas Fisik';
       case 'tanam':
         return 'Monitoring Tanam';
+      case 'planting':
+        return 'Monitoring Planting - Real Tanam Nanas';
       case 'bibit':
         return 'Monitoring Bibit';
       case 'panen':
@@ -246,7 +249,15 @@ export default function DashboardPage() {
             />
           )}
 
-          {/* TAB 6: BIBIT (Bab 25 PRD) */}
+          {/* TAB 6: PLANTING (Update Real Tanam Nanas - Sheet RTN) */}
+          {activeTab === 'planting' && (
+            <PlantingView
+              onOpenLand={(lokasi) => setSelectedLandId(lokasi)}
+              refreshTrigger={refreshLandTrigger}
+            />
+          )}
+
+          {/* TAB 7: BIBIT (Bab 25 PRD) */}
           {activeTab === 'bibit' && (
             <BibitView seedSummaries={chartsData?.seedSummaries || []} />
           )}

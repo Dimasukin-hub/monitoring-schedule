@@ -447,6 +447,8 @@ export async function GET(request: Request) {
 
     // Validate and map sortBy column
     const sortFieldMap: Record<string, string> = {
+      id: 'id',
+      no: 'id',
       lokasi: 'lokasi',
       wilayah: 'wilayah',
       luasBruto: 'luasBruto',

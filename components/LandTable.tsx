@@ -12,6 +12,7 @@ import {
   X,
   Calendar,
   ChevronDown,
+  ChevronUp,
   Check,
   XCircle,
 } from 'lucide-react';
@@ -720,8 +721,8 @@ export default function LandTable({
       const elVisualLeft = elRect.left - containerRect.left;
       const elAbsoluteLeft = currentScrollLeft + elVisualLeft;
 
-      // Sticky freeze pane width (Wilayah through Aktivitas Terakhir = 700px)
-      const STICKY_FREEZE_PANE_WIDTH = 700;
+      // Sticky freeze pane width (NO + Wilayah through Aktivitas Terakhir = 782px)
+      const STICKY_FREEZE_PANE_WIDTH = 782;
       const targetScrollLeft = Math.max(0, elAbsoluteLeft - STICKY_FREEZE_PANE_WIDTH - 12);
 
       container.scrollTo({
@@ -811,6 +812,55 @@ export default function LandTable({
       setSortOrder('asc');
     }
     setPage(1);
+  };
+
+  // Helper Header Sort Icon (Panah Chevron Up & Down seperti di menu Planting)
+  const renderSortArrows = (field: string) => {
+    const isFieldActive = sortBy === field;
+    return (
+      <span className="inline-flex flex-col ml-0.5 shrink-0">
+        <span
+          role="button"
+          tabIndex={0}
+          title={field === 'id' ? 'Urutan angka awal 1 (Naik)' : 'Urutkan Naik'}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSortBy(field);
+            setSortOrder('asc');
+            setPage(1);
+          }}
+          className="p-0 cursor-pointer"
+        >
+          <ChevronUp
+            className={`w-2.5 h-2.5 -mb-1 transition-colors ${
+              isFieldActive && sortOrder === 'asc'
+                ? 'text-emerald-600 dark:text-emerald-400 font-extrabold stroke-[3]'
+                : 'text-slate-300 dark:text-slate-600 hover:text-emerald-500'
+            }`}
+          />
+        </span>
+        <span
+          role="button"
+          tabIndex={0}
+          title={field === 'id' ? 'Urutan angka paling akhir (Turun)' : 'Urutkan Turun'}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSortBy(field);
+            setSortOrder('desc');
+            setPage(1);
+          }}
+          className="p-0 cursor-pointer"
+        >
+          <ChevronDown
+            className={`w-2.5 h-2.5 transition-colors ${
+              isFieldActive && sortOrder === 'desc'
+                ? 'text-emerald-600 dark:text-emerald-400 font-extrabold stroke-[3]'
+                : 'text-slate-300 dark:text-slate-600 hover:text-emerald-500'
+            }`}
+          />
+        </span>
+      </span>
+    );
   };
 
   const ACTIVITY_CODE_MAP: Record<string, string> = {
@@ -917,7 +967,7 @@ export default function LandTable({
   ]);
 
   const totalVisibleCols = useMemo(() => {
-    return 10 + bongkarVisibleCount + bajakVisibleCount + snVisibleCount + tanamVisibleCount;
+    return 11 + bongkarVisibleCount + bajakVisibleCount + snVisibleCount + tanamVisibleCount;
   }, [bongkarVisibleCount, bajakVisibleCount, snVisibleCount, tanamVisibleCount]);
 
   const isAnyBongkarSelected = useMemo(() => {
@@ -1925,28 +1975,65 @@ export default function LandTable({
         className="overflow-auto scroll-smooth max-h-[calc(100vh-325px)] min-h-[420px]"
       >
         <table className="min-w-full text-left text-xs border-separate border-spacing-0">
+          <colgroup>
+            <col className="w-[50px] min-w-[50px] max-w-[50px]" /> {/* 0. NO */}
+            <col className="w-[54px] min-w-[54px] max-w-[54px]" /> {/* 1. WIL */}
+            <col className="w-[68px] min-w-[68px] max-w-[68px]" /> {/* 2. LOKASI */}
+            <col className="w-[60px] min-w-[60px] max-w-[60px]" /> {/* 3. BRUTO */}
+            <col className="w-[60px] min-w-[60px] max-w-[60px]" /> {/* 4. NETTO */}
+            <col className="w-[66px] min-w-[66px] max-w-[66px]" /> {/* 5. STS */}
+            <col className="w-[52px] min-w-[52px] max-w-[52px]" /> {/* 6. EKS */}
+            <col className="w-[70px] min-w-[70px] max-w-[70px]" /> {/* 7. SEJARAH PS */}
+            <col className="w-[108px] min-w-[108px] max-w-[108px]" /> {/* 8. BIBIT & KELAS */}
+            <col className="w-[80px] min-w-[80px] max-w-[80px]" /> {/* 9. BULAN TANAM */}
+            <col className="w-[114px] min-w-[114px] max-w-[114px]" /> {/* 10. AKTIVITAS TERAKHIR */}
+          </colgroup>
           <thead className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider shadow-sm">
             {/* Header Tier 1: Main Category Groups */}
             <tr className="text-[10px] bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-400">
+              {/* NO */}
+              <th
+                rowSpan={hasAnyTier3Subcolumn ? 3 : 2}
+                onClick={() => handleSort('id')}
+                className="sticky left-0 z-30 w-[50px] min-w-[50px] max-w-[50px] overflow-hidden py-2 px-0.5 cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 align-middle border-r border-b border-cyan-300 dark:border-cyan-800 bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 text-center font-bold text-[10px]"
+                title="Urutkan No"
+              >
+                <div className="flex items-center justify-center gap-0.5">
+                  <span>NO</span>
+                  {renderSortArrows('id')}
+                </div>
+              </th>
+
+              {/* WILAYAH */}
               <th
                 rowSpan={hasAnyTier3Subcolumn ? 3 : 2}
                 onClick={() => handleSort('wilayah')}
-                className="sticky left-0 z-30 w-[50px] min-w-[50px] max-w-[50px] overflow-hidden py-2 px-0.5 cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 align-middle border-r border-b border-cyan-300 dark:border-cyan-800 bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 text-center font-bold text-[10px]"
+                className="sticky left-[50px] z-30 w-[54px] min-w-[54px] max-w-[54px] overflow-hidden py-2 px-0.5 cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 align-middle border-l border-r border-b border-cyan-300 dark:border-cyan-800 bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 text-center font-bold text-[10px]"
+                title="Urutkan Wilayah"
               >
-                <div className="flex items-center justify-center gap-0.5">WIL <ArrowUpDown className="w-2.5 h-2.5 shrink-0" /></div>
+                <div className="flex items-center justify-center gap-0.5">
+                  <span>WIL</span>
+                  {renderSortArrows('wilayah')}
+                </div>
               </th>
+
+              {/* LOKASI */}
               <th
                 rowSpan={hasAnyTier3Subcolumn ? 3 : 2}
                 onClick={() => handleSort('lokasi')}
-                className="sticky left-[50px] z-30 w-[68px] min-w-[68px] max-w-[68px] overflow-hidden py-2 px-0.5 cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 align-middle border-r border-b border-cyan-300 dark:border-cyan-800 bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 text-center font-bold text-[10px]"
+                className="sticky left-[104px] z-30 w-[68px] min-w-[68px] max-w-[68px] overflow-hidden py-2 px-0.5 cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 align-middle border-r border-b border-cyan-300 dark:border-cyan-800 bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 text-center font-bold text-[10px]"
+                title="Urutkan Lokasi"
               >
-                <div className="flex items-center justify-center gap-0.5">LOKASI <ArrowUpDown className="w-2.5 h-2.5 shrink-0" /></div>
+                <div className="flex items-center justify-center gap-0.5">
+                  <span>LOKASI</span>
+                  {renderSortArrows('lokasi')}
+                </div>
               </th>
 
               {/* Grouped Header: LUAS */}
               <th
                 colSpan={2}
-                className="sticky left-[118px] z-30 w-[110px] min-w-[110px] max-w-[110px] overflow-hidden py-1 px-1 text-center font-bold border-r border-b border-cyan-300 dark:border-cyan-800 bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 text-[10px]"
+                className="sticky left-[172px] z-30 w-[120px] min-w-[120px] max-w-[120px] overflow-hidden py-1 px-1 text-center font-bold border-r border-b border-cyan-300 dark:border-cyan-800 bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 text-[10px]"
               >
                 LUAS
               </th>
@@ -1955,25 +2042,33 @@ export default function LandTable({
               <th
                 rowSpan={hasAnyTier3Subcolumn ? 3 : 2}
                 onClick={() => handleSort('status')}
-                className="sticky left-[228px] z-30 w-[66px] min-w-[66px] max-w-[66px] overflow-hidden py-2 px-0.5 cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 text-center align-middle border-r border-b border-cyan-300 dark:border-cyan-800 bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 font-bold text-[10px]"
+                className="sticky left-[292px] z-30 w-[66px] min-w-[66px] max-w-[66px] overflow-hidden py-2 px-0.5 cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 text-center align-middle border-r border-b border-cyan-300 dark:border-cyan-800 bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 font-bold text-[10px]"
+                title="Urutkan Status"
               >
-                <div className="flex items-center justify-center gap-0.5">STS <ArrowUpDown className="w-2.5 h-2.5 shrink-0" /></div>
+                <div className="flex items-center justify-center gap-0.5">
+                  <span>STS</span>
+                  {renderSortArrows('status')}
+                </div>
               </th>
 
               {/* Eks */}
               <th
                 rowSpan={hasAnyTier3Subcolumn ? 3 : 2}
                 onClick={() => handleSort('eks')}
-                className="sticky left-[294px] z-30 w-[46px] min-w-[46px] max-w-[46px] overflow-hidden py-2 px-0.5 cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 text-center align-middle border-r border-b border-cyan-300 dark:border-cyan-800 bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 font-bold normal-case text-[10px]"
+                className="sticky left-[358px] z-30 w-[52px] min-w-[52px] max-w-[52px] overflow-hidden py-2 px-0.5 cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 text-center align-middle border-r border-b border-cyan-300 dark:border-cyan-800 bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 font-bold normal-case text-[10px]"
+                title="Urutkan Eks"
               >
-                <div className="flex items-center justify-center gap-0.5">Eks <ArrowUpDown className="w-2.5 h-2.5 shrink-0" /></div>
+                <div className="flex items-center justify-center gap-0.5">
+                  <span>Eks</span>
+                  {renderSortArrows('eks')}
+                </div>
               </th>
 
               {/* Sejarah PS */}
               <th
                 rowSpan={hasAnyTier3Subcolumn ? 3 : 2}
                 onClick={() => handleSort('sejarah')}
-                className="sticky left-[340px] z-30 w-[70px] min-w-[70px] max-w-[70px] overflow-hidden py-2 px-0.5 cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 text-center align-middle border-r border-b border-cyan-300 dark:border-cyan-800 bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 font-bold normal-case text-[9.5px]"
+                className="sticky left-[410px] z-30 w-[70px] min-w-[70px] max-w-[70px] overflow-hidden py-2 px-0.5 cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 text-center align-middle border-l border-r border-b border-cyan-300 dark:border-cyan-800 bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 font-bold normal-case text-[9.5px]"
                 title="Urutkan Sejarah PS"
               >
                 <div className="flex items-center justify-center gap-1">
@@ -1981,7 +2076,7 @@ export default function LandTable({
                     <span className="whitespace-nowrap">Sejarah</span>
                     <span className="whitespace-nowrap">PS</span>
                   </div>
-                  <ArrowUpDown className="w-2.5 h-2.5 shrink-0" />
+                  {renderSortArrows('sejarah')}
                 </div>
               </th>
 
@@ -1989,18 +2084,18 @@ export default function LandTable({
               <th
                 rowSpan={hasAnyTier3Subcolumn ? 3 : 2}
                 onClick={() => handleSort('jenisBibit')}
-                className="sticky left-[410px] z-30 w-[108px] min-w-[108px] max-w-[108px] overflow-hidden py-2 px-1 cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 align-middle border-r border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 text-center font-bold text-[9px] tracking-tight"
+                className="sticky left-[480px] z-30 w-[108px] min-w-[108px] max-w-[108px] overflow-hidden py-2 px-1 cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 align-middle border-r border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 text-center font-bold text-[9px] tracking-tight"
                 title="Urutkan Bibit & Kelas"
               >
                 <div className="flex items-center justify-center gap-1 leading-tight">
                   <span className="whitespace-nowrap">Bibit & Kelas</span>
-                  <ArrowUpDown className="w-2.5 h-2.5 shrink-0" />
+                  {renderSortArrows('jenisBibit')}
                 </div>
               </th>
               <th
                 rowSpan={hasAnyTier3Subcolumn ? 3 : 2}
                 onClick={() => handleSort('bulanTanam')}
-                className="sticky left-[518px] z-30 w-[80px] min-w-[80px] max-w-[80px] overflow-hidden py-2 px-0.5 cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 align-middle border-r border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 text-center font-bold text-[9.5px]"
+                className="sticky left-[588px] z-30 w-[80px] min-w-[80px] max-w-[80px] overflow-hidden py-2 px-0.5 cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 align-middle border-r border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 text-center font-bold text-[9.5px]"
                 title="Urutkan Bulan Tanam"
               >
                 <div className="flex items-center justify-center gap-1">
@@ -2008,13 +2103,13 @@ export default function LandTable({
                     <span className="whitespace-nowrap">Bulan</span>
                     <span className="whitespace-nowrap">Tanam</span>
                   </div>
-                  <ArrowUpDown className="w-2.5 h-2.5 shrink-0" />
+                  {renderSortArrows('bulanTanam')}
                 </div>
               </th>
               <th
                 rowSpan={hasAnyTier3Subcolumn ? 3 : 2}
                 onClick={() => handleSort('aktivitasTerakhir')}
-                className="sticky left-[598px] z-30 w-[114px] min-w-[114px] max-w-[114px] overflow-hidden py-2 px-1 cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 border-r-2 border-b border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-950 text-teal-700 dark:text-teal-400 align-middle text-center font-bold text-[9.5px] shadow-[4px_0_10px_-2px_rgba(0,0,0,0.12)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.4)]"
+                className="sticky left-[668px] z-30 w-[114px] min-w-[114px] max-w-[114px] overflow-hidden py-2 px-1 cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 border-r-2 border-b border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-950 text-teal-700 dark:text-teal-400 align-middle text-center font-bold text-[9.5px] shadow-[4px_0_10px_-2px_rgba(0,0,0,0.12)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.4)]"
                 title="Urutkan Aktivitas Terakhir"
               >
                 <div className="flex items-center justify-center gap-1">
@@ -2022,7 +2117,7 @@ export default function LandTable({
                     <span className="whitespace-nowrap">Aktivitas</span>
                     <span className="whitespace-nowrap">Terakhir</span>
                   </div>
-                  <ArrowUpDown className="w-2.5 h-2.5 shrink-0" />
+                  {renderSortArrows('aktivitasTerakhir')}
                 </div>
               </th>
 
@@ -2095,16 +2190,24 @@ export default function LandTable({
               <th
                 rowSpan={hasAnyTier3Subcolumn ? 2 : 1}
                 onClick={() => handleSort('luasBruto')}
-                className="sticky left-[118px] z-30 w-[55px] min-w-[55px] max-w-[55px] overflow-hidden py-1.5 px-0.5 text-center cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 align-middle border-r border-b border-cyan-300 dark:border-cyan-800 bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 font-bold text-[9px]"
+                className="sticky left-[172px] z-30 w-[60px] min-w-[60px] max-w-[60px] overflow-hidden py-1.5 px-0.5 text-center cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 align-middle border-r border-b border-cyan-300 dark:border-cyan-800 bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 font-bold text-[9px]"
+                title="Urutkan Luas Bruto"
               >
-                <div className="flex items-center justify-center gap-0.5">BRUTO <ArrowUpDown className="w-2.5 h-2.5 shrink-0" /></div>
+                <div className="flex items-center justify-center gap-0.5">
+                  <span>BRUTO</span>
+                  {renderSortArrows('luasBruto')}
+                </div>
               </th>
               <th
                 rowSpan={hasAnyTier3Subcolumn ? 2 : 1}
                 onClick={() => handleSort('luasNetto')}
-                className="sticky left-[173px] z-30 w-[55px] min-w-[55px] max-w-[55px] overflow-hidden py-1.5 px-0.5 text-center cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 align-middle border-r border-b border-cyan-300 dark:border-cyan-800 bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 font-bold text-[9px]"
+                className="sticky left-[232px] z-30 w-[60px] min-w-[60px] max-w-[60px] overflow-hidden py-1.5 px-0.5 text-center cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 align-middle border-l border-r border-b border-cyan-300 dark:border-cyan-800 bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 font-bold text-[9px]"
+                title="Urutkan Luas Netto"
               >
-                <div className="flex items-center justify-center gap-0.5">NETTO <ArrowUpDown className="w-2.5 h-2.5 shrink-0" /></div>
+                <div className="flex items-center justify-center gap-0.5">
+                  <span>NETTO</span>
+                  {renderSortArrows('luasNetto')}
+                </div>
               </th>
 
               {/* 10 Aktivitas Bongkar dari Chopper s/d Kompos */}
@@ -2376,7 +2479,11 @@ export default function LandTable({
                 </td>
               </tr>
             ) : (
-              lands.map((land) => {
+              lands.map((land, idx) => {
+                const rowNumber =
+                  sortBy === 'id' && sortOrder === 'desc' && pagination.total > 0
+                    ? pagination.total - ((page - 1) * limit + idx)
+                    : (page - 1) * limit + idx + 1;
                 return (
                   <tr
                     key={land.id}
@@ -2384,8 +2491,13 @@ export default function LandTable({
                     title="Klik baris untuk melihat detail profil lokasi"
                     className="hover:bg-slate-100/70 dark:hover:bg-slate-800/40 cursor-pointer transition-colors group"
                   >
+                    {/* 0. NO */}
+                    <td className="sticky left-0 z-10 w-[50px] min-w-[50px] max-w-[50px] overflow-hidden py-1 px-0.5 font-mono text-[10px] text-slate-400 dark:text-slate-500 border-r border-b border-slate-200 dark:border-slate-800/60 text-center align-middle bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors">
+                      {rowNumber}
+                    </td>
+
                     {/* 1. Wilayah */}
-                    <td className="sticky left-0 z-10 w-[50px] min-w-[50px] max-w-[50px] overflow-hidden py-1 px-0.5 font-semibold text-slate-800 dark:text-slate-200 border-r border-b border-slate-200 dark:border-slate-800/60 text-center align-middle bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors">
+                    <td className="sticky left-[50px] z-10 w-[54px] min-w-[54px] max-w-[54px] overflow-hidden py-1 px-0.5 font-semibold text-slate-800 dark:text-slate-200 border-l border-r border-b border-slate-200 dark:border-slate-800/60 text-center align-middle bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors">
                       <InlineCell
                         value={land.wilayah}
                         type="select"
@@ -2401,14 +2513,14 @@ export default function LandTable({
                     </td>
 
                     {/* 2. Lokasi (Read-only, fitur edit dihilangkan) */}
-                    <td className="sticky left-[50px] z-10 w-[68px] min-w-[68px] max-w-[68px] overflow-hidden py-1 px-0.5 font-bold text-emerald-600 dark:text-emerald-400 font-mono tracking-wide border-r border-b border-slate-200 dark:border-slate-800/60 text-center align-middle bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors text-[10.5px]">
+                    <td className="sticky left-[104px] z-10 w-[68px] min-w-[68px] max-w-[68px] overflow-hidden py-1 px-0.5 font-bold text-emerald-600 dark:text-emerald-400 font-mono tracking-wide border-r border-b border-slate-200 dark:border-slate-800/60 text-center align-middle bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors text-[10.5px]">
                       <span className="truncate block" title={land.lokasi}>
                         {land.lokasi || '-'}
                       </span>
                     </td>
 
                     {/* 3. Bruto */}
-                    <td className="sticky left-[118px] z-10 w-[55px] min-w-[55px] max-w-[55px] overflow-hidden py-1 px-0.5 text-center align-middle font-mono text-slate-700 dark:text-slate-300 border-r border-b border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors text-[10.5px]">
+                    <td className="sticky left-[172px] z-10 w-[60px] min-w-[60px] max-w-[60px] overflow-hidden py-1 px-0.5 text-center align-middle font-mono text-slate-700 dark:text-slate-300 border-r border-b border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors text-[10.5px]">
                       <InlineCell
                         value={land.luasBruto}
                         type="number"
@@ -2421,7 +2533,7 @@ export default function LandTable({
                     </td>
 
                     {/* 4. Netto */}
-                    <td className="sticky left-[173px] z-10 w-[55px] min-w-[55px] max-w-[55px] overflow-hidden py-1 px-0.5 text-center align-middle font-bold font-mono text-slate-900 dark:text-slate-100 border-r border-b border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors text-[10.5px]">
+                    <td className="sticky left-[232px] z-10 w-[60px] min-w-[60px] max-w-[60px] overflow-hidden py-1 px-0.5 text-center align-middle font-bold font-mono text-slate-900 dark:text-slate-100 border-l border-r border-b border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors text-[10.5px]">
                       <InlineCell
                         value={land.luasNetto}
                         type="number"
@@ -2434,7 +2546,7 @@ export default function LandTable({
                     </td>
 
                     {/* 5. STS */}
-                    <td className="sticky left-[228px] z-10 w-[66px] min-w-[66px] max-w-[66px] overflow-hidden py-1 px-0.5 border-r border-b border-slate-200 dark:border-slate-800/60 text-center align-middle bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors">
+                    <td className="sticky left-[292px] z-10 w-[66px] min-w-[66px] max-w-[66px] overflow-hidden py-1 px-0.5 border-r border-b border-slate-200 dark:border-slate-800/60 text-center align-middle bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors">
                       <InlineCell
                         value={land.status ? land.status.replace(/\d+/g, '').trim() : ''}
                         type="select"
@@ -2455,7 +2567,7 @@ export default function LandTable({
                     </td>
 
                     {/* 6. Eks */}
-                    <td className="sticky left-[294px] z-10 w-[46px] min-w-[46px] max-w-[46px] overflow-hidden py-1 px-0.5 text-center align-middle text-slate-700 dark:text-slate-300 border-r border-b border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors text-[10.5px]">
+                    <td className="sticky left-[358px] z-10 w-[52px] min-w-[52px] max-w-[52px] overflow-hidden py-1 px-0.5 text-center align-middle text-slate-700 dark:text-slate-300 border-r border-b border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors text-[10.5px]">
                       <InlineCell
                         value={land.eks}
                         align="center"
@@ -2465,7 +2577,7 @@ export default function LandTable({
                     </td>
 
                     {/* 7. Sejarah PS */}
-                    <td className="sticky left-[340px] z-10 w-[70px] min-w-[70px] max-w-[70px] overflow-hidden py-1 px-0.5 text-center align-middle text-slate-700 dark:text-slate-300 font-mono text-[9.5px] border-r border-b border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors">
+                    <td className="sticky left-[410px] z-10 w-[70px] min-w-[70px] max-w-[70px] overflow-hidden py-1 px-0.5 text-center align-middle text-slate-700 dark:text-slate-300 font-mono text-[9.5px] border-l border-r border-b border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors">
                       <InlineCell
                         value={land.sejarah}
                         align="center"
@@ -2475,7 +2587,7 @@ export default function LandTable({
                     </td>
 
                     {/* 8. Bibit & Kelas (Single Edit) */}
-                    <td className="sticky left-[410px] z-10 w-[108px] min-w-[108px] max-w-[108px] overflow-hidden py-1 px-1 border-r border-b border-slate-200 dark:border-slate-800/60 text-center align-middle bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors">
+                    <td className="sticky left-[480px] z-10 w-[108px] min-w-[108px] max-w-[108px] overflow-hidden py-1 px-1 border-r border-b border-slate-200 dark:border-slate-800/60 text-center align-middle bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors">
                       <InlineCell
                         value={land.jenisBibit && land.jenisBibit !== '0' ? `${land.jenisBibit}${land.kelasBibit && land.kelasBibit !== '0' ? ` (${land.kelasBibit})` : ''}` : ''}
                         placeholder="Contoh: TC (Std)"
@@ -2500,7 +2612,7 @@ export default function LandTable({
                     </td>
 
                     {/* 9. Bulan Tanam (Date Picker Month Only) */}
-                    <td className="sticky left-[518px] z-10 w-[80px] min-w-[80px] max-w-[80px] overflow-hidden py-1 px-0.5 text-slate-700 dark:text-slate-300 font-mono text-[9.5px] border-r border-b border-slate-200 dark:border-slate-800/60 text-center align-middle bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors">
+                    <td className="sticky left-[588px] z-10 w-[80px] min-w-[80px] max-w-[80px] overflow-hidden py-1 px-0.5 text-slate-700 dark:text-slate-300 font-mono text-[9.5px] border-r border-b border-slate-200 dark:border-slate-800/60 text-center align-middle bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors">
                       <div onClick={(e) => e.stopPropagation()} className="flex justify-center items-center">
                         <TableDatePicker
                           value={land.bulanTanam}
@@ -2517,7 +2629,7 @@ export default function LandTable({
                         onSelectLand(land.id);
                       }}
                       title="Klik untuk membuka dan mengedit detail isian data lahan"
-                      className="sticky left-[598px] z-10 w-[114px] min-w-[114px] max-w-[114px] overflow-hidden py-1 px-1 border-r-2 border-b border-slate-300 dark:border-slate-700 text-center align-middle bg-white dark:bg-slate-900 hover:bg-emerald-50 dark:hover:bg-emerald-950 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors shadow-[4px_0_10px_-2px_rgba(0,0,0,0.12)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.4)] cursor-pointer"
+                      className="sticky left-[668px] z-10 w-[114px] min-w-[114px] max-w-[114px] overflow-hidden py-1 px-1 border-r-2 border-b border-slate-300 dark:border-slate-700 text-center align-middle bg-white dark:bg-slate-900 hover:bg-emerald-50 dark:hover:bg-emerald-950 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors shadow-[4px_0_10px_-2px_rgba(0,0,0,0.12)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.4)] cursor-pointer"
                     >
                       {land.aktivitasTerakhir ? (
                         <span

@@ -460,26 +460,18 @@ export default function TableDatePicker({
             <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px]">
               <button
                 type="button"
+                onClick={handleClear}
+                className="font-medium text-rose-500 hover:underline cursor-pointer"
+              >
+                Kosongkan
+              </button>
+
+              <button
+                type="button"
                 onClick={handleSetToday}
                 className="font-medium text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
               >
                 {isMonthOnly ? 'Bulan Ini' : 'Hari Ini'}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleClear}
-                className="font-medium text-rose-500 hover:underline cursor-pointer"
-              >
-                Kosongkan (-)
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-              >
-                Tutup
               </button>
             </div>
           </div>,

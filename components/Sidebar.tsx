@@ -11,6 +11,7 @@ import {
   BarChart3,
   Menu,
   ChevronRight,
+  CalendarCheck,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -60,6 +61,13 @@ export default function Sidebar({
       icon: Boxes,
       desc: 'Bongkar, Bajak & Siap Tanam',
       colorTheme: 'orange',
+    },
+    {
+      id: 'planting',
+      label: 'Planting',
+      icon: CalendarCheck,
+      desc: 'Real Tanam Nanas (RTN)',
+      colorTheme: 'leaf',
     },
     {
       id: 'pengolahan',

@@ -43,6 +43,7 @@ model Land {
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
   activities           LandActivity[]
+  stageStockDetails    LandStageStock[]
 
   @@index([lokasi])
   @@index([wilayah])
@@ -107,25 +108,66 @@ model SeedSummary {
 }
 
 model StageStockSummary {
-  id                      Int      @id @default(autoincrement())
+  id                      Int              @id @default(autoincrement())
   year                    Int
   month                   String
   monthIndex              Int
   monthYear               String
-  bongkar                 Float    @default(0)
-  bajak                   Float    @default(0)
-  sn                      Float    @default(0)
-  tanam                   Float    @default(0)
-  stokBongkar             Float    @default(0)
-  stokBajak               Float    @default(0)
-  stokSN                  Float    @default(0)
-  totalStok               Float    @default(0)
+  bongkar                 Float            @default(0)
+  bajak                   Float            @default(0)
+  sn                      Float            @default(0)
+  tanam                   Float            @default(0)
+  stokBongkar             Float            @default(0)
+  stokBajak               Float            @default(0)
+  stokSN                  Float            @default(0)
+  totalStok               Float            @default(0)
   initialCarryoverBongkar Float?
   initialCarryoverBajak   Float?
   initialCarryoverSN      Float?
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  contributingLands       LandStageStock[]
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
 
   @@unique([year, monthIndex])
   @@index([year])
+}
+
+model LandStageStock {
+  id                  Int               @id @default(autoincrement())
+  landId              Int
+  land                Land              @relation(fields: [landId], references: [id], onDelete: Cascade)
+  stageStockSummaryId Int
+  stageStockSummary   StageStockSummary @relation(fields: [stageStockSummaryId], references: [id], onDelete: Cascade)
+  stageType           String            // "BONGKAR" | "BAJAK" | "SN" | "TANAM"
+  luasHa              Float
+  eventDate           String?
+  status              String            @default("COMPLETED")
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([landId])
+  @@index([stageStockSummaryId])
+  @@index([stageType])
+}
+
+model Planting {
+  id         Int      @id @default(autoincrement())
+  lokasi     String
+  luas       Float
+  jenisBibit String?
+  kelasBibit String?
+  realTanam  Float?
+  sisa       Float?
+  estSelesai String?
+  progress   Float?
+  awalTanam  String?
+  leadtime   Int?
+  status     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([lokasi])
+  @@index([jenisBibit])
+  @@index([kelasBibit])
+  @@index([status])
 }
