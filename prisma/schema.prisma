@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Land {
+  id                   Int            @id @default(autoincrement())
+  lokasi               String
+  wilayah              String
+  year                 Int?
+  luasBruto            Float
+  luasNetto            Float
+  status               String?
+  eks                  String?
+  sejarah              String?
+  phBk                 Float?
+  phSn                 Float?
+  rencBkr              String?
+  rencBajak            String?
+  realBkr              String?
+  realBajak            String?
+  aplikasiTerakhir     String?
+  bulanSn              String?
+  statusAplikasi       String?
+  rencMulaiTanam       String?
+  rencSelesaiTanam     String?
+  realMulaiTanam       String?
+  realSelesaiTanam     String?
+  hariWaktu            Int?
+  bulanTanam           String?
+  bulanPanen           String?
+  jenisBibit           String?
+  kelasBibit           String?
+  statusProduksi       String?
+  stdPanen             String?
+  deviasiMonth         Int?
+  progressTanam        Float?         @default(0)
+  aplikasiDetails      Json?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  activities           LandActivity[]
+
+  @@index([lokasi])
+  @@index([wilayah])
+  @@index([year])
+  @@index([status])
+  @@index([jenisBibit])
+  @@index([kelasBibit])
+  @@index([bulanTanam])
+}
+
+model LandActivity {
+  id            Int      @id @default(autoincrement())
+  landId        Int
+  land          Land     @relation(fields: [landId], references: [id], onDelete: Cascade)
+  stepOrder     Int
+  code          String
+  name          String
+  rencanaDate   String?
+  realisasiDate String?
+  status        String   // "COMPLETED", "IN_PROGRESS", "PENDING"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([landId])
+  @@index([code])
+  @@index([status])
+}
+
+model MonthlySummary {
+  id         Int      @id @default(autoincrement())
+  category   String   // "Bongkar", "Tanam"
+  monthYear  String
+  monthIndex Int
+  year       Int
+  rfc        Float?
+  rencana    Float?
+  realisasi  Float?
+  deviasi    Float?
+  akumulasi  Float?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([category])
+  @@index([year, monthIndex])
+}
+
+model SeedSummary {
+  id        Int      @id @default(autoincrement())
+  period    String
+  bibitType String
+  kelas     String
+  kebutuhan Float?
+  potensi   Float?
+  realisasi Float?
+  deviasi   Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([period])
+  @@index([bibitType])
+  @@index([kelas])
+}
+
+model StageStockSummary {
+  id                      Int      @id @default(autoincrement())
+  year                    Int
+  month                   String
+  monthIndex              Int
+  monthYear               String
+  bongkar                 Float    @default(0)
+  bajak                   Float    @default(0)
+  sn                      Float    @default(0)
+  tanam                   Float    @default(0)
+  stokBongkar             Float    @default(0)
+  stokBajak               Float    @default(0)
+  stokSN                  Float    @default(0)
+  totalStok               Float    @default(0)
+  initialCarryoverBongkar Float?
+  initialCarryoverBajak   Float?
+  initialCarryoverSN      Float?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@unique([year, monthIndex])
+  @@index([year])
+}

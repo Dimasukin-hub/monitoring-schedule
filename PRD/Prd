@@ -1,0 +1,1290 @@
+﻿# PRODUCT REQUIREMENTS DOCUMENT (PRD)
+
+## Monitor Schedule Dashboard 2026 â€” Revisi
+
+**Versi:** 2.0
+**Status:** Draft / Development Plan
+**Platform:** Web Application
+**Target:** Internal Monitoring
+**Teknologi:** Next.js, TypeScript, PostgreSQL, Prisma, Tailwind CSS, Recharts
+
+---
+
+# 1. Latar Belakang
+
+Data monitoring schedule tahun 2026 saat ini tersimpan dalam workbook Excel **Monitor Schedule - 2026.xlsx**.
+
+Workbook terdiri dari beberapa sheet yang digunakan untuk kebutuhan monitoring lahan, pengolahan lahan, tanam, bibit, panen, produksi, serta berbagai data summary.
+
+Sheet utama `Data` memiliki data detail lahan dan aktivitas pengolahan yang menjadi salah satu sumber utama dashboard. Workbook juga memiliki sheet lain seperti:
+
+* `RTN`
+* `Potensi Tanam`
+* `Summ`
+* `Summ Bibit & Panen`
+* `Monitor BB`
+* `Potensi Bibit`
+* `Pot. Sucker`
+* `Master_Asum`
+* `Pot. Crown`
+* `PotLoss`
+
+Struktur data tersebut cukup kompleks apabila digunakan langsung melalui Excel. Oleh karena itu, diperlukan sebuah **web-based monitoring dashboard** yang dapat mengubah data menjadi informasi yang lebih mudah dipantau melalui KPI, grafik, tabel, filter, pencarian, dan detail lokasi.
+
+Website tidak dimaksudkan hanya sebagai pengganti tampilan Excel, tetapi sebagai **sistem monitoring dan visualisasi data** yang mengambil data dari PostgreSQL.
+
+---
+
+# 2. Problem Statement
+
+Pengguna membutuhkan sistem yang dapat:
+
+1. Menampilkan kondisi stok lahan secara ringkas.
+2. Menampilkan stok bongkar berdasarkan realisasi BK dan bajak.
+3. Membandingkan rencana dan realisasi.
+4. Memantau tahapan pengolahan lahan.
+5. Mengetahui posisi lahan BK, BJK, dan SN berdasarkan wilayah.
+6. Mengetahui proses tanam dan selesai tanam berdasarkan wilayah.
+7. Melihat detail aktivitas terakhir suatu lokasi.
+8. Melihat tanggal rencana dan realisasi aktivitas pengolahan.
+9. Melihat daftar stok lahan berdasarkan kategori.
+10. Melakukan pencarian dan filtering data.
+11. Memperoleh informasi dari data Excel dalam bentuk visual yang lebih mudah dipahami.
+
+---
+
+# 3. Product Goal
+
+Membangun **Monitor Schedule Dashboard 2026** yang mampu menyajikan data monitoring lahan secara:
+
+* Terstruktur
+* Informatif
+* Visual
+* Interaktif
+* Mudah dicari
+* Mudah difilter
+* Mudah dibandingkan
+* Mudah ditelusuri sampai tingkat lokasi
+
+Dashboard harus membantu pengguna memahami kondisi lahan dan aktivitas monitoring tanpa harus membaca keseluruhan workbook Excel.
+
+---
+
+# 4. Target User
+
+## Primary User
+
+Pengguna internal yang melakukan monitoring:
+
+* Stok lahan
+* Bongkar
+* Bajak
+* Siap Tanam
+* Proses Tanam
+* Selesai Tanam
+* Pengolahan lahan
+* Bibit
+* Panen dan produksi
+
+## Secondary User
+
+Pengguna yang membutuhkan pengecekan detail:
+
+* Wilayah
+* Lokasi
+* Luas
+* Status
+* Aktivitas
+* Rencana
+* Realisasi
+
+---
+
+# 5. Konsep Website
+
+Website menggunakan konsep:
+
+> **MONITOR SCHEDULE 2026**
+
+Struktur navigasi utama:
+
+```text
+Overview
+â”‚
+â”œâ”€â”€ Data Lahan
+â”‚
+â”œâ”€â”€ List Stok Lahan
+â”‚
+â”œâ”€â”€ Pengolahan Lahan
+â”‚
+â”œâ”€â”€ Monitoring Tanam
+â”‚
+â”œâ”€â”€ Monitoring Bibit
+â”‚
+â””â”€â”€ Panen & Produksi
+```
+
+---
+
+# 6. Struktur Sidebar
+
+Sidebar final:
+
+```text
+MONITORING
+
+â–¦ Overview
+   Ringkasan KPI & Visualisasi
+
+ðŸ“ Data Lahan
+   Daftar & Detail Seluruh Lahan
+
+â–£ List Stok Lahan
+   Bongkar, Bajak & Siap Tanam
+
+âš™ Pengolahan Lahan
+   Tahapan Aktivitas Fisik
+
+ðŸŒ± Monitoring Tanam
+   Jadwal & Realisasi Planting
+
+ðŸŒ¾ Monitoring Bibit
+   Kebutuhan vs Potensi Bibit
+
+â–¥ Panen & Produksi
+   Proyeksi & Standar Panen
+```
+
+---
+
+# 7. OVERVIEW
+
+Overview merupakan halaman utama dashboard.
+
+Tujuannya adalah memberikan **executive summary dan kondisi monitoring secara keseluruhan**.
+
+---
+
+# 8. Executive Summary
+
+Bagian `Total Lahan` yang terdapat pada rancangan sebelumnya diganti menjadi:
+
+## Executive Summary
+
+Minimal terdiri dari:
+
+### 1. Stok Lahan
+
+Menampilkan jumlah/luas stok lahan sesuai definisi bisnis yang digunakan pada data.
+
+### 2. Stok Bongkar
+
+Stok bongkar dihitung menggunakan formula:
+
+```text
+Stok Bongkar =
+Real BK Bulan Lalu
++
+Real BK Bulan Ini
+-
+Real Bajak Bulan Ini
+```
+
+Contoh:
+
+```text
+Real BK bulan lalu   = 100 Ha
+Real BK bulan ini    = 80 Ha
+Real Bajak bulan ini = 60 Ha
+
+Stok Bongkar
+= 100 + 80 - 60
+= 120 Ha
+```
+
+Perhitungan harus dilakukan secara dinamis berdasarkan periode yang dipilih.
+
+### Tampilan
+
+```text
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ EXECUTIVE SUMMARY        â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚                          â”‚
+â”‚ STOK LAHAN               â”‚
+â”‚ XXXXX Ha                 â”‚
+â”‚                          â”‚
+â”‚ STOK BONGKAR             â”‚
+â”‚ XXXXX Ha                 â”‚
+â”‚                          â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+```
+
+### Catatan
+
+**Rumus final Stok Lahan belum ditetapkan dalam PRD ini** dan harus dikonfirmasi berdasarkan definisi bisnis/data Excel sebelum implementasi.
+
+---
+
+# 9. Rencana vs Realisasi
+
+Overview menampilkan grafik:
+
+> **Rencana vs Realisasi (Ha)**
+
+Tujuan:
+
+* Membandingkan target dengan pencapaian.
+* Melihat perkembangan dari waktu ke waktu.
+* Mengidentifikasi selisih antara rencana dan realisasi.
+
+Visualisasi menggunakan:
+
+* Line Chart atau Bar Chart.
+* Sumbu nilai dalam Ha.
+
+---
+
+# 10. Mode Tahunan dan Bulanan
+
+Grafik Rencana vs Realisasi menyediakan dua mode:
+
+```text
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚   TAHUNAN    â”‚   BULANAN    â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+```
+
+## Mode Tahunan
+
+Menampilkan data berdasarkan tahun.
+
+Contoh:
+
+```text
+2026
+```
+
+Apabila data tahun lain tersedia:
+
+```text
+2025 | 2026 | 2027
+```
+
+## Mode Bulanan
+
+Menampilkan:
+
+```text
+Jan 2026
+Feb 2026
+Mar 2026
+Apr 2026
+...
+Des 2026
+```
+
+Data diambil dari sumber Excel yang relevan, terutama `Summ` dan data monitoring yang berhubungan.
+
+---
+
+# 11. Tahapan Pengolahan Lahan
+
+Dashboard menampilkan tahapan pengolahan lahan.
+
+Istilah:
+
+> **Petak**
+
+diganti menjadi:
+
+> **Lokasi**
+
+Contoh visualisasi:
+
+```text
+Lokasi
+   â†“
+Chopper
+   â†“
+Dolomit
+   â†“
+Bajak
+   â†“
+Subsoiler
+   â†“
+Finishing
+   â†“
+Ridger
+   â†“
+Siap Tanam
+```
+
+Setiap tahap menunjukkan jumlah atau progress berdasarkan **lokasi**.
+
+Data utama berasal dari sheet `Data`.
+
+---
+
+# 12. Posisi Lahan per Wilayah
+
+Overview menampilkan posisi lahan berdasarkan:
+
+* BK â€” Bongkar
+* BJK â€” Bajak
+* SN â€” Siap Tanam
+
+Masing-masing kategori dibuat menjadi **grafik tersendiri**.
+
+---
+
+## 12.1 Grafik BK
+
+Judul:
+
+> **Posisi Lahan BK per Wilayah**
+
+Contoh:
+
+```text
+W01 â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ
+W02 â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ
+W03 â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ
+W04 â–ˆâ–ˆâ–ˆâ–ˆâ–ˆ
+```
+
+---
+
+## 12.2 Grafik BJK
+
+Judul:
+
+> **Posisi Lahan BJK per Wilayah**
+
+Contoh:
+
+```text
+W01 â–ˆâ–ˆâ–ˆâ–ˆâ–ˆ
+W02 â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ
+W03 â–ˆâ–ˆâ–ˆâ–ˆ
+W04 â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ
+```
+
+---
+
+## 12.3 Grafik SN
+
+Judul:
+
+> **Posisi Lahan SN per Wilayah**
+
+Contoh:
+
+```text
+W01 â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ
+W02 â–ˆâ–ˆâ–ˆâ–ˆâ–ˆ
+W03 â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ
+W04 â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ
+```
+
+---
+
+# 13. Interaksi Grafik Posisi Lahan
+
+Grafik harus bersifat interaktif.
+
+Ketika cursor diarahkan ke sebuah batang wilayah, muncul tooltip.
+
+Contoh:
+
+```text
+W01
+
+Jumlah Lokasi: 8
+
+Lokasi:
+001A
+001B1
+001B2
+001C
+001D
+002A1
+002A2
+002B
+```
+
+Dengan demikian pengguna dapat mengetahui **lokasi yang membentuk jumlah pada setiap wilayah**.
+
+Tooltip harus mengambil data aktual dari database.
+
+---
+
+# 14. Grafik Proses Tanam dan Selesai Tanam
+
+Overview menampilkan grafik:
+
+> **Proses Tanam & Selesai Tanam per Wilayah**
+
+Kategori:
+
+* Proses Tanam
+* Selesai Tanam
+
+Contoh:
+
+```text
+W01  â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ   â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ
+W02  â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ      â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ
+W03  â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ   â–ˆâ–ˆâ–ˆâ–ˆâ–ˆ
+W04  â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ     â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ
+```
+
+Wilayah berasal dari data aktual Excel, misalnya:
+
+```text
+W01
+W02
+W03
+W04
+...
+```
+
+Tooltip menampilkan:
+
+```text
+W01
+
+Proses Tanam:
+5 lokasi
+
+Lokasi:
+002A2
+...
+```
+
+atau:
+
+```text
+W01
+
+Selesai Tanam:
+12 lokasi
+
+Lokasi:
+001A
+001B1
+...
+```
+
+---
+
+# 15. DATA LAHAN
+
+Halaman Data Lahan digunakan untuk melihat daftar seluruh lokasi dan detail aktivitasnya.
+
+---
+
+# 16. Perubahan Kolom Data Lahan
+
+Kolom:
+
+> `Bulan Panen`
+
+**dihapus dari tabel utama.**
+
+Kolom:
+
+> `Status Tanam`
+
+diganti menjadi:
+
+> **Aktivitas Terakhir**
+
+Struktur dasar:
+
+| Wilayah | Lokasi | Luas Bruto | Luas Netto | Status | Bibit & Kelas | Bulan Tanam | Aktivitas Terakhir | Aksi |
+| ------- | ------ | ---------: | ---------: | ------ | ------------- | ----------- | ------------------ | ---- |
+
+---
+
+# 17. Aktivitas Terakhir
+
+`Aktivitas Terakhir` tidak diinput secara manual.
+
+Sistem menentukan aktivitas terakhir berdasarkan aktivitas/realisasi terakhir yang tercatat pada data.
+
+Contoh:
+
+```text
+Chopper
+â†“
+Dolomit
+â†“
+Bajak
+â†“
+Subsoiler
+â†“
+Finishing
+â†“
+Ridger
+â†“
+Tanam
+```
+
+Jika aktivitas terakhir adalah `Ridger`:
+
+```text
+Aktivitas Terakhir
+Ridger
+```
+
+Jika sudah selesai tanam:
+
+```text
+Aktivitas Terakhir
+Selesai Tanam
+```
+
+---
+
+# 18. Rencana vs Realisasi Aktivitas
+
+Di Data Lahan ditambahkan kelompok:
+
+> **Rencana vs Real**
+
+untuk aktivitas:
+
+1. Chopper
+2. Chopper Lu
+3. RH1
+4. Cutting Banana
+5. Dolomit
+
+Setiap aktivitas mempunyai:
+
+* Tanggal Rencana
+* Tanggal Realisasi
+
+Contoh:
+
+| Aktivitas      | Rencana    | Real       |
+| -------------- | ---------- | ---------- |
+| Chopper        | 05/09/2026 | 06/09/2026 |
+| Chopper Lu     | 07/09/2026 | 08/09/2026 |
+| RH1            | 09/09/2026 | 10/09/2026 |
+| Cutting Banana | 11/09/2026 | 11/09/2026 |
+| Dolomit        | 12/09/2026 | 13/09/2026 |
+
+Tanggal diambil dari data Excel.
+
+---
+
+# 19. Header Tabel Bertingkat
+
+Karena jumlah kolom akan bertambah, tabel menggunakan **grouped header**.
+
+Konsep:
+
+```text
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ DATA LAHAN   â”‚              RENCANA VS REAL              â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚ Lokasi       â”‚ Chopper â”‚ Chopper Lu â”‚ RH1 â”‚ ... â”‚ Dolomitâ”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚              â”‚ R â”‚ A   â”‚ R â”‚ A      â”‚ R A â”‚ ... â”‚ R A    â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+```
+
+Keterangan:
+
+* R = Rencana
+* A = Aktual/Real
+
+---
+
+# 20. Filter Data Lahan
+
+Filter minimum:
+
+* Wilayah
+* Bibit
+* Kelas Bibit
+* Bulan Tanam
+* Status
+
+Search:
+
+```text
+Cari lokasi / wilayah...
+```
+
+Search dapat digunakan untuk mencari:
+
+* Kode lokasi
+* Wilayah
+* Status
+* Data terkait
+
+---
+
+# 21. LIST STOK LAHAN
+
+Ditambahkan menu baru:
+
+> **List Stok Lahan**
+
+Menu ini digunakan untuk menampilkan posisi/stok lahan berdasarkan kategori.
+
+Kategori:
+
+```text
+BK
+BJK
+SN
+Proses Tanam
+Selesai Tanam
+```
+
+---
+
+# 22. Navigasi List Stok
+
+Bagian atas halaman dapat menggunakan tab:
+
+```text
+â”Œâ”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚  BK  â”‚  BJK  â”‚  SN  â”‚ Proses Tanam    â”‚ Selesai Tanam   â”‚
+â””â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+```
+
+Ketika pengguna memilih kategori, tabel menampilkan lokasi yang termasuk kategori tersebut.
+
+---
+
+# 23. Struktur Tabel List Stok Lahan
+
+Kolom:
+
+| Wilayah | Lokasi | Luas Bruto | Luas Netto | Status | Eks | Sejarah PS | PH |
+| ------- | ------ | ---------: | ---------: | ------ | --- | ---------- | -- |
+
+Kolom `PH` mempunyai dua subkolom:
+
+```text
+PH
+â”œâ”€â”€ BK
+â””â”€â”€ SN
+```
+
+Tampilan:
+
+| Wilayah | Lokasi | Luas Bruto | Luas Netto | Status | Eks | Sejarah PS | **PH** | **PH** |
+| ------- | ------ | ---------: | ---------: | ------ | --- | ---------- | ------ | ------ |
+|         |        |            |            |        |     |            | **BK** | **SN** |
+
+Sumber data mengikuti struktur workbook.
+
+---
+
+# 24. Monitoring Tanam
+
+Halaman Monitoring Tanam digunakan untuk melihat:
+
+* Rencana mulai tanam
+* Rencana selesai tanam
+* Realisasi mulai tanam
+* Realisasi selesai tanam
+* Bibit
+* Kelas bibit
+* Bulan tanam
+* Status/progress tanam
+* Lokasi
+* Wilayah
+
+Visualisasi:
+
+* Rencana vs realisasi
+* Proses tanam
+* Selesai tanam
+* Distribusi berdasarkan wilayah
+
+---
+
+# 25. Monitoring Bibit
+
+Sumber:
+
+* `Potensi Tanam`
+* `Monitor BB`
+* `Potensi Bibit`
+* `Pot. Sucker`
+* `Pot. Crown`
+
+Informasi:
+
+* Kebutuhan bibit
+* Potensi bibit
+* Realisasi
+* Kelas bibit
+* Sumber bibit
+* Periode
+* Deviasi
+
+---
+
+# 26. Panen & Produksi
+
+Sumber:
+
+* `Data`
+* `Summ Bibit & Panen`
+* `Pot. Sucker`
+* `Pot. Crown`
+* `PotLoss`
+
+Informasi:
+
+* Bulan panen
+* Jenis
+* Kelas
+* Status produksi
+* Standard panen
+* Deviasi
+* Potensi
+* Loss
+
+---
+
+# 27. Detail Lokasi
+
+Ketika pengguna memilih suatu lokasi, website menampilkan detail.
+
+Contoh:
+
+```text
+LOKASI 001A
+```
+
+### Informasi Lahan
+
+* Wilayah
+* Lokasi
+* Luas Bruto
+* Luas Netto
+* Status
+* Eks
+* Sejarah
+* pH
+* BKR
+
+### Timeline Aktivitas
+
+```text
+Chopper
+   â†“
+Dolomit
+   â†“
+Bajak
+   â†“
+Subsoiler
+   â†“
+Finishing
+   â†“
+Ridger
+   â†“
+Tanam
+```
+
+Setiap aktivitas menampilkan:
+
+* Rencana
+* Realisasi
+* Status
+
+### Informasi Tanam
+
+* Rencana tanam
+* Realisasi tanam
+* Bibit
+* Kelas
+* Bulan Tanam
+
+### Informasi Produksi
+
+* Status produksi
+* Standard panen
+* Bulan panen
+* Deviasi
+
+---
+
+# 28. Data Source
+
+Data berasal dari workbook:
+
+**Monitor Schedule - 2026.xlsx**
+
+Sheet utama:
+
+| Sheet                | Fungsi                                 |
+| -------------------- | -------------------------------------- |
+| `Data`               | Data utama lahan dan aktivitas         |
+| `RTN`                | Monitoring realisasi tanam             |
+| `Potensi Tanam`      | Potensi dan kebutuhan tanam            |
+| `Summ`               | Summary rencana, realisasi dan deviasi |
+| `Summ Bibit & Panen` | Monitoring bibit dan panen             |
+| `Monitor BB`         | Monitoring bibit                       |
+| `Potensi Bibit`      | Potensi bibit                          |
+| `Pot. Sucker`        | Potensi sucker                         |
+| `Master_Asum`        | Master asumsi                          |
+| `Pot. Crown`         | Potensi crown                          |
+| `PotLoss`            | Potensi loss                           |
+
+Excel digunakan sebagai **sumber data**, sedangkan PostgreSQL menjadi database aplikasi.
+
+---
+
+# 29. Data Processing
+
+Alur:
+
+```text
+Excel
+  â†“
+Data Cleaning
+  â†“
+Data Mapping
+  â†“
+Data Transformation
+  â†“
+PostgreSQL
+  â†“
+Prisma
+  â†“
+Next.js
+  â†“
+Dashboard
+```
+
+Perhitungan seperti:
+
+* Stok Bongkar
+* Aktivitas Terakhir
+* Jumlah lokasi per status
+* Rencana vs Realisasi
+* Posisi BK/BJK/SN
+
+dilakukan berdasarkan data yang tersimpan di database.
+
+---
+
+# 30. Database Architecture
+
+Database tidak dibuat berdasarkan jumlah sheet secara langsung.
+
+Entity utama yang direncanakan:
+
+```text
+Land
+â”‚
+â”œâ”€â”€ Land Activity
+â”‚
+â”œâ”€â”€ Planting Monitor
+â”‚
+â”œâ”€â”€ Seed
+â”‚
+â””â”€â”€ Production
+```
+
+Data summary dapat diperoleh melalui query/agregasi.
+
+Struktur database final harus mengikuti mapping aktual workbook.
+
+---
+
+# 31. Teknologi
+
+## Frontend
+
+* Next.js
+* TypeScript
+* React
+* Tailwind CSS
+* Recharts
+
+## Backend
+
+* Next.js API / Server-side functions
+
+## Database
+
+* PostgreSQL
+
+## ORM
+
+* Prisma 6
+
+## Development
+
+* Visual Studio Code
+
+---
+
+# 32. Arsitektur Sistem
+
+```text
+                    USER
+                      â”‚
+                      â–¼
+              â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+              â”‚   Next.js    â”‚
+              â”‚  Dashboard   â”‚
+              â””â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”˜
+                     â”‚
+                     â–¼
+              â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+              â”‚ API / Server â”‚
+              â””â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”˜
+                     â”‚
+                     â–¼
+                â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                â”‚ Prisma  â”‚
+                â””â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”˜
+                     â”‚
+                     â–¼
+              â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+              â”‚ PostgreSQL   â”‚
+              â””â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”˜
+                     â”‚
+                     â–¼
+            Monitor Schedule Data
+```
+
+---
+
+# 33. Development Phase
+
+## Phase 1 â€” Project Setup
+
+* [x] Next.js
+* [x] TypeScript
+* [x] ESLint
+* [x] React Compiler
+* [x] Tailwind CSS
+* [x] App Router
+* [x] PostgreSQL
+* [x] Prisma
+* [x] Database `monitor_schedule`
+
+---
+
+# 34. Phase 2 â€” Data Analysis
+
+* [x] Memeriksa workbook
+* [x] Mengidentifikasi 11 sheet
+* [x] Mengidentifikasi struktur sheet `Data`
+* [x] Mengidentifikasi sumber data monitoring
+* [x] Menentukan kebutuhan visualisasi
+* [x] Menentukan revisi dashboard
+* [ ] Mapping kolom Excel secara final
+* [ ] Validasi definisi BK
+* [ ] Validasi definisi BJK
+* [ ] Validasi definisi SN
+* [ ] Validasi definisi PH
+* [ ] Menentukan rumus Stok Lahan
+
+---
+
+# 35. Phase 3 â€” Database
+
+* [ ] Finalisasi database schema
+* [ ] Membuat Prisma schema
+* [ ] Membuat migration
+* [ ] Membuat tabel
+* [ ] Import data Excel
+* [ ] Validasi data
+* [ ] Validasi jumlah lokasi
+* [ ] Validasi luas
+* [ ] Validasi tanggal
+* [ ] Validasi relasi
+
+---
+
+# 36. Phase 4 â€” Backend
+
+### API Overview
+
+* [ ] Executive Summary
+* [ ] Stok Lahan
+* [ ] Stok Bongkar
+* [ ] Rencana vs Realisasi
+* [ ] Tahapan Pengolahan
+* [ ] Posisi BK
+* [ ] Posisi BJK
+* [ ] Posisi SN
+* [ ] Proses Tanam
+* [ ] Selesai Tanam
+
+### API Data Lahan
+
+* [ ] Daftar lahan
+* [ ] Detail lahan
+* [ ] Aktivitas terakhir
+* [ ] Rencana aktivitas
+* [ ] Realisasi aktivitas
+
+### API List Stok
+
+* [ ] BK
+* [ ] BJK
+* [ ] SN
+* [ ] Proses Tanam
+* [ ] Selesai Tanam
+
+---
+
+# 37. Phase 5 â€” Frontend
+
+## Overview
+
+* [ ] Executive Summary
+* [ ] Stok Lahan
+* [ ] Stok Bongkar
+* [ ] Grafik Rencana vs Realisasi
+* [ ] Toggle Tahunan/Bulanan
+* [ ] Tahapan Pengolahan Lahan
+* [ ] Grafik BK
+* [ ] Grafik BJK
+* [ ] Grafik SN
+* [ ] Grafik Proses Tanam
+* [ ] Grafik Selesai Tanam
+* [ ] Tooltip lokasi
+
+## Data Lahan
+
+* [ ] Tabel
+* [ ] Search
+* [ ] Filter
+* [ ] Aktivitas Terakhir
+* [ ] Rencana vs Real Chopper
+* [ ] Rencana vs Real Chopper Lu
+* [ ] Rencana vs Real RH1
+* [ ] Rencana vs Real Cutting Banana
+* [ ] Rencana vs Real Dolomit
+* [ ] Detail lokasi
+
+## List Stok Lahan
+
+* [ ] Tab BK
+* [ ] Tab BJK
+* [ ] Tab SN
+* [ ] Tab Proses Tanam
+* [ ] Tab Selesai Tanam
+* [ ] Tabel stok
+* [ ] PH â†’ BK
+* [ ] PH â†’ SN
+
+---
+
+# 38. Phase 6 â€” Testing
+
+## Functional Testing
+
+Memastikan:
+
+* Dashboard dapat dibuka.
+* Semua menu dapat dibuka.
+* Search berfungsi.
+* Filter berfungsi.
+* Grafik menampilkan data.
+* Tooltip menampilkan lokasi.
+* Toggle tahunan/bulanan berfungsi.
+* Detail lokasi dapat dibuka.
+* List stok dapat difilter berdasarkan kategori.
+
+## Data Validation
+
+Membandingkan:
+
+```text
+Excel
+   VS
+PostgreSQL
+   VS
+Dashboard
+```
+
+Contoh validasi:
+
+```text
+Jumlah Lokasi
+Luas Bruto
+Luas Netto
+Real BK
+Real Bajak
+Real Tanam
+Selesai Tanam
+```
+
+---
+
+# 39. Acceptance Criteria
+
+MVP dianggap berhasil apabila:
+
+1. Website dapat dijalankan.
+2. PostgreSQL dapat terhubung melalui Prisma.
+3. Data Excel berhasil masuk ke database.
+4. Overview dapat menampilkan Executive Summary.
+5. Stok Bongkar dihitung dengan formula yang ditentukan.
+6. Grafik Rencana vs Realisasi dapat ditampilkan.
+7. Mode Tahunan dan Bulanan dapat digunakan.
+8. Tahapan pengolahan menggunakan istilah **Lokasi**.
+9. Grafik BK tersedia per wilayah.
+10. Grafik BJK tersedia per wilayah.
+11. Grafik SN tersedia per wilayah.
+12. Tooltip grafik dapat menampilkan daftar lokasi.
+13. Grafik Proses Tanam tersedia per wilayah.
+14. Grafik Selesai Tanam tersedia per wilayah.
+15. Data Lahan tidak lagi menggunakan kolom Bulan Panen pada tabel utama.
+16. Status Tanam diganti menjadi Aktivitas Terakhir.
+17. Data Chopper sampai Dolomit memiliki Rencana dan Real.
+18. Tanggal Rencana dan Real dapat ditampilkan.
+19. Menu List Stok Lahan tersedia.
+20. List Stok memiliki kategori BK, BJK, SN, Proses Tanam, dan Selesai Tanam.
+21. Struktur PH memiliki subkolom BK dan SN.
+22. Search dan filter berjalan.
+23. Data dashboard dapat diverifikasi terhadap Excel.
+
+---
+
+# 40. Prioritas Development
+
+Karena project tidak harus selesai dalam satu hari, development dilakukan bertahap.
+
+## Prioritas 1 â€” MVP
+
+```text
+Overview
+â”‚
+â”œâ”€â”€ Executive Summary
+â”œâ”€â”€ Rencana vs Realisasi
+â”œâ”€â”€ Tahapan Pengolahan
+â”œâ”€â”€ BK
+â”œâ”€â”€ BJK
+â”œâ”€â”€ SN
+â””â”€â”€ Proses/Selesai Tanam
+```
+
+## Prioritas 2
+
+```text
+Data Lahan
+â”‚
+â”œâ”€â”€ Search
+â”œâ”€â”€ Filter
+â”œâ”€â”€ Aktivitas Terakhir
+â””â”€â”€ Rencana vs Real
+```
+
+## Prioritas 3
+
+```text
+List Stok Lahan
+â”‚
+â”œâ”€â”€ BK
+â”œâ”€â”€ BJK
+â”œâ”€â”€ SN
+â”œâ”€â”€ Proses Tanam
+â””â”€â”€ Selesai Tanam
+```
+
+## Prioritas 4
+
+```text
+Monitoring Tanam
+Monitoring Bibit
+Panen & Produksi
+Detail Lahan
+```
+
+---
+
+# 41. Prinsip Pengembangan
+
+Website tidak dibuat sebagai salinan langsung workbook Excel.
+
+Prinsip yang digunakan:
+
+> **Excel sebagai sumber data, PostgreSQL sebagai database, dan Dashboard sebagai media monitoring.**
+
+Selain itu:
+
+> **Data yang ditampilkan harus memiliki hubungan yang jelas dengan data sumber.**
+
+Perhitungan tidak boleh dibuat berdasarkan angka manual.
+
+---
+
+# 42. Roadmap Final
+
+```text
+ANALISIS EXCEL
+      â†“
+DATA MAPPING
+      â†“
+DATABASE DESIGN
+      â†“
+PRISMA SCHEMA
+      â†“
+IMPORT DATA
+      â†“
+VALIDASI DATA
+      â†“
+API
+      â†“
+OVERVIEW
+      â†“
+DATA LAHAN
+      â†“
+LIST STOK LAHAN
+      â†“
+MONITORING TANAM
+      â†“
+MONITORING BIBIT
+      â†“
+PANEN & PRODUKSI
+      â†“
+DETAIL LAHAN
+      â†“
+TESTING
+      â†“
+FINALISASI
+```
+
+---
+
+# 43. Status Project Saat Ini
+
+```text
+Project Setup             â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ 100%
+Analisis Workbook         â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ 100%
+PRD                       â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ 100%
+Data Mapping              â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘  55%
+Database Design           â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘   0%
+Data Import               â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘   0%
+Backend                   â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘   0%
+Dashboard                 â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘   0%
+Testing                   â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘   0%
+```
+
+## Titik Pengerjaan Saat Ini
+
+Kita berada di antara:
+
+**Data Mapping â†’ Database Design**
+
+Sebelum menulis kode database final, kita harus memastikan definisi **Stok Lahan, BK, BJK, SN, dan PH** sesuai dengan data operasional yang sebenarnya.
+
+Setelah definisi tersebut dikunci, PRD ini menjadi **blueprint utama** untuk seluruh proses pembuatan Monitor Schedule Dashboard 2026.

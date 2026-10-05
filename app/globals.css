@@ -1,0 +1,156 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-ggf-green: #00873D;
+  --color-ggf-green-dark: #00682E;
+  --color-ggf-green-light: #EAF6ED;
+  --color-ggf-orange: #F58220;
+  --color-ggf-orange-dark: #D96E14;
+  --color-ggf-orange-light: #FEF4EB;
+  --color-ggf-leaf: #84BD00;
+  --color-ggf-lime: #C4D600;
+  --color-ggf-blue: #009EE2;
+  --color-ggf-blue-dark: #0082BC;
+  --color-ggf-blue-light: #E7F6FC;
+}
+
+@layer base {
+  :root {
+    --background: #f8faf9;
+    --foreground: #0f172a;
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --border: #e2e8e4;
+    --primary: #00873D;
+    --primary-foreground: #ffffff;
+  }
+
+  .dark {
+    --background: #060e0a;
+    --foreground: #f8fafc;
+    --card: #0b1811;
+    --card-foreground: #f8fafc;
+    --border: #13271c;
+    --primary: #00a84c;
+    --primary-foreground: #ffffff;
+  }
+}
+
+/* Custom Scrollbar styled with GGF Green */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.8);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 135, 61, 0.35);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 135, 61, 0.65);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: rgba(11, 24, 17, 0.6);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(0, 135, 61, 0.45);
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 168, 76, 0.75);
+}
+
+/* Glassmorphism helpers with GGF Green & Clean Organic Touch */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 4px 20px -2px rgba(0, 135, 61, 0.05);
+}
+
+.dark .glass-panel {
+  background: rgba(11, 24, 17, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(0, 168, 76, 0.15);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.4);
+}
+
+.glass-panel-hover {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel-hover:hover {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(0, 135, 61, 0.45);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 12px -6px rgba(0, 135, 61, 0.2);
+}
+
+.dark .glass-panel-hover:hover {
+  background: rgba(16, 34, 25, 0.92);
+  border-color: rgba(0, 168, 76, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 12px -6px rgba(0, 168, 76, 0.25);
+}
+
+/* GGF Glow Effects */
+.glow-ggf-green {
+  box-shadow: 0 0 25px -3px rgba(0, 135, 61, 0.35);
+}
+
+.glow-ggf-orange {
+  box-shadow: 0 0 25px -3px rgba(245, 130, 32, 0.35);
+}
+
+.glow-ggf-blue {
+  box-shadow: 0 0 25px -3px rgba(0, 158, 226, 0.35);
+}
+
+.glow-emerald {
+  box-shadow: 0 0 20px -3px rgba(0, 135, 61, 0.25);
+}
+
+.glow-cyan {
+  box-shadow: 0 0 20px -3px rgba(0, 158, 226, 0.25);
+}
+
+.glow-amber {
+  box-shadow: 0 0 20px -3px rgba(245, 130, 32, 0.25);
+}
+
+/* Ambient GGF background gradient */
+.ggf-ambient-bg {
+  background-image: 
+    radial-gradient(circle at 10% 5%, rgba(0, 135, 61, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 90% 8%, rgba(245, 130, 32, 0.07) 0%, transparent 40%),
+    radial-gradient(circle at 50% 95%, rgba(0, 158, 226, 0.05) 0%, transparent 50%);
+}
+
+.dark .ggf-ambient-bg {
+  background-image: 
+    radial-gradient(circle at 10% 5%, rgba(0, 168, 76, 0.15) 0%, transparent 45%),
+    radial-gradient(circle at 90% 8%, rgba(245, 130, 32, 0.12) 0%, transparent 40%),
+    radial-gradient(circle at 50% 95%, rgba(0, 158, 226, 0.08) 0%, transparent 50%);
+}
+
+/* Sembunyikan indikator issues Next.js dev overlay di pojok kiri bawah */
+nextjs-portal,
+[data-nextjs-toast],
+[data-nextjs-dev-overlay],
+#nextjs-dev-tools,
+div[data-nextjs-dev-overlay] {
+  display: none !important;
+}
+
