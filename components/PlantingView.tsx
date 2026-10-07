@@ -23,9 +23,9 @@ import {
   CheckCheck,
   XCircle,
   X,
-  RotateCcw,
 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
+import PlantingDetailDrawer from '@/components/PlantingDetailDrawer';
 
 interface PlantingItem {
   id: number;
@@ -233,6 +233,9 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
 
   // Start Inline Editing for text/number/select
   const startEdit = (item: PlantingItem, field: string) => {
+    if (editingCell?.id === item.id && editingCell?.field === field) {
+      return;
+    }
     setHoverDatePicker(null);
     setEditingCell({ id: item.id, field });
     setEditValue(item[field as keyof PlantingItem] ?? '');
@@ -742,10 +745,11 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
       </div>
 
       {/* 3. Search & Multi-Centang Filters Toolbar (Poin 2 & Poin 4) */}
-      <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center gap-3" ref={dropdownRef}>
+      <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3" ref={dropdownRef}>
+        <div className="flex flex-col md:flex-row md:items-center gap-3">
         {/* Search input (Cari lokasi saja + Tombol Silang Bulat) */}
-        <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <div className="relative flex-1 flex items-center">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-400 pointer-events-none z-10" />
           <input
             type="text"
             placeholder="Cari lokasi"
@@ -763,7 +767,7 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                 setSearch('');
                 setPage(1);
               }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-0.5"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-0.5 z-10 cursor-pointer"
               title="Hapus pencarian"
             >
               <XCircle className="w-4 h-4" />
@@ -808,10 +812,9 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                         setSelectedJenis([]);
                         setPage(1);
                       }}
-                      className="text-xs font-semibold text-red-500 hover:underline flex items-center gap-0.5"
+                      className="text-xs font-semibold text-red-500 hover:underline cursor-pointer"
                     >
-                      <RotateCcw className="w-3 h-3" />
-                      <span>Reset</span>
+                      Reset
                     </button>
                   )}
                 </div>
@@ -886,10 +889,9 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                         setSelectedKelas([]);
                         setPage(1);
                       }}
-                      className="text-xs font-semibold text-red-500 hover:underline flex items-center gap-0.5"
+                      className="text-xs font-semibold text-red-500 hover:underline cursor-pointer"
                     >
-                      <RotateCcw className="w-3 h-3" />
-                      <span>Reset</span>
+                      Reset
                     </button>
                   )}
                 </div>
@@ -964,10 +966,9 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                         setSelectedStatus([]);
                         setPage(1);
                       }}
-                      className="text-xs font-semibold text-red-500 hover:underline flex items-center gap-0.5"
+                      className="text-xs font-semibold text-red-500 hover:underline cursor-pointer"
                     >
-                      <RotateCcw className="w-3 h-3" />
-                      <span>Reset</span>
+                      Reset
                     </button>
                   )}
                 </div>
@@ -1011,23 +1012,131 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
             )}
           </div>
 
-          {/* Reset Filters Toolbar Utama */}
-          {(selectedJenis.length > 0 || selectedKelas.length > 0 || selectedStatus.length > 0 || search) && (
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedJenis([]);
-                setSelectedKelas([]);
-                setSelectedStatus([]);
-                setSearch('');
-                setPage(1);
-              }}
-              className="px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors border border-red-200 dark:border-red-900/40"
-            >
-              Reset
-            </button>
-          )}
         </div>
+      </div>
+
+        {/* Active Filter Badges */}
+        {(selectedJenis.length > 0 || selectedKelas.length > 0 || selectedStatus.length > 0 || search) && (
+          <div className="pt-2.5 mt-1 border-t border-dashed border-slate-200 dark:border-slate-800/80 space-y-2 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 leading-none">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                <span>Data Difilter:</span>
+                <span className="text-[11px] font-normal text-slate-400 dark:text-slate-500">
+                  ({selectedJenis.length + selectedKelas.length + selectedStatus.length + (search ? 1 : 0)} filter aktif)
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedJenis([]);
+                  setSelectedKelas([]);
+                  setSelectedStatus([]);
+                  setSearch('');
+                  setPage(1);
+                }}
+                className="text-xs font-semibold text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 underline underline-offset-2 cursor-pointer transition-colors leading-none inline-flex items-center"
+                title="Hapus semua filter"
+              >
+                Reset
+              </button>
+            </div>
+
+            <div className="flex items-center flex-wrap gap-1.5">
+              {/* Lokasi / Search badge */}
+              {search && (
+                <span
+                  key={`search-${search}`}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 shadow-2xs transition-all hover:bg-slate-200 dark:hover:bg-slate-700/80"
+                >
+                  <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Lokasi:</span>
+                  <span className="font-semibold">&quot;{search}&quot;</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearch('');
+                      setPage(1);
+                    }}
+                    className="p-0.5 rounded-full hover:bg-rose-500 hover:text-white text-slate-600 dark:text-slate-400 transition-colors cursor-pointer"
+                    title="Hapus pencarian lokasi"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              )}
+
+              {/* Jenis Bibit badges */}
+              {selectedJenis.map((jb) => (
+                <span
+                  key={`jb-${jb}`}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 shadow-2xs transition-all hover:bg-emerald-100 dark:hover:bg-emerald-900/60"
+                >
+                  <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">Jenis:</span>
+                  <span className="font-semibold">{jb}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedJenis((prev) => prev.filter((item) => item !== jb));
+                      setPage(1);
+                    }}
+                    className="p-0.5 rounded-full hover:bg-rose-500 hover:text-white text-emerald-700 dark:text-emerald-300 transition-colors cursor-pointer"
+                    title={`Hapus filter Jenis Bibit ${jb}`}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              ))}
+
+              {/* Kelas Bibit badges */}
+              {selectedKelas.map((kb) => (
+                <span
+                  key={`kb-${kb}`}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium bg-blue-50 dark:bg-blue-950/60 border border-blue-300 dark:border-blue-800 text-blue-800 dark:text-blue-300 shadow-2xs transition-all hover:bg-blue-100 dark:hover:bg-blue-900/60"
+                >
+                  <span className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400">Kelas:</span>
+                  <span className="font-semibold">{kb}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedKelas((prev) => prev.filter((item) => item !== kb));
+                      setPage(1);
+                    }}
+                    className="p-0.5 rounded-full hover:bg-rose-500 hover:text-white text-blue-700 dark:text-blue-300 transition-colors cursor-pointer"
+                    title={`Hapus filter Kelas Bibit ${kb}`}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              ))}
+
+              {/* Status badges */}
+              {selectedStatus.map((st) => {
+                const label = st === 'SELESAI' ? 'Selesai' : st === 'PROSES' ? 'Proses' : st === 'BELUM TANAM' ? 'Belum Tanam' : st;
+                return (
+                  <span
+                    key={`st-${st}`}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 shadow-2xs transition-all hover:bg-amber-100 dark:hover:bg-amber-900/60"
+                  >
+                    <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400">Status:</span>
+                    <span className="font-semibold">{label}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedStatus((prev) => prev.filter((item) => item !== st));
+                        setPage(1);
+                      }}
+                      className="p-0.5 rounded-full hover:bg-rose-500 hover:text-white text-amber-700 dark:text-amber-300 transition-colors cursor-pointer"
+                      title={`Hapus filter Status ${label}`}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 4. Table RTN (Update Real Tanam Nanas: Lokasi s/d Leadtime) */}
@@ -1277,13 +1386,15 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                             type="number"
                             step="0.01"
                             value={editValue}
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
                             onChange={(e) => setEditValue(e.target.value)}
-                            onBlur={() => saveInlineEdit(item, 'luas', editValue)}
+                            onBlur={(e) => saveInlineEdit(item, 'luas', e.target.value)}
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter') saveInlineEdit(item, 'luas', editValue);
+                              if (e.key === 'Enter') saveInlineEdit(item, 'luas', (e.target as HTMLInputElement).value);
                               if (e.key === 'Escape') cancelEdit();
                             }}
-                            className="w-20 px-1.5 py-0.5 text-center text-xs font-bold rounded border border-emerald-500 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm mx-auto block"
+                            className="w-24 px-1.5 py-0.5 text-center text-xs font-bold rounded border border-emerald-500 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm mx-auto block"
                           />
                         ) : (
                           <div className="flex items-center justify-center gap-1 group-hover:text-emerald-600">
@@ -1308,12 +1419,14 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                           <select
                             ref={inputRef as any}
                             value={editValue}
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
                             onChange={(e) => {
                               const val = e.target.value;
                               setEditValue(val);
                               saveInlineEdit(item, 'jenisBibit', val);
                             }}
-                            onBlur={() => saveInlineEdit(item, 'jenisBibit', editValue)}
+                            onBlur={(e) => saveInlineEdit(item, 'jenisBibit', e.target.value)}
                             onKeyDown={(e) => {
                               if (e.key === 'Escape') cancelEdit();
                             }}
@@ -1342,12 +1455,14 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                           <select
                             ref={inputRef as any}
                             value={editValue}
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
                             onChange={(e) => {
                               const val = e.target.value;
                               setEditValue(val);
                               saveInlineEdit(item, 'kelasBibit', val);
                             }}
-                            onBlur={() => saveInlineEdit(item, 'kelasBibit', editValue)}
+                            onBlur={(e) => saveInlineEdit(item, 'kelasBibit', e.target.value)}
                             onKeyDown={(e) => {
                               if (e.key === 'Escape') cancelEdit();
                             }}
@@ -1380,13 +1495,15 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                             type="number"
                             step="0.01"
                             value={editValue}
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
                             onChange={(e) => setEditValue(e.target.value)}
-                            onBlur={() => saveInlineEdit(item, 'realTanam', editValue)}
+                            onBlur={(e) => saveInlineEdit(item, 'realTanam', e.target.value)}
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter') saveInlineEdit(item, 'realTanam', editValue);
+                              if (e.key === 'Enter') saveInlineEdit(item, 'realTanam', (e.target as HTMLInputElement).value);
                               if (e.key === 'Escape') cancelEdit();
                             }}
-                            className="w-20 px-1.5 py-0.5 text-center text-xs font-bold rounded border border-emerald-500 bg-white dark:bg-slate-950 text-emerald-600 dark:text-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm mx-auto block"
+                            className="w-24 px-1.5 py-0.5 text-center text-xs font-bold rounded border border-emerald-500 bg-white dark:bg-slate-950 text-emerald-600 dark:text-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm mx-auto block"
                           />
                         ) : (
                           <div className="flex items-center justify-center gap-1">
@@ -1678,125 +1795,13 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
         </div>
       </div>
 
-      {/* 6. Quick Detail Modal Pop-up (Bila user klik nama lokasi) */}
-      {selectedItem && (
-        <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
-          onClick={() => setSelectedItem(null)}
-        >
-          <div
-            className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-emerald-600 to-teal-700 p-6 text-white flex items-center justify-between">
-              <div>
-                <div className="text-xs uppercase tracking-wider text-emerald-200 font-semibold">
-                  Detail Real Tanam Nanas (RTN)
-                </div>
-                <h3 className="text-2xl font-black flex items-center gap-2 mt-1">
-                  <MapPin className="w-6 h-6 text-emerald-300" />
-                  Lokasi: {selectedItem.lokasi}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedItem(null)}
-                className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white text-lg font-bold"
-              >
-                &times;
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6 space-y-4 text-sm">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800 text-center">
-                  <div className="text-xs text-slate-400">Luas Target</div>
-                  <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
-                    {selectedItem.luas.toFixed(2)} Ha
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800 text-center">
-                  <div className="text-xs text-slate-400">Realisasi Tanam</div>
-                  <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                    {selectedItem.realTanam !== null ? selectedItem.realTanam.toFixed(2) : '-'} Ha
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800 text-center">
-                  <div className="text-xs text-slate-400">Jenis Bibit</div>
-                  <div className="mt-1 flex justify-center">{getJenisBadge(selectedItem.jenisBibit)}</div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800 text-center">
-                  <div className="text-xs text-slate-400">Kelas Bibit</div>
-                  <div className="mt-1 flex justify-center">{getKelasBadge(selectedItem.kelasBibit)}</div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800 text-center">
-                  <div className="text-xs text-slate-400">Sisa Tanam (Rumus)</div>
-                  <div className="text-base font-bold text-slate-800 dark:text-slate-100">
-                    {selectedItem.sisa !== null ? `${selectedItem.sisa.toFixed(2)} Ha` : '-'}
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800 text-center">
-                  <div className="text-xs text-slate-400">Leadtime (Rumus)</div>
-                  <div className="text-base font-bold text-indigo-600 dark:text-indigo-400">
-                    {selectedItem.leadtime !== null ? `${selectedItem.leadtime} Hari` : '-'}
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800 text-center">
-                  <div className="text-xs text-slate-400">Awal Tanam</div>
-                  <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                    {selectedItem.awalTanam || '-'}
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800 text-center">
-                  <div className="text-xs text-slate-400">Estimasi Selesai</div>
-                  <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                    {selectedItem.estSelesai || '-'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Progress Detail */}
-              <div className="p-4 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40">
-                <div className="flex items-center justify-between text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2">
-                  <span>Status &amp; Progress Penanaman</span>
-                  <span className="text-emerald-700 dark:text-emerald-400 font-bold">
-                    {selectedItem.progress}%
-                  </span>
-                </div>
-                <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-3 overflow-hidden">
-                  <div
-                    className="bg-emerald-500 h-3 rounded-full transition-all"
-                    style={{ width: `${Math.min(100, selectedItem.progress || 0)}%` }}
-                  />
-                </div>
-                <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 text-center">
-                  Status: <strong>{selectedItem.status}</strong>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setSelectedItem(null)}
-                className="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Detail Drawer: Input Real Tanam & Petik Bibit Nanas (Kolom Tanggal sampai Petik Ke-) */}
+      <PlantingDetailDrawer
+        isOpen={!!selectedItem}
+        onClose={() => setSelectedItem(null)}
+        lokasi={selectedItem?.lokasi || null}
+        onTransactionSaved={fetchPlantingData}
+      />
     </div>
   );
 }

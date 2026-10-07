@@ -134,8 +134,8 @@ export default function Header({
           {activeTab === 'overview' && (
             <>
               {/* Quick Search */}
-              <div className="relative min-w-[170px] sm:min-w-[210px]">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <div className="relative min-w-[170px] sm:min-w-[210px] flex items-center">
+                <Search className="w-4 h-4 text-slate-400 dark:text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
                 <input
                   type="text"
                   placeholder="Cari lokasi"
@@ -147,7 +147,7 @@ export default function Header({
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer p-0.5 rounded-full hover:bg-slate-200/60 dark:hover:bg-slate-700/60 flex items-center justify-center"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer p-0.5 rounded-full hover:bg-slate-200/60 dark:hover:bg-slate-700/60 flex items-center justify-center z-10"
                     title="Hapus pencarian"
                     aria-label="Hapus pencarian"
                   >

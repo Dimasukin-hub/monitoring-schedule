@@ -502,8 +502,11 @@ export async function GET(request: Request) {
       }
 
       // Determine dynamic clean "Aktivitas Terakhir" (Bab 17 PRD)
-      const aktivitasTerakhir = computeAktivitasTerakhir(land);
-
+      const computed = computeAktivitasTerakhir(land);
+      const aktivitasTerakhir =
+        computed !== 'Persiapan Bongkar'
+          ? computed
+          : (land.aplikasiTerakhir && land.aplikasiTerakhir !== '-' ? land.aplikasiTerakhir : computed);
 
       return {
         id: land.id,
@@ -519,33 +522,73 @@ export async function GET(request: Request) {
         kelasBibit: land.kelasBibit,
         bulanTanam: land.bulanTanam,
         aktivitasTerakhir,
-        // All key activities up to Jalan & Sal sesuai Excel
-        chopper: actDict['01.CHOPPER'] || emptyAct,
-        chopperLu: actDict['02.CHOPPER_LU'] || emptyAct,
-        rh1: actDict['03.RH1'] || emptyAct,
-        cuttingBanana: actDict['04.CUTTING_BANANA'] || emptyAct,
-        dolomit: actDict['05.DOLOMIT'] || emptyAct,
-        dp1: actDict['06.DP1'] || emptyAct,
-        dpCross: actDict['07.DP_CROSS'] || emptyAct,
-        dp2: actDict['08.DP2'] || emptyAct,
-        belerang: actDict['09.BELERANG'] || emptyAct,
-        kompos: actDict['10.KOMPOS'] || emptyAct,
+        aplikasiDetails: land.aplikasiDetails || {},
+        ...(typeof land.aplikasiDetails === 'object' && land.aplikasiDetails !== null ? land.aplikasiDetails : {}),
+        // All 10 activities Bongkar (Chopper s/d Kompos) with both rencana & real
+        chopper: {
+          rencana: actDict['01.CHOPPER']?.rencana || (land.aplikasiDetails as any)?.chopper || null,
+          real: actDict['01.CHOPPER']?.real || (land.aplikasiDetails as any)?.realChopper || null,
+          status: actDict['01.CHOPPER']?.status || ((land.aplikasiDetails as any)?.realChopper ? 'COMPLETED' : 'PENDING'),
+        },
+        chopperLu: {
+          rencana: actDict['02.CHOPPER_LU']?.rencana || (land.aplikasiDetails as any)?.chopperLu || null,
+          real: actDict['02.CHOPPER_LU']?.real || (land.aplikasiDetails as any)?.realChopperLu || null,
+          status: actDict['02.CHOPPER_LU']?.status || ((land.aplikasiDetails as any)?.realChopperLu ? 'COMPLETED' : 'PENDING'),
+        },
+        rh1: {
+          rencana: actDict['03.RH1']?.rencana || (land.aplikasiDetails as any)?.rh1 || null,
+          real: actDict['03.RH1']?.real || (land.aplikasiDetails as any)?.realRh1 || null,
+          status: actDict['03.RH1']?.status || ((land.aplikasiDetails as any)?.realRh1 ? 'COMPLETED' : 'PENDING'),
+        },
+        cuttingBanana: {
+          rencana: actDict['04.CUTTING_BANANA']?.rencana || (land.aplikasiDetails as any)?.cuttingBanana || null,
+          real: actDict['04.CUTTING_BANANA']?.real || (land.aplikasiDetails as any)?.realCuttingBanana || null,
+          status: actDict['04.CUTTING_BANANA']?.status || ((land.aplikasiDetails as any)?.realCuttingBanana ? 'COMPLETED' : 'PENDING'),
+        },
+        dolomit: {
+          rencana: actDict['05.DOLOMIT']?.rencana || (land.aplikasiDetails as any)?.dolomit || null,
+          real: actDict['05.DOLOMIT']?.real || (land.aplikasiDetails as any)?.realDolomit || null,
+          status: actDict['05.DOLOMIT']?.status || ((land.aplikasiDetails as any)?.realDolomit ? 'COMPLETED' : 'PENDING'),
+        },
+        dp1: {
+          rencana: actDict['06.DP1']?.rencana || (land.aplikasiDetails as any)?.dp1 || null,
+          real: actDict['06.DP1']?.real || (land.aplikasiDetails as any)?.realDp1 || null,
+          status: actDict['06.DP1']?.status || ((land.aplikasiDetails as any)?.realDp1 ? 'COMPLETED' : 'PENDING'),
+        },
+        dpCross: {
+          rencana: actDict['07.DP_CROSS']?.rencana || (land.aplikasiDetails as any)?.dpCross || null,
+          real: actDict['07.DP_CROSS']?.real || (land.aplikasiDetails as any)?.realDpCross || null,
+          status: actDict['07.DP_CROSS']?.status || ((land.aplikasiDetails as any)?.realDpCross ? 'COMPLETED' : 'PENDING'),
+        },
+        dp2: {
+          rencana: actDict['08.DP2']?.rencana || (land.aplikasiDetails as any)?.dp2 || null,
+          real: actDict['08.DP2']?.real || (land.aplikasiDetails as any)?.realDp2 || null,
+          status: actDict['08.DP2']?.status || ((land.aplikasiDetails as any)?.realDp2 ? 'COMPLETED' : 'PENDING'),
+        },
+        belerang: {
+          rencana: actDict['09.BELERANG']?.rencana || (land.aplikasiDetails as any)?.belerang || null,
+          real: actDict['09.BELERANG']?.real || (land.aplikasiDetails as any)?.realBelerang || null,
+          status: actDict['09.BELERANG']?.status || ((land.aplikasiDetails as any)?.realBelerang ? 'COMPLETED' : 'PENDING'),
+        },
+        kompos: {
+          rencana: actDict['10.KOMPOS']?.rencana || (land.aplikasiDetails as any)?.kompos || null,
+          real: actDict['10.KOMPOS']?.real || (land.aplikasiDetails as any)?.realKompos || null,
+          status: actDict['10.KOMPOS']?.status || ((land.aplikasiDetails as any)?.realKompos ? 'COMPLETED' : 'PENDING'),
+        },
         bajakAwal: actDict['11.BAJAK_AWAL'] || emptyAct,
         subsoiler: actDict['17.SUBSOILER'] || emptyAct,
         finishingHarrow: actDict['18.FINISHING_HARROW'] || emptyAct,
         finishingRotary: actDict['19.FINISHING_ROTARY'] || emptyAct,
         rotaryFh2: actDict['20.ROTARY_FH2'] || emptyAct,
-        siapTanam: actDict['22.SIAP_TANAM']?.real || null,
+        siapTanam: actDict['22.SIAP_TANAM']?.real || (land.aplikasiDetails as any)?.siapTanam || (land.aplikasiDetails as any)?.realSiapTanam || null,
         prosesTanam:
           activityType === 'rencana'
-            ? actDict['23.PROSES_TNM']?.rencana || land.rencMulaiTanam || null
-            : actDict['23.PROSES_TNM']?.real || land.realMulaiTanam || null,
+            ? actDict['23.PROSES_TNM']?.rencana || land.rencMulaiTanam || (land.aplikasiDetails as any)?.rencMulaiTanam || null
+            : actDict['23.PROSES_TNM']?.real || land.realMulaiTanam || (land.aplikasiDetails as any)?.realMulaiTanam || (land.aplikasiDetails as any)?.prosesTanam || null,
         selesaiTanam:
           activityType === 'rencana'
-            ? actDict['24.SLS_TANAM']?.rencana || land.rencSelesaiTanam || null
-            : actDict['24.SLS_TANAM']?.real || land.realSelesaiTanam || null,
-        aplikasiDetails: land.aplikasiDetails || {},
-        ...(typeof land.aplikasiDetails === 'object' && land.aplikasiDetails !== null ? land.aplikasiDetails : {}),
+            ? actDict['24.SLS_TANAM']?.rencana || land.rencSelesaiTanam || (land.aplikasiDetails as any)?.rencSelesaiTanam || null
+            : actDict['24.SLS_TANAM']?.real || land.realSelesaiTanam || (land.aplikasiDetails as any)?.realSelesaiTanam || (land.aplikasiDetails as any)?.selesaiTanam || null,
         ridger: {
           rencana: actDict['21.RIDGER']?.rencana || (land.aplikasiDetails as any)?.ridger || null,
           real: actDict['21.RIDGER']?.real || (land.aplikasiDetails as any)?.realRidger || null,

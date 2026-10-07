@@ -22,13 +22,11 @@ export function getLandStokCategory(land: LandLike): StokCategory {
   const app = (land.aplikasiTerakhir || land.statusAplikasi || '').trim();
   const appLower = app.toLowerCase();
 
-  // 1. Selesai Tanam: diambil datanya dari kolom 24. sls tanam
+  // 1. Selesai Tanam: 100% progress, atau real selesai tanam terisi, atau aktivitas 24.SLS_TANAM terealisasi
   if (
-    app.includes('24.Sls Tanam') ||
-    appLower.includes('sls tanam') ||
-    appLower.includes('selesai tanam') ||
-    land.realSelesaiTanam ||
     land.progressTanam === 100 ||
+    (land.realSelesaiTanam && land.realSelesaiTanam !== '-' && land.realSelesaiTanam !== '0') ||
+    (app.includes('24.Sls Tanam') && (land.progressTanam ?? 0) >= 50) ||
     land.activities?.some(
       (a) => a.code === '24.SLS_TANAM' && a.realisasiDate && a.realisasiDate !== '-' && a.realisasiDate !== '0'
     )
@@ -36,13 +34,14 @@ export function getLandStokCategory(land: LandLike): StokCategory {
     return 'SELESAI';
   }
 
-  // 2. Proses Tanam: diambil datanya dari kolom 23. proses tnm
+  // 2. Proses Tanam: 50% progress, atau realisasi mulai tanam tanpa selesai tanam, atau kolom 23. Proses Tnm
   if (
+    land.progressTanam === 50 ||
+    (land.realMulaiTanam && !land.realSelesaiTanam) ||
     app.includes('23.Proses Tnm') ||
     appLower.includes('proses tnm') ||
     appLower.includes('proses tanam') ||
-    (land.realMulaiTanam && !land.realSelesaiTanam) ||
-    land.progressTanam === 50 ||
+    appLower.includes('mulai tnm') ||
     land.activities?.some(
       (a) => a.code === '23.PROSES_TNM' && a.realisasiDate && a.realisasiDate !== '-' && a.realisasiDate !== '0'
     )

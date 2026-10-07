@@ -6,8 +6,13 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const wilayahFilter = searchParams.get('wilayah');
+    const yearParam = searchParams.get('year');
+    const targetYear = yearParam && yearParam !== 'ALL' ? parseInt(yearParam, 10) : 2026;
 
     const landWhere: any = {};
+    if (yearParam !== 'ALL') {
+      landWhere.year = targetYear;
+    }
     if (wilayahFilter && wilayahFilter !== 'ALL') {
       const list = wilayahFilter.split(',').map((w) => w.trim()).filter(Boolean);
       if (list.length === 1) {
@@ -37,7 +42,10 @@ export async function GET(request: Request) {
     });
 
     const monthlyTanamRaw = await prisma.monthlySummary.findMany({
-      where: { category: 'Tanam' },
+      where: {
+        category: 'Tanam',
+        ...(yearParam !== 'ALL' ? { year: targetYear } : {}),
+      },
       orderBy: [{ year: 'asc' }, { monthIndex: 'asc' }],
     });
 
@@ -150,15 +158,45 @@ export async function GET(request: Request) {
       }
     > = {};
 
+    const standardWilayahs = ['W01', 'W02', 'W03', 'W04', 'W05', 'W06', 'W07'];
+    const normalizeWilayah = (rawW: string | null | undefined): string => {
+      if (!rawW) return 'W01';
+      const clean = rawW.trim().toUpperCase();
+      if (clean === 'ARS1') return 'W07';
+      if (clean === 'SAG1' || clean === 'MD2') return 'W04';
+      if (clean.startsWith('AW0')) return 'W0' + clean.slice(3);
+      if (clean.startsWith('AW')) {
+        const num = clean.slice(2);
+        return num.length === 1 ? `W0${num}` : `W${num}`;
+      }
+      return clean;
+    };
+
+    const targetWilayahList = (wilayahFilter && wilayahFilter !== 'ALL')
+      ? wilayahFilter.split(',').map(normalizeWilayah).filter(Boolean)
+      : standardWilayahs;
+
+    for (const stdW of targetWilayahList) {
+      posMap[stdW] = {
+        wilayah: stdW,
+        bkLocations: [],
+        bkLuas: 0,
+        bjkLocations: [],
+        bjkLuas: 0,
+        snLocations: [],
+        snLuas: 0,
+        prosesLocations: [],
+        prosesLuas: 0,
+        selesaiLocations: [],
+        selesaiLuas: 0,
+      };
+    }
+
     // Grouping by Month of Planting for Tanam distribution
     const monthPlantingMap: Record<string, { totalLahan: number; totalLuasNetto: number }> = {};
 
     for (const l of lands) {
-      let w = l.wilayah ? l.wilayah.toUpperCase().trim() : 'W01';
-      if (w === 'ARS1') w = 'W07';
-      else if (w === 'SAG1') w = 'W04';
-      else if (w.startsWith('AW0')) w = 'W0' + w.slice(3);
-      else if (w.startsWith('AW')) w = 'W' + w.slice(2);
+      const w = normalizeWilayah(l.wilayah);
       if (!posMap[w]) {
         posMap[w] = {
           wilayah: w,
@@ -211,7 +249,9 @@ export async function GET(request: Request) {
       }
     }
 
-    const wilayahPositions = Object.values(posMap).sort((a, b) => a.wilayah.localeCompare(b.wilayah));
+    const wilayahPositions = Object.values(posMap).sort((a, b) =>
+      a.wilayah.localeCompare(b.wilayah, undefined, { numeric: true, sensitivity: 'base' })
+    );
 
     // Planting by month sorted
     const plantingByMonth = Object.entries(monthPlantingMap)

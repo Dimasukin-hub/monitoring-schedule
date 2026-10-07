@@ -11,6 +11,8 @@ export async function GET(request: Request) {
     const search = searchParams.get('search')?.trim() || '';
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
     const limit = Math.min(100, Math.max(5, parseInt(searchParams.get('limit') || '15', 10)));
+    const sortBy = searchParams.get('sortBy') || 'no';
+    const sortOrder = (searchParams.get('sortOrder')?.toLowerCase() || 'asc') as 'asc' | 'desc';
 
     const andConditions: any[] = [];
 
@@ -106,6 +108,7 @@ export async function GET(request: Request) {
 
       classified[cat].push({
         id: l.id,
+        originalIndex: classified[cat].length + 1,
         lokasi: l.lokasi,
         wilayah: l.wilayah,
         luasBruto: l.luasBruto,
@@ -121,6 +124,66 @@ export async function GET(request: Request) {
     }
 
     const targetList = classified[category] || classified['BK'];
+
+    // Sort targetList based on sortBy & sortOrder
+    const mult = sortOrder === 'desc' ? -1 : 1;
+    targetList.sort((a, b) => {
+      if (sortBy === 'no' || sortBy === 'id') {
+        return (a.originalIndex - b.originalIndex) * mult;
+      }
+      if (sortBy === 'wilayah') {
+        const valA = a.wilayah || '';
+        const valB = b.wilayah || '';
+        const cmp = valA.localeCompare(valB);
+        return cmp !== 0 ? cmp * mult : (a.originalIndex - b.originalIndex) * mult;
+      }
+      if (sortBy === 'lokasi') {
+        const valA = a.lokasi || '';
+        const valB = b.lokasi || '';
+        const cmp = valA.localeCompare(valB, undefined, { numeric: true });
+        return cmp !== 0 ? cmp * mult : (a.originalIndex - b.originalIndex) * mult;
+      }
+      if (sortBy === 'luasBruto') {
+        const valA = a.luasBruto ?? -Infinity;
+        const valB = b.luasBruto ?? -Infinity;
+        return (valA - valB) * mult;
+      }
+      if (sortBy === 'luasNetto') {
+        const valA = a.luasNetto ?? -Infinity;
+        const valB = b.luasNetto ?? -Infinity;
+        return (valA - valB) * mult;
+      }
+      if (sortBy === 'status') {
+        const valA = a.status || '';
+        const valB = b.status || '';
+        const cmp = valA.localeCompare(valB);
+        return cmp !== 0 ? cmp * mult : (a.originalIndex - b.originalIndex) * mult;
+      }
+      if (sortBy === 'eks') {
+        const valA = a.eks || '';
+        const valB = b.eks || '';
+        const cmp = valA.localeCompare(valB);
+        return cmp !== 0 ? cmp * mult : (a.originalIndex - b.originalIndex) * mult;
+      }
+      if (sortBy === 'sejarah') {
+        const valA = a.sejarah || '';
+        const valB = b.sejarah || '';
+        const cmp = valA.localeCompare(valB);
+        return cmp !== 0 ? cmp * mult : (a.originalIndex - b.originalIndex) * mult;
+      }
+      if (sortBy === 'phBk') {
+        const valA = a.phBk ?? -Infinity;
+        const valB = b.phBk ?? -Infinity;
+        return (valA - valB) * mult;
+      }
+      if (sortBy === 'phSn') {
+        const valA = a.phSn ?? -Infinity;
+        const valB = b.phSn ?? -Infinity;
+        return (valA - valB) * mult;
+      }
+      return 0;
+    });
+
     const total = targetList.length;
     const paginatedData = targetList.slice((page - 1) * limit, page * limit);
 

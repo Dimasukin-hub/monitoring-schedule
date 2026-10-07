@@ -171,3 +171,33 @@ model Planting {
   @@index([kelasBibit])
   @@index([status])
 }
+
+model PlantingDetail {
+  id           Int       @id @default(autoincrement())
+  lokasi       String
+  tanggal      String?
+  tanggalDate  DateTime?
+  luasNetto    Float?
+  aktivitas    String?   // "Tanam Bibit" | "Petik Bibit"
+  standar      Float?    @default(0)
+  besar        Float?    @default(0)
+  sedang       Float?    @default(0)
+  kecil        Float?    @default(0)
+  total        Float     @default(0)
+  jenisBibit   String?
+  wilayah      String?
+  awalTanam    String?
+  selesaiTanam String?
+  akumTanam    Float?    @default(0)
+  persenTanam  Float?    @default(0)
+  petikKe      String?
+  sourceFile   String?   @default("Monitor Siap Nanas Update.xlsx")
+  sourceSheet  String?   @default("Input Real Tanam&Petik Nanas")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([lokasi])
+  @@index([aktivitas])
+  @@index([jenisBibit])
+  @@index([tanggalDate])
+}

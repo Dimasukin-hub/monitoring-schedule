@@ -57,6 +57,9 @@ export default function DashboardPage() {
     if (selectedWilayah && selectedWilayah !== 'ALL') {
       chartsParams.set('wilayah', selectedWilayah);
     }
+    if (stokYear) {
+      chartsParams.set('year', String(stokYear));
+    }
 
     const startTime = Date.now();
 

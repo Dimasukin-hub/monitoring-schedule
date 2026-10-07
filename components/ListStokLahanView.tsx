@@ -2,12 +2,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
+import { REAL_MASTER_STATUSES } from '@/components/LandTable';
 import {
   Boxes,
   Search,
   Filter,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   XCircle,
   Layers,
   Download,
@@ -170,10 +173,12 @@ export default function ListStokLahanView({
       : []
   );
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
-  const [availableStatuses, setAvailableStatuses] = useState<string[]>(['SEWA', 'INTI', 'TS', 'PLASMA']);
+  const [availableStatuses, setAvailableStatuses] = useState<string[]>(REAL_MASTER_STATUSES);
   const [search, setSearch] = useState<string>('');
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(15);
+  const [sortBy, setSortBy] = useState<string>('no');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [lands, setLands] = useState<any[]>([]);
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
   const [categoryStats, setCategoryStats] = useState<Record<string, { count: number; totalNetto: number }>>({
@@ -193,6 +198,17 @@ export default function ListStokLahanView({
   // Cell save states for visual feedback
   const [savingCells, setSavingCells] = useState<Record<string, boolean>>({});
   const [savedCells, setSavedCells] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    fetch('/api/lands?limit=1')
+      .then((res) => res.json())
+      .then((res) => {
+        if (res.success && res.filters?.statuses?.length > 0) {
+          setAvailableStatuses(res.filters.statuses);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // 5 Category Cards (Warna selaras dengan identitas logo GGF)
   const categories = [
@@ -242,6 +258,8 @@ export default function ListStokLahanView({
       search,
       page: String(page),
       limit: String(limit),
+      sortBy,
+      sortOrder,
     });
 
     fetch(`/api/stok?${params.toString()}`)
@@ -407,7 +425,7 @@ export default function ListStokLahanView({
 
   useEffect(() => {
     fetchStok();
-  }, [activeCategory, selectedWilayahs, selectedStatuses, search, page, limit, refreshTrigger]);
+  }, [activeCategory, selectedWilayahs, selectedStatuses, search, page, limit, sortBy, sortOrder, refreshTrigger]);
 
   // Load distinct wilayah and status for filter
   useEffect(() => {
@@ -419,6 +437,64 @@ export default function ListStokLahanView({
       })
       .catch(() => {});
   }, []);
+
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+    setPage(1);
+  };
+
+  const renderSortArrows = (field: string) => {
+    const isFieldActive = sortBy === field;
+    return (
+      <span className="inline-flex flex-col ml-1 shrink-0 select-none">
+        <span
+          role="button"
+          tabIndex={0}
+          title={field === 'no' ? 'Urutkan ke nomor paling awal (1...)' : 'Urutkan Naik'}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSortBy(field);
+            setSortOrder('asc');
+            setPage(1);
+          }}
+          className="p-0 cursor-pointer"
+        >
+          <ChevronUp
+            className={`w-3 h-3 -mb-1 transition-colors ${
+              isFieldActive && sortOrder === 'asc'
+                ? 'text-emerald-800 dark:text-emerald-200 font-extrabold stroke-[3]'
+                : 'text-emerald-600/40 dark:text-emerald-400/40 hover:text-emerald-800 dark:hover:text-emerald-200'
+            }`}
+          />
+        </span>
+        <span
+          role="button"
+          tabIndex={0}
+          title={field === 'no' ? 'Urutkan ke nomor paling akhir (N...)' : 'Urutkan Turun'}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSortBy(field);
+            setSortOrder('desc');
+            setPage(1);
+          }}
+          className="p-0 cursor-pointer"
+        >
+          <ChevronDown
+            className={`w-3 h-3 transition-colors ${
+              isFieldActive && sortOrder === 'desc'
+                ? 'text-emerald-800 dark:text-emerald-200 font-extrabold stroke-[3]'
+                : 'text-emerald-600/40 dark:text-emerald-400/40 hover:text-emerald-800 dark:hover:text-emerald-200'
+            }`}
+          />
+        </span>
+      </span>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -509,8 +585,8 @@ export default function ListStokLahanView({
 
             <div className="flex items-center gap-2.5 w-full sm:w-auto flex-wrap">
               {/* Search Input */}
-              <div className="relative w-full sm:w-56">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <div className="relative w-full sm:w-56 flex items-center">
+                <Search className="w-3.5 h-3.5 text-slate-400 dark:text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
                 <input
                   type="text"
                   placeholder="Cari lokasi"
@@ -528,7 +604,7 @@ export default function ListStokLahanView({
                       setSearch('');
                       setPage(1);
                     }}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer p-0.5 rounded-full hover:bg-slate-200/60 dark:hover:bg-slate-700/60 flex items-center justify-center"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer p-0.5 rounded-full hover:bg-slate-200/60 dark:hover:bg-slate-700/60 flex items-center justify-center z-10"
                     title="Hapus pencarian"
                     aria-label="Hapus pencarian"
                   >
@@ -589,7 +665,7 @@ export default function ListStokLahanView({
             {/* Status Filter */}
             <MultiSelectDropdown
               label="Status"
-              options={availableStatuses.length > 0 ? availableStatuses : ['SEWA', 'INTI', 'TS', 'PLASMA']}
+              options={availableStatuses.length > 0 ? availableStatuses : REAL_MASTER_STATUSES}
               selected={selectedStatuses}
               onChange={(val) => {
                 setSelectedStatuses(val);
@@ -700,46 +776,160 @@ export default function ListStokLahanView({
           </div>
         )}
 
-        {/* Table Data matching user column structure: WIL, LOKASI, LUAS (BRUTO, NETTO), STS, Eks, Sejarah PS, pH (BK, SN) */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-center text-xs border-collapse">
-            <thead className="bg-emerald-50/90 dark:bg-emerald-950/50 text-emerald-950 dark:text-emerald-100 text-[11px] font-bold uppercase tracking-wider border-b border-emerald-300 dark:border-emerald-800/70">
-              <tr className="border-b border-emerald-300/70 dark:border-emerald-800/60">
-                <th rowSpan={2} className="py-2.5 px-3 text-center align-middle font-bold border-r border-emerald-200 dark:border-emerald-800/70 w-[80px]">
-                  WIL
+        {/* Table Container with Freeze Panes (Sticky Header from NO to PH & Sticky Freeze Columns) */}
+        <div className="overflow-auto scroll-smooth max-h-[calc(100vh-320px)] min-h-[440px] relative scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+          <table className="min-w-full text-center text-xs border-separate border-spacing-0 table-fixed">
+            <colgroup>
+              <col className="w-[55px] min-w-[55px] max-w-[55px]" />
+              <col className="w-[70px] min-w-[70px] max-w-[70px]" />
+              <col className="w-[110px] min-w-[110px] max-w-[110px]" />
+              <col className="w-[110px] min-w-[110px]" />
+              <col className="w-[110px] min-w-[110px]" />
+              <col className="w-[100px] min-w-[100px]" />
+              <col className="w-[100px] min-w-[100px]" />
+              <col className="w-[180px] min-w-[180px]" />
+              <col className="w-[100px] min-w-[100px]" />
+              <col className="w-[100px] min-w-[100px]" />
+            </colgroup>
+            <thead className="sticky top-0 z-20 bg-emerald-100 dark:bg-emerald-950 text-emerald-950 dark:text-emerald-100 text-[11px] font-bold uppercase tracking-wider shadow-sm">
+              <tr className="bg-emerald-100 dark:bg-emerald-950">
+                {/* 1. NO (Sticky Freeze Column left-0) */}
+                <th
+                  rowSpan={2}
+                  onClick={() => handleSort('no')}
+                  className="sticky left-0 z-30 py-2.5 px-2 text-center align-middle font-bold border-r border-b border-emerald-300 dark:border-emerald-800/80 bg-emerald-200 dark:bg-emerald-900 w-[55px] min-w-[55px] max-w-[55px] cursor-pointer hover:bg-emerald-300/80 dark:hover:bg-emerald-800 transition-colors select-none"
+                  title="Klik untuk sort nomor urut awal / akhir"
+                >
+                  <div className="flex items-center justify-center gap-0.5">
+                    <span>NO</span>
+                    {renderSortArrows('no')}
+                  </div>
                 </th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center align-middle font-bold border-r border-emerald-200 dark:border-emerald-800/70 w-[95px]">
-                  LOKASI
+
+                {/* 2. WIL (Sticky Freeze Column left-[55px]) */}
+                <th
+                  rowSpan={2}
+                  onClick={() => handleSort('wilayah')}
+                  className="sticky left-[55px] z-30 py-2.5 px-2 text-center align-middle font-bold border-r border-b border-emerald-300 dark:border-emerald-800/80 bg-emerald-100 dark:bg-emerald-950 w-[70px] min-w-[70px] max-w-[70px] cursor-pointer hover:bg-emerald-200/80 dark:hover:bg-emerald-900 transition-colors select-none"
+                  title="Urutkan Wilayah"
+                >
+                  <div className="flex items-center justify-center gap-0.5">
+                    <span>WIL</span>
+                    {renderSortArrows('wilayah')}
+                  </div>
                 </th>
-                <th colSpan={2} className="py-1.5 px-3 text-center font-bold border-r border-emerald-200 dark:border-emerald-800/70 border-b border-emerald-300/70 dark:border-emerald-800/60">
+
+                {/* 3. LOKASI (Sticky Freeze Column left-[125px]) */}
+                <th
+                  rowSpan={2}
+                  onClick={() => handleSort('lokasi')}
+                  className="sticky left-[125px] z-30 py-2.5 px-3 text-center align-middle font-bold border-r border-b border-emerald-300 dark:border-emerald-800/80 bg-emerald-100 dark:bg-emerald-950 w-[110px] min-w-[110px] max-w-[110px] cursor-pointer hover:bg-emerald-200/80 dark:hover:bg-emerald-900 transition-colors select-none shadow-[3px_0_6px_-2px_rgba(0,0,0,0.12)] dark:shadow-[3px_0_6px_-2px_rgba(0,0,0,0.35)]"
+                  title="Urutkan Lokasi"
+                >
+                  <div className="flex items-center justify-center gap-0.5">
+                    <span>LOKASI</span>
+                    {renderSortArrows('lokasi')}
+                  </div>
+                </th>
+
+                {/* 4. LUAS (HA) */}
+                <th
+                  colSpan={2}
+                  className="py-1.5 px-3 text-center font-bold border-r border-b border-emerald-300/70 dark:border-emerald-800/70 bg-emerald-100 dark:bg-emerald-950 w-[220px] min-w-[220px]"
+                >
                   LUAS (HA)
                 </th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center align-middle font-bold border-r border-emerald-200 dark:border-emerald-800/70 w-[90px]">
-                  STS
+
+                {/* 5. STS */}
+                <th
+                  rowSpan={2}
+                  onClick={() => handleSort('status')}
+                  className="py-2.5 px-2 text-center align-middle font-bold border-r border-b border-emerald-300/70 dark:border-emerald-800/70 w-[100px] min-w-[100px] cursor-pointer hover:bg-emerald-200/80 dark:hover:bg-emerald-900 transition-colors select-none bg-emerald-100 dark:bg-emerald-950"
+                  title="Urutkan Status"
+                >
+                  <div className="flex items-center justify-center gap-0.5">
+                    <span>STS</span>
+                    {renderSortArrows('status')}
+                  </div>
                 </th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center align-middle font-bold normal-case border-r border-emerald-200 dark:border-emerald-800/70 w-[90px]">
-                  Eks
+
+                {/* 6. Eks */}
+                <th
+                  rowSpan={2}
+                  onClick={() => handleSort('eks')}
+                  className="py-2.5 px-2 text-center align-middle font-bold normal-case border-r border-b border-emerald-300/70 dark:border-emerald-800/70 w-[100px] min-w-[100px] cursor-pointer hover:bg-emerald-200/80 dark:hover:bg-emerald-900 transition-colors select-none bg-emerald-100 dark:bg-emerald-950"
+                  title="Urutkan Eks"
+                >
+                  <div className="flex items-center justify-center gap-0.5">
+                    <span>Eks</span>
+                    {renderSortArrows('eks')}
+                  </div>
                 </th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center align-middle font-bold normal-case border-r border-emerald-200 dark:border-emerald-800/70 w-[100px]">
-                  Sejarah PS
+
+                {/* 7. Sejarah PS */}
+                <th
+                  rowSpan={2}
+                  onClick={() => handleSort('sejarah')}
+                  className="py-2.5 px-2 text-center align-middle font-bold normal-case border-r border-b border-emerald-300/70 dark:border-emerald-800/70 w-[180px] min-w-[180px] cursor-pointer hover:bg-emerald-200/80 dark:hover:bg-emerald-900 transition-colors select-none bg-emerald-100 dark:bg-emerald-950"
+                  title="Urutkan Sejarah PS"
+                >
+                  <div className="flex items-center justify-center gap-0.5">
+                    <span>Sejarah PS</span>
+                    {renderSortArrows('sejarah')}
+                  </div>
                 </th>
-                <th colSpan={2} className="py-1.5 px-3 text-center font-bold border-b border-emerald-300/70 dark:border-emerald-800/60 text-[13px] normal-case">
+
+                {/* 8. pH */}
+                <th
+                  colSpan={2}
+                  className="py-1.5 px-3 text-center font-bold border-b border-emerald-300/70 dark:border-emerald-800/70 text-[13px] normal-case bg-emerald-100 dark:bg-emerald-950 w-[200px] min-w-[200px]"
+                >
                   pH
                 </th>
               </tr>
-              <tr className="text-[10px] text-emerald-950 dark:text-emerald-100 font-bold">
-                <th className="py-1 px-2.5 text-center border-r border-emerald-200 dark:border-emerald-800/70 w-[90px]">
-                  BRUTO
+
+              {/* Sub-header row 2 */}
+              <tr className="text-[10px] text-emerald-950 dark:text-emerald-100 font-bold bg-emerald-100 dark:bg-emerald-950">
+                <th
+                  onClick={() => handleSort('luasBruto')}
+                  className="py-1.5 px-2.5 text-center border-r border-b border-emerald-300/70 dark:border-emerald-800/70 w-[110px] min-w-[110px] cursor-pointer hover:bg-emerald-200/80 dark:hover:bg-emerald-900 transition-colors select-none bg-emerald-100 dark:bg-emerald-950"
+                  title="Urutkan Luas Bruto"
+                >
+                  <div className="flex items-center justify-center gap-0.5">
+                    <span>BRUTO</span>
+                    {renderSortArrows('luasBruto')}
+                  </div>
                 </th>
-                <th className="py-1 px-2.5 text-center border-r border-emerald-200 dark:border-emerald-800/70 w-[90px]">
-                  NETTO
+                <th
+                  onClick={() => handleSort('luasNetto')}
+                  className="py-1.5 px-2.5 text-center border-r border-b border-emerald-300/70 dark:border-emerald-800/70 w-[110px] min-w-[110px] cursor-pointer hover:bg-emerald-200/80 dark:hover:bg-emerald-900 transition-colors select-none bg-emerald-100 dark:bg-emerald-950"
+                  title="Urutkan Luas Netto"
+                >
+                  <div className="flex items-center justify-center gap-0.5">
+                    <span>NETTO</span>
+                    {renderSortArrows('luasNetto')}
+                  </div>
                 </th>
 
-                <th className="py-1 px-2.5 text-center font-bold border-r border-emerald-200 dark:border-emerald-800/70 w-[80px]">
-                  BK
+                <th
+                  onClick={() => handleSort('phBk')}
+                  className="py-1.5 px-2.5 text-center font-bold border-r border-b border-emerald-300/70 dark:border-emerald-800/70 w-[100px] min-w-[100px] cursor-pointer hover:bg-emerald-200/80 dark:hover:bg-emerald-900 transition-colors select-none bg-emerald-100 dark:bg-emerald-950"
+                  title="Urutkan pH BK"
+                >
+                  <div className="flex items-center justify-center gap-0.5">
+                    <span>BK</span>
+                    {renderSortArrows('phBk')}
+                  </div>
                 </th>
-                <th className="py-1 px-2.5 text-center font-bold w-[80px]">
-                  SN
+                <th
+                  onClick={() => handleSort('phSn')}
+                  className="py-1.5 px-2.5 text-center font-bold border-b border-emerald-300/70 dark:border-emerald-800/70 w-[100px] min-w-[100px] cursor-pointer hover:bg-emerald-200/80 dark:hover:bg-emerald-900 transition-colors select-none bg-emerald-100 dark:bg-emerald-950"
+                  title="Urutkan pH SN"
+                >
+                  <div className="flex items-center justify-center gap-0.5">
+                    <span>SN</span>
+                    {renderSortArrows('phSn')}
+                  </div>
                 </th>
               </tr>
             </thead>
@@ -747,7 +937,7 @@ export default function ListStokLahanView({
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 text-slate-800 dark:text-slate-300">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan={10} className="py-12 text-center text-slate-500 dark:text-slate-400">
                     <div className="flex flex-col items-center gap-2">
                       <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
                       <span>Memuat data stok lahan...</span>
@@ -756,142 +946,154 @@ export default function ListStokLahanView({
                 </tr>
               ) : lands.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan={10} className="py-12 text-center text-slate-500 dark:text-slate-400">
                     Tidak ada lokasi lahan pada kategori ini.
                   </td>
                 </tr>
               ) : (
-                lands.map((land) => (
-                  <tr
-                    key={land.id}
-                    className="hover:bg-cyan-50/40 dark:hover:bg-slate-800/40 transition-colors group"
-                  >
-                    {/* 1. WIL (Directly Editable) */}
-                    <td className="py-2 px-2 text-center border-r border-slate-200 dark:border-slate-800">
-                      <EditableCell
-                        landId={land.id}
-                        field="wilayah"
-                        value={land.wilayah}
-                        align="center"
-                        onSave={handleCellSave}
-                        isSaving={savingCells[`${land.id}-wilayah`]}
-                        isSaved={savedCells[`${land.id}-wilayah`]}
-                      />
-                    </td>
+                lands.map((land, idx) => {
+                  const rowNumber =
+                    sortBy === 'no' && sortOrder === 'desc' && pagination.total > 0
+                      ? pagination.total - ((page - 1) * limit + idx)
+                      : (page - 1) * limit + idx + 1;
 
-                    {/* 2. LOKASI (Read-only / Non-editable sesuai instruksi) */}
-                    <td
-                      onClick={() => onSelectLand(land.id)}
-                      className="py-2 px-3 text-center font-bold text-amber-600 dark:text-amber-400 font-mono tracking-wide group-hover:underline border-r border-slate-200 dark:border-slate-800 cursor-pointer select-none"
-                      title="Lokasi (Tetap) - Klik untuk melihat detail lengkap"
+                  return (
+                    <tr
+                      key={land.id}
+                      className="hover:bg-cyan-50/40 dark:hover:bg-slate-800/40 transition-colors group"
                     >
-                      {land.lokasi}
-                    </td>
+                      {/* 0. NO (Sticky Freeze Column left-0) */}
+                      <td className="sticky left-0 z-10 py-2 px-2 text-center font-mono text-[11px] text-slate-500 dark:text-slate-400 border-r border-b border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900 group-hover:bg-cyan-50/80 dark:group-hover:bg-slate-800 transition-colors w-[55px] min-w-[55px] max-w-[55px] overflow-hidden">
+                        {rowNumber}
+                      </td>
 
-                    {/* 3. LUAS BRUTO (Directly Editable) */}
-                    <td className="py-2 px-2 text-center font-mono border-r border-slate-200 dark:border-slate-800">
-                      <EditableCell
-                        landId={land.id}
-                        field="luasBruto"
-                        value={land.luasBruto}
-                        type="number"
-                        step="0.01"
-                        align="center"
-                        formatDisplay={(val) => (val !== null && val !== undefined && val !== '' ? Number(val).toFixed(2) : '-')}
-                        onSave={handleCellSave}
-                        isSaving={savingCells[`${land.id}-luasBruto`]}
-                        isSaved={savedCells[`${land.id}-luasBruto`]}
-                      />
-                    </td>
+                      {/* 1. WIL (Sticky Freeze Column left-[55px]) */}
+                      <td className="sticky left-[55px] z-10 py-2 px-2 text-center border-r border-b border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900 group-hover:bg-cyan-50/80 dark:group-hover:bg-slate-800 transition-colors w-[70px] min-w-[70px] max-w-[70px] overflow-hidden">
+                        <EditableCell
+                          landId={land.id}
+                          field="wilayah"
+                          value={land.wilayah}
+                          align="center"
+                          onSave={handleCellSave}
+                          isSaving={savingCells[`${land.id}-wilayah`]}
+                          isSaved={savedCells[`${land.id}-wilayah`]}
+                        />
+                      </td>
 
-                    {/* 4. LUAS NETTO (Directly Editable) */}
-                    <td className="py-2 px-2 text-center font-bold text-slate-900 dark:text-slate-100 font-mono border-r border-slate-200 dark:border-slate-800">
-                      <EditableCell
-                        landId={land.id}
-                        field="luasNetto"
-                        value={land.luasNetto}
-                        type="number"
-                        step="0.01"
-                        align="center"
-                        formatDisplay={(val) => (val !== null && val !== undefined && val !== '' ? Number(val).toFixed(2) : '-')}
-                        onSave={handleCellSave}
-                        isSaving={savingCells[`${land.id}-luasNetto`]}
-                        isSaved={savedCells[`${land.id}-luasNetto`]}
-                      />
-                    </td>
+                      {/* 2. LOKASI (Sticky Freeze Column left-[125px]) */}
+                      <td
+                        onClick={() => onSelectLand(land.id)}
+                        className="sticky left-[125px] z-10 py-2 px-3 text-center font-bold text-amber-600 dark:text-amber-400 font-mono tracking-wide group-hover:underline border-r border-b border-slate-200 dark:border-slate-800/80 cursor-pointer select-none bg-white dark:bg-slate-900 group-hover:bg-cyan-50/80 dark:group-hover:bg-slate-800 transition-colors shadow-[3px_0_6px_-2px_rgba(0,0,0,0.12)] dark:shadow-[3px_0_6px_-2px_rgba(0,0,0,0.35)] w-[110px] min-w-[110px] max-w-[110px] overflow-hidden"
+                        title="Lokasi (Tetap) - Klik untuk melihat detail lengkap"
+                      >
+                        {land.lokasi}
+                      </td>
 
-                    {/* 5. STS (Directly Editable) */}
-                    <td className="py-2 px-2 text-center border-r border-slate-200 dark:border-slate-800">
-                      <EditableCell
-                        landId={land.id}
-                        field="status"
-                        value={land.status}
-                        align="center"
-                        onSave={handleCellSave}
-                        isSaving={savingCells[`${land.id}-status`]}
-                        isSaved={savedCells[`${land.id}-status`]}
-                      />
-                    </td>
+                      {/* 3. LUAS BRUTO (Directly Editable) */}
+                      <td className="py-2 px-2 text-center font-mono border-r border-b border-slate-200 dark:border-slate-800/80 w-[110px] min-w-[110px]">
+                        <EditableCell
+                          landId={land.id}
+                          field="luasBruto"
+                          value={land.luasBruto}
+                          type="number"
+                          step="0.01"
+                          align="center"
+                          formatDisplay={(val) => (val !== null && val !== undefined && val !== '' ? Number(val).toFixed(2) : '-')}
+                          onSave={handleCellSave}
+                          isSaving={savingCells[`${land.id}-luasBruto`]}
+                          isSaved={savedCells[`${land.id}-luasBruto`]}
+                        />
+                      </td>
 
-                    {/* 6. Eks (Directly Editable) */}
-                    <td className="py-2 px-2 text-center text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800">
-                      <EditableCell
-                        landId={land.id}
-                        field="eks"
-                        value={land.eks}
-                        align="center"
-                        onSave={handleCellSave}
-                        isSaving={savingCells[`${land.id}-eks`]}
-                        isSaved={savedCells[`${land.id}-eks`]}
-                      />
-                    </td>
+                      {/* 4. LUAS NETTO (Directly Editable) */}
+                      <td className="py-2 px-2 text-center font-bold text-slate-900 dark:text-slate-100 font-mono border-r border-b border-slate-200 dark:border-slate-800/80 w-[110px] min-w-[110px]">
+                        <EditableCell
+                          landId={land.id}
+                          field="luasNetto"
+                          value={land.luasNetto}
+                          type="number"
+                          step="0.01"
+                          align="center"
+                          formatDisplay={(val) => (val !== null && val !== undefined && val !== '' ? Number(val).toFixed(2) : '-')}
+                          onSave={handleCellSave}
+                          isSaving={savingCells[`${land.id}-luasNetto`]}
+                          isSaved={savedCells[`${land.id}-luasNetto`]}
+                        />
+                      </td>
 
-                    {/* 7. Sejarah PS (Directly Editable) */}
-                    <td className="py-2 px-2 text-center text-slate-700 dark:text-slate-300 font-mono text-[11px] border-r border-slate-200 dark:border-slate-800">
-                      <EditableCell
-                        landId={land.id}
-                        field="sejarah"
-                        value={land.sejarah}
-                        align="center"
-                        onSave={handleCellSave}
-                        isSaving={savingCells[`${land.id}-sejarah`]}
-                        isSaved={savedCells[`${land.id}-sejarah`]}
-                      />
-                    </td>
+                      {/* 5. STS (Directly Editable) */}
+                      <td className="py-2 px-2 text-center border-r border-b border-slate-200 dark:border-slate-800/80 w-[100px] min-w-[100px]">
+                        <EditableCell
+                          landId={land.id}
+                          field="status"
+                          value={land.status}
+                          align="center"
+                          onSave={handleCellSave}
+                          isSaving={savingCells[`${land.id}-status`]}
+                          isSaved={savedCells[`${land.id}-status`]}
+                        />
+                      </td>
 
-                    {/* 8. pH BK (Directly Editable) */}
-                    <td className="py-2 px-2 text-center border-r border-slate-200 dark:border-slate-800 font-semibold text-teal-600 dark:text-teal-400 font-mono">
-                      <EditableCell
-                        landId={land.id}
-                        field="phBk"
-                        value={land.phBk}
-                        type="number"
-                        step="0.01"
-                        align="center"
-                        formatDisplay={(val) => (val !== null && val !== undefined && val !== '' ? String(val) : '-')}
-                        onSave={handleCellSave}
-                        isSaving={savingCells[`${land.id}-phBk`]}
-                        isSaved={savedCells[`${land.id}-phBk`]}
-                      />
-                    </td>
+                      {/* 6. Eks (Directly Editable) */}
+                      <td className="py-2 px-2 text-center text-slate-700 dark:text-slate-300 border-r border-b border-slate-200 dark:border-slate-800/80 w-[100px] min-w-[100px]">
+                        <EditableCell
+                          landId={land.id}
+                          field="eks"
+                          value={land.eks}
+                          align="center"
+                          onSave={handleCellSave}
+                          isSaving={savingCells[`${land.id}-eks`]}
+                          isSaved={savedCells[`${land.id}-eks`]}
+                        />
+                      </td>
 
-                    {/* 9. pH SN (Directly Editable) */}
-                    <td className="py-2 px-2 text-center font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
-                      <EditableCell
-                        landId={land.id}
-                        field="phSn"
-                        value={land.phSn}
-                        type="number"
-                        step="0.01"
-                        align="center"
-                        formatDisplay={(val) => (val !== null && val !== undefined && val !== '' ? String(val) : '-')}
-                        onSave={handleCellSave}
-                        isSaving={savingCells[`${land.id}-phSn`]}
-                        isSaved={savedCells[`${land.id}-phSn`]}
-                      />
-                    </td>
-                  </tr>
-                ))
+                      {/* 7. Sejarah PS (Directly Editable) */}
+                      <td className="py-2 px-2 text-center text-slate-700 dark:text-slate-300 font-mono text-[11px] border-r border-b border-slate-200 dark:border-slate-800/80 w-[180px] min-w-[180px]">
+                        <EditableCell
+                          landId={land.id}
+                          field="sejarah"
+                          value={land.sejarah}
+                          align="center"
+                          onSave={handleCellSave}
+                          isSaving={savingCells[`${land.id}-sejarah`]}
+                          isSaved={savedCells[`${land.id}-sejarah`]}
+                        />
+                      </td>
+
+                      {/* 8. pH BK (Directly Editable) */}
+                      <td className="py-2 px-2 text-center border-r border-b border-slate-200 dark:border-slate-800/80 font-semibold text-teal-600 dark:text-teal-400 font-mono w-[100px] min-w-[100px]">
+                        <EditableCell
+                          landId={land.id}
+                          field="phBk"
+                          value={land.phBk}
+                          type="number"
+                          step="0.01"
+                          align="center"
+                          formatDisplay={(val) => (val !== null && val !== undefined && val !== '' ? String(val) : '-')}
+                          onSave={handleCellSave}
+                          isSaving={savingCells[`${land.id}-phBk`]}
+                          isSaved={savedCells[`${land.id}-phBk`]}
+                        />
+                      </td>
+
+                      {/* 9. pH SN (Directly Editable) */}
+                      <td className="py-2 px-2 text-center font-semibold text-emerald-600 dark:text-emerald-400 font-mono border-b border-slate-200 dark:border-slate-800/80 w-[100px] min-w-[100px]">
+                        <EditableCell
+                          landId={land.id}
+                          field="phSn"
+                          value={land.phSn}
+                          type="number"
+                          step="0.01"
+                          align="center"
+                          formatDisplay={(val) => (val !== null && val !== undefined && val !== '' ? String(val) : '-')}
+                          onSave={handleCellSave}
+                          isSaving={savingCells[`${land.id}-phSn`]}
+                          isSaved={savedCells[`${land.id}-phSn`]}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

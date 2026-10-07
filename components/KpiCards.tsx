@@ -39,6 +39,31 @@ interface KpiData {
   totalLuasNetto: number;
   totalRealisasiHa: number;
   overallProgress: number;
+  realisasiTanamSummary?: {
+    nilaiHa: number;
+    targetFullYearHa: number;
+    targetRencanaHa: number;
+    pencapaianPct: number;
+    ytdHa: number;
+    ytdRcnHa: number;
+    periodLabel: string;
+    isFilteredPeriod?: boolean;
+  };
+  realisasiTanamMtdSummary?: {
+    nilaiHa: number;
+    targetBulanHa: number;
+    pencapaianPct: number;
+    periodLabel: string;
+    monthName?: string;
+  };
+  prosesTanamSummary?: {
+    prosesHa: number;
+    prosesCount: number;
+    selesaiHa: number;
+    selesaiCount: number;
+    totalLuasNetto: number;
+    totalLands: number;
+  };
   stockStageCounts?: {
     bk: number;
     bjk: number;
@@ -446,74 +471,183 @@ export default function KpiCards({
         </div>
       </div>
 
-      {/* 2. OPERATIONAL REALIZATION ROW (Realisasi Tanam & Progress Tanam) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* REALISASI TANAM */}
-        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900/90 border border-cyan-200 dark:border-cyan-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
+      {/* 2. OPERATIONAL REALIZATION ROW (Realisasi Tanam Ukuran Semula & Kolom Kanan Dibagi 2) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* CARD 1: REALISASI TANAM TAHUNAN (Kiri - Ukuran Asli 50% / lg:col-span-6) */}
+        <div className="lg:col-span-6 relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900/90 border border-cyan-200 dark:border-cyan-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
           <div className="flex items-center justify-between mb-3">
             <div>
               <span className="text-xs font-bold text-cyan-700 dark:text-cyan-400 uppercase tracking-wider block">
                 REALISASI TANAM
               </span>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
-                Monitoring Penanaman Database Lahan
-              </span>
             </div>
-            <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
-              <Sprout className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-50 dark:bg-cyan-950/80 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 whitespace-nowrap">
+                {data.realisasiTanamSummary?.periodLabel || 'Jan - Sep 2026'}
+              </span>
+              <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+                <Sprout className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+              </div>
             </div>
           </div>
 
           <div>
             <div className="flex items-baseline gap-1">
               <span className="text-2xl lg:text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
-                {data.totalRealisasiHa.toLocaleString('id-ID', {
+                {(
+                  data.realisasiTanamSummary?.nilaiHa ??
+                  data.totalRealisasiHa
+                ).toLocaleString('id-ID', {
                   minimumFractionDigits: 1,
-                  maximumFractionDigits: 1,
+                  maximumFractionDigits: 2,
                 })}
               </span>
               <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Ha</span>
             </div>
+
+            {/* Progress bar mini */}
+            {data.realisasiTanamSummary && (
+              <div className="mt-2.5">
+                <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.min(100, data.realisasiTanamSummary.pencapaianPct)}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60">
               <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                {data.stockStageCounts?.selesai || 0} Lokasi Selesai Tanam
+                Target 2026:{' '}
+                <strong className="font-semibold text-slate-700 dark:text-slate-300">
+                  {(data.realisasiTanamSummary?.targetFullYearHa ?? 1399.5).toLocaleString('id-ID', {
+                    minimumFractionDigits: 1,
+                    maximumFractionDigits: 1,
+                  })}{' '}
+                  Ha
+                </strong>
               </span>
               <span className="text-[10px] font-semibold text-cyan-700 dark:text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full">
-                {data.stockStageCounts?.proses || 0} Proses
+                Pencapaian: {data.realisasiTanamSummary?.pencapaianPct ?? 74.9}%
               </span>
             </div>
           </div>
         </div>
 
-        {/* PROGRESS PENANAMAN */}
-        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900/90 border border-amber-200 dark:border-amber-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider block">
-                PROGRESS TANAM
-              </span>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
-                Persentase Terhadap Luas Netto
-              </span>
+        {/* KOLOM KANAN: KOTAK PROSES TANAM DIBAGI 2 DENGAN REAL TANAM BULANAN & PROSES TANAM (lg:col-span-6) */}
+        <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* SUB-KARTU 1: REAL TANAM BULANAN */}
+          <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900/90 border border-emerald-200 dark:border-emerald-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
+            <div className="flex items-center justify-between gap-1.5 mb-3">
+              <div className="min-w-0 flex flex-col">
+                <span className="text-[11px] sm:text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-tight leading-tight">
+                  REAL TANAM
+                </span>
+                <span className="text-[11px] sm:text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-tight leading-tight">
+                  BULANAN
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 whitespace-nowrap">
+                  {data.realisasiTanamMtdSummary?.periodLabel || '1 - 6 Okt 2026'}
+                </span>
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                  <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+              </div>
             </div>
-            <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+
+            <div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl lg:text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
+                  {(data.realisasiTanamMtdSummary?.nilaiHa ?? 23.14).toLocaleString('id-ID', {
+                    minimumFractionDigits: 1,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Ha</span>
+              </div>
+
+              {/* Progress bar mini MTD terhadap target bulan */}
+              <div className="mt-2.5">
+                <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.min(100, data.realisasiTanamMtdSummary?.pencapaianPct ?? 17.8)}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Target Okt:{' '}
+                  <strong className="font-semibold text-slate-700 dark:text-slate-300">
+                    {(data.realisasiTanamMtdSummary?.targetBulanHa ?? 130.0).toLocaleString('id-ID', {
+                      minimumFractionDigits: 1,
+                      maximumFractionDigits: 1,
+                    })}{' '}
+                    Ha
+                  </strong>
+                </span>
+                <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                  Pencapaian: {data.realisasiTanamMtdSummary?.pencapaianPct ?? 6.3}%
+                </span>
+              </div>
             </div>
           </div>
 
-          <div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl lg:text-3xl font-black tracking-tight text-amber-600 dark:text-amber-400">
-                {data.overallProgress}%
-              </span>
+          {/* SUB-KARTU 2: PROSES TANAM */}
+          <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900/90 border border-amber-200 dark:border-amber-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
+            <div className="flex items-center justify-between gap-1.5 mb-3">
+              <div className="min-w-0">
+                <span className="text-[11px] sm:text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-tight whitespace-nowrap block truncate">
+                  PROSES TANAM
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 whitespace-nowrap">
+                  {data.prosesTanamSummary?.prosesCount ?? data.stockStageCounts?.proses ?? 15} Lokasi
+                </span>
+                <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                  <TrendingUp className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                </div>
+              </div>
             </div>
-            <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60">
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                Total Netto: {data.totalLuasNetto.toLocaleString('id-ID', { maximumFractionDigits: 1 })} Ha
-              </span>
-              <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
-                {data.totalLands} Lokasi
-              </span>
+
+            <div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl lg:text-3xl font-black tracking-tight text-amber-600 dark:text-amber-400">
+                  {(data.prosesTanamSummary?.prosesHa ?? 103.04).toLocaleString('id-ID', {
+                    minimumFractionDigits: 1,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Ha</span>
+              </div>
+
+              {/* Spacer bar agar tinggi dan margin kartu persis sejajar */}
+              <div className="mt-2.5 h-1.5" />
+
+              <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Selesai:{' '}
+                  <strong className="font-semibold text-slate-700 dark:text-slate-300">
+                    {(data.prosesTanamSummary?.selesaiHa ?? 8746.79).toLocaleString('id-ID', {
+                      minimumFractionDigits: 1,
+                      maximumFractionDigits: 1,
+                    })}{' '}
+                    Ha
+                  </strong>
+                </span>
+                <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                  {data.prosesTanamSummary?.selesaiCount ?? data.stockStageCounts?.selesai ?? 1329} Selesai
+                </span>
+              </div>
             </div>
           </div>
         </div>

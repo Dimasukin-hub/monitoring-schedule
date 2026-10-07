@@ -24,6 +24,7 @@ import {
   X,
   BarChart3,
   Table,
+  Info,
 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 
@@ -156,18 +157,49 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
     );
   }
 
-  // Urutkan dataset berdasarkan urutan wilayah (bukan nilai tertinggi ke terendah)
-  const sortedBK = [...chartsData.wilayahPositions]
-    .map((w) => ({ ...w, luas: w.bkLuas || 0 }))
-    .sort((a, b) => a.wilayah.localeCompare(b.wilayah, undefined, { numeric: true, sensitivity: 'base' }));
+  // 7 Wilayah operasional resmi: W01 s/d W07
+  const officialWilayahs = ['W01', 'W02', 'W03', 'W04', 'W05', 'W06', 'W07'];
 
-  const sortedBJK = [...chartsData.wilayahPositions]
-    .map((w) => ({ ...w, luas: w.bjkLuas || 0 }))
-    .sort((a, b) => a.wilayah.localeCompare(b.wilayah, undefined, { numeric: true, sensitivity: 'base' }));
+  const normalizeW = (w: string) => {
+    const clean = (w || '').trim().toUpperCase();
+    if (clean === 'ARS1') return 'W07';
+    if (clean === 'SAG1' || clean === 'MD2') return 'W04';
+    if (clean.startsWith('AW0')) return 'W0' + clean.slice(3);
+    if (clean.startsWith('AW')) {
+      const num = clean.slice(2);
+      return num.length === 1 ? `W0${num}` : `W${num}`;
+    }
+    return clean;
+  };
 
-  const sortedSN = [...chartsData.wilayahPositions]
-    .map((w) => ({ ...w, luas: w.snLuas || 0 }))
-    .sort((a, b) => a.wilayah.localeCompare(b.wilayah, undefined, { numeric: true, sensitivity: 'base' }));
+  // Agregasi defensif agar hanya 7 wilayah resmi (W01 s/d W07) yang ditampilkan di sumbu X sehingga tidak saling bertumpuk
+  const aggregateByWilayah = (
+    stageKey: 'bkLuas' | 'bjkLuas' | 'snLuas',
+    locKey: 'bkLocations' | 'bjkLocations' | 'snLocations'
+  ) => {
+    const map: Record<string, { wilayah: string; luas: number; locations: string[] }> = {};
+    for (const w of officialWilayahs) {
+      map[w] = { wilayah: w, luas: 0, locations: [] };
+    }
+    for (const item of chartsData.wilayahPositions) {
+      const norm = normalizeW(item.wilayah);
+      if (!map[norm]) {
+        map[norm] = { wilayah: norm, luas: 0, locations: [] };
+      }
+      map[norm].luas += (item as any)[stageKey] || 0;
+      const locs = (item as any)[locKey] || [];
+      map[norm].locations.push(...locs);
+    }
+    return officialWilayahs.map((w) => ({
+      wilayah: w,
+      luas: Math.round(map[w].luas * 100) / 100,
+      locations: Array.from(new Set(map[w].locations)),
+    }));
+  };
+
+  const sortedBK = aggregateByWilayah('bkLuas', 'bkLocations');
+  const sortedBJK = aggregateByWilayah('bjkLuas', 'bjkLocations');
+  const sortedSN = aggregateByWilayah('snLuas', 'snLocations');
 
   const maxBK = Math.max(...sortedBK.map((w) => w.luas), 1);
   const maxBJK = Math.max(...sortedBJK.map((w) => w.luas), 1);
@@ -178,7 +210,7 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
   const highestBJK = [...sortedBJK].sort((a, b) => b.luas - a.luas)[0];
   const highestSN = [...sortedSN].sort((a, b) => b.luas - a.luas)[0];
 
-  // Helper untuk mendapatkan map ranking berdasarkan luas (agar rank tetap valid pada tooltip)
+  // Helper untuk ranking
   const getRankMap = (list: typeof sortedBK) => {
     const sortedByLuas = [...list].sort((a, b) => b.luas - a.luas);
     return new Map(sortedByLuas.map((item, idx) => [item.wilayah, idx + 1]));
@@ -189,7 +221,6 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
   const rankMapSN = getRankMap(sortedSN);
 
   // Dynamic bar coloring based on height/value relative to maximum (GGF Logo Palette)
-  // Tinggi -> GGF Green, Sedang-Tinggi -> GGF Leaf, Sedang -> GGF Sky Blue, Sedang-Rendah -> GGF Orange, Rendah -> Coral Rose
   const getDynamicHeightColor = (val: number, maxVal: number) => {
     const ratio = maxVal > 0 ? val / maxVal : 0;
     if (ratio >= 0.75) {
@@ -225,20 +256,19 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
     }
   };
 
-  // Custom Interactive Tooltip with Ranking & Height Tier indicator
+  // Custom Interactive Tooltip
   const CustomWilayahRankTooltip = ({
     active,
     payload,
     label,
-    stageKey,
     title,
     maxVal,
   }: any) => {
     if (active && payload && payload.length) {
-      const item = chartsData.wilayahPositions.find((w) => w.wilayah === label);
-      const locations: string[] = item ? (item as any)[stageKey] || [] : [];
+      const payloadData = payload[0]?.payload;
+      const locations: string[] = payloadData?.locations || [];
       const luas = payload[0]?.value ?? 0;
-      const rank = payload[0]?.payload?.rank ?? 1;
+      const rank = payloadData?.rank ?? 1;
       const heightInfo = getDynamicHeightColor(luas, maxVal);
 
       return (
@@ -316,11 +346,12 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
             </span>
           </div>
 
-          <div className="h-56 w-full">
+          <div className="h-60 w-full outline-none focus:outline-none select-none">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={sortedBK.map((item) => ({ ...item, rank: rankMapBK.get(item.wilayah) || 1 }))}
-                margin={{ top: 10, right: 10, left: -20, bottom: 5 }}
+                margin={{ top: 10, right: 10, left: -20, bottom: 8 }}
+                className="outline-none focus:outline-none"
               >
                 <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
                 <XAxis
@@ -328,6 +359,7 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
                   stroke={isDark ? '#475569' : '#cbd5e1'}
                   tickLine={false}
                   interval={0}
+                  dy={6}
                   tick={{ fill: isDark ? '#f1f5f9' : '#0f172a', fontSize: 11, fontWeight: 700, fontFamily: 'monospace' }}
                 />
                 <YAxis
@@ -338,13 +370,12 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
                 <Tooltip
                   content={
                     <CustomWilayahRankTooltip
-                      stageKey="bkLocations"
                       title="Luas Bongkar (BK)"
                       maxVal={maxBK}
                     />
                   }
                 />
-                <Bar dataKey="luas" name="Luas BK (Ha)" radius={[4, 4, 0, 0]}>
+                <Bar dataKey="luas" name="Luas BK (Ha)" radius={[4, 4, 0, 0]} maxBarSize={32}>
                   {sortedBK.map((entry, index) => {
                     const colorInfo = getDynamicHeightColor(entry.luas, maxBK);
                     return (
@@ -376,11 +407,12 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
             </span>
           </div>
 
-          <div className="h-56 w-full">
+          <div className="h-60 w-full outline-none focus:outline-none select-none">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={sortedBJK.map((item) => ({ ...item, rank: rankMapBJK.get(item.wilayah) || 1 }))}
-                margin={{ top: 10, right: 10, left: -20, bottom: 5 }}
+                margin={{ top: 10, right: 10, left: -20, bottom: 8 }}
+                className="outline-none focus:outline-none"
               >
                 <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
                 <XAxis
@@ -388,6 +420,7 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
                   stroke={isDark ? '#475569' : '#cbd5e1'}
                   tickLine={false}
                   interval={0}
+                  dy={6}
                   tick={{ fill: isDark ? '#f1f5f9' : '#0f172a', fontSize: 11, fontWeight: 700, fontFamily: 'monospace' }}
                 />
                 <YAxis
@@ -398,13 +431,12 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
                 <Tooltip
                   content={
                     <CustomWilayahRankTooltip
-                      stageKey="bjkLocations"
                       title="Luas Bajak (BJK)"
                       maxVal={maxBJK}
                     />
                   }
                 />
-                <Bar dataKey="luas" name="Luas BJK (Ha)" radius={[4, 4, 0, 0]}>
+                <Bar dataKey="luas" name="Luas BJK (Ha)" radius={[4, 4, 0, 0]} maxBarSize={32}>
                   {sortedBJK.map((entry, index) => {
                     const colorInfo = getDynamicHeightColor(entry.luas, maxBJK);
                     return (
@@ -436,11 +468,12 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
             </span>
           </div>
 
-          <div className="h-56 w-full">
+          <div className="h-60 w-full outline-none focus:outline-none select-none">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={sortedSN.map((item) => ({ ...item, rank: rankMapSN.get(item.wilayah) || 1 }))}
-                margin={{ top: 10, right: 10, left: -20, bottom: 5 }}
+                margin={{ top: 10, right: 10, left: -20, bottom: 8 }}
+                className="outline-none focus:outline-none"
               >
                 <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
                 <XAxis
@@ -448,6 +481,7 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
                   stroke={isDark ? '#475569' : '#cbd5e1'}
                   tickLine={false}
                   interval={0}
+                  dy={6}
                   tick={{ fill: isDark ? '#f1f5f9' : '#0f172a', fontSize: 11, fontWeight: 700, fontFamily: 'monospace' }}
                 />
                 <YAxis
@@ -458,13 +492,12 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
                 <Tooltip
                   content={
                     <CustomWilayahRankTooltip
-                      stageKey="snLocations"
                       title="Luas Siap Tanam (SN)"
                       maxVal={maxSN}
                     />
                   }
                 />
-                <Bar dataKey="luas" name="Luas SN (Ha)" radius={[4, 4, 0, 0]}>
+                <Bar dataKey="luas" name="Luas SN (Ha)" radius={[4, 4, 0, 0]} maxBarSize={32}>
                   {sortedSN.map((entry, index) => {
                     const colorInfo = getDynamicHeightColor(entry.luas, maxSN);
                     return (
@@ -675,11 +708,12 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
           </p>
         </div>
       ) : (
-        <div className="h-80 w-full">
+        <div className="h-80 w-full outline-none focus:outline-none select-none">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={activeChartData}
               margin={{ top: 10, right: 10, left: -15, bottom: 15 }}
+              className="outline-none focus:outline-none"
             >
               <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
               <XAxis
@@ -732,9 +766,61 @@ export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProp
   const [hideProses, setHideProses] = useState(false);
   const [hideSelesai, setHideSelesai] = useState(false);
 
+  // Defensive aggregation ensuring strictly W01-W07 unique regions
+  const normalizedData = React.useMemo(() => {
+    const stdRegions = ['W01', 'W02', 'W03', 'W04', 'W05', 'W06', 'W07'];
+    const map: Record<string, any> = {};
+    for (const r of stdRegions) {
+      map[r] = {
+        wilayah: r,
+        prosesCount: 0,
+        prosesLuas: 0,
+        prosesLocations: [] as string[],
+        selesaiCount: 0,
+        selesaiLuas: 0,
+        selesaiLocations: [] as string[],
+      };
+    }
+
+    const normalizeCode = (raw: string) => {
+      if (!raw) return 'W01';
+      const c = raw.trim().toUpperCase();
+      if (c === 'ARS1') return 'W07';
+      if (c === 'SAG1' || c === 'MD2') return 'W04';
+      if (c.startsWith('AW0')) return 'W0' + c.slice(3);
+      if (c.startsWith('AW')) {
+        const n = c.slice(2);
+        return n.length === 1 ? `W0${n}` : `W${n}`;
+      }
+      return c;
+    };
+
+    if (chartsData?.wilayahPositions) {
+      for (const item of chartsData.wilayahPositions) {
+        const code = normalizeCode(item.wilayah);
+        if (map[code]) {
+          map[code].prosesCount += item.prosesCount || 0;
+          map[code].prosesLuas += item.prosesLuas || 0;
+          map[code].prosesLocations.push(...(item.prosesLocations || []));
+          map[code].selesaiCount += item.selesaiCount || 0;
+          map[code].selesaiLuas += item.selesaiLuas || 0;
+          map[code].selesaiLocations.push(...(item.selesaiLocations || []));
+        }
+      }
+    }
+
+    return stdRegions.map((r) => ({
+      ...map[r],
+      prosesLuas: Math.round(map[r].prosesLuas * 100) / 100,
+      selesaiLuas: Math.round(map[r].selesaiLuas * 100) / 100,
+      prosesLocations: Array.from(new Set(map[r].prosesLocations)),
+      selesaiLocations: Array.from(new Set(map[r].selesaiLocations)),
+    }));
+  }, [chartsData?.wilayahPositions]);
+
   if (!chartsData || !chartsData.wilayahPositions) return null;
 
-  // Clicking w01 and so on below the chart cycles through hiding legend items
+  // Clicking W01..W07 below the chart cycles through hide legend
   const handleWilayahTickClick = (_wilayah: string) => {
     if (!hideProses && !hideSelesai) {
       // Hide Selesai Tanam -> only Proses Tanam visible
@@ -751,11 +837,20 @@ export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProp
     }
   };
 
+  const totalProses = normalizedData.reduce((acc, curr) => acc + curr.prosesCount, 0);
+  const totalProsesLuas = Math.round(normalizedData.reduce((acc, curr) => acc + curr.prosesLuas, 0) * 100) / 100;
+  const totalSelesai = normalizedData.reduce((acc, curr) => acc + curr.selesaiCount, 0);
+  const totalSelesaiLuas = Math.round(normalizedData.reduce((acc, curr) => acc + curr.selesaiLuas, 0) * 100) / 100;
+  const totalTanamLokasi = totalProses + totalSelesai;
+  const totalTanamLuas = Math.round((totalProsesLuas + totalSelesaiLuas) * 100) / 100;
+
   const CustomPlantingTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      const item = chartsData.wilayahPositions.find((w) => w.wilayah === label);
+      const item = normalizedData.find((w) => w.wilayah === label);
       const prosesLocs = item?.prosesLocations || [];
       const selesaiLocs = item?.selesaiLocations || [];
+      const prosesLuas = item?.prosesLuas || 0;
+      const selesaiLuas = item?.selesaiLuas || 0;
 
       return (
         <div className="p-3.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl text-xs max-w-sm backdrop-blur-xl">
@@ -764,7 +859,7 @@ export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProp
               <MapPin className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" /> Wilayah {label}
             </span>
             <span className="text-[10px] font-semibold text-cyan-700 dark:text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
-              Status Tanam
+              Total: {(item?.selesaiCount || 0) + (item?.prosesCount || 0)} Lokasi
             </span>
           </div>
 
@@ -775,11 +870,16 @@ export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProp
                 <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" /> Selesai Tanam:
                 </span>
-                <strong className="text-slate-900 dark:text-slate-100 font-extrabold">{selesaiLocs.length} Lokasi</strong>
+                <div className="text-right">
+                  <strong className="text-slate-900 dark:text-slate-100 font-extrabold">{selesaiLocs.length} Lokasi</strong>
+                  {selesaiLuas > 0 && (
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1.5">({selesaiLuas.toFixed(2)} Ha)</span>
+                  )}
+                </div>
               </div>
               {selesaiLocs.length > 0 && (
-                <div className="max-h-20 overflow-y-auto mt-1 flex flex-wrap gap-1">
-                  {selesaiLocs.map((loc) => (
+                <div className="max-h-24 overflow-y-auto mt-1.5 flex flex-wrap gap-1">
+                  {selesaiLocs.map((loc: string) => (
                     <button
                       key={loc}
                       onClick={() => onSelectLand && onSelectLand(loc)}
@@ -800,11 +900,16 @@ export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProp
                 <span className="text-amber-700 dark:text-amber-400 font-bold flex items-center gap-1">
                   <Clock className="w-3 h-3" /> Proses Tanam:
                 </span>
-                <strong className="text-slate-900 dark:text-slate-100 font-extrabold">{prosesLocs.length} Lokasi</strong>
+                <div className="text-right">
+                  <strong className="text-slate-900 dark:text-slate-100 font-extrabold">{prosesLocs.length} Lokasi</strong>
+                  {prosesLuas > 0 && (
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1.5">({prosesLuas.toFixed(2)} Ha)</span>
+                  )}
+                </div>
               </div>
               {prosesLocs.length > 0 && (
-                <div className="max-h-20 overflow-y-auto mt-1 flex flex-wrap gap-1">
-                  {prosesLocs.map((loc) => (
+                <div className="max-h-24 overflow-y-auto mt-1.5 flex flex-wrap gap-1">
+                  {prosesLocs.map((loc: string) => (
                     <button
                       key={loc}
                       onClick={() => onSelectLand && onSelectLand(loc)}
@@ -823,14 +928,6 @@ export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProp
     return null;
   };
 
-  const activeModeLabel = !hideProses && !hideSelesai
-    ? 'Kedua-duanya'
-    : !hideProses && hideSelesai
-    ? 'Hanya Proses Tanam'
-    : hideProses && !hideSelesai
-    ? 'Hanya Selesai Tanam'
-    : 'Semua Di-hide';
-
   return (
     <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
@@ -841,70 +938,22 @@ export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProp
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                {!hideProses && !hideSelesai
-                  ? 'Proses Tanam & Selesai Tanam per Wilayah'
-                  : !hideProses && hideSelesai
-                  ? 'Grafik Proses Tanam per Wilayah'
-                  : 'Grafik Selesai Tanam per Wilayah'}
+                Proses Tanam & Selesai Tanam per Wilayah
               </h3>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                Total: {totalTanamLokasi} Lokasi ({totalTanamLuas.toLocaleString('id-ID')} Ha)
+              </span>
             </div>
           </div>
         </div>
-
-        {/* View Mode Toggle Controls */}
-        <div className="flex items-center bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800 self-start sm:self-auto">
-          <button
-            type="button"
-            onClick={() => {
-              setHideProses(false);
-              setHideSelesai(false);
-            }}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              !hideProses && !hideSelesai
-                ? 'bg-slate-300 dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
-                : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-200'
-            }`}
-          >
-            Kedua-duanya
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setHideProses(false);
-              setHideSelesai(true);
-            }}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              !hideProses && hideSelesai
-                ? 'bg-amber-500 text-slate-950 font-extrabold shadow-sm'
-                : 'text-slate-700 dark:text-slate-400 hover:text-amber-700 dark:hover:text-amber-300'
-            }`}
-          >
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
-            Proses Tanam
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setHideProses(true);
-              setHideSelesai(false);
-            }}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              hideProses && !hideSelesai
-                ? 'bg-emerald-500 text-slate-950 font-extrabold shadow-sm'
-                : 'text-slate-700 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300'
-            }`}
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            Selesai Tanam
-          </button>
-        </div>
       </div>
 
-      <div className="h-72 w-full">
+      <div className="h-80 w-full outline-none focus:outline-none select-none">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
-            data={chartsData.wilayahPositions}
-            margin={{ top: 10, right: 10, left: -20, bottom: 5 }}
+            data={normalizedData}
+            margin={{ top: 10, right: 10, left: -20, bottom: 14 }}
+            className="outline-none focus:outline-none"
           >
             <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
             <XAxis
@@ -927,20 +976,20 @@ export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProp
                   >
                     <title>{`Wilayah ${payload.value}: Klik untuk hide legend / ganti grafik`}</title>
                     <rect
-                      x={-18}
-                      y={3}
-                      width={36}
-                      height={18}
-                      rx={5}
-                      className="fill-transparent group-hover:fill-slate-200/80 dark:group-hover:fill-slate-800 transition-all"
+                      x={-20}
+                      y={4}
+                      width={40}
+                      height={20}
+                      rx={6}
+                      className="fill-slate-100/60 dark:fill-slate-800/60 group-hover:fill-amber-500/20 dark:group-hover:fill-amber-500/30 transition-all border border-transparent group-hover:border-amber-500/30"
                     />
                     <text
                       x={0}
-                      y={16}
+                      y={18}
                       textAnchor="middle"
                       fontSize={11}
                       fontWeight="700"
-                      className="transition-colors font-mono fill-slate-900 dark:fill-slate-100 group-hover:fill-amber-600 dark:group-hover:fill-amber-400"
+                      className="transition-colors font-mono fill-slate-700 dark:fill-slate-300 group-hover:fill-amber-600 dark:group-hover:fill-amber-400"
                     >
                       {payload.value}
                     </text>
@@ -952,71 +1001,41 @@ export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProp
               stroke={isDark ? '#475569' : '#cbd5e1'}
               fontSize={11}
               tickLine={false}
+              allowDecimals={false}
               tick={{ fill: isDark ? '#cbd5e1' : '#334155', fontSize: 10, fontWeight: 600 }}
             />
             <Tooltip content={<CustomPlantingTooltip />} />
 
-            {/* Interactive Clickable Legend to Hide/Show series */}
+            {/* View-only Legend positioned slightly lower */}
             <Legend
               verticalAlign="bottom"
-              height={40}
+              height={52}
               content={() => {
                 return (
-                  <div className="flex flex-wrap items-center justify-center gap-4 pt-3 select-none">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!hideProses && hideSelesai) {
-                          setHideSelesai(false);
-                        } else {
-                          setHideProses(!hideProses);
-                        }
-                      }}
-                      className={`flex items-center gap-2 text-xs font-bold transition-all cursor-pointer px-3 py-1.5 rounded-lg border ${
+                  <div className="flex flex-wrap items-center justify-center gap-4 pt-5 select-none">
+                    <div
+                      className={`flex items-center gap-2 text-xs font-bold px-3.5 py-1.5 rounded-lg border transition-all ${
                         hideProses
-                          ? 'opacity-40 line-through bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-300 dark:border-slate-700'
-                          : 'bg-amber-500/15 text-amber-900 dark:text-amber-300 border-amber-500/30 hover:bg-amber-500/25'
+                          ? 'opacity-35 line-through bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-300 dark:border-slate-700'
+                          : 'bg-amber-500/15 text-amber-900 dark:text-amber-300 border-amber-500/30 shadow-xs'
                       }`}
-                      title={hideProses ? 'Klik untuk memunculkan kembali Proses Tanam' : 'Klik untuk hide legend Proses Tanam'}
                     >
-                      <span className={`w-3 h-3 rounded-xs ${hideProses ? 'bg-slate-400' : 'bg-amber-500'}`} />
+                      <span className={`w-3 h-3 rounded-xs ${hideProses ? 'bg-slate-400' : 'bg-[#F58220]'}`} />
                       <span>Proses Tanam (Lokasi)</span>
                       {hideProses && <span className="text-[10px] font-normal no-underline ml-0.5">(Hidden)</span>}
-                    </button>
+                    </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (hideProses && !hideSelesai) {
-                          setHideProses(false);
-                        } else {
-                          setHideSelesai(!hideSelesai);
-                        }
-                      }}
-                      className={`flex items-center gap-2 text-xs font-bold transition-all cursor-pointer px-3 py-1.5 rounded-lg border ${
+                    <div
+                      className={`flex items-center gap-2 text-xs font-bold px-3.5 py-1.5 rounded-lg border transition-all ${
                         hideSelesai
-                          ? 'opacity-40 line-through bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-300 dark:border-slate-700'
-                          : 'bg-emerald-500/15 text-emerald-900 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25'
+                          ? 'opacity-35 line-through bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-300 dark:border-slate-700'
+                          : 'bg-emerald-500/15 text-emerald-900 dark:text-emerald-300 border-emerald-500/30 shadow-xs'
                       }`}
-                      title={hideSelesai ? 'Klik untuk memunculkan kembali Selesai Tanam' : 'Klik untuk hide legend Selesai Tanam'}
                     >
-                      <span className={`w-3 h-3 rounded-xs ${hideSelesai ? 'bg-slate-400' : 'bg-emerald-500'}`} />
+                      <span className={`w-3 h-3 rounded-xs ${hideSelesai ? 'bg-slate-400' : 'bg-[#00873D]'}`} />
                       <span>Selesai Tanam (Lokasi)</span>
                       {hideSelesai && <span className="text-[10px] font-normal no-underline ml-0.5">(Hidden)</span>}
-                    </button>
-
-                    {(hideProses || hideSelesai) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setHideProses(false);
-                          setHideSelesai(false);
-                        }}
-                        className="text-xs font-bold text-cyan-700 dark:text-cyan-400 hover:underline cursor-pointer flex items-center gap-1 ml-1"
-                      >
-                        Reset (Munculkan Semua)
-                      </button>
-                    )}
+                    </div>
                   </div>
                 );
               }}
@@ -1028,7 +1047,7 @@ export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProp
                 name="Proses Tanam (Lokasi)"
                 fill="#F58220"
                 stackId={!hideSelesai ? 'tanam' : undefined}
-                radius={hideSelesai ? [4, 4, 0, 0] : undefined}
+                radius={hideSelesai ? [6, 6, 0, 0] : undefined}
               />
             )}
             {!hideSelesai && (
@@ -1037,7 +1056,7 @@ export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProp
                 name="Selesai Tanam (Lokasi)"
                 fill="#00873D"
                 stackId={!hideProses ? 'tanam' : undefined}
-                radius={[4, 4, 0, 0]}
+                radius={[6, 6, 0, 0]}
               />
             )}
           </BarChart>
@@ -1045,11 +1064,20 @@ export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProp
       </div>
 
       {/* Status bar */}
-      <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end text-xs">
-        <div className="flex items-center gap-1.5 text-[11px]">
-          <span className="text-slate-600 dark:text-slate-400 font-medium">Grafik Aktif:</span>
-          <span className="font-bold text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
-            {activeModeLabel}
+      <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
+        <div className="flex items-center gap-3 text-[11px] text-slate-600 dark:text-slate-400 flex-wrap">
+          <span>
+            Selesai Tanam:{' '}
+            <strong className="text-emerald-700 dark:text-emerald-400 font-bold">
+              {totalSelesai} Lokasi ({totalSelesaiLuas.toLocaleString('id-ID')} Ha)
+            </strong>
+          </span>
+          <span>•</span>
+          <span>
+            Proses Tanam:{' '}
+            <strong className="text-amber-700 dark:text-amber-400 font-bold">
+              {totalProses} Lokasi ({totalProsesLuas.toLocaleString('id-ID')} Ha)
+            </strong>
           </span>
         </div>
       </div>

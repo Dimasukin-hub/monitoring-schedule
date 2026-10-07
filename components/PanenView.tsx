@@ -210,8 +210,8 @@ export default function PanenView({ onOpenLand, refreshTrigger = 0 }: PanenViewP
             </select>
 
             {/* Search Input */}
-            <div className="relative w-full sm:w-56">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <div className="relative w-full sm:w-56 flex items-center">
+              <Search className="w-3.5 h-3.5 text-slate-400 dark:text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
               <input
                 type="text"
                 placeholder="Cari lokasi / wilayah..."

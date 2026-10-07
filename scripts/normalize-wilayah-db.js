@@ -2,12 +2,15 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 function normalizeWilayah(w) {
-  if (!w) return 'UNKNOWN';
+  if (!w) return 'W01';
   const clean = String(w).trim().toUpperCase();
   if (clean === 'ARS1') return 'W07';
-  if (clean === 'SAG1') return 'W04';
+  if (clean === 'SAG1' || clean === 'MD2') return 'W04';
   if (clean.startsWith('AW0')) return 'W0' + clean.slice(3);
-  if (clean.startsWith('AW')) return 'W' + clean.slice(2);
+  if (clean.startsWith('AW')) {
+    const num = clean.slice(2);
+    return num.length === 1 ? 'W0' + num : 'W' + num;
+  }
   return clean;
 }
 
@@ -28,7 +31,7 @@ async function main() {
     }
   }
 
-  console.log(`Updated ${updatedCount} lands.`);
+  console.log(`Updated ${updatedCount} lands in DB.`);
 
   const after = await prisma.land.groupBy({
     by: ['wilayah'],
@@ -38,4 +41,6 @@ async function main() {
   console.log('Wilayah summary after normalization:', after);
 }
 
-main().finally(() => prisma.$disconnect());
+main()
+  .catch(console.error)
+  .finally(() => prisma.$disconnect());

@@ -154,3 +154,41 @@ div[data-nextjs-dev-overlay] {
   display: none !important;
 }
 
+/* =========================================================================
+   HILANGKAN KOTAK PUTIH (FOCUS OUTLINE / BOUNDING BOX) SAAT KLIK PADA GRAFIK
+   ========================================================================= */
+.recharts-wrapper,
+.recharts-wrapper:focus,
+.recharts-wrapper:focus-visible,
+.recharts-wrapper *:focus,
+.recharts-wrapper *:focus-visible,
+.recharts-surface,
+.recharts-surface:focus,
+.recharts-surface:focus-visible,
+.recharts-responsive-container,
+.recharts-responsive-container:focus,
+.recharts-responsive-container:focus-visible,
+svg.recharts-surface,
+svg.recharts-surface:focus,
+svg.recharts-surface:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+/* Kotak yang menyelimuti bar grafik saat mengarahkan kursor (hover) tetap diadakan */
+.recharts-tooltip-cursor {
+  opacity: 1 !important;
+  pointer-events: none;
+}
+:root .recharts-tooltip-cursor {
+  fill: rgba(148, 163, 184, 0.16) !important;
+}
+.dark .recharts-tooltip-cursor {
+  fill: rgba(255, 255, 255, 0.08) !important;
+}
+
+

@@ -19,6 +19,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import TableDatePicker from '@/components/TableDatePicker';
+import { REAL_MASTER_STATUSES } from '@/components/LandTable';
 
 interface LandDetailModalProps {
   landId: number | string | null;
@@ -313,18 +314,24 @@ export default function LandDetailModal({
                 )}
 
                 {/* Status Lahan Editable Selector */}
-                {land && (
-                  <select
-                    value={land.status ? land.status.replace(/\d+/g, '').trim() : 'SEWA'}
-                    onChange={(e) => updateFormField('status', e.target.value)}
-                    className="text-xs font-semibold text-cyan-800 dark:text-cyan-300 bg-cyan-100 dark:bg-cyan-500/20 px-2 py-0.5 rounded-full border border-cyan-300 dark:border-cyan-500/30 focus:outline-none cursor-pointer"
-                  >
-                    <option value="SEWA">SEWA</option>
-                    <option value="INTI">INTI</option>
-                    <option value="TS">TS</option>
-                    <option value="PLASMA">PLASMA</option>
-                  </select>
-                )}
+                {land && (() => {
+                  const currentSts = land.status ? land.status.replace(/\d+/g, '').trim() : '';
+                  const statusList = Array.from(new Set([...REAL_MASTER_STATUSES, currentSts].filter(Boolean))).sort();
+                  return (
+                    <select
+                      value={currentSts}
+                      onChange={(e) => updateFormField('status', e.target.value)}
+                      className="text-xs font-semibold text-cyan-800 dark:text-cyan-300 bg-cyan-100 dark:bg-cyan-500/20 px-2 py-0.5 rounded-full border border-cyan-300 dark:border-cyan-500/30 focus:outline-none cursor-pointer"
+                    >
+                      {!currentSts && <option value="">-- Pilih Status --</option>}
+                      {statusList.map((st) => (
+                        <option key={st} value={st}>
+                          {st}
+                        </option>
+                      ))}
+                    </select>
+                  );
+                })()}
               </div>
 
               {/* Luas Netto & Bruto Direct Inputs */}

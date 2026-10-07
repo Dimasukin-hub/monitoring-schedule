@@ -20,6 +20,12 @@ import TableDatePicker from '@/components/TableDatePicker';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
 import { PIPELINE_ORDER, computeAktivitasTerakhir, isValidDate } from '@/lib/landActivityUtils';
 
+export const REAL_MASTER_STATUSES = [
+  'JBBK', 'NRBB', 'NRST', 'NSBB', 'NSBK', 'NSCL', 'NSFC', 'NSSC', 'NSST',
+  'PSBK', 'PSFC', 'PSR', 'PSSC', 'PSSR', 'PSY', 'PYBK', 'PYFC', 'PYST',
+  'Rumput', 'Singkong', 'SKBK', 'SKFC'
+];
+
 interface InlineCellProps {
   value: string | number | null | undefined;
   type?: 'text' | 'number' | 'select';
@@ -107,6 +113,11 @@ function InlineCell({
             onKeyDown={handleKeyDown}
             className="w-full bg-white dark:bg-slate-900 border border-emerald-500 rounded px-1 py-0.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none shadow-sm cursor-pointer"
           >
+            {val && !options.includes(val) && (
+              <option value={val} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
+                {val}
+              </option>
+            )}
             {options.map((opt) => (
               <option key={opt} value={opt} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
                 {opt}
@@ -547,7 +558,7 @@ export default function LandTable({
     activityMonths?: string[];
     aktivitasTerakhir?: string[];
   }>({
-    wilayahs: ['ARS1', 'AW01', 'AW02', 'AW03', 'AW04', 'AW05', 'AW06', 'AW07', 'SAG1', 'W01', 'W02', 'W03', 'W04', 'W05', 'W06', 'W07'],
+    wilayahs: ['ARS1', 'AW01', 'AW02', 'AW03', 'AW04', 'AW05', 'AW06', 'AW07', 'W01', 'W02', 'W03', 'W04', 'W05', 'W06', 'W07'],
     years: ['2021', '2022', '2023', '2024', '2025', '2026', '2027', '2028'],
     defaultYear: '2026',
     statuses: [],
@@ -557,6 +568,18 @@ export default function LandTable({
     activityMonths: DEFAULT_ACTIVITY_MONTHS,
     aktivitasTerakhir: [],
   });
+
+  const availableStatusOptions = useMemo(() => {
+    const list = filters.statuses && filters.statuses.length > 0 ? filters.statuses : REAL_MASTER_STATUSES;
+    const set = new Set<string>(list);
+    lands.forEach((l) => {
+      if (l.status) {
+        const clean = l.status.replace(/\d+/g, '').trim();
+        if (clean) set.add(clean);
+      }
+    });
+    return Array.from(set).sort();
+  }, [filters.statuses, lands]);
 
   const selectedActivityKeys = useMemo(
     () => selectedActivities.map((act) => ACTIVITY_LABEL_TO_KEY[act] || act),
@@ -1471,8 +1494,8 @@ export default function LandTable({
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
             {/* Search box inside table */}
-            <div className="relative w-full sm:w-64">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <div className="relative w-full sm:w-64 flex items-center">
+              <Search className="w-3.5 h-3.5 text-slate-400 dark:text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
               <input
                 type="text"
                 placeholder="Cari lokasi"
@@ -1490,7 +1513,7 @@ export default function LandTable({
                     setSearch('');
                     setPage(1);
                   }}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer p-0.5 rounded-full hover:bg-slate-200/60 dark:hover:bg-slate-700/60 flex items-center justify-center"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer p-0.5 rounded-full hover:bg-slate-200/60 dark:hover:bg-slate-700/60 flex items-center justify-center z-10"
                   title="Hapus pencarian"
                   aria-label="Hapus pencarian"
                 >
@@ -1601,7 +1624,6 @@ export default function LandTable({
                     'AW05',
                     'AW06',
                     'AW07',
-                    'SAG1',
                     'W01',
                     'W02',
                     'W03',
@@ -1621,7 +1643,7 @@ export default function LandTable({
           {/* 2. Status Filter */}
           <MultiSelectDropdown
             label="Status"
-            options={filters.statuses || ['SEWA', 'INTI', 'TS', 'PLASMA']}
+            options={availableStatusOptions}
             selected={selectedStatuses}
             onChange={(val) => {
               setSelectedStatuses(val);
@@ -2552,7 +2574,7 @@ export default function LandTable({
                         type="select"
                         align="center"
                         className="!p-0"
-                        options={['SEWA', 'INTI', 'TS', 'PLASMA', 'Rumput', 'Nenas']}
+                        options={availableStatusOptions}
                         displayFormatter={(val) =>
                           val ? (
                             <span className="bg-cyan-50 dark:bg-cyan-500/10 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-500/20 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-tight inline-block text-center whitespace-nowrap">
@@ -2648,7 +2670,13 @@ export default function LandTable({
                     {/* 10 Activities Rencana vs Real (Chopper up to Kompos) */}
                     {BONGKAR_ACTIVITIES.filter((act) => isColumnVisible(act.key)).map((act, idx, arr) => {
                       const actKey = act.key;
-                      const actData = land[actKey] || { rencana: null, real: null };
+                      const rawAct = land[actKey];
+                      const actData = (typeof rawAct === 'object' && rawAct !== null)
+                        ? rawAct
+                        : {
+                            rencana: (typeof rawAct === 'string' ? rawAct : null) || land.aplikasiDetails?.[actKey] || null,
+                            real: land.aplikasiDetails?.[`real${actKey.charAt(0).toUpperCase() + actKey.slice(1)}`] || null,
+                          };
                       const isSelected = selectedActivityKeys.includes(actKey);
                       const isRencanaMatch = selectedActivityMonths.length > 0 && matchActivityMonth(actData.rencana, selectedActivityMonths);
                       const isRealMatch = selectedActivityMonths.length > 0 && matchActivityMonth(actData.real, selectedActivityMonths);

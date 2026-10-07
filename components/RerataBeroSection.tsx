@@ -131,10 +131,11 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
           </div>
 
           <div className="w-full overflow-x-auto pb-1">
-            <div className="h-[340px] min-w-[500px] w-full pt-1">
+            <div className="h-[340px] min-w-[500px] w-full pt-1 outline-none focus:outline-none select-none">
               {filteredTanamData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart
+                    className="outline-none focus:outline-none"
                     data={filteredTanamData}
                     margin={{ top: 12, right: 16, left: -16, bottom: 20 }}
                     barCategoryGap="20%"
@@ -247,10 +248,11 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
           </div>
 
           <div className="w-full overflow-x-auto pb-1">
-            <div className="h-[340px] min-w-[680px] w-full pt-1">
+            <div className="h-[340px] min-w-[680px] w-full pt-1 outline-none focus:outline-none select-none">
               {filteredBeroData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart
+                    className="outline-none focus:outline-none"
                     data={filteredBeroData}
                     margin={{ top: 12, right: 16, left: -20, bottom: 20 }}
                     barCategoryGap="20%"

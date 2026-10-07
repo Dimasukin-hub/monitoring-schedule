@@ -79,6 +79,7 @@ export async function GET(request: Request) {
       };
 
       rows.push({
+        'NO': rows.length + 1,
         'Wilayah': l.wilayah,
         'Lokasi': l.lokasi,
         'Luas Bruto (Ha)': l.luasBruto ? Number(l.luasBruto.toFixed(2)) : 0,
@@ -99,6 +100,7 @@ export async function GET(request: Request) {
 
     // Auto column widths
     const colWidths = [
+      { wch: 6 },  // NO
       { wch: 10 }, // Wilayah
       { wch: 12 }, // Lokasi
       { wch: 16 }, // Luas Bruto

@@ -12,6 +12,7 @@ interface TableDatePickerProps {
   className?: string;
   align?: 'left' | 'center' | 'right';
   isMonthOnly?: boolean;
+  formatDisplay?: 'full' | 'short';
 }
 
 const INDONESIAN_MONTHS = [
@@ -90,6 +91,7 @@ export default function TableDatePicker({
   className = '',
   align = 'center',
   isMonthOnly = false,
+  formatDisplay = 'short',
 }: TableDatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
@@ -272,13 +274,18 @@ export default function TableDatePicker({
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay(); // 0 is Sunday
 
-  // Format short string for display in table (e.g. 18/07/2026 -> 18/07/26)
-  const formatShort = (val: string | null | undefined) => {
+  // Format string for display in table (full e.g. 18/07/2026 or short e.g. 18/07/26)
+  const formatValueDisplay = (val: string | null | undefined) => {
     if (!val || val === '-' || val === '0') return '-';
+    if (formatDisplay === 'full') return val;
     return val.replace(/\/20(\d{2})$/, '/$1');
   };
 
   const hasValue = value && value !== '-' && value !== '0';
+
+  const availableYears = Array.from(
+    new Set([2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030, viewYear])
+  ).sort((a, b) => a - b);
 
   return (
     <>
@@ -316,7 +323,7 @@ export default function TableDatePicker({
               : 'text-slate-400 dark:text-slate-600'
           }`}
         >
-          {formatShort(value)}
+          {formatValueDisplay(value)}
         </span>
       </div>
 
@@ -357,7 +364,7 @@ export default function TableDatePicker({
                   onChange={(e) => setViewYear(parseInt(e.target.value, 10))}
                   className="bg-transparent border border-slate-300 dark:border-slate-700 rounded px-1 py-0.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
                 >
-                  {[2023, 2024, 2025, 2026, 2027, 2028, 2029].map((y) => (
+                  {availableYears.map((y) => (
                     <option key={y} value={y} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
                       {y}
                     </option>
