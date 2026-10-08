@@ -11,6 +11,7 @@ import {
   Tooltip,
   Legend,
   Cell,
+  Rectangle,
 } from 'recharts';
 import {
   TrendingUp,
@@ -640,6 +641,16 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
   const totalDeviasi = Math.round((totalRealisasi - totalRencana) * 100) / 100;
   const totalCapaian = totalRencana > 0 ? Math.round((totalRealisasi / totalRencana) * 1000) / 10 : 0;
 
+  // Menghitung lebar grafik agar bar harian dan mingguan memiliki ruang cukup dan berjarak lega
+  const chartWidth =
+    periodMode === 'daily'
+      ? selectedMonthFilter === 'ALL'
+        ? Math.max(activeChartData.length * 36, 2200)
+        : Math.max(activeChartData.length * 50, 1400)
+      : periodMode === 'weekly'
+      ? Math.max(activeChartData.length * 52, 2400)
+      : undefined;
+
   const getCategoryTitle = () => {
     switch (targetCategory) {
       case 'BONGKAR':
@@ -922,20 +933,17 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
       ) : (
         <div className="w-full overflow-x-auto pb-2">
           <div
+            style={chartWidth ? { minWidth: `${chartWidth}px` } : undefined}
             className={`h-80 outline-none focus:outline-none select-none ${
-              periodMode === 'daily' && selectedMonthFilter === 'ALL'
-                ? 'min-w-[1300px]'
-                : periodMode === 'daily'
-                ? 'min-w-[650px]'
-                : periodMode === 'weekly'
-                ? 'min-w-[850px]'
-                : 'w-full min-w-[500px]'
+              !chartWidth ? 'w-full min-w-[500px]' : ''
             }`}
           >
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={activeChartData}
-                margin={{ top: 10, right: 10, left: -15, bottom: periodMode === 'daily' ? 24 : 15 }}
+                margin={{ top: 10, right: 20, left: -15, bottom: periodMode === 'daily' ? 24 : 15 }}
+                barCategoryGap={periodMode === 'daily' ? '28%' : periodMode === 'weekly' ? '28%' : '15%'}
+                barGap={4}
                 className="outline-none focus:outline-none"
                 style={{ outline: 'none' }}
               >
@@ -975,8 +983,20 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                     </span>
                   )}
                 />
-                <Bar dataKey="rencana" name="Rencana (Ha)" fill="#009EE2" radius={[4, 4, 0, 0]} maxBarSize={32} />
-                <Bar dataKey="realisasi" name="Realisasi (Ha)" fill="#00873D" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                <Bar
+                  dataKey="rencana"
+                  name="Rencana (Ha)"
+                  fill="#009EE2"
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={periodMode === 'daily' ? 14 : periodMode === 'weekly' ? 16 : 28}
+                />
+                <Bar
+                  dataKey="realisasi"
+                  name="Realisasi (Ha)"
+                  fill="#00873D"
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={periodMode === 'daily' ? 14 : periodMode === 'weekly' ? 16 : 28}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -1157,6 +1177,25 @@ export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProp
     return null;
   };
 
+  // Helper render shape adaptif:
+  // - Jika batang berada di puncak teratas tiang (baik orange maupun hijau) -> sudut atas membulat [6, 6, 0, 0]
+  // - Jika batang berada di bagian bawah/tengah (ada data lain di atasnya) -> flat rata [0, 0, 0, 0] agar menyatu mulus tanpa celah
+  const renderCustomBar = (props: any) => {
+    if (!props.height || props.height <= 0) return null;
+    const totalCount =
+      (hideProses ? 0 : props.payload?.prosesCount || 0) +
+      (hideSelesai ? 0 : props.payload?.selesaiCount || 0);
+
+    let isTop = true;
+    if (Array.isArray(props.value)) {
+      const [_startVal, endVal] = props.value;
+      isTop = endVal >= totalCount - 0.001;
+    }
+
+    const radius = isTop ? [6, 6, 0, 0] : [0, 0, 0, 0];
+    return <Rectangle {...props} radius={radius} />;
+  };
+
   return (
     <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
@@ -1203,7 +1242,7 @@ export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProp
                     }}
                     className="group select-none"
                   >
-                    <title>{`Wilayah ${payload.value}: Klik untuk hide legend / ganti grafik`}</title>
+                    <title>{`Wilayah ${payload.value}: Klik untuk beralih tampilan (Semua / Proses / Selesai)`}</title>
                     <rect
                       x={-20}
                       y={4}
@@ -1235,36 +1274,64 @@ export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProp
             />
             <Tooltip content={<CustomPlantingTooltip />} />
 
-            {/* View-only Legend positioned slightly lower */}
+            {/* Interactive Legend - hanya menampilkan item aktif, menyembunyikan yang tidak dipilih */}
             <Legend
               verticalAlign="bottom"
               height={52}
               content={() => {
                 return (
                   <div className="flex flex-wrap items-center justify-center gap-4 pt-5 select-none">
-                    <div
-                      className={`flex items-center gap-2 text-xs font-bold px-3.5 py-1.5 rounded-lg border transition-all ${
-                        hideProses
-                          ? 'opacity-35 line-through bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-300 dark:border-slate-700'
-                          : 'bg-amber-500/15 text-amber-900 dark:text-amber-300 border-amber-500/30 shadow-xs'
-                      }`}
-                    >
-                      <span className={`w-3 h-3 rounded-xs ${hideProses ? 'bg-slate-400' : 'bg-[#F58220]'}`} />
-                      <span>Proses Tanam (Lokasi)</span>
-                      {hideProses && <span className="text-[10px] font-normal no-underline ml-0.5">(Hidden)</span>}
-                    </div>
+                    {!hideProses && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!hideSelesai) {
+                            // Kedua-duanya sedang tampil -> pilih hanya Proses Tanam
+                            setHideProses(false);
+                            setHideSelesai(true);
+                          } else {
+                            // Hanya Proses Tanam -> kembalikan ke kedua-duanya
+                            setHideProses(false);
+                            setHideSelesai(false);
+                          }
+                        }}
+                        className="flex items-center gap-2 text-xs font-bold px-3.5 py-1.5 rounded-lg border transition-all cursor-pointer bg-amber-500/15 text-amber-900 dark:text-amber-300 border-amber-500/30 shadow-xs hover:bg-amber-500/25 active:scale-95"
+                        title={
+                          hideSelesai
+                            ? 'Klik untuk menampilkan kembali kedua data'
+                            : 'Klik untuk hanya menampilkan Proses Tanam'
+                        }
+                      >
+                        <span className="w-3 h-3 rounded-xs bg-[#F58220]" />
+                        <span>Proses Tanam (Lokasi)</span>
+                      </button>
+                    )}
 
-                    <div
-                      className={`flex items-center gap-2 text-xs font-bold px-3.5 py-1.5 rounded-lg border transition-all ${
-                        hideSelesai
-                          ? 'opacity-35 line-through bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-300 dark:border-slate-700'
-                          : 'bg-emerald-500/15 text-emerald-900 dark:text-emerald-300 border-emerald-500/30 shadow-xs'
-                      }`}
-                    >
-                      <span className={`w-3 h-3 rounded-xs ${hideSelesai ? 'bg-slate-400' : 'bg-[#00873D]'}`} />
-                      <span>Selesai Tanam (Lokasi)</span>
-                      {hideSelesai && <span className="text-[10px] font-normal no-underline ml-0.5">(Hidden)</span>}
-                    </div>
+                    {!hideSelesai && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!hideProses) {
+                            // Kedua-duanya sedang tampil -> pilih hanya Selesai Tanam
+                            setHideProses(true);
+                            setHideSelesai(false);
+                          } else {
+                            // Hanya Selesai Tanam -> kembalikan ke kedua-duanya
+                            setHideProses(false);
+                            setHideSelesai(false);
+                          }
+                        }}
+                        className="flex items-center gap-2 text-xs font-bold px-3.5 py-1.5 rounded-lg border transition-all cursor-pointer bg-emerald-500/15 text-emerald-900 dark:text-emerald-300 border-emerald-500/30 shadow-xs hover:bg-emerald-500/25 active:scale-95"
+                        title={
+                          hideProses
+                            ? 'Klik untuk menampilkan kembali kedua data'
+                            : 'Klik untuk hanya menampilkan Selesai Tanam'
+                        }
+                      >
+                        <span className="w-3 h-3 rounded-xs bg-[#00873D]" />
+                        <span>Selesai Tanam (Lokasi)</span>
+                      </button>
+                    )}
                   </div>
                 );
               }}
@@ -1276,7 +1343,7 @@ export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProp
                 name="Proses Tanam (Lokasi)"
                 fill="#F58220"
                 stackId={!hideSelesai ? 'tanam' : undefined}
-                radius={hideSelesai ? [6, 6, 0, 0] : undefined}
+                shape={renderCustomBar}
               />
             )}
             {!hideSelesai && (
@@ -1285,7 +1352,7 @@ export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProp
                 name="Selesai Tanam (Lokasi)"
                 fill="#00873D"
                 stackId={!hideProses ? 'tanam' : undefined}
-                radius={[6, 6, 0, 0]}
+                shape={renderCustomBar}
               />
             )}
           </BarChart>

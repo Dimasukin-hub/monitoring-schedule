@@ -216,7 +216,7 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
                     />
                     {/* Target Tanam as Line */}
                     <Line
-                      type="monotone"
+                      type="linear"
                       dataKey="target"
                       name="Target"
                       stroke="#0284c7"
@@ -325,7 +325,7 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
                     />
                     {/* Target RFC as Solid Line */}
                     <Line
-                      type="monotone"
+                      type="linear"
                       dataKey="rfc"
                       name="Target RFC"
                       stroke="#0284c7"
@@ -334,7 +334,7 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
                     />
                     {/* Rencana Rerata as Dashed Line */}
                     <Line
-                      type="monotone"
+                      type="linear"
                       dataKey="rencana"
                       name="Rencana"
                       stroke="#f59e0b"

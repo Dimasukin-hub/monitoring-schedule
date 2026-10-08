@@ -2,10 +2,8 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
-  Sprout,
   TrendingUp,
   Boxes,
-  Calendar,
   ChevronDown,
   Check,
   Layers,
@@ -481,14 +479,9 @@ export default function KpiCards({
                 REALISASI TANAM
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-50 dark:bg-cyan-950/80 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 whitespace-nowrap">
-                {data.realisasiTanamSummary?.periodLabel || 'Jan - Sep 2026'}
-              </span>
-              <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
-                <Sprout className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-              </div>
-            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-50 dark:bg-cyan-950/80 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 whitespace-nowrap">
+              {data.realisasiTanamSummary?.periodLabel || 'Jan - Sep 2026'}
+            </span>
           </div>
 
           <div>
@@ -550,14 +543,9 @@ export default function KpiCards({
                   BULANAN
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 whitespace-nowrap">
-                  {data.realisasiTanamMtdSummary?.periodLabel || '1 - 6 Okt 2026'}
-                </span>
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                  <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                </div>
-              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 whitespace-nowrap shrink-0">
+                {data.realisasiTanamMtdSummary?.periodLabel || '1 - 6 Okt 2026'}
+              </span>
             </div>
 
             <div>
@@ -609,14 +597,9 @@ export default function KpiCards({
                   PROSES TANAM
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 whitespace-nowrap">
-                  {data.prosesTanamSummary?.prosesCount ?? data.stockStageCounts?.proses ?? 15} Lokasi
-                </span>
-                <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-                  <TrendingUp className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                </div>
-              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 whitespace-nowrap shrink-0">
+                {data.prosesTanamSummary?.prosesCount ?? data.stockStageCounts?.proses ?? 15} Lokasi
+              </span>
             </div>
 
             <div>

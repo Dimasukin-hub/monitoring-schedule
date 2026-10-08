@@ -1998,17 +1998,17 @@ export default function LandTable({
       >
         <table className="min-w-full text-left text-xs border-separate border-spacing-0">
           <colgroup>
-            <col className="w-[50px] min-w-[50px] max-w-[50px]" /> {/* 0. NO */}
-            <col className="w-[54px] min-w-[54px] max-w-[54px]" /> {/* 1. WIL */}
-            <col className="w-[68px] min-w-[68px] max-w-[68px]" /> {/* 2. LOKASI */}
-            <col className="w-[60px] min-w-[60px] max-w-[60px]" /> {/* 3. BRUTO */}
-            <col className="w-[60px] min-w-[60px] max-w-[60px]" /> {/* 4. NETTO */}
-            <col className="w-[66px] min-w-[66px] max-w-[66px]" /> {/* 5. STS */}
-            <col className="w-[52px] min-w-[52px] max-w-[52px]" /> {/* 6. EKS */}
-            <col className="w-[70px] min-w-[70px] max-w-[70px]" /> {/* 7. SEJARAH PS */}
-            <col className="w-[108px] min-w-[108px] max-w-[108px]" /> {/* 8. BIBIT & KELAS */}
-            <col className="w-[80px] min-w-[80px] max-w-[80px]" /> {/* 9. BULAN TANAM */}
-            <col className="w-[114px] min-w-[114px] max-w-[114px]" /> {/* 10. AKTIVITAS TERAKHIR */}
+            <col className="w-[50px] min-w-[50px] max-w-[50px]" />
+            <col className="w-[54px] min-w-[54px] max-w-[54px]" />
+            <col className="w-[68px] min-w-[68px] max-w-[68px]" />
+            <col className="w-[60px] min-w-[60px] max-w-[60px]" />
+            <col className="w-[60px] min-w-[60px] max-w-[60px]" />
+            <col className="w-[66px] min-w-[66px] max-w-[66px]" />
+            <col className="w-[52px] min-w-[52px] max-w-[52px]" />
+            <col className="w-[70px] min-w-[70px] max-w-[70px]" />
+            <col className="w-[108px] min-w-[108px] max-w-[108px]" />
+            <col className="w-[80px] min-w-[80px] max-w-[80px]" />
+            <col className="w-[114px] min-w-[114px] max-w-[114px]" />
           </colgroup>
           <thead className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider shadow-sm">
             {/* Header Tier 1: Main Category Groups */}
