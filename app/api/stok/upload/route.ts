@@ -104,14 +104,25 @@ export async function POST(request: Request) {
         row['Aktivitas Terakhir'] || row['aktivitasTerakhir'] || row['Aplikasi Terakhir']
       );
 
+      const catRaw = parseStr(row['Kategori Stok'] || row['kategoriStok'] || row['Category'] || row['category']);
+      let category: string | undefined = undefined;
+      if (catRaw) {
+        const cUp = catRaw.toUpperCase();
+        if (cUp.includes('BJK') || cUp.includes('BAJAK')) category = 'BJK';
+        else if (cUp.includes('SN') || cUp.includes('SIAP')) category = 'SN';
+        else if (cUp.includes('PROSES')) category = 'PROSES';
+        else if (cUp.includes('SELESAI')) category = 'SELESAI';
+        else if (cUp.includes('BK')) category = 'BK';
+      }
+
       try {
-        // Upsert into Land table
-        const existing = await prisma.land.findFirst({
+        // Upsert into StokLahanMaster table (khusus menu List Stok Lahan)
+        const existing = await prisma.stokLahanMaster.findUnique({
           where: { lokasi },
         });
 
         if (existing) {
-          await prisma.land.update({
+          await prisma.stokLahanMaster.update({
             where: { id: existing.id },
             data: {
               ...(wilayah !== 'UNKNOWN' ? { wilayah } : {}),
@@ -123,11 +134,12 @@ export async function POST(request: Request) {
               ...(phBk !== null ? { phBk } : {}),
               ...(phSn !== null ? { phSn } : {}),
               ...(aplikasiTerakhir ? { aplikasiTerakhir } : {}),
+              ...(category ? { category } : {}),
             },
           });
           updatedCount++;
         } else {
-          await prisma.land.create({
+          await prisma.stokLahanMaster.create({
             data: {
               lokasi,
               wilayah,
@@ -139,6 +151,7 @@ export async function POST(request: Request) {
               phBk,
               phSn,
               aplikasiTerakhir,
+              category: category || 'BK',
             },
           });
           createdCount++;

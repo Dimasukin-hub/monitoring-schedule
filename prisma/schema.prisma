@@ -201,3 +201,31 @@ model PlantingDetail {
   @@index([jenisBibit])
   @@index([tanggalDate])
 }
+
+model StokLahanMaster {
+  id               Int      @id @default(autoincrement())
+  lokasi           String   @unique
+  wilayah          String
+  luasBruto        Float
+  luasNetto        Float
+  status           String?
+  eks              String?
+  sejarah          String?
+  phBk             Float?
+  phSn             Float?
+  aplikasiTerakhir String?
+  statusAplikasi   String?
+  realBajak        String?
+  realBkr          String?
+  realSn           String?
+  realMulaiTanam   String?
+  realSelesaiTanam String?
+  progressTanam    Float?
+  category         String?  // BK | BJK | SN | PROSES | SELESAI
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([wilayah])
+  @@index([status])
+  @@index([category])
+}

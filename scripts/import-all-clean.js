@@ -236,6 +236,11 @@ async function main() {
   console.log(`✅ Berhasil mengimpor ${stageStockMap.size} bulan StageStockSummary (2022-2026).\n`);
 
   // 2. IMPORT SHEET 'Master' -> Land & LandActivity & LandStageStock
+  console.log('🧹 Membersihkan tabel LandStageStock, LandActivity, dan Land sebelum import...');
+  await prisma.landStageStock.deleteMany();
+  await prisma.landActivity.deleteMany();
+  await prisma.land.deleteMany();
+
   console.log('🌱 2. Membaca Sheet "Master" & Mengimpor Petak Lahan (Land)...');
   const sheetMaster = wb.Sheets['Master'];
   const rangeMaster = xlsx.utils.decode_range(sheetMaster['!ref']);

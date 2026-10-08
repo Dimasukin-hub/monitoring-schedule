@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import * as xlsx from 'xlsx';
-import { getLandStokCategory } from '@/lib/landClassification';
 
 export async function GET(request: Request) {
   try {
@@ -11,6 +10,10 @@ export async function GET(request: Request) {
     const status = searchParams.get('status') || 'ALL';
 
     const andConditions: any[] = [];
+
+    if (category && category !== 'ALL') {
+      andConditions.push({ category });
+    }
 
     if (wilayah && wilayah !== 'ALL') {
       const wList = wilayah.split(',').map((w) => w.trim()).filter(Boolean);
@@ -34,65 +37,33 @@ export async function GET(request: Request) {
 
     const where: any = andConditions.length > 0 ? { AND: andConditions } : {};
 
-    const allLands = await prisma.land.findMany({
+    const allLands = await prisma.stokLahanMaster.findMany({
       where,
-      select: {
-        id: true,
-        lokasi: true,
-        wilayah: true,
-        luasBruto: true,
-        luasNetto: true,
-        status: true,
-        eks: true,
-        sejarah: true,
-        phBk: true,
-        phSn: true,
-        aplikasiTerakhir: true,
-        statusAplikasi: true,
-        realBajak: true,
-        realBkr: true,
-        realMulaiTanam: true,
-        realSelesaiTanam: true,
-        progressTanam: true,
-        activities: {
-          select: { code: true, status: true, realisasiDate: true },
-        },
-      },
       orderBy: { lokasi: 'asc' },
     });
 
-    const rows: any[] = [];
+    const catLabelMap: Record<string, string> = {
+      BK: 'BK (Bongkar & Sanitasi)',
+      BJK: 'BJK (Bajak & Olah Tanah)',
+      SN: 'SN (Siap Tanam)',
+      PROSES: 'Proses Tanam',
+      SELESAI: 'Selesai Tanam',
+    };
 
-    for (const l of allLands) {
-      const cat = getLandStokCategory(l);
-
-      if (category !== 'ALL' && cat !== category) {
-        continue;
-      }
-
-      const catLabelMap: Record<string, string> = {
-        BK: 'BK (Bongkar & Sanitasi)',
-        BJK: 'BJK (Bajak & Olah Tanah)',
-        SN: 'SN (Siap Tanam)',
-        PROSES: 'Proses Tanam',
-        SELESAI: 'Selesai Tanam',
-      };
-
-      rows.push({
-        'NO': rows.length + 1,
-        'Wilayah': l.wilayah,
-        'Lokasi': l.lokasi,
-        'Luas Bruto (Ha)': l.luasBruto ? Number(l.luasBruto.toFixed(2)) : 0,
-        'Luas Netto (Ha)': l.luasNetto ? Number(l.luasNetto.toFixed(2)) : 0,
-        'Status': l.status ? l.status.replace(/\d+/g, '').trim() : '',
-        'Eks': l.eks || '',
-        'Sejarah': l.sejarah || '',
-        'pH BK': l.phBk ?? '',
-        'pH SN': l.phSn ?? '',
-        'Aktivitas Terakhir': l.aplikasiTerakhir || '',
-        'Kategori Stok': catLabelMap[cat] || cat,
-      });
-    }
+    const rows: any[] = allLands.map((l, idx) => ({
+      'NO': idx + 1,
+      'Wilayah': l.wilayah,
+      'Lokasi': l.lokasi,
+      'Luas Bruto (Ha)': l.luasBruto ? Number(l.luasBruto.toFixed(2)) : 0,
+      'Luas Netto (Ha)': l.luasNetto ? Number(l.luasNetto.toFixed(2)) : 0,
+      'Status': l.status ? l.status.replace(/\d+/g, '').trim() : '',
+      'Eks': l.eks || '',
+      'Sejarah': l.sejarah || '',
+      'pH BK': l.phBk ?? '',
+      'pH SN': l.phSn ?? '',
+      'Aktivitas Terakhir': l.aplikasiTerakhir || 'Tahap Bongkar',
+      'Kategori Stok': catLabelMap[l.category || 'BK'] || l.category || 'BK',
+    }));
 
     const worksheet = xlsx.utils.json_to_sheet(rows);
     const workbook = xlsx.utils.book_new();

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getLandStokCategory, StokCategory } from '@/lib/landClassification';
+import { StokCategory } from '@/lib/landClassification';
 
 export async function GET(request: Request) {
   try {
@@ -50,52 +50,13 @@ export async function GET(request: Request) {
 
     const where: any = andConditions.length > 0 ? { AND: andConditions } : {};
 
-    // Fetch all lands matching basic filters, ordered by year and ID descending to get latest cycle
-    const allLands = await prisma.land.findMany({
+    // Ambil data langsung dari tabel database khusus StokLahanMaster
+    // yang 100% mutakhir mengikuti Schedule 2026 Update 09 Sheet Master
+    const allStokLands = await prisma.stokLahanMaster.findMany({
       where,
-      select: {
-        id: true,
-        lokasi: true,
-        year: true,
-        wilayah: true,
-        luasBruto: true,
-        luasNetto: true,
-        status: true,
-        eks: true,
-        sejarah: true,
-        phBk: true,
-        phSn: true,
-        aplikasiTerakhir: true,
-        statusAplikasi: true,
-        realBajak: true,
-        realBkr: true,
-        realMulaiTanam: true,
-        realSelesaiTanam: true,
-        progressTanam: true,
-        activities: {
-          select: { code: true, status: true, realisasiDate: true },
-        },
-      },
-      orderBy: [{ year: 'desc' }, { id: 'desc' }],
+      orderBy: { lokasi: 'asc' },
     });
 
-    // Deduplikasi per petak lokasi fisik agar setiap petak memiliki 1 posisi stok aktif terkini di 2026
-    const seenLokasi = new Set<string>();
-    const latestLands: typeof allLands = [];
-    for (const l of allLands) {
-      const key = l.lokasi.toUpperCase().trim();
-      if (!seenLokasi.has(key)) {
-        seenLokasi.add(key);
-        latestLands.push(l);
-      }
-    }
-
-    // Classify into the 5 categories per Excel Monitoring Schedule 2026:
-    // 1. BK: Chopper s.d. Rotary Plough (termasuk lahan belum mulai)
-    // 2. BJK: Kolom Bajak Awal yang dimulai dari MB 5 BTR s.d. Ridger
-    // 3. SN: Jalan & Saluran dan Siap Tanam
-    // 4. PROSES: Kolom 23. Proses Tnm
-    // 5. SELESAI: Kolom 24. Sls Tanam
     const classified: Record<StokCategory, any[]> = {
       BK: [],
       BJK: [],
@@ -112,15 +73,16 @@ export async function GET(request: Request) {
       SELESAI: { count: 0, totalNetto: 0 },
     };
 
-    for (const l of latestLands) {
-      const cat = getLandStokCategory(l);
+    for (const l of allStokLands) {
+      const cat = (l.category?.toUpperCase() || 'BK') as StokCategory;
+      const validCat: StokCategory = classified[cat] ? cat : 'BK';
 
-      counts[cat].count++;
-      counts[cat].totalNetto += l.luasNetto || 0;
+      counts[validCat].count++;
+      counts[validCat].totalNetto = Math.round((counts[validCat].totalNetto + (l.luasNetto || 0)) * 100) / 100;
 
-      classified[cat].push({
+      classified[validCat].push({
         id: l.id,
-        originalIndex: classified[cat].length + 1,
+        originalIndex: classified[validCat].length + 1,
         lokasi: l.lokasi,
         wilayah: l.wilayah,
         luasBruto: l.luasBruto,
@@ -131,13 +93,13 @@ export async function GET(request: Request) {
         phBk: l.phBk,
         phSn: l.phSn,
         aplikasiTerakhir: l.aplikasiTerakhir || 'Tahap Bongkar',
-        category: cat,
+        category: validCat,
       });
     }
 
     const targetList = classified[category] || classified['BK'];
 
-    // Sort targetList based on sortBy & sortOrder
+    // Sorting
     const mult = sortOrder === 'desc' ? -1 : 1;
     targetList.sort((a, b) => {
       if (sortBy === 'no' || sortBy === 'id') {
@@ -197,30 +159,32 @@ export async function GET(request: Request) {
     });
 
     const total = targetList.length;
-    const paginatedData = targetList.slice((page - 1) * limit, page * limit);
+    const totalPages = Math.ceil(total / limit) || 1;
+    const startIndex = (page - 1) * limit;
+    const paginatedList = targetList.slice(startIndex, startIndex + limit).map((item, idx) => ({
+      ...item,
+      no: startIndex + idx + 1,
+    }));
 
     return NextResponse.json({
       success: true,
       category,
-      data: paginatedData,
+      categoryStats: counts,
       pagination: {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit) || 1,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
       },
-      categoryStats: Object.fromEntries(
-        Object.entries(counts).map(([k, v]) => [
-          k,
-          {
-            count: v.count,
-            totalNetto: Math.round(v.totalNetto * 100) / 100,
-          },
-        ])
-      ),
+      data: paginatedList,
     });
   } catch (error: any) {
-    console.error('Error fetching stock list:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error('Error fetching stok lands from StokLahanMaster:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error', details: error.message },
+      { status: 500 }
+    );
   }
 }

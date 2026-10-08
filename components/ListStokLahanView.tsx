@@ -307,7 +307,7 @@ export default function ListStokLahanView({
 
     try {
       const payload: any = { [field]: newValue };
-      const res = await fetch(`/api/lands/${landId}`, {
+      const res = await fetch(`/api/stok/${landId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
