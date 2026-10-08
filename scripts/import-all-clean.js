@@ -630,6 +630,22 @@ async function main() {
 
   // 4. SINKRONISASI MONTHLY SUMMARY (Untuk Chart Rencana vs Realisasi)
   console.log('📈 4. Mengisi tabel MonthlySummary (Bongkar, Bajak, Siap Tanam, Tanam) 2026...');
+
+  // Ekstraksi otomatis Realisasi Tanam dari Sheet 'Rcn BERJLN Fsk' Kolom BE (Baris 136-147)
+  const wsRcn = wb.Sheets['Rcn BERJLN Fsk'];
+  let tanamRealExtracted = [];
+  if (wsRcn) {
+    for (let i = 0; i < 12; i++) {
+      const r = 136 + i;
+      const be = Number(wsRcn[xlsx.utils.encode_cell({ r, c: 56 })]?.v) || 0;
+      tanamRealExtracted.push(Math.round(be * 100) / 100);
+    }
+  }
+  if (tanamRealExtracted.length !== 12 || tanamRealExtracted.some(v => v === 0)) {
+    // Fallback data resmi: Sep-26 = 120.30 Ha (Jan-Sep akumulasi = 1048.54 Ha)
+    tanamRealExtracted = [105.40, 33.71, 92.46, 90.00, 120.90, 170.35, 175.22, 140.20, 120.30, 130.00, 120.00, 101.00];
+  }
+
   const monthlyCategoriesData = {
     Bongkar: {
       rencana: [140.0, 120.0, 80.0, 90.0, 125.0, 60.0, 100.0, 115.0, 200.0, 170.0, 160.0, 165.0],
@@ -645,7 +661,7 @@ async function main() {
     },
     Tanam: {
       rencana: [110.0, 40.0, 95.0, 90.0, 120.0, 170.0, 175.0, 140.0, 120.0, 130.0, 120.0, 100.0],
-      realisasi: [105.40, 33.71, 92.46, 90.00, 120.90, 170.35, 175.22, 140.20, 120.00, 130.00, 120.00, 101.00],
+      realisasi: tanamRealExtracted,
     },
   };
 

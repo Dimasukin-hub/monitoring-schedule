@@ -288,7 +288,9 @@ export async function GET(request: Request) {
       d.setDate(d.getDate() + 4 - (d.getDay() || 7));
       const yearStart = new Date(d.getFullYear(), 0, 1);
       const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-      return `W${String(weekNo).padStart(2, '0')}`;
+      // Batasi maksimal 52 minggu (minggu 53 otomatis digabung ke minggu 52 agar tidak rancu dengan wilayah W01-W07)
+      const cappedWeek = weekNo > 52 ? 52 : (weekNo < 1 ? 1 : weekNo);
+      return `Mgg ${String(cappedWeek).padStart(2, '0')}`;
     };
 
     const formatDailyLabel = (isoDateStr: string): string => {
