@@ -131,11 +131,14 @@ export async function GET(request: Request) {
         progressTanam: true,
         aplikasiTerakhir: true,
         statusAplikasi: true,
+        rencBkr: true,
+        realBkr: true,
+        rencBajak: true,
         realBajak: true,
         realMulaiTanam: true,
         realSelesaiTanam: true,
         activities: {
-          select: { code: true, status: true, realisasiDate: true },
+          select: { code: true, status: true, rencanaDate: true, realisasiDate: true },
         },
       },
       orderBy: { lokasi: 'asc' },
@@ -262,7 +265,161 @@ export async function GET(request: Request) {
       }))
       .slice(0, 15);
 
-    // 5. Seed Summaries
+    // 5. Daily and Weekly Aggregation for Bongkar, Bajak, Siap Tanam
+    const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+    const parseDateToIso = (dateStr: string | null | undefined): string | null => {
+      if (!dateStr || typeof dateStr !== 'string') return null;
+      const s = dateStr.trim();
+      const dmyMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (dmyMatch) {
+        return `${dmyMatch[3]}-${dmyMatch[2].padStart(2, '0')}-${dmyMatch[1].padStart(2, '0')}`;
+      }
+      const ymdMatch = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (ymdMatch) {
+        return `${ymdMatch[1]}-${ymdMatch[2].padStart(2, '0')}-${ymdMatch[3].padStart(2, '0')}`;
+      }
+      return null;
+    };
+
+    const getWeekNumber = (isoDateStr: string): string => {
+      const d = new Date(isoDateStr);
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+      const yearStart = new Date(d.getFullYear(), 0, 1);
+      const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+      return `W${String(weekNo).padStart(2, '0')}`;
+    };
+
+    const formatDailyLabel = (isoDateStr: string): string => {
+      const [y, m, d] = isoDateStr.split('-');
+      const mIndex = parseInt(m, 10) - 1;
+      const mName = MONTH_NAMES_SHORT[mIndex] || m;
+      return `${d} ${mName} ${y.slice(2)}`;
+    };
+
+    const getMonthKey = (isoDateStr: string): string => {
+      const [y, m] = isoDateStr.split('-');
+      const mIndex = parseInt(m, 10) - 1;
+      const mName = MONTH_NAMES_SHORT[mIndex] || m;
+      return `${mName}-${y.slice(2)}`;
+    };
+
+    const yearPrefix = yearParam !== 'ALL' ? String(targetYear) : '2026';
+
+    const dailyBongkarMap: Record<string, { rencana: number; realisasi: number }> = {};
+    const weeklyBongkarMap: Record<string, { rencana: number; realisasi: number }> = {};
+
+    const dailyBajakMap: Record<string, { rencana: number; realisasi: number }> = {};
+    const weeklyBajakMap: Record<string, { rencana: number; realisasi: number }> = {};
+
+    const dailySiapTanamMap: Record<string, { rencana: number; realisasi: number }> = {};
+    const weeklySiapTanamMap: Record<string, { rencana: number; realisasi: number }> = {};
+
+    for (const l of lands) {
+      const luas = Number(l.luasNetto) || 0;
+
+      // Bongkar
+      const rBkr = parseDateToIso(l.rencBkr);
+      const aBkr = parseDateToIso(l.realBkr);
+      if (rBkr && rBkr.startsWith(yearPrefix)) {
+        if (!dailyBongkarMap[rBkr]) dailyBongkarMap[rBkr] = { rencana: 0, realisasi: 0 };
+        dailyBongkarMap[rBkr].rencana += luas;
+        const w = getWeekNumber(rBkr);
+        if (!weeklyBongkarMap[w]) weeklyBongkarMap[w] = { rencana: 0, realisasi: 0 };
+        weeklyBongkarMap[w].rencana += luas;
+      }
+      if (aBkr && aBkr.startsWith(yearPrefix)) {
+        if (!dailyBongkarMap[aBkr]) dailyBongkarMap[aBkr] = { rencana: 0, realisasi: 0 };
+        dailyBongkarMap[aBkr].realisasi += luas;
+        const w = getWeekNumber(aBkr);
+        if (!weeklyBongkarMap[w]) weeklyBongkarMap[w] = { rencana: 0, realisasi: 0 };
+        weeklyBongkarMap[w].realisasi += luas;
+      }
+
+      // Bajak
+      const rBjk = parseDateToIso(l.rencBajak);
+      const aBjk = parseDateToIso(l.realBajak);
+      if (rBjk && rBjk.startsWith(yearPrefix)) {
+        if (!dailyBajakMap[rBjk]) dailyBajakMap[rBjk] = { rencana: 0, realisasi: 0 };
+        dailyBajakMap[rBjk].rencana += luas;
+        const w = getWeekNumber(rBjk);
+        if (!weeklyBajakMap[w]) weeklyBajakMap[w] = { rencana: 0, realisasi: 0 };
+        weeklyBajakMap[w].rencana += luas;
+      }
+      if (aBjk && aBjk.startsWith(yearPrefix)) {
+        if (!dailyBajakMap[aBjk]) dailyBajakMap[aBjk] = { rencana: 0, realisasi: 0 };
+        dailyBajakMap[aBjk].realisasi += luas;
+        const w = getWeekNumber(aBjk);
+        if (!weeklyBajakMap[w]) weeklyBajakMap[w] = { rencana: 0, realisasi: 0 };
+        weeklyBajakMap[w].realisasi += luas;
+      }
+
+      // Siap Tanam
+      const snAct = l.activities.find((a) => a.code === '22.SIAP_TANAM');
+      const jsAct = l.activities.find((a) => a.code === '22.JALAN_SAL');
+      const rdAct = l.activities.find((a) => a.code === '21.RIDGER');
+      const rSn = parseDateToIso(snAct?.rencanaDate || jsAct?.rencanaDate || rdAct?.rencanaDate);
+      const aSn = parseDateToIso(snAct?.realisasiDate || jsAct?.realisasiDate);
+      if (rSn && rSn.startsWith(yearPrefix)) {
+        if (!dailySiapTanamMap[rSn]) dailySiapTanamMap[rSn] = { rencana: 0, realisasi: 0 };
+        dailySiapTanamMap[rSn].rencana += luas;
+        const w = getWeekNumber(rSn);
+        if (!weeklySiapTanamMap[w]) weeklySiapTanamMap[w] = { rencana: 0, realisasi: 0 };
+        weeklySiapTanamMap[w].rencana += luas;
+      }
+      if (aSn && aSn.startsWith(yearPrefix)) {
+        if (!dailySiapTanamMap[aSn]) dailySiapTanamMap[aSn] = { rencana: 0, realisasi: 0 };
+        dailySiapTanamMap[aSn].realisasi += luas;
+        const w = getWeekNumber(aSn);
+        if (!weeklySiapTanamMap[w]) weeklySiapTanamMap[w] = { rencana: 0, realisasi: 0 };
+        weeklySiapTanamMap[w].realisasi += luas;
+      }
+    }
+
+    const mapToDailyList = (mapObj: Record<string, { rencana: number; realisasi: number }>) =>
+      Object.entries(mapObj)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([isoDate, vals]) => {
+          const renc = Math.round(vals.rencana * 100) / 100;
+          const real = Math.round(vals.realisasi * 100) / 100;
+          const dev = Math.round((real - renc) * 100) / 100;
+          return {
+            periodKey: formatDailyLabel(isoDate),
+            rawDate: isoDate,
+            monthKey: getMonthKey(isoDate),
+            rencana: renc,
+            realisasi: real,
+            deviasi: dev,
+          };
+        });
+
+    const mapToWeeklyList = (mapObj: Record<string, { rencana: number; realisasi: number }>) =>
+      Object.entries(mapObj)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([weekKey, vals]) => {
+          const renc = Math.round(vals.rencana * 100) / 100;
+          const real = Math.round(vals.realisasi * 100) / 100;
+          const dev = Math.round((real - renc) * 100) / 100;
+          return {
+            periodKey: weekKey,
+            rawWeek: weekKey,
+            rencana: renc,
+            realisasi: real,
+            deviasi: dev,
+          };
+        });
+
+    const dailyBongkar = mapToDailyList(dailyBongkarMap);
+    const weeklyBongkar = mapToWeeklyList(weeklyBongkarMap);
+
+    const dailyBajak = mapToDailyList(dailyBajakMap);
+    const weeklyBajak = mapToWeeklyList(weeklyBajakMap);
+
+    const dailySiapTanam = mapToDailyList(dailySiapTanamMap);
+    const weeklySiapTanam = mapToWeeklyList(weeklySiapTanamMap);
+
+    // 6. Seed Summaries
     const seedSummaries = await prisma.seedSummary.findMany({
       orderBy: { id: 'asc' },
     });
@@ -313,6 +470,12 @@ export async function GET(request: Request) {
         yearlyBajak,
         yearlySiapTanam,
         yearlyTanam,
+        dailyBongkar,
+        weeklyBongkar,
+        dailyBajak,
+        weeklyBajak,
+        dailySiapTanam,
+        weeklySiapTanam,
         wilayahPositions: wilayahPositions.map((wp) => ({
           wilayah: wp.wilayah,
           bkCount: wp.bkLocations.length,

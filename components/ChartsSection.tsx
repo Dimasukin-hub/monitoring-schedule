@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -25,6 +25,7 @@ import {
   BarChart3,
   Table,
   Info,
+  Filter,
 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 
@@ -92,6 +93,51 @@ export interface ChartsDataProps {
   yearlyTanam?: Array<{
     year: string;
     rfc: number;
+    rencana: number;
+    realisasi: number;
+    deviasi: number;
+  }>;
+  dailyBongkar?: Array<{
+    periodKey: string;
+    rawDate: string;
+    monthKey: string;
+    rencana: number;
+    realisasi: number;
+    deviasi: number;
+  }>;
+  weeklyBongkar?: Array<{
+    periodKey: string;
+    rawWeek: string;
+    rencana: number;
+    realisasi: number;
+    deviasi: number;
+  }>;
+  dailyBajak?: Array<{
+    periodKey: string;
+    rawDate: string;
+    monthKey: string;
+    rencana: number;
+    realisasi: number;
+    deviasi: number;
+  }>;
+  weeklyBajak?: Array<{
+    periodKey: string;
+    rawWeek: string;
+    rencana: number;
+    realisasi: number;
+    deviasi: number;
+  }>;
+  dailySiapTanam?: Array<{
+    periodKey: string;
+    rawDate: string;
+    monthKey: string;
+    rencana: number;
+    realisasi: number;
+    deviasi: number;
+  }>;
+  weeklySiapTanam?: Array<{
+    periodKey: string;
+    rawWeek: string;
     rencana: number;
     realisasi: number;
     deviasi: number;
@@ -525,6 +571,21 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [targetCategory, setTargetCategory] = useState<'BONGKAR' | 'BAJAK' | 'SIAP_TANAM'>('BONGKAR');
+  const [periodMode, setPeriodMode] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
+  const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>('ALL');
+
+  // Available unique months for Daily mode (Must be called unconditionally before any early returns)
+  const availableMonths = useMemo(() => {
+    let source: any[] = [];
+    if (targetCategory === 'BONGKAR') source = chartsData?.dailyBongkar || [];
+    else if (targetCategory === 'BAJAK') source = chartsData?.dailyBajak || [];
+    else source = chartsData?.dailySiapTanam || [];
+    const set = new Set<string>();
+    source.forEach((s) => {
+      if (s.monthKey) set.add(s.monthKey);
+    });
+    return Array.from(set);
+  }, [chartsData, targetCategory]);
 
   if (!chartsData) {
     return (
@@ -532,18 +593,32 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
     );
   }
 
-  // Active dataset according to selected category (Bongkar, Bajak, Siap Tanam) - Periode 2026 (Jan-26 s/d Des-26)
+  // Active dataset according to selected category (Bongkar, Bajak, Siap Tanam) & periodMode
   let rawDataList: any[] = [];
-  if (targetCategory === 'BONGKAR') rawDataList = chartsData.monthlyBongkar || [];
-  else if (targetCategory === 'BAJAK') rawDataList = chartsData.monthlyBajak || [];
-  else rawDataList = chartsData.monthlySiapTanam || [];
+  if (periodMode === 'daily') {
+    if (targetCategory === 'BONGKAR') rawDataList = chartsData?.dailyBongkar || [];
+    else if (targetCategory === 'BAJAK') rawDataList = chartsData?.dailyBajak || [];
+    else rawDataList = chartsData?.dailySiapTanam || [];
 
-  // Filter khusus periode 2026 (Jan-26 s/d Des-26)
-  rawDataList = rawDataList.filter((item: any) => {
-    if (item.year && item.year !== 2026) return false;
-    const m = (item.month || item.periodKey || item.monthYear || '').trim().toLowerCase();
-    return m.endsWith('-26');
-  });
+    if (selectedMonthFilter !== 'ALL') {
+      rawDataList = rawDataList.filter((item: any) => item.monthKey === selectedMonthFilter);
+    }
+  } else if (periodMode === 'weekly') {
+    if (targetCategory === 'BONGKAR') rawDataList = chartsData?.weeklyBongkar || [];
+    else if (targetCategory === 'BAJAK') rawDataList = chartsData?.weeklyBajak || [];
+    else rawDataList = chartsData?.weeklySiapTanam || [];
+  } else {
+    // monthly
+    if (targetCategory === 'BONGKAR') rawDataList = chartsData?.monthlyBongkar || [];
+    else if (targetCategory === 'BAJAK') rawDataList = chartsData?.monthlyBajak || [];
+    else rawDataList = chartsData?.monthlySiapTanam || [];
+
+    rawDataList = rawDataList.filter((item: any) => {
+      if (item.year && item.year !== 2026) return false;
+      const m = (item.month || item.periodKey || item.monthYear || '').trim().toLowerCase();
+      return m.endsWith('-26');
+    });
+  }
 
   const activeChartData = rawDataList.map((item: any) => {
     const renc = item.rencana || 0;
@@ -552,13 +627,18 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
     const pct = renc > 0 && real !== null ? Math.round((real / renc) * 1000) / 10 : null;
 
     return {
-      periodKey: item.month || item.year || '',
+      periodKey: item.periodKey || item.month || item.year || '',
       rencana: renc,
       realisasi: real,
       deviasi: dev,
       capaianPct: pct,
     };
   });
+
+  const totalRencana = Math.round(activeChartData.reduce((acc, c) => acc + (c.rencana || 0), 0) * 100) / 100;
+  const totalRealisasi = Math.round(activeChartData.reduce((acc, c) => acc + (c.realisasi || 0), 0) * 100) / 100;
+  const totalDeviasi = Math.round((totalRealisasi - totalRencana) * 100) / 100;
+  const totalCapaian = totalRencana > 0 ? Math.round((totalRealisasi / totalRencana) * 1000) / 10 : 0;
 
   const getCategoryTitle = () => {
     switch (targetCategory) {
@@ -568,6 +648,17 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
         return 'Bajak';
       case 'SIAP_TANAM':
         return 'Siap Tanam';
+    }
+  };
+
+  const getPeriodLabel = () => {
+    switch (periodMode) {
+      case 'daily':
+        return 'Harian (Daily)';
+      case 'weekly':
+        return 'Mingguan (Weekly)';
+      case 'monthly':
+        return 'Bulanan (Monthly)';
     }
   };
 
@@ -585,9 +676,14 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
             <span className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 font-mono text-sm">
               <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> {label}
             </span>
-            <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
-              {getCategoryTitle()}
-            </span>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                {getCategoryTitle()}
+              </span>
+              <span className="text-[9px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                {periodMode.toUpperCase()}
+              </span>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -649,17 +745,26 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
 
   return (
     <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+      {/* Header Bar */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-3.5">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
             <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           </div>
-          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-            Rencana vs Realisasi (Ha) - {getCategoryTitle()}
-          </h3>
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              Rencana vs Realisasi (Ha) - {getCategoryTitle()}
+              <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                {getPeriodLabel()}
+              </span>
+            </h3>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+              Monitoring target dan capaian penyiapan lahan periode 2026
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+        <div className="flex items-center gap-2 flex-wrap self-start lg:self-auto">
           {/* 1. Category Toggle: Bongkar, Bajak, Siap Tanam */}
           <div className="flex items-center bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
             <button
@@ -696,61 +801,185 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
               Siap Tanam
             </button>
           </div>
+
+          {/* 2. Period Mode Toggle: Harian (Daily), Mingguan (Weekly), Bulanan (Monthly) */}
+          <div className="flex items-center bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => setPeriodMode('daily')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                periodMode === 'daily'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-200'
+              }`}
+            >
+              Harian
+            </button>
+            <button
+              type="button"
+              onClick={() => setPeriodMode('weekly')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                periodMode === 'weekly'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-200'
+              }`}
+            >
+              Mingguan
+            </button>
+            <button
+              type="button"
+              onClick={() => setPeriodMode('monthly')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                periodMode === 'monthly'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-200'
+              }`}
+            >
+              Bulanan
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Mini Executive Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3.5">
+        <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800">
+          <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+            Total Realisasi
+          </span>
+          <span className="text-sm font-extrabold font-mono text-emerald-600 dark:text-emerald-400">
+            {totalRealisasi.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Ha
+          </span>
+        </div>
+        <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800">
+          <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+            Total Rencana
+          </span>
+          <span className="text-sm font-extrabold font-mono text-sky-600 dark:text-cyan-400">
+            {totalRencana.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Ha
+          </span>
+        </div>
+        <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800">
+          <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+            Selisih (Deviasi)
+          </span>
+          <span className={`text-sm font-extrabold font-mono ${totalDeviasi >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+            {totalDeviasi >= 0 ? `+${totalDeviasi.toFixed(2)}` : totalDeviasi.toFixed(2)} Ha
+          </span>
+        </div>
+        <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800">
+          <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+            Capaian Target
+          </span>
+          <span className={`text-sm font-extrabold font-mono ${totalCapaian >= 100 ? 'text-emerald-600 dark:text-emerald-400' : totalCapaian >= 80 ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400'}`}>
+            {totalCapaian.toFixed(1)}%
+          </span>
+        </div>
+      </div>
+
+      {/* Filter Bulan khusus Daily */}
+      {periodMode === 'daily' && availableMonths.length > 0 && (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 mb-3 pt-0.5">
+          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 shrink-0 mr-1 flex items-center gap-1">
+            <Filter className="w-3 h-3 text-emerald-600" /> Filter Bulan:
+          </span>
+          <button
+            type="button"
+            onClick={() => setSelectedMonthFilter('ALL')}
+            className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold shrink-0 transition-all cursor-pointer ${
+              selectedMonthFilter === 'ALL'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+            }`}
+          >
+            Semua Bulan
+          </button>
+          {availableMonths.map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setSelectedMonthFilter(m)}
+              className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold shrink-0 transition-all cursor-pointer ${
+                selectedMonthFilter === m
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Empty State when no data matches category */}
       {activeChartData.length === 0 ? (
         <div className="py-12 px-4 text-center rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-dashed border-slate-200 dark:border-slate-800">
           <Calendar className="w-8 h-8 text-slate-400 mx-auto mb-2 opacity-50" />
           <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
-            Tidak ada data {getCategoryTitle()} untuk periode 2026.
+            Tidak ada data {getCategoryTitle()} untuk periode terpilih.
           </p>
         </div>
       ) : (
-        <div className="h-80 w-full outline-none focus:outline-none select-none">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={activeChartData}
-              margin={{ top: 10, right: 10, left: -15, bottom: 15 }}
-              className="outline-none focus:outline-none"
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
-              <XAxis
-                dataKey="periodKey"
-                stroke={isDark ? '#475569' : '#cbd5e1'}
-                fontSize={11}
-                tickLine={false}
-                height={48}
-                angle={-30}
-                textAnchor="end"
-                tick={{ fill: isDark ? '#f1f5f9' : '#0f172a', fontSize: 11, fontWeight: 700 }}
-              />
-              <YAxis
-                stroke={isDark ? '#475569' : '#cbd5e1'}
-                fontSize={11}
-                tickLine={false}
-                tick={{ fill: isDark ? '#cbd5e1' : '#334155', fontSize: 10, fontWeight: 600 }}
-              />
-              <Tooltip content={<CustomRencanaRealisasiTooltip />} />
-              <Legend
-                verticalAlign="bottom"
-                wrapperStyle={{
-                  fontSize: '11px',
-                  paddingTop: '20px',
-                  paddingBottom: '2px',
-                  bottom: 0,
-                }}
-                formatter={(val) => (
-                  <span className="text-slate-900 dark:text-slate-100 font-bold text-xs">
-                    {val}
-                  </span>
-                )}
-              />
-              <Bar dataKey="rencana" name="Rencana (Ha)" fill="#009EE2" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="realisasi" name="Realisasi (Ha)" fill="#00873D" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="w-full overflow-x-auto pb-2">
+          <div
+            className={`h-80 outline-none focus:outline-none select-none ${
+              periodMode === 'daily' && selectedMonthFilter === 'ALL'
+                ? 'min-w-[1300px]'
+                : periodMode === 'daily'
+                ? 'min-w-[650px]'
+                : periodMode === 'weekly'
+                ? 'min-w-[850px]'
+                : 'w-full min-w-[500px]'
+            }`}
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={activeChartData}
+                margin={{ top: 10, right: 10, left: -15, bottom: periodMode === 'daily' ? 24 : 15 }}
+                className="outline-none focus:outline-none"
+                style={{ outline: 'none' }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
+                <XAxis
+                  dataKey="periodKey"
+                  stroke={isDark ? '#475569' : '#cbd5e1'}
+                  fontSize={10}
+                  tickLine={false}
+                  height={periodMode === 'daily' ? 52 : 44}
+                  angle={periodMode === 'daily' ? -45 : periodMode === 'weekly' ? -40 : -30}
+                  textAnchor="end"
+                  interval={periodMode === 'daily' && selectedMonthFilter === 'ALL' ? 'preserveStartEnd' : 0}
+                  tick={{ fill: isDark ? '#f1f5f9' : '#0f172a', fontSize: 10, fontWeight: 700 }}
+                />
+                <YAxis
+                  stroke={isDark ? '#475569' : '#cbd5e1'}
+                  fontSize={11}
+                  tickLine={false}
+                  tick={{ fill: isDark ? '#cbd5e1' : '#334155', fontSize: 10, fontWeight: 600 }}
+                />
+                <Tooltip
+                  content={<CustomRencanaRealisasiTooltip />}
+                  cursor={{ fill: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)' }}
+                />
+                <Legend
+                  verticalAlign="bottom"
+                  wrapperStyle={{
+                    fontSize: '11px',
+                    paddingTop: '20px',
+                    paddingBottom: '2px',
+                    bottom: 0,
+                  }}
+                  formatter={(val) => (
+                    <span className="text-slate-900 dark:text-slate-100 font-bold text-xs">
+                      {val}
+                    </span>
+                  )}
+                />
+                <Bar dataKey="rencana" name="Rencana (Ha)" fill="#009EE2" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                <Bar dataKey="realisasi" name="Realisasi (Ha)" fill="#00873D" radius={[4, 4, 0, 0]} maxBarSize={32} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       )}
     </div>
