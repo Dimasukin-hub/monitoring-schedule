@@ -90,6 +90,32 @@ function parseYearFromStatus(val) {
   return null;
 }
 
+function parseSnYear(val) {
+  if (val === undefined || val === null || val === '' || val === '-') return null;
+  if (typeof val === 'number' && val > 40000 && val < 60000) {
+    return xlsx.SSF.parse_date_code(val).y;
+  }
+  const s = String(val).trim();
+  const m = s.match(/(20\d{2})/);
+  if (m) return parseInt(m[1], 10);
+  const mw = s.match(/^[A-Za-z]{3}-(\d{2})$/);
+  if (mw) return 2000 + parseInt(mw[1], 10);
+  return null;
+}
+
+function normalizeWilayah(w) {
+  if (!w) return 'W01';
+  const clean = String(w).trim().toUpperCase();
+  if (clean === 'ARS1') return 'W07';
+  if (clean === 'SAG1' || clean === 'MD2') return 'W04';
+  if (clean.startsWith('AW0')) return 'W0' + clean.slice(3);
+  if (clean.startsWith('AW')) {
+    const num = clean.slice(2);
+    return num.length === 1 ? 'W0' + num : 'W' + num;
+  }
+  return clean;
+}
+
 function parseBibit(val) {
   if (!val) return { jenis: null, kelas: null };
   const s = String(val).trim();
@@ -277,38 +303,50 @@ async function main() {
     if (rawLokasi === 1 || rawLokasi === '1') continue;
     const lokasi = String(rawLokasi).trim();
 
-    // Filter siklus tahun 2021-2028
-    const bt = parseYear(getCell(r, 53));
-    const slsReal = parseYear(getCell(r, 105));
-    const slsRenc = parseYear(getCell(r, 48));
-    const mliReal = parseYear(getCell(r, 104));
-    const mliRenc = parseYear(getCell(r, 47));
-    const bkrReal = parseYear(getCell(r, 72));
-    const bkrRenc = parseYear(getCell(r, 11));
-    const stsRaw = getCell(r, 6);
-    const stsYear = parseYearFromStatus(stsRaw);
-    const snYear = parseYear(getCell(r, 1)) || parseYear(getCell(r, 52));
-
-    const cycleYear = bt || slsReal || slsRenc || mliReal || mliRenc || stsYear || bkrReal || bkrRenc || snYear;
-    if (!cycleYear || cycleYear < 2021 || cycleYear > 2028) {
+    // Filter siklus tahun 2021-2028 dari Bulan SN yang ada di Kolom B (Col 1)
+    const snYear = parseSnYear(getCell(r, 1));
+    if (!snYear || snYear < 2021 || snYear > 2028) {
       continue;
     }
+    const cycleYear = snYear;
 
+    // Kolom C (Col 2): wil
     const rawWilayah = parseString(getCell(r, 2)) || '';
-    const wilayah = rawWilayah.toUpperCase().trim();
+    const wilayah = normalizeWilayah(rawWilayah);
+
+    // Kolom E (Col 4): luas bruto
     const luasBruto = parseNumber(getCell(r, 4)) || 0;
-    const luasNetto = parseNumber(getCell(r, 5)) || 0;
+
+    // Kolom F (Col 5): netto
+    let luasNetto = parseNumber(getCell(r, 5)) || 0;
+    if (luasNetto === 0 && parseNumber(getCell(r, 10))) {
+      luasNetto = parseNumber(getCell(r, 10)) || 0;
+    }
+
+    // Kolom G (Col 6): sts
+    const stsRaw = getCell(r, 6);
     const status = cleanStatus(stsRaw);
+
+    // Kolom H (Col 7): eks
     const eks = parseString(getCell(r, 7));
+
+    // Kolom I (Col 8): sejarah ps
     const sejarah = parseString(getCell(r, 8));
+
+    // Kolom J (Col 9) & Kolom K (Col 10): pH BK & pH SN
     const phBk = parseNumber(getCell(r, 9));
-    const phSn = parseNumber(getCell(r, 10));
+    const phSn = r >= 2622 && r <= 2623 ? null : parseNumber(getCell(r, 10));
+
     const rencBkr = parseDateString(getCell(r, 11));
     const rencBajak = parseDateString(getCell(r, 12));
     const realBkr = parseDateString(getCell(r, 72));
     const realBajak = parseDateString(getCell(r, 73));
+
+    // Kolom A (Col 0): Aktivitas terakhir
     const aplikasiTerakhir = parseString(getCell(r, 0)) || parseString(getCell(r, 115));
-    const bulanSn = parseMonthYearString(getCell(r, 52) || getCell(r, 1));
+
+    // Kolom B (Col 1): Bulan SN
+    const bulanSn = parseMonthYearString(getCell(r, 1)) || parseMonthYearString(getCell(r, 52));
     const statusAplikasi = parseString(getCell(r, 48)) || parseString(getCell(r, 111));
     const rencMulaiTanam = parseDateString(getCell(r, 47));
     const rencSelesaiTanam = parseDateString(getCell(r, 48));
@@ -610,6 +648,8 @@ async function main() {
 
   let sumBongkarAkum = 0;
   let sumTanamAkum = 0;
+
+  await prisma.monthlySummary.deleteMany({ where: { year: 2026 } });
 
   for (const m of monthlyData2026) {
     sumBongkarAkum += m.bongkarReal;
