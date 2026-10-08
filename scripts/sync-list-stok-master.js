@@ -25,15 +25,28 @@ function cleanStatus(val) {
   return cleaned || s;
 }
 
+function parseDateString(val) {
+  if (val === undefined || val === null || val === '' || val === '-' || val === '#N/A' || val === 0 || val === '0') return null;
+  const num = typeof val === 'number' ? val : parseFloat(String(val).trim());
+  if (!isNaN(num) && num > 40000 && num < 60000) {
+    const d = xlsx.SSF.parse_date_code(num);
+    const day = String(d.d).padStart(2, '0');
+    const month = String(d.m).padStart(2, '0');
+    return `${day}/${month}/${d.y}`;
+  }
+  const s = String(val).trim();
+  return s === '' || s === '-' || s === '0' ? null : s;
+}
+
 async function syncListStokMaster() {
-  console.log('🚀 Memulai Pembaruan Data List Stok Lahan dari Schedule 2026 Update 09 (Sheet Master)...');
+  console.log('🚀 Memulai Sinkronisasi Data Master Lahan dari Schedule 2026 Update 09.xlsx (Sheet Master)...');
   const filePath = path.join(__dirname, '..', 'excel', 'Schedule 2026 Update 09.xlsx');
   const wb = xlsx.readFile(filePath, { cellFormula: true });
   const ws = wb.Sheets['Master'];
   const range = xlsx.utils.decode_range(ws['!ref']);
   const getCell = (r, c) => ws[xlsx.utils.encode_cell({ r, c })]?.v;
 
-  // Map per lokasi
+  // Map lokasi unik ke baris mutakhir (baris terbawah)
   const masterMap = new Map();
 
   for (let r = 11; r <= range.e.r; r++) {
@@ -54,79 +67,76 @@ async function syncListStokMaster() {
     const phBk = parseNumber(getCell(r, 9));
     const phSn = parseNumber(getCell(r, 10));
 
-    if (!masterMap.has(key)) {
-      masterMap.set(key, {
-        lokasi,
-        wilayah,
-        luasBruto,
-        luasNetto,
-        status,
-        eks,
-        sejarah,
-        phBk,
-        phSn,
-        aplikasiTerakhir,
-        latestRow: r + 1,
-      });
-    } else {
-      const prev = masterMap.get(key);
-      masterMap.set(key, {
-        lokasi,
-        wilayah: wilayah || prev.wilayah,
-        luasBruto: luasBruto > 0 ? luasBruto : prev.luasBruto,
-        luasNetto: luasNetto > 0 ? luasNetto : prev.luasNetto,
-        status: status || prev.status,
-        eks: eks || prev.eks,
-        sejarah: sejarah || prev.sejarah,
-        phBk: phBk !== null ? phBk : prev.phBk,
-        phSn: phSn !== null ? phSn : prev.phSn,
-        aplikasiTerakhir: aplikasiTerakhir || prev.aplikasiTerakhir,
-        latestRow: r + 1,
-      });
-    }
+    const rencBkr = parseDateString(getCell(r, 11));
+    const rencBajak = parseDateString(getCell(r, 12));
+    const realBkr = parseDateString(getCell(r, 72));
+    const realBajak = parseDateString(getCell(r, 73));
+    const realSn = parseDateString(getCell(r, 103));
+    const realMulaiTanam = parseDateString(getCell(r, 104));
+    const realSelesaiTanam = parseDateString(getCell(r, 105));
+
+    // Baris yang lebih bawah adalah siklus paling mutakhir
+    masterMap.set(key, {
+      lokasi,
+      wilayah,
+      luasBruto,
+      luasNetto,
+      status,
+      eks,
+      sejarah,
+      phBk,
+      phSn,
+      aplikasiTerakhir,
+      rencBkr,
+      rencBajak,
+      realBkr,
+      realBajak,
+      realSn,
+      realMulaiTanam,
+      realSelesaiTanam,
+      latestRow: r + 1,
+    });
   }
 
-  console.log(`📋 Total lokasi unik ditemukan di Sheet Master: ${masterMap.size}`);
+  console.log(`📋 Total lokasi unik ditemukan di Sheet Master: ${masterMap.size} lokasi`);
 
-  const dbLands = await prisma.land.findMany();
-  const dbMap = new Map();
-  for (const l of dbLands) {
-    dbMap.set(l.lokasi.toUpperCase(), l);
-  }
+  const dbLands = await prisma.land.findMany({
+    select: { id: true, lokasi: true, year: true }
+  });
+  const dbLocationsSet = new Set(dbLands.map(l => l.lokasi.toUpperCase()));
 
-  let updatedCount = 0;
-  let insertedCount = 0;
+  let updatedLocations = 0;
+  let insertedLocations = 0;
 
   for (const [key, master] of masterMap.entries()) {
-    if (dbMap.has(key)) {
-      const existing = dbMap.get(key);
-      const updateData = {};
+    const updatePayload = {
+      wilayah: master.wilayah || undefined,
+      luasBruto: master.luasBruto > 0 ? master.luasBruto : undefined,
+      luasNetto: master.luasNetto > 0 ? master.luasNetto : undefined,
+      status: master.status || undefined,
+      eks: master.eks,
+      sejarah: master.sejarah,
+      phBk: master.phBk,
+      phSn: master.phSn,
+    };
+    if (master.aplikasiTerakhir) {
+      updatePayload.aplikasiTerakhir = master.aplikasiTerakhir;
+    }
 
-      if (master.wilayah && master.wilayah !== existing.wilayah) updateData.wilayah = master.wilayah;
-      if (master.luasBruto > 0 && Math.abs(existing.luasBruto - master.luasBruto) > 0.001) updateData.luasBruto = master.luasBruto;
-      if (master.luasNetto > 0 && Math.abs(existing.luasNetto - master.luasNetto) > 0.001) updateData.luasNetto = master.luasNetto;
-      if (master.status && master.status !== existing.status) updateData.status = master.status;
-      if (master.eks && master.eks !== existing.eks) updateData.eks = master.eks;
-      if (master.sejarah && master.sejarah !== existing.sejarah) updateData.sejarah = master.sejarah;
-      if (master.phBk !== null && master.phBk !== existing.phBk) updateData.phBk = master.phBk;
-      if (master.phSn !== null && master.phSn !== existing.phSn) updateData.phSn = master.phSn;
-      if (master.aplikasiTerakhir && master.aplikasiTerakhir !== existing.aplikasiTerakhir) {
-        updateData.aplikasiTerakhir = master.aplikasiTerakhir;
-      }
-
-      if (Object.keys(updateData).length > 0) {
-        await prisma.land.update({
-          where: { id: existing.id },
-          data: updateData,
-        });
-        updatedCount++;
-      }
+    if (dbLocationsSet.has(key)) {
+      await prisma.land.updateMany({
+        where: {
+          lokasi: { equals: master.lokasi, mode: 'insensitive' }
+        },
+        data: updatePayload
+      });
+      updatedLocations++;
     } else {
-      // Insert new land record
       await prisma.land.create({
         data: {
           lokasi: master.lokasi,
           wilayah: master.wilayah || 'W01',
+          year: 2026,
           luasBruto: master.luasBruto || 0,
           luasNetto: master.luasNetto || 0,
           status: master.status,
@@ -135,16 +145,21 @@ async function syncListStokMaster() {
           phBk: master.phBk,
           phSn: master.phSn,
           aplikasiTerakhir: master.aplikasiTerakhir,
-        },
+          rencBkr: master.rencBkr,
+          rencBajak: master.rencBajak,
+          realBkr: master.realBkr,
+          realBajak: master.realBajak,
+          realMulaiTanam: master.realMulaiTanam,
+          realSelesaiTanam: master.realSelesaiTanam,
+        }
       });
-      insertedCount++;
+      insertedLocations++;
     }
   }
 
-  console.log(`✅ Sinkronisasi Selesai!`);
-  console.log(`   - Data petak lahan diperbarui: ${updatedCount} petak`);
-  console.log(`   - Petak baru ditambahkan ke database: ${insertedCount} petak`);
-  console.log(`   - Total petak terdaftar di DB sekarang: ${dbLands.length + insertedCount} petak`);
+  console.log(`✅ Sinkronisasi Master Selesai!`);
+  console.log(`   - Lokasi diperbarui di database: ${updatedLocations} lokasi`);
+  console.log(`   - Lokasi baru ditambahkan: ${insertedLocations} lokasi`);
 
   await prisma.$disconnect();
 }

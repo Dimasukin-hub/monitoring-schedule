@@ -50,12 +50,13 @@ export async function GET(request: Request) {
 
     const where: any = andConditions.length > 0 ? { AND: andConditions } : {};
 
-    // Fetch all lands matching basic filters
+    // Fetch all lands matching basic filters, ordered by year and ID descending to get latest cycle
     const allLands = await prisma.land.findMany({
       where,
       select: {
         id: true,
         lokasi: true,
+        year: true,
         wilayah: true,
         luasBruto: true,
         luasNetto: true,
@@ -75,8 +76,19 @@ export async function GET(request: Request) {
           select: { code: true, status: true, realisasiDate: true },
         },
       },
-      orderBy: { lokasi: 'asc' },
+      orderBy: [{ year: 'desc' }, { id: 'desc' }],
     });
+
+    // Deduplikasi per petak lokasi fisik agar setiap petak memiliki 1 posisi stok aktif terkini di 2026
+    const seenLokasi = new Set<string>();
+    const latestLands: typeof allLands = [];
+    for (const l of allLands) {
+      const key = l.lokasi.toUpperCase().trim();
+      if (!seenLokasi.has(key)) {
+        seenLokasi.add(key);
+        latestLands.push(l);
+      }
+    }
 
     // Classify into the 5 categories per Excel Monitoring Schedule 2026:
     // 1. BK: Chopper s.d. Rotary Plough (termasuk lahan belum mulai)
@@ -100,7 +112,7 @@ export async function GET(request: Request) {
       SELESAI: { count: 0, totalNetto: 0 },
     };
 
-    for (const l of allLands) {
+    for (const l of latestLands) {
       const cat = getLandStokCategory(l);
 
       counts[cat].count++;
