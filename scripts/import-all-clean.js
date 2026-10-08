@@ -629,59 +629,53 @@ async function main() {
   console.log(`\n✅ Berhasil membuat ${stageInserted} relasi petak lahan di LandStageStock!\n`);
 
   // 4. SINKRONISASI MONTHLY SUMMARY (Untuk Chart Rencana vs Realisasi)
-  console.log('📈 4. Mengisi tabel MonthlySummary dari sheet Summ / Rekap bulanan...');
-  // Data bulanan Bongkar & Tanam 2026
-  const monthlyData2026 = [
-    { month: 'Jan', monthIndex: 1, bongkarReal: 137.64, tanamReal: 105.40, bongkarRenc: 140.0, tanamRenc: 110.0 },
-    { month: 'Feb', monthIndex: 2, bongkarReal: 118.23, tanamReal: 33.71, bongkarRenc: 120.0, tanamRenc: 40.0 },
-    { month: 'Mar', monthIndex: 3, bongkarReal: 76.10, tanamReal: 92.46, bongkarRenc: 80.0, tanamRenc: 95.0 },
-    { month: 'Apr', monthIndex: 4, bongkarReal: 84.97, tanamReal: 90.00, bongkarRenc: 90.0, tanamRenc: 90.0 },
-    { month: 'Mei', monthIndex: 5, bongkarReal: 124.54, tanamReal: 120.90, bongkarRenc: 125.0, tanamRenc: 120.0 },
-    { month: 'Jun', monthIndex: 6, bongkarReal: 54.57, tanamReal: 170.35, bongkarRenc: 60.0, tanamRenc: 170.0 },
-    { month: 'Jul', monthIndex: 7, bongkarReal: 96.22, tanamReal: 175.22, bongkarRenc: 100.0, tanamRenc: 175.0 },
-    { month: 'Agu', monthIndex: 8, bongkarReal: 111.34, tanamReal: 140.20, bongkarRenc: 115.0, tanamRenc: 140.0 },
-    { month: 'Sep', monthIndex: 9, bongkarReal: 205.65, tanamReal: 120.00, bongkarRenc: 200.0, tanamRenc: 120.0 },
-    { month: 'Okt', monthIndex: 10, bongkarReal: 168.57, tanamReal: 130.00, bongkarRenc: 170.0, tanamRenc: 130.0 },
-    { month: 'Nov', monthIndex: 11, bongkarReal: 160.79, tanamReal: 120.00, bongkarRenc: 160.0, tanamRenc: 120.0 },
-    { month: 'Des', monthIndex: 12, bongkarReal: 166.49, tanamReal: 101.00, bongkarRenc: 165.0, tanamRenc: 100.0 },
-  ];
-
-  let sumBongkarAkum = 0;
-  let sumTanamAkum = 0;
+  console.log('📈 4. Mengisi tabel MonthlySummary (Bongkar, Bajak, Siap Tanam, Tanam) 2026...');
+  const monthlyCategoriesData = {
+    Bongkar: {
+      rencana: [140.0, 120.0, 80.0, 90.0, 125.0, 60.0, 100.0, 115.0, 200.0, 170.0, 160.0, 165.0],
+      realisasi: [137.64, 118.23, 76.10, 84.97, 124.54, 54.57, 96.22, 111.34, 205.65, 168.57, 160.79, 166.49],
+    },
+    Bajak: {
+      rencana: [202.80, 333.99, 175.50, 182.07, 193.37, 151.25, 340.84, 84.57, 114.80, 164.65, 132.07, 194.51],
+      realisasi: [45.07, 63.33, 115.08, 92.35, 83.20, 289.78, 194.15, 139.98, 133.11, 154.75, 147.23, 183.20],
+    },
+    'Siap Tanam': {
+      rencana: [198.42, 124.93, 101.44, 200.44, 144.10, 165.78, 302.31, 175.06, 155.24, 107.15, 113.57, 139.36],
+      realisasi: [40.88, 40.30, 96.92, 111.92, 111.09, 218.87, 189.48, 175.06, 126.34, 119.94, 100.72, 119.05],
+    },
+    Tanam: {
+      rencana: [110.0, 40.0, 95.0, 90.0, 120.0, 170.0, 175.0, 140.0, 120.0, 130.0, 120.0, 100.0],
+      realisasi: [105.40, 33.71, 92.46, 90.00, 120.90, 170.35, 175.22, 140.20, 120.00, 130.00, 120.00, 101.00],
+    },
+  };
 
   await prisma.monthlySummary.deleteMany({ where: { year: 2026 } });
 
-  for (const m of monthlyData2026) {
-    sumBongkarAkum += m.bongkarReal;
-    sumTanamAkum += m.tanamReal;
+  const monthlyRecords = [];
+  for (const [cat, val] of Object.entries(monthlyCategoriesData)) {
+    let accum = 0;
+    for (let i = 0; i < 12; i++) {
+      const renc = val.rencana[i];
+      const real = val.realisasi[i];
+      const dev = Math.round((real - renc) * 100) / 100;
+      accum = Math.round((accum + real) * 100) / 100;
 
-    await prisma.monthlySummary.create({
-      data: {
-        category: 'Bongkar',
-        monthYear: `${m.month}-26`,
-        monthIndex: m.monthIndex,
+      monthlyRecords.push({
+        category: cat,
+        monthYear: `${MONTH_NAMES[i]}-26`,
+        monthIndex: i + 1,
         year: 2026,
-        rencana: m.bongkarRenc,
-        realisasi: m.bongkarReal,
-        deviasi: m.bongkarReal - m.bongkarRenc,
-        akumulasi: Math.round(sumBongkarAkum * 100) / 100,
-      },
-    });
-
-    await prisma.monthlySummary.create({
-      data: {
-        category: 'Tanam',
-        monthYear: `${m.month}-26`,
-        monthIndex: m.monthIndex,
-        year: 2026,
-        rencana: m.tanamRenc,
-        realisasi: m.tanamReal,
-        deviasi: m.tanamReal - m.tanamRenc,
-        akumulasi: Math.round(sumTanamAkum * 100) / 100,
-      },
-    });
+        rfc: real,
+        rencana: renc,
+        realisasi: real,
+        deviasi: dev,
+        akumulasi: accum,
+      });
+    }
   }
-  console.log('✅ Berhasil mengisi data MonthlySummary 2026!\n');
+
+  await prisma.monthlySummary.createMany({ data: monthlyRecords });
+  console.log('✅ Berhasil mengisi data MonthlySummary (Bongkar, Bajak, Siap Tanam, Tanam) 2026!\n');
 
   console.log('========================================================');
   console.log('🎉 SELURUH PROSES RESET & IMPORT EXCEL BERHASIL 100%!');
