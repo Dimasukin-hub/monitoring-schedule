@@ -1378,15 +1378,6 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                 className="range-slider-thumb absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none z-30 focus:outline-none"
               />
             </div>
-
-            {/* Marker Skala Bawah */}
-            <div className="flex justify-between items-center text-[9px] text-slate-500 dark:text-slate-400 font-mono mt-0.5 px-0.5 select-none">
-              <span>Jan</span>
-              <span>Mar</span>
-              <span>Jun</span>
-              <span>Sep</span>
-              <span>Des</span>
-            </div>
           </div>
         </div>
       )}
