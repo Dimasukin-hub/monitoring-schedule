@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useDeferredValue } from 'react';
+import React, { useState, useMemo, useEffect, useDeferredValue, useRef } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -592,6 +592,88 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
   const deferredMonthlyRange = useDeferredValue(monthlyRange);
   const deferredDailyRange = useDeferredValue(dailyRange);
 
+  const dailyRangeRef = useRef(dailyRange);
+  dailyRangeRef.current = dailyRange;
+
+  const weeklyRangeRef = useRef(weeklyRange);
+  weeklyRangeRef.current = weeklyRange;
+
+  const monthlyRangeRef = useRef(monthlyRange);
+  monthlyRangeRef.current = monthlyRange;
+
+  // Generic drag & click handler untuk garis filter volume/periode (klik/geser di titik manapun langsung memilih)
+  const createTrackPointerDownHandler = (
+    minLimit: number,
+    maxLimit: number,
+    getRange: () => [number, number],
+    setRange: (updater: (prev: [number, number]) => [number, number]) => void
+  ) => {
+    return (e: React.PointerEvent<HTMLDivElement>) => {
+      if (e.button !== 0) return;
+      if ((e.target as HTMLElement).tagName === 'INPUT') return;
+      e.preventDefault();
+
+      const rect = e.currentTarget.getBoundingClientRect();
+      if (!rect.width || maxLimit <= minLimit) return;
+
+      const calcValueFromX = (clientX: number) => {
+        const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        return Math.round(minLimit + ratio * (maxLimit - minLimit));
+      };
+
+      const initialVal = calcValueFromX(e.clientX);
+      const current = getRange();
+
+      let targetHandle: 'start' | 'end';
+      if (initialVal < current[0]) {
+        targetHandle = 'start';
+      } else if (initialVal > current[1]) {
+        targetHandle = 'end';
+      } else {
+        const distStart = Math.abs(initialVal - current[0]);
+        const distEnd = Math.abs(current[1] - initialVal);
+        targetHandle = distStart <= distEnd ? 'start' : 'end';
+      }
+
+      setRange((prev) => {
+        if (targetHandle === 'start') {
+          const nextVal = Math.max(minLimit, Math.min(initialVal, prev[1]));
+          if (prev[0] === nextVal) return prev;
+          return [nextVal, prev[1]];
+        } else {
+          const nextVal = Math.min(maxLimit, Math.max(initialVal, prev[0]));
+          if (prev[1] === nextVal) return prev;
+          return [prev[0], nextVal];
+        }
+      });
+
+      const onPointerMove = (moveEvent: PointerEvent) => {
+        const moveVal = calcValueFromX(moveEvent.clientX);
+        setRange((prev) => {
+          if (targetHandle === 'start') {
+            const nextVal = Math.max(minLimit, Math.min(moveVal, prev[1]));
+            if (prev[0] === nextVal) return prev;
+            return [nextVal, prev[1]];
+          } else {
+            const nextVal = Math.min(maxLimit, Math.max(moveVal, prev[0]));
+            if (prev[1] === nextVal) return prev;
+            return [prev[0], nextVal];
+          }
+        });
+      };
+
+      const onPointerUp = () => {
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerUp);
+      };
+
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+      window.addEventListener('pointercancel', onPointerUp);
+    };
+  };
+
   // All daily items for the active category in 2026
   const allDailyItems = useMemo(() => {
     let source: any[] = [];
@@ -600,6 +682,33 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
     else source = chartsData?.dailySiapTanam || [];
     return source;
   }, [chartsData, targetCategory]);
+
+  const handleDailyTrackPointerDown = useMemo(() => {
+    return createTrackPointerDownHandler(
+      0,
+      Math.max(1, allDailyItems.length - 1),
+      () => dailyRangeRef.current,
+      setDailyRange
+    );
+  }, [allDailyItems.length]);
+
+  const handleWeeklyTrackPointerDown = useMemo(() => {
+    return createTrackPointerDownHandler(
+      1,
+      52,
+      () => weeklyRangeRef.current,
+      setWeeklyRange
+    );
+  }, []);
+
+  const handleMonthlyTrackPointerDown = useMemo(() => {
+    return createTrackPointerDownHandler(
+      1,
+      12,
+      () => monthlyRangeRef.current,
+      setMonthlyRange
+    );
+  }, []);
 
   // Sinkronisasi otomatis default range Harian ke Bulan Berjalan (Okt-26) atau bulan terakhir yang ada data
   const resetDailyToOctober = () => {
@@ -977,13 +1086,16 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
         <div className="p-3.5 mb-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/90 dark:border-slate-800 shadow-2xs transition-all">
           {/* Dual Handle Range Slider Track for Daily */}
           <div className="pt-3 pb-1 px-2">
-            <div className="relative flex items-center w-full h-8 select-none">
+            <div
+              onPointerDown={handleDailyTrackPointerDown}
+              className="relative flex items-center w-full h-8 select-none cursor-pointer group touch-none"
+            >
               {/* Base Track */}
-              <div className="absolute left-0 right-0 h-2 bg-slate-200 dark:bg-slate-800 rounded-full" />
+              <div className="absolute left-0 right-0 h-2 group-hover:h-2.5 transition-all bg-slate-200 dark:bg-slate-800 rounded-full" />
 
               {/* Active Highlighted Range Bar */}
               <div
-                className="absolute h-2 bg-gradient-to-r from-emerald-500 via-[#00873D] to-teal-500 rounded-full shadow-xs pointer-events-none"
+                className="absolute h-2 group-hover:h-2.5 transition-all bg-gradient-to-r from-emerald-500 via-[#00873D] to-teal-500 rounded-full shadow-xs pointer-events-none"
                 style={{
                   left: `${(dailyRange[0] / Math.max(1, allDailyItems.length - 1)) * 100}%`,
                   width: `${((dailyRange[1] - dailyRange[0]) / Math.max(1, allDailyItems.length - 1)) * 100}%`,
@@ -1058,13 +1170,16 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
         <div className="p-3.5 mb-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/90 dark:border-slate-800 shadow-2xs transition-all">
           {/* Dual Handle Range Slider Track */}
           <div className="pt-3 pb-1 px-2">
-            <div className="relative flex items-center w-full h-8 select-none">
+            <div
+              onPointerDown={handleWeeklyTrackPointerDown}
+              className="relative flex items-center w-full h-8 select-none cursor-pointer group touch-none"
+            >
               {/* Base Track */}
-              <div className="absolute left-0 right-0 h-2 bg-slate-200 dark:bg-slate-800 rounded-full" />
+              <div className="absolute left-0 right-0 h-2 group-hover:h-2.5 transition-all bg-slate-200 dark:bg-slate-800 rounded-full" />
 
               {/* Active Highlighted Range Bar */}
               <div
-                className="absolute h-2 bg-gradient-to-r from-emerald-500 via-[#00873D] to-teal-500 rounded-full shadow-xs pointer-events-none"
+                className="absolute h-2 group-hover:h-2.5 transition-all bg-gradient-to-r from-emerald-500 via-[#00873D] to-teal-500 rounded-full shadow-xs pointer-events-none"
                 style={{
                   left: `${((weeklyRange[0] - 1) / (52 - 1)) * 100}%`,
                   width: `${((weeklyRange[1] - weeklyRange[0]) / (52 - 1)) * 100}%`,
@@ -1100,7 +1215,7 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                 onChange={(e) => {
                   const num = Number(e.target.value);
                   setWeeklyRange((prev) => {
-                    const val = Math.max(1, Math.min(num, prev[1] - 1));
+                    const val = Math.max(1, Math.min(num, prev[1]));
                     if (prev[0] === val) return prev;
                     return [val, prev[1]];
                   });
@@ -1119,7 +1234,7 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                 onChange={(e) => {
                   const num = Number(e.target.value);
                   setWeeklyRange((prev) => {
-                    const val = Math.min(52, Math.max(num, prev[0] + 1));
+                    const val = Math.min(52, Math.max(num, prev[0]));
                     if (prev[1] === val) return prev;
                     return [prev[0], val];
                   });
@@ -1138,13 +1253,16 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
         <div className="p-3.5 mb-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/90 dark:border-slate-800 shadow-2xs transition-all">
           {/* Dual Handle Range Slider Track for Monthly */}
           <div className="pt-3 pb-1 px-2">
-            <div className="relative flex items-center w-full h-8 select-none">
+            <div
+              onPointerDown={handleMonthlyTrackPointerDown}
+              className="relative flex items-center w-full h-8 select-none cursor-pointer group touch-none"
+            >
               {/* Base Track */}
-              <div className="absolute left-0 right-0 h-2 bg-slate-200 dark:bg-slate-800 rounded-full" />
+              <div className="absolute left-0 right-0 h-2 group-hover:h-2.5 transition-all bg-slate-200 dark:bg-slate-800 rounded-full" />
 
               {/* Active Highlighted Range Bar */}
               <div
-                className="absolute h-2 bg-gradient-to-r from-emerald-500 via-[#00873D] to-teal-500 rounded-full shadow-xs pointer-events-none"
+                className="absolute h-2 group-hover:h-2.5 transition-all bg-gradient-to-r from-emerald-500 via-[#00873D] to-teal-500 rounded-full shadow-xs pointer-events-none"
                 style={{
                   left: `${((monthlyRange[0] - 1) / (12 - 1)) * 100}%`,
                   width: `${((monthlyRange[1] - monthlyRange[0]) / (12 - 1)) * 100}%`,
