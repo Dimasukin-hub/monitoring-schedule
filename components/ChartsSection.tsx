@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useDeferredValue } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -582,6 +582,11 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
   // Default daily: Range index yang disinkronkan ke bulan berjalan (Okt-26)
   const [dailyRange, setDailyRange] = useState<[number, number]>([0, 0]);
 
+  // Defer range values for heavy chart data mapping and SVG rendering so slider thumb drags smoothly without UI locks
+  const deferredWeeklyRange = useDeferredValue(weeklyRange);
+  const deferredMonthlyRange = useDeferredValue(monthlyRange);
+  const deferredDailyRange = useDeferredValue(dailyRange);
+
   // All daily items for the active category in 2026
   const allDailyItems = useMemo(() => {
     let source: any[] = [];
@@ -620,13 +625,14 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
           }
         });
       }
-      if (start !== -1 && end !== -1) {
-        setDailyRange([start, end]);
-      } else {
-        setDailyRange([0, Math.max(0, allDailyItems.length - 1)]);
-      }
+      const targetStart = start !== -1 ? start : 0;
+      const targetEnd = end !== -1 ? end : Math.max(0, allDailyItems.length - 1);
+      setDailyRange((prev) => {
+        if (prev[0] === targetStart && prev[1] === targetEnd) return prev;
+        return [targetStart, targetEnd];
+      });
     }
-  }, [allDailyItems, targetCategory]);
+  }, [allDailyItems.length, targetCategory]);
 
   if (!chartsData) {
     return (
@@ -638,8 +644,10 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
   let rawDataList: any[] = [];
   if (periodMode === 'daily') {
     if (allDailyItems.length > 0) {
-      const safeStart = Math.min(Math.max(0, dailyRange[0]), allDailyItems.length - 1);
-      const safeEnd = Math.min(Math.max(safeStart, dailyRange[1]), allDailyItems.length - 1);
+      const s0 = Math.min(deferredDailyRange[0], deferredDailyRange[1]);
+      const s1 = Math.max(deferredDailyRange[0], deferredDailyRange[1]);
+      const safeStart = Math.min(Math.max(0, s0), allDailyItems.length - 1);
+      const safeEnd = Math.min(Math.max(safeStart, s1), allDailyItems.length - 1);
       rawDataList = allDailyItems.slice(safeStart, safeEnd + 1);
     } else {
       rawDataList = [];
@@ -659,7 +667,9 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
 
     // Susun secara terurut dan berkesinambungan dari startWeek ke endWeek
     rawDataList = [];
-    for (let w = weeklyRange[0]; w <= weeklyRange[1]; w++) {
+    const startW = Math.min(deferredWeeklyRange[0], deferredWeeklyRange[1]);
+    const endW = Math.max(deferredWeeklyRange[0], deferredWeeklyRange[1]);
+    for (let w = startW; w <= endW; w++) {
       if (weekMap.has(w)) {
         rawDataList.push(weekMap.get(w));
       } else {
@@ -679,10 +689,12 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
     else if (targetCategory === 'BAJAK') rawDataList = chartsData?.monthlyBajak || [];
     else rawDataList = chartsData?.monthlySiapTanam || [];
 
+    const startM = Math.min(deferredMonthlyRange[0], deferredMonthlyRange[1]);
+    const endM = Math.max(deferredMonthlyRange[0], deferredMonthlyRange[1]);
     rawDataList = rawDataList.filter((item: any) => {
       if (item.year && item.year !== 2026) return false;
       const idx = item.monthIndex ?? (MONTH_NAMES_LIST.findIndex((mn) => (item.month || item.periodKey || '').startsWith(mn)) + 1);
-      return idx >= monthlyRange[0] && idx <= monthlyRange[1];
+      return idx >= startM && idx <= endM;
     });
   }
 
@@ -1083,10 +1095,16 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                 max={Math.max(1, allDailyItems.length - 1)}
                 value={dailyRange[0]}
                 onChange={(e) => {
-                  const val = Math.min(Number(e.target.value), dailyRange[1]);
-                  setDailyRange([val, dailyRange[1]]);
+                  const num = Number(e.target.value);
+                  setDailyRange((prev) => {
+                    const val = Math.max(0, Math.min(num, prev[1]));
+                    if (prev[0] === val) return prev;
+                    return [val, prev[1]];
+                  });
                 }}
-                className="range-slider-thumb absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none z-20 focus:outline-none"
+                className={`range-slider-thumb absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none focus:outline-none ${
+                  dailyRange[0] > (allDailyItems.length - 1) / 2 ? 'z-30' : 'z-20'
+                }`}
               />
 
               {/* Native Input 2 (Max) */}
@@ -1096,10 +1114,17 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                 max={Math.max(1, allDailyItems.length - 1)}
                 value={dailyRange[1]}
                 onChange={(e) => {
-                  const val = Math.max(Number(e.target.value), dailyRange[0]);
-                  setDailyRange([dailyRange[0], val]);
+                  const num = Number(e.target.value);
+                  setDailyRange((prev) => {
+                    const maxLimit = Math.max(0, allDailyItems.length - 1);
+                    const val = Math.min(maxLimit, Math.max(num, prev[0]));
+                    if (prev[1] === val) return prev;
+                    return [prev[0], val];
+                  });
                 }}
-                className="range-slider-thumb absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none z-30 focus:outline-none"
+                className={`range-slider-thumb absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none focus:outline-none ${
+                  dailyRange[0] > (allDailyItems.length - 1) / 2 ? 'z-20' : 'z-30'
+                }`}
               />
             </div>
 
@@ -1134,7 +1159,9 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                           e = idx;
                         }
                       });
-                      if (s !== -1 && e !== -1) setDailyRange([s, e]);
+                      if (s !== -1 && e !== -1) {
+                        setDailyRange((prev) => (prev[0] === s && prev[1] === e ? prev : [s, e]));
+                      }
                     }}
                     className={`px-2 py-0.5 rounded-md text-[10px] font-bold shrink-0 transition-all cursor-pointer ${
                       isSelectedMonth
@@ -1196,10 +1223,16 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                 max={52}
                 value={weeklyRange[0]}
                 onChange={(e) => {
-                  const val = Math.min(Number(e.target.value), weeklyRange[1] - 1);
-                  setWeeklyRange([val, weeklyRange[1]]);
+                  const num = Number(e.target.value);
+                  setWeeklyRange((prev) => {
+                    const val = Math.max(1, Math.min(num, prev[1] - 1));
+                    if (prev[0] === val) return prev;
+                    return [val, prev[1]];
+                  });
                 }}
-                className="range-slider-thumb absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none z-20 focus:outline-none"
+                className={`range-slider-thumb absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none focus:outline-none ${
+                  weeklyRange[0] > 26 ? 'z-30' : 'z-20'
+                }`}
               />
 
               {/* Native Input 2 (Max) */}
@@ -1209,10 +1242,16 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                 max={52}
                 value={weeklyRange[1]}
                 onChange={(e) => {
-                  const val = Math.max(Number(e.target.value), weeklyRange[0] + 1);
-                  setWeeklyRange([weeklyRange[0], val]);
+                  const num = Number(e.target.value);
+                  setWeeklyRange((prev) => {
+                    const val = Math.min(52, Math.max(num, prev[0] + 1));
+                    if (prev[1] === val) return prev;
+                    return [prev[0], val];
+                  });
                 }}
-                className="range-slider-thumb absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none z-30 focus:outline-none"
+                className={`range-slider-thumb absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none focus:outline-none ${
+                  weeklyRange[0] > 26 ? 'z-20' : 'z-30'
+                }`}
               />
             </div>
           </div>
@@ -1264,10 +1303,16 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                 max={12}
                 value={monthlyRange[0]}
                 onChange={(e) => {
-                  const val = Math.min(Number(e.target.value), monthlyRange[1]);
-                  setMonthlyRange([val, monthlyRange[1]]);
+                  const num = Number(e.target.value);
+                  setMonthlyRange((prev) => {
+                    const val = Math.max(1, Math.min(num, prev[1]));
+                    if (prev[0] === val) return prev;
+                    return [val, prev[1]];
+                  });
                 }}
-                className="range-slider-thumb absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none z-20 focus:outline-none"
+                className={`range-slider-thumb absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none focus:outline-none ${
+                  monthlyRange[0] > 6 ? 'z-30' : 'z-20'
+                }`}
               />
 
               {/* Native Input 2 (Max) */}
@@ -1277,10 +1322,16 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                 max={12}
                 value={monthlyRange[1]}
                 onChange={(e) => {
-                  const val = Math.max(Number(e.target.value), monthlyRange[0]);
-                  setMonthlyRange([monthlyRange[0], val]);
+                  const num = Number(e.target.value);
+                  setMonthlyRange((prev) => {
+                    const val = Math.min(12, Math.max(num, prev[0]));
+                    if (prev[1] === val) return prev;
+                    return [prev[0], val];
+                  });
                 }}
-                className="range-slider-thumb absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none z-30 focus:outline-none"
+                className={`range-slider-thumb absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none focus:outline-none ${
+                  monthlyRange[0] > 6 ? 'z-20' : 'z-30'
+                }`}
               />
             </div>
           </div>
@@ -1303,7 +1354,7 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
               !chartWidth ? 'w-full min-w-[500px]' : ''
             }`}
           >
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" debounce={50}>
               <BarChart
                 data={activeChartData}
                 margin={{ top: 10, right: 20, left: -15, bottom: periodMode === 'daily' ? 24 : 15 }}

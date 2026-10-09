@@ -23,7 +23,9 @@ if (typeof window !== 'undefined') {
       text.includes('defaultProps will be removed from function components') ||
       text.includes('Support for defaultProps will be removed') ||
       text.includes('Encountered two children with the same key') ||
-      text.includes('extra attributes from the server')
+      text.includes('extra attributes from the server') ||
+      text.includes('ResizeObserver loop completed with undelivered notifications') ||
+      text.includes('ResizeObserver loop limit exceeded')
     );
   };
 
@@ -36,6 +38,12 @@ if (typeof window !== 'undefined') {
     if (isHarmlessWarning(...args)) return;
     originalWarn.apply(console, args);
   };
+
+  window.addEventListener('error', (e) => {
+    if (e.message && (e.message.includes('ResizeObserver') || e.message.includes('loop limit exceeded'))) {
+      e.stopImmediatePropagation();
+    }
+  });
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
