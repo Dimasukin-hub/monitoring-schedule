@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -568,27 +568,65 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
 // 2. RENCANA VS REALISASI (HA)
 //    Urutan kategori: Bongkar, Bajak, Siap Tanam
 // =========================================================================
+const MONTH_NAMES_LIST = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
 export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [targetCategory, setTargetCategory] = useState<'BONGKAR' | 'BAJAK' | 'SIAP_TANAM'>('BONGKAR');
   const [periodMode, setPeriodMode] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
-  const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>('Okt-26');
   // Default weekly: 9 minggu realisasi terakhir (Mgg 32) s/d minggu saat ini (Mgg 40) + 3 minggu forecast (Mgg 43)
   const [weeklyRange, setWeeklyRange] = useState<[number, number]>([32, 43]);
+  // Default monthly: 1 Tahun Penuh (Januari s/d Desember 2026)
+  const [monthlyRange, setMonthlyRange] = useState<[number, number]>([1, 12]);
+  // Default daily: Range index yang disinkronkan ke bulan berjalan (Okt-26)
+  const [dailyRange, setDailyRange] = useState<[number, number]>([0, 0]);
 
-  // Available unique months for Daily mode (Must be called unconditionally before any early returns)
-  const availableMonths = useMemo(() => {
+  // All daily items for the active category in 2026
+  const allDailyItems = useMemo(() => {
     let source: any[] = [];
     if (targetCategory === 'BONGKAR') source = chartsData?.dailyBongkar || [];
     else if (targetCategory === 'BAJAK') source = chartsData?.dailyBajak || [];
     else source = chartsData?.dailySiapTanam || [];
+    return source;
+  }, [chartsData, targetCategory]);
+
+  // Available unique months for Daily mode
+  const availableMonths = useMemo(() => {
     const set = new Set<string>();
-    source.forEach((s) => {
+    allDailyItems.forEach((s) => {
       if (s.monthKey) set.add(s.monthKey);
     });
     return Array.from(set);
-  }, [chartsData, targetCategory]);
+  }, [allDailyItems]);
+
+  // Sinkronisasi otomatis default range Harian ke Bulan Berjalan (Okt-26) atau bulan terakhir yang ada data
+  useEffect(() => {
+    if (allDailyItems.length > 0) {
+      let start = -1;
+      let end = -1;
+      allDailyItems.forEach((item, idx) => {
+        if (item.monthKey === 'Okt-26') {
+          if (start === -1) start = idx;
+          end = idx;
+        }
+      });
+      if (start === -1 || end === -1) {
+        const lastMonth = allDailyItems[allDailyItems.length - 1]?.monthKey;
+        allDailyItems.forEach((item, idx) => {
+          if (item.monthKey === lastMonth) {
+            if (start === -1) start = idx;
+            end = idx;
+          }
+        });
+      }
+      if (start !== -1 && end !== -1) {
+        setDailyRange([start, end]);
+      } else {
+        setDailyRange([0, Math.max(0, allDailyItems.length - 1)]);
+      }
+    }
+  }, [allDailyItems, targetCategory]);
 
   if (!chartsData) {
     return (
@@ -599,12 +637,12 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
   // Active dataset according to selected category (Bongkar, Bajak, Siap Tanam) & periodMode
   let rawDataList: any[] = [];
   if (periodMode === 'daily') {
-    if (targetCategory === 'BONGKAR') rawDataList = chartsData?.dailyBongkar || [];
-    else if (targetCategory === 'BAJAK') rawDataList = chartsData?.dailyBajak || [];
-    else rawDataList = chartsData?.dailySiapTanam || [];
-
-    if (selectedMonthFilter !== 'ALL') {
-      rawDataList = rawDataList.filter((item: any) => item.monthKey === selectedMonthFilter);
+    if (allDailyItems.length > 0) {
+      const safeStart = Math.min(Math.max(0, dailyRange[0]), allDailyItems.length - 1);
+      const safeEnd = Math.min(Math.max(safeStart, dailyRange[1]), allDailyItems.length - 1);
+      rawDataList = allDailyItems.slice(safeStart, safeEnd + 1);
+    } else {
+      rawDataList = [];
     }
   } else if (periodMode === 'weekly') {
     let sourceList: any[] = [];
@@ -643,8 +681,8 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
 
     rawDataList = rawDataList.filter((item: any) => {
       if (item.year && item.year !== 2026) return false;
-      const m = (item.month || item.periodKey || item.monthYear || '').trim().toLowerCase();
-      return m.endsWith('-26');
+      const idx = item.monthIndex ?? (MONTH_NAMES_LIST.findIndex((mn) => (item.month || item.periodKey || '').startsWith(mn)) + 1);
+      return idx >= monthlyRange[0] && idx <= monthlyRange[1];
     });
   }
 
@@ -671,8 +709,10 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
   // Menghitung lebar grafik agar bar harian dan mingguan memiliki ruang cukup dan berjarak lega
   const chartWidth =
     periodMode === 'daily'
-      ? selectedMonthFilter === 'ALL'
-        ? Math.max(activeChartData.length * 36, 2200)
+      ? activeChartData.length > 25
+        ? Math.max(activeChartData.length * 36, 1800)
+        : activeChartData.length <= 15
+        ? undefined
         : Math.max(activeChartData.length * 44, 850)
       : periodMode === 'weekly'
       ? activeChartData.length <= 16
@@ -694,11 +734,11 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
   const getPeriodLabel = () => {
     switch (periodMode) {
       case 'daily':
-        return selectedMonthFilter === 'ALL' ? 'Harian (Semua Bulan)' : `Harian (${selectedMonthFilter})`;
+        return `Harian (${allDailyItems[dailyRange[0]]?.periodKey || ''} - ${allDailyItems[dailyRange[1]]?.periodKey || ''})`;
       case 'weekly':
         return `Mingguan (Mgg ${String(weeklyRange[0]).padStart(2, '0')} - Mgg ${String(weeklyRange[1]).padStart(2, '0')})`;
       case 'monthly':
-        return 'Bulanan (Jan - Des 2026)';
+        return `Bulanan (${MONTH_NAMES_LIST[monthlyRange[0] - 1]} - ${MONTH_NAMES_LIST[monthlyRange[1] - 1]} 2026)`;
     }
   };
 
@@ -917,37 +957,197 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
         </div>
       </div>
 
-      {/* Filter Bulan khusus Daily */}
-      {periodMode === 'daily' && availableMonths.length > 0 && (
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 mb-3 pt-0.5">
-          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 shrink-0 mr-1 flex items-center gap-1">
-            <Filter className="w-3 h-3 text-emerald-600" /> Filter Bulan:
-          </span>
-          <button
-            type="button"
-            onClick={() => setSelectedMonthFilter('ALL')}
-            className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold shrink-0 transition-all cursor-pointer ${
-              selectedMonthFilter === 'ALL'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
-          >
-            Semua Bulan
-          </button>
-          {availableMonths.map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setSelectedMonthFilter(m)}
-              className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold shrink-0 transition-all cursor-pointer ${
-                selectedMonthFilter === m
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-              }`}
-            >
-              {m}
-            </button>
-          ))}
+      {/* Filter Rentang Periode khusus Harian (Dual-Handle Range Slider) */}
+      {periodMode === 'daily' && allDailyItems.length > 0 && (
+        <div className="p-3.5 mb-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/90 dark:border-slate-800 shadow-2xs transition-all">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
+                <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                Filter Rentang Harian:
+              </span>
+              <span className="px-2.5 py-1 rounded-lg text-xs font-black font-mono bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 shadow-2xs">
+                {allDailyItems[dailyRange[0]]?.periodKey || 'Mulai'} — {allDailyItems[dailyRange[1]]?.periodKey || 'Selesai'}
+              </span>
+              <span className="text-[10.5px] font-semibold text-slate-500 dark:text-slate-400">
+                ({Math.max(0, dailyRange[1] - dailyRange[0] + 1)} Hari Terpilih)
+              </span>
+            </div>
+
+            {/* Quick Presets for Daily */}
+            <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  let s = -1, e = -1;
+                  allDailyItems.forEach((item, idx) => {
+                    if (item.monthKey === 'Okt-26') {
+                      if (s === -1) s = idx;
+                      e = idx;
+                    }
+                  });
+                  if (s !== -1 && e !== -1) setDailyRange([s, e]);
+                }}
+                className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer ${
+                  allDailyItems[dailyRange[0]]?.monthKey === 'Okt-26' && allDailyItems[dailyRange[1]]?.monthKey === 'Okt-26'
+                    ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
+                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Bulan Ini: Oktober 2026"
+              >
+                Bulan Ini (Okt-26)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  let s = -1, e = -1;
+                  allDailyItems.forEach((item, idx) => {
+                    if (item.monthKey === 'Sep-26') {
+                      if (s === -1) s = idx;
+                      e = idx;
+                    }
+                  });
+                  if (s !== -1 && e !== -1) setDailyRange([s, e]);
+                }}
+                className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer ${
+                  allDailyItems[dailyRange[0]]?.monthKey === 'Sep-26' && allDailyItems[dailyRange[1]]?.monthKey === 'Sep-26'
+                    ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
+                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Bulan Lalu: September 2026"
+              >
+                Bulan Lalu (Sep-26)
+              </button>
+              <button
+                type="button"
+                onClick={() => setDailyRange([Math.max(0, allDailyItems.length - 30), allDailyItems.length - 1])}
+                className="px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                title="30 Hari Terakhir"
+              >
+                30 Hari Terakhir
+              </button>
+              <button
+                type="button"
+                onClick={() => setDailyRange([0, allDailyItems.length - 1])}
+                className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer ${
+                  dailyRange[0] === 0 && dailyRange[1] === allDailyItems.length - 1
+                    ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
+                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Tampilkan Semua Tanggal Sepanjang 2026"
+              >
+                Semua Tanggal
+              </button>
+            </div>
+          </div>
+
+          {/* Dual Handle Range Slider Track for Daily */}
+          <div className="pt-4 pb-1 px-2">
+            <div className="relative flex items-center w-full h-8 select-none">
+              {/* Base Track */}
+              <div className="absolute left-0 right-0 h-2 bg-slate-200 dark:bg-slate-800 rounded-full" />
+
+              {/* Active Highlighted Range Bar */}
+              <div
+                className="absolute h-2 bg-gradient-to-r from-emerald-500 via-[#00873D] to-teal-500 rounded-full shadow-xs pointer-events-none"
+                style={{
+                  left: `${(dailyRange[0] / Math.max(1, allDailyItems.length - 1)) * 100}%`,
+                  width: `${((dailyRange[1] - dailyRange[0]) / Math.max(1, allDailyItems.length - 1)) * 100}%`,
+                }}
+              />
+
+              {/* Tooltip Badge Handle Kiri (Start) */}
+              <div
+                className="absolute -top-4 -translate-x-1/2 pointer-events-none transition-all"
+                style={{ left: `${(dailyRange[0] / Math.max(1, allDailyItems.length - 1)) * 100}%` }}
+              >
+                <span className="px-1.5 py-0.5 text-[9.5px] font-black font-mono rounded bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-md whitespace-nowrap">
+                  {allDailyItems[dailyRange[0]]?.periodKey || ''}
+                </span>
+              </div>
+
+              {/* Tooltip Badge Handle Kanan (End) */}
+              <div
+                className="absolute -top-4 -translate-x-1/2 pointer-events-none transition-all"
+                style={{ left: `${(dailyRange[1] / Math.max(1, allDailyItems.length - 1)) * 100}%` }}
+              >
+                <span className="px-1.5 py-0.5 text-[9.5px] font-black font-mono rounded bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-md whitespace-nowrap">
+                  {allDailyItems[dailyRange[1]]?.periodKey || ''}
+                </span>
+              </div>
+
+              {/* Native Input 1 (Min) */}
+              <input
+                type="range"
+                min={0}
+                max={Math.max(1, allDailyItems.length - 1)}
+                value={dailyRange[0]}
+                onChange={(e) => {
+                  const val = Math.min(Number(e.target.value), dailyRange[1]);
+                  setDailyRange([val, dailyRange[1]]);
+                }}
+                className="range-slider-thumb absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none z-20 focus:outline-none"
+              />
+
+              {/* Native Input 2 (Max) */}
+              <input
+                type="range"
+                min={0}
+                max={Math.max(1, allDailyItems.length - 1)}
+                value={dailyRange[1]}
+                onChange={(e) => {
+                  const val = Math.max(Number(e.target.value), dailyRange[0]);
+                  setDailyRange([dailyRange[0], val]);
+                }}
+                className="range-slider-thumb absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none z-30 focus:outline-none"
+              />
+            </div>
+
+            {/* Marker Skala Bawah */}
+            <div className="flex justify-between items-center text-[9px] text-slate-500 dark:text-slate-400 font-mono mt-0.5 px-0.5 select-none">
+              <span>{allDailyItems[0]?.periodKey || 'Awal'}</span>
+              <span>{allDailyItems[Math.floor(allDailyItems.length * 0.25)]?.periodKey || ''}</span>
+              <span>{allDailyItems[Math.floor(allDailyItems.length * 0.5)]?.periodKey || ''}</span>
+              <span>{allDailyItems[Math.floor(allDailyItems.length * 0.75)]?.periodKey || ''}</span>
+              <span>{allDailyItems[allDailyItems.length - 1]?.periodKey || 'Akhir'}</span>
+            </div>
+          </div>
+
+          {/* Quick Month Jump Pills */}
+          {availableMonths.length > 0 && (
+            <div className="flex items-center gap-1 overflow-x-auto pt-2.5 mt-2 border-t border-slate-200/60 dark:border-slate-800/60">
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 shrink-0 mr-1 flex items-center gap-1">
+                <Filter className="w-2.5 h-2.5 text-emerald-600" /> Lompat ke Bulan:
+              </span>
+              {availableMonths.map((m) => {
+                const isSelectedMonth =
+                  allDailyItems[dailyRange[0]]?.monthKey === m && allDailyItems[dailyRange[1]]?.monthKey === m;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => {
+                      let s = -1, e = -1;
+                      allDailyItems.forEach((item, idx) => {
+                        if (item.monthKey === m) {
+                          if (s === -1) s = idx;
+                          e = idx;
+                        }
+                      });
+                      if (s !== -1 && e !== -1) setDailyRange([s, e]);
+                    }}
+                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold shrink-0 transition-all cursor-pointer ${
+                      isSelectedMonth
+                        ? 'bg-emerald-600 text-white shadow-2xs font-black'
+                        : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    {m}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -1071,6 +1271,150 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
         </div>
       )}
 
+      {/* Filter Rentang Periode khusus Bulanan (Dual-Handle Range Slider) */}
+      {periodMode === 'monthly' && (
+        <div className="p-3.5 mb-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/90 dark:border-slate-800 shadow-2xs transition-all">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
+                <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                Filter Rentang Bulan:
+              </span>
+              <span className="px-2.5 py-1 rounded-lg text-xs font-black font-mono bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 shadow-2xs">
+                {MONTH_NAMES_LIST[monthlyRange[0] - 1]} 2026 — {MONTH_NAMES_LIST[monthlyRange[1] - 1]} 2026
+              </span>
+              <span className="text-[10.5px] font-semibold text-slate-500 dark:text-slate-400">
+                ({monthlyRange[1] - monthlyRange[0] + 1} Bulan Terpilih)
+              </span>
+            </div>
+
+            {/* Quick Presets for Monthly */}
+            <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+              <button
+                type="button"
+                onClick={() => setMonthlyRange([1, 12])}
+                className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer ${
+                  monthlyRange[0] === 1 && monthlyRange[1] === 12
+                    ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
+                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Tampilkan 1 Tahun Penuh (Jan - Des)"
+              >
+                1 Tahun (Jan - Des)
+              </button>
+              <button
+                type="button"
+                onClick={() => setMonthlyRange([1, 10])}
+                className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer ${
+                  monthlyRange[0] === 1 && monthlyRange[1] === 10
+                    ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
+                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Year-To-Date: Januari s/d Oktober 2026"
+              >
+                YTD (Jan - Okt)
+              </button>
+              <button
+                type="button"
+                onClick={() => setMonthlyRange([1, 6])}
+                className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer ${
+                  monthlyRange[0] === 1 && monthlyRange[1] === 6
+                    ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
+                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Semester 1: Januari s/d Juni"
+              >
+                Semester 1
+              </button>
+              <button
+                type="button"
+                onClick={() => setMonthlyRange([7, 12])}
+                className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer ${
+                  monthlyRange[0] === 7 && monthlyRange[1] === 12
+                    ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
+                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Semester 2: Juli s/d Desember"
+              >
+                Semester 2
+              </button>
+            </div>
+          </div>
+
+          {/* Dual Handle Range Slider Track for Monthly */}
+          <div className="pt-4 pb-1 px-2">
+            <div className="relative flex items-center w-full h-8 select-none">
+              {/* Base Track */}
+              <div className="absolute left-0 right-0 h-2 bg-slate-200 dark:bg-slate-800 rounded-full" />
+
+              {/* Active Highlighted Range Bar */}
+              <div
+                className="absolute h-2 bg-gradient-to-r from-emerald-500 via-[#00873D] to-teal-500 rounded-full shadow-xs pointer-events-none"
+                style={{
+                  left: `${((monthlyRange[0] - 1) / (12 - 1)) * 100}%`,
+                  width: `${((monthlyRange[1] - monthlyRange[0]) / (12 - 1)) * 100}%`,
+                }}
+              />
+
+              {/* Tooltip Badge Handle Kiri (Start) */}
+              <div
+                className="absolute -top-4 -translate-x-1/2 pointer-events-none transition-all"
+                style={{ left: `${((monthlyRange[0] - 1) / (12 - 1)) * 100}%` }}
+              >
+                <span className="px-1.5 py-0.5 text-[9.5px] font-black font-mono rounded bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-md whitespace-nowrap">
+                  {MONTH_NAMES_LIST[monthlyRange[0] - 1]}
+                </span>
+              </div>
+
+              {/* Tooltip Badge Handle Kanan (End) */}
+              <div
+                className="absolute -top-4 -translate-x-1/2 pointer-events-none transition-all"
+                style={{ left: `${((monthlyRange[1] - 1) / (12 - 1)) * 100}%` }}
+              >
+                <span className="px-1.5 py-0.5 text-[9.5px] font-black font-mono rounded bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-md whitespace-nowrap">
+                  {MONTH_NAMES_LIST[monthlyRange[1] - 1]}
+                </span>
+              </div>
+
+              {/* Native Input 1 (Min) */}
+              <input
+                type="range"
+                min={1}
+                max={12}
+                value={monthlyRange[0]}
+                onChange={(e) => {
+                  const val = Math.min(Number(e.target.value), monthlyRange[1]);
+                  setMonthlyRange([val, monthlyRange[1]]);
+                }}
+                className="range-slider-thumb absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none z-20 focus:outline-none"
+              />
+
+              {/* Native Input 2 (Max) */}
+              <input
+                type="range"
+                min={1}
+                max={12}
+                value={monthlyRange[1]}
+                onChange={(e) => {
+                  const val = Math.max(Number(e.target.value), monthlyRange[0]);
+                  setMonthlyRange([monthlyRange[0], val]);
+                }}
+                className="range-slider-thumb absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none z-30 focus:outline-none"
+              />
+            </div>
+
+            {/* Marker Skala Bawah */}
+            <div className="flex justify-between items-center text-[9px] text-slate-500 dark:text-slate-400 font-mono mt-0.5 px-0.5 select-none">
+              <span>Jan</span>
+              <span>Mar</span>
+              <span>Jun</span>
+              <span>Sep</span>
+              <span>Des</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Empty State when no data matches category */}
       {activeChartData.length === 0 ? (
         <div className="py-12 px-4 text-center rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-dashed border-slate-200 dark:border-slate-800">
@@ -1093,7 +1437,7 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                 margin={{ top: 10, right: 20, left: -15, bottom: periodMode === 'daily' ? 24 : 15 }}
                 barCategoryGap={
                   periodMode === 'daily'
-                    ? selectedMonthFilter === 'ALL'
+                    ? activeChartData.length > 25
                       ? '28%'
                       : '20%'
                     : periodMode === 'weekly'
@@ -1115,7 +1459,7 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                   height={periodMode === 'daily' ? 52 : periodMode === 'weekly' && activeChartData.length > 16 ? 46 : 38}
                   angle={periodMode === 'daily' ? -45 : periodMode === 'weekly' && activeChartData.length > 16 ? -40 : -25}
                   textAnchor="end"
-                  interval={periodMode === 'daily' && selectedMonthFilter === 'ALL' ? 'preserveStartEnd' : 0}
+                  interval={periodMode === 'daily' && activeChartData.length > 31 ? 'preserveStartEnd' : 0}
                   tick={{ fill: isDark ? '#f1f5f9' : '#0f172a', fontSize: 10, fontWeight: 700 }}
                 />
                 <YAxis
@@ -1149,9 +1493,9 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                   radius={[4, 4, 0, 0]}
                   maxBarSize={
                     periodMode === 'daily'
-                      ? selectedMonthFilter === 'ALL'
-                        ? 14
-                        : 22
+                      ? activeChartData.length > 25
+                        ? 16
+                        : 24
                       : periodMode === 'weekly'
                       ? activeChartData.length <= 16
                         ? 28
@@ -1166,9 +1510,9 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                   radius={[4, 4, 0, 0]}
                   maxBarSize={
                     periodMode === 'daily'
-                      ? selectedMonthFilter === 'ALL'
-                        ? 14
-                        : 22
+                      ? activeChartData.length > 25
+                        ? 16
+                        : 24
                       : periodMode === 'weekly'
                       ? activeChartData.length <= 16
                         ? 28
