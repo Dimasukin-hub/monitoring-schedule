@@ -1154,51 +1154,8 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
       {/* Filter Rentang Periode khusus Weekly (Dual-Handle Range Slider persis sesuai referensi) */}
       {periodMode === 'weekly' && (
         <div className="p-3.5 mb-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/90 dark:border-slate-800 shadow-2xs transition-all">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
-                <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                Filter Rentang Minggu:
-              </span>
-              <span className="px-2.5 py-1 rounded-lg text-xs font-black font-mono bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 shadow-2xs">
-                Mgg {String(weeklyRange[0]).padStart(2, '0')} — Mgg {String(weeklyRange[1]).padStart(2, '0')} (2026)
-              </span>
-              <span className="text-[10.5px] font-semibold text-slate-500 dark:text-slate-400">
-                ({weeklyRange[1] - weeklyRange[0] + 1} Minggu Terpilih)
-              </span>
-            </div>
-
-            {/* Quick Presets */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                type="button"
-                onClick={() => setWeeklyRange([32, 43])}
-                className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer ${
-                  weeklyRange[0] === 32 && weeklyRange[1] === 43
-                    ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
-                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-                title="Default: 9 Minggu Realisasi Terakhir + Minggu Berjalan + 3 Minggu Rencana"
-              >
-                Default (Mgg 32 - 43)
-              </button>
-              <button
-                type="button"
-                onClick={() => setWeeklyRange([1, 52])}
-                className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer ${
-                  weeklyRange[0] === 1 && weeklyRange[1] === 52
-                    ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
-                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-                title="Tampilkan Seluruh 52 Minggu (1 Tahun Penuh)"
-              >
-                Semua Minggu (01 - 52)
-              </button>
-            </div>
-          </div>
-
           {/* Dual Handle Range Slider Track */}
-          <div className="pt-4 pb-1 px-2">
+          <div className="pt-3 pb-1 px-2">
             <div className="relative flex items-center w-full h-8 select-none">
               {/* Base Track */}
               <div className="absolute left-0 right-0 h-2 bg-slate-200 dark:bg-slate-800 rounded-full" />
@@ -1218,7 +1175,7 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                 style={{ left: `${((weeklyRange[0] - 1) / (52 - 1)) * 100}%` }}
               >
                 <span className="px-1.5 py-0.5 text-[9.5px] font-black font-mono rounded bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-md whitespace-nowrap">
-                  W{weeklyRange[0]}
+                  Mgg {weeklyRange[0]}
                 </span>
               </div>
 
@@ -1228,7 +1185,7 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                 style={{ left: `${((weeklyRange[1] - 1) / (52 - 1)) * 100}%` }}
               >
                 <span className="px-1.5 py-0.5 text-[9.5px] font-black font-mono rounded bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-md whitespace-nowrap">
-                  W{weeklyRange[1]}
+                  Mgg {weeklyRange[1]}
                 </span>
               </div>
 
@@ -1257,15 +1214,6 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                 }}
                 className="range-slider-thumb absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none z-30 focus:outline-none"
               />
-            </div>
-
-            {/* Marker Skala Bawah */}
-            <div className="flex justify-between items-center text-[9px] text-slate-500 dark:text-slate-400 font-mono mt-0.5 px-0.5 select-none">
-              <span>Mgg 01 (Jan)</span>
-              <span>Mgg 13 (Mar)</span>
-              <span>Mgg 26 (Jun)</span>
-              <span>Mgg 39 (Sep)</span>
-              <span>Mgg 52 (Des)</span>
             </div>
           </div>
         </div>
