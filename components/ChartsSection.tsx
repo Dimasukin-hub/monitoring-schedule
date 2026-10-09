@@ -26,7 +26,6 @@ import {
   BarChart3,
   Table,
   Info,
-  Filter,
 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 
@@ -596,17 +595,8 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
     return source;
   }, [chartsData, targetCategory]);
 
-  // Available unique months for Daily mode
-  const availableMonths = useMemo(() => {
-    const set = new Set<string>();
-    allDailyItems.forEach((s) => {
-      if (s.monthKey) set.add(s.monthKey);
-    });
-    return Array.from(set);
-  }, [allDailyItems]);
-
   // Sinkronisasi otomatis default range Harian ke Bulan Berjalan (Okt-26) atau bulan terakhir yang ada data
-  useEffect(() => {
+  const resetDailyToOctober = () => {
     if (allDailyItems.length > 0) {
       let start = -1;
       let end = -1;
@@ -632,6 +622,10 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
         return [targetStart, targetEnd];
       });
     }
+  };
+
+  useEffect(() => {
+    resetDailyToOctober();
   }, [allDailyItems.length, targetCategory]);
 
   if (!chartsData) {
@@ -898,7 +892,10 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
           <div className="flex items-center bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
             <button
               type="button"
-              onClick={() => setPeriodMode('daily')}
+              onClick={() => {
+                setPeriodMode('daily');
+                resetDailyToOctober();
+              }}
               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 periodMode === 'daily'
                   ? 'bg-emerald-600 text-white shadow-xs'
@@ -972,89 +969,8 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
       {/* Filter Rentang Periode khusus Harian (Dual-Handle Range Slider) */}
       {periodMode === 'daily' && allDailyItems.length > 0 && (
         <div className="p-3.5 mb-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/90 dark:border-slate-800 shadow-2xs transition-all">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
-                <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                Filter Rentang Harian:
-              </span>
-              <span className="px-2.5 py-1 rounded-lg text-xs font-black font-mono bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 shadow-2xs">
-                {allDailyItems[dailyRange[0]]?.periodKey || 'Mulai'} — {allDailyItems[dailyRange[1]]?.periodKey || 'Selesai'}
-              </span>
-              <span className="text-[10.5px] font-semibold text-slate-500 dark:text-slate-400">
-                ({Math.max(0, dailyRange[1] - dailyRange[0] + 1)} Hari Terpilih)
-              </span>
-            </div>
-
-            {/* Quick Presets for Daily */}
-            <div className="flex items-center gap-1.5 flex-wrap shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  let s = -1, e = -1;
-                  allDailyItems.forEach((item, idx) => {
-                    if (item.monthKey === 'Okt-26') {
-                      if (s === -1) s = idx;
-                      e = idx;
-                    }
-                  });
-                  if (s !== -1 && e !== -1) setDailyRange([s, e]);
-                }}
-                className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer ${
-                  allDailyItems[dailyRange[0]]?.monthKey === 'Okt-26' && allDailyItems[dailyRange[1]]?.monthKey === 'Okt-26'
-                    ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
-                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-                title="Bulan Ini: Oktober 2026"
-              >
-                Bulan Ini (Okt-26)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  let s = -1, e = -1;
-                  allDailyItems.forEach((item, idx) => {
-                    if (item.monthKey === 'Sep-26') {
-                      if (s === -1) s = idx;
-                      e = idx;
-                    }
-                  });
-                  if (s !== -1 && e !== -1) setDailyRange([s, e]);
-                }}
-                className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer ${
-                  allDailyItems[dailyRange[0]]?.monthKey === 'Sep-26' && allDailyItems[dailyRange[1]]?.monthKey === 'Sep-26'
-                    ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
-                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-                title="Bulan Lalu: September 2026"
-              >
-                Bulan Lalu (Sep-26)
-              </button>
-              <button
-                type="button"
-                onClick={() => setDailyRange([Math.max(0, allDailyItems.length - 30), allDailyItems.length - 1])}
-                className="px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
-                title="30 Hari Terakhir"
-              >
-                30 Hari Terakhir
-              </button>
-              <button
-                type="button"
-                onClick={() => setDailyRange([0, allDailyItems.length - 1])}
-                className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer ${
-                  dailyRange[0] === 0 && dailyRange[1] === allDailyItems.length - 1
-                    ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
-                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-                title="Tampilkan Semua Tanggal Sepanjang 2026"
-              >
-                Semua Tanggal
-              </button>
-            </div>
-          </div>
-
           {/* Dual Handle Range Slider Track for Daily */}
-          <div className="pt-4 pb-1 px-2">
+          <div className="pt-3 pb-1 px-2">
             <div className="relative flex items-center w-full h-8 select-none">
               {/* Base Track */}
               <div className="absolute left-0 right-0 h-2 bg-slate-200 dark:bg-slate-800 rounded-full" />
@@ -1127,54 +1043,7 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                 }`}
               />
             </div>
-
-            {/* Marker Skala Bawah */}
-            <div className="flex justify-between items-center text-[9px] text-slate-500 dark:text-slate-400 font-mono mt-0.5 px-0.5 select-none">
-              <span>{allDailyItems[0]?.periodKey || 'Awal'}</span>
-              <span>{allDailyItems[Math.floor(allDailyItems.length * 0.25)]?.periodKey || ''}</span>
-              <span>{allDailyItems[Math.floor(allDailyItems.length * 0.5)]?.periodKey || ''}</span>
-              <span>{allDailyItems[Math.floor(allDailyItems.length * 0.75)]?.periodKey || ''}</span>
-              <span>{allDailyItems[allDailyItems.length - 1]?.periodKey || 'Akhir'}</span>
-            </div>
           </div>
-
-          {/* Quick Month Jump Pills */}
-          {availableMonths.length > 0 && (
-            <div className="flex items-center gap-1 overflow-x-auto pt-2.5 mt-2 border-t border-slate-200/60 dark:border-slate-800/60">
-              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 shrink-0 mr-1 flex items-center gap-1">
-                <Filter className="w-2.5 h-2.5 text-emerald-600" /> Lompat ke Bulan:
-              </span>
-              {availableMonths.map((m) => {
-                const isSelectedMonth =
-                  allDailyItems[dailyRange[0]]?.monthKey === m && allDailyItems[dailyRange[1]]?.monthKey === m;
-                return (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => {
-                      let s = -1, e = -1;
-                      allDailyItems.forEach((item, idx) => {
-                        if (item.monthKey === m) {
-                          if (s === -1) s = idx;
-                          e = idx;
-                        }
-                      });
-                      if (s !== -1 && e !== -1) {
-                        setDailyRange((prev) => (prev[0] === s && prev[1] === e ? prev : [s, e]));
-                      }
-                    }}
-                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold shrink-0 transition-all cursor-pointer ${
-                      isSelectedMonth
-                        ? 'bg-emerald-600 text-white shadow-2xs font-black'
-                        : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    {m}
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </div>
       )}
 
