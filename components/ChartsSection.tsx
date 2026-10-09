@@ -1314,30 +1314,6 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
               >
                 YTD (Jan - Okt)
               </button>
-              <button
-                type="button"
-                onClick={() => setMonthlyRange([1, 6])}
-                className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer ${
-                  monthlyRange[0] === 1 && monthlyRange[1] === 6
-                    ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
-                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-                title="Semester 1: Januari s/d Juni"
-              >
-                Semester 1
-              </button>
-              <button
-                type="button"
-                onClick={() => setMonthlyRange([7, 12])}
-                className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer ${
-                  monthlyRange[0] === 7 && monthlyRange[1] === 12
-                    ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
-                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-                title="Semester 2: Juli s/d Desember"
-              >
-                Semester 2
-              </button>
             </div>
           </div>
 
