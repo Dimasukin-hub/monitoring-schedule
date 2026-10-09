@@ -357,12 +357,10 @@ export async function GET(request: Request) {
         weeklyBajakMap[w].realisasi += luas;
       }
 
-      // Siap Tanam
-      const snAct = l.activities.find((a) => a.code === '22.SIAP_TANAM');
+      // Siap Tanam (murni Jalan & Saluran: Kolom AS untuk Rencana, Kolom CY untuk Realisasi)
       const jsAct = l.activities.find((a) => a.code === '22.JALAN_SAL');
-      const rdAct = l.activities.find((a) => a.code === '21.RIDGER');
-      const rSn = parseDateToIso(snAct?.rencanaDate || jsAct?.rencanaDate || rdAct?.rencanaDate);
-      const aSn = parseDateToIso(snAct?.realisasiDate || jsAct?.realisasiDate);
+      const rSn = parseDateToIso(jsAct?.rencanaDate);
+      const aSn = parseDateToIso(jsAct?.realisasiDate);
       if (rSn && rSn.startsWith(yearPrefix)) {
         if (!dailySiapTanamMap[rSn]) dailySiapTanamMap[rSn] = { rencana: 0, realisasi: 0 };
         dailySiapTanamMap[rSn].rencana += luas;
