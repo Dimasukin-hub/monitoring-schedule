@@ -26,6 +26,8 @@ import {
   BarChart3,
   Table,
   Info,
+  RotateCcw,
+  Filter,
 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 
@@ -580,6 +582,12 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
   const [monthlyRange, setMonthlyRange] = useState<[number, number]>([1, 12]);
   // Default daily: Range index yang disinkronkan ke bulan berjalan (Okt-26)
   const [dailyRange, setDailyRange] = useState<[number, number]>([0, 0]);
+  // Filter visibilitas bar: 'both' (kedua bar), 'rencana' (hanya rencana), 'realisasi' (hanya realisasi)
+  const [barVisibility, setBarVisibility] = useState<'both' | 'rencana' | 'realisasi'>('both');
+
+  const handleBarToggle = (type: 'rencana' | 'realisasi') => {
+    setBarVisibility((prev) => (prev === type ? 'both' : type));
+  };
 
   // Defer range values for heavy chart data mapping and SVG rendering so slider thumb drags smoothly without UI locks
   const deferredWeeklyRange = useDeferredValue(weeklyRange);
@@ -757,7 +765,7 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
       const capaianPct = data?.capaianPct ?? null;
 
       return (
-        <div className="p-3.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl text-xs min-w-[210px] backdrop-blur-xl">
+        <div className="p-3.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl text-xs min-w-[210px] backdrop-blur-xl pointer-events-none select-none">
           <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2 mb-2.5">
             <span className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 font-mono text-sm">
               <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> {label}
@@ -927,23 +935,95 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
               Bulanan
             </button>
           </div>
+
+          {/* 3. Bar Filter Toggle: Kedua Bar, Rencana Saja, Realisasi Saja */}
+          <div className="flex items-center bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => setBarVisibility('both')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                barVisibility === 'both'
+                  ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 shadow-xs'
+                  : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-200'
+              }`}
+              title="Tampilkan kedua bar grafik (Rencana & Realisasi)"
+            >
+              Kedua Bar
+            </button>
+            <button
+              type="button"
+              onClick={() => setBarVisibility('rencana')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                barVisibility === 'rencana'
+                  ? 'bg-sky-500 text-white shadow-xs'
+                  : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-200'
+              }`}
+              title="Hanya tampilkan bar grafik Rencana"
+            >
+              <span className="w-2 h-2 rounded-full bg-[#009EE2]" />
+              Rencana
+            </button>
+            <button
+              type="button"
+              onClick={() => setBarVisibility('realisasi')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                barVisibility === 'realisasi'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-200'
+              }`}
+              title="Hanya tampilkan bar grafik Realisasi"
+            >
+              <span className="w-2 h-2 rounded-full bg-[#00873D]" />
+              Realisasi
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Mini Executive Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3.5">
-        <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800">
-          <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-            Total Realisasi
-          </span>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <div
+          onClick={() => handleBarToggle('realisasi')}
+          className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
+            barVisibility === 'realisasi'
+              ? 'bg-emerald-500/15 border-emerald-500 ring-2 ring-emerald-500/30'
+              : 'bg-slate-50 dark:bg-slate-950/60 border-slate-200/80 dark:border-slate-800 hover:border-emerald-500/50'
+          }`}
+          title="Klik untuk memilih/menampilkan bar Realisasi saja"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+              Total Realisasi
+            </span>
+            {barVisibility === 'realisasi' && (
+              <span className="text-[9px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-500/20 px-1.5 py-0.2 rounded-full">
+                Terpilih
+              </span>
+            )}
+          </div>
           <span className="text-sm font-extrabold font-mono text-emerald-600 dark:text-emerald-400">
             {totalRealisasi.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Ha
           </span>
         </div>
-        <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800">
-          <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-            Total Rencana
-          </span>
+        <div
+          onClick={() => handleBarToggle('rencana')}
+          className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
+            barVisibility === 'rencana'
+              ? 'bg-sky-500/15 border-sky-500 ring-2 ring-sky-500/30'
+              : 'bg-slate-50 dark:bg-slate-950/60 border-slate-200/80 dark:border-slate-800 hover:border-sky-500/50'
+          }`}
+          title="Klik untuk memilih/menampilkan bar Rencana saja"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+              Total Rencana
+            </span>
+            {barVisibility === 'rencana' && (
+              <span className="text-[9px] font-extrabold text-sky-700 dark:text-sky-300 bg-sky-500/20 px-1.5 py-0.2 rounded-full">
+                Terpilih
+              </span>
+            )}
+          </div>
           <span className="text-sm font-extrabold font-mono text-sky-600 dark:text-cyan-400">
             {totalRencana.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Ha
           </span>
@@ -965,6 +1045,34 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
           </span>
         </div>
       </div>
+
+      {/* Active Filter Notice */}
+      {barVisibility !== 'both' && (
+        <div className="flex items-center justify-between px-3.5 py-2 mb-3 rounded-xl bg-slate-100 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-xs shadow-2xs">
+          <div className="flex items-center gap-2">
+            <span
+              className="w-2.5 h-2.5 rounded-full shrink-0"
+              style={{ backgroundColor: barVisibility === 'rencana' ? '#009EE2' : '#00873D' }}
+            />
+            <span className="font-semibold text-slate-800 dark:text-slate-200">
+              Menampilkan:{' '}
+              <strong className={barVisibility === 'rencana' ? 'text-sky-600 dark:text-sky-400' : 'text-emerald-600 dark:text-emerald-400'}>
+                {barVisibility === 'rencana' ? 'Bar Grafik Rencana Saja' : 'Bar Grafik Realisasi Saja'}
+              </strong>
+            </span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 hidden md:inline">
+              (Klik bar langsung pada grafik atau klik tombol di bawah untuk menampilkan kedua bar)
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setBarVisibility('both')}
+            className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer flex items-center gap-1 shrink-0 ml-2"
+          >
+            <RotateCcw className="w-3 h-3" /> Tampilkan Kedua Bar
+          </button>
+        </div>
+      )}
 
       {/* Filter Rentang Periode khusus Harian (Dual-Handle Range Slider) */}
       {periodMode === 'daily' && allDailyItems.length > 0 && (
@@ -1262,56 +1370,131 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                 />
                 <Tooltip
                   content={<CustomRencanaRealisasiTooltip />}
-                  cursor={{ fill: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)' }}
+                  cursor={{
+                    fill: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)',
+                    pointerEvents: 'none',
+                  }}
                 />
                 <Legend
                   verticalAlign="bottom"
-                  wrapperStyle={{
-                    fontSize: '11px',
-                    paddingTop: '20px',
-                    paddingBottom: '2px',
-                    bottom: 0,
+                  content={() => {
+                    return (
+                      <div className="flex flex-wrap items-center justify-center gap-3 pt-5 select-none">
+                        <button
+                          type="button"
+                          onClick={() => handleBarToggle('rencana')}
+                          className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all cursor-pointer active:scale-95 ${
+                            barVisibility === 'rencana'
+                              ? 'bg-sky-500/20 text-sky-950 dark:text-sky-300 border-sky-500 ring-2 ring-sky-500/30 shadow-xs'
+                              : barVisibility === 'both'
+                              ? 'bg-sky-50 dark:bg-sky-950/30 text-sky-900 dark:text-sky-300 border-sky-500/30 hover:bg-sky-500/15'
+                              : 'opacity-40 line-through bg-slate-100 dark:bg-slate-800 text-slate-500 border-dashed border-slate-300 dark:border-slate-700 hover:opacity-75'
+                          }`}
+                          title={
+                            barVisibility === 'rencana'
+                              ? 'Klik untuk menampilkan kembali kedua bar grafik'
+                              : 'Klik untuk hanya menampilkan bar Rencana'
+                          }
+                        >
+                          <span className="w-3 h-3 rounded-xs bg-[#009EE2] shrink-0" />
+                          <span>Rencana (Ha)</span>
+                          {barVisibility === 'rencana' && (
+                            <span className="text-[10px] font-black bg-sky-500 text-white px-1.5 py-0.2 rounded-full">
+                              Aktif
+                            </span>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleBarToggle('realisasi')}
+                          className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all cursor-pointer active:scale-95 ${
+                            barVisibility === 'realisasi'
+                              ? 'bg-emerald-500/20 text-emerald-950 dark:text-emerald-300 border-emerald-500 ring-2 ring-emerald-500/30 shadow-xs'
+                              : barVisibility === 'both'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/15'
+                              : 'opacity-40 line-through bg-slate-100 dark:bg-slate-800 text-slate-500 border-dashed border-slate-300 dark:border-slate-700 hover:opacity-75'
+                          }`}
+                          title={
+                            barVisibility === 'realisasi'
+                              ? 'Klik untuk menampilkan kembali kedua bar grafik'
+                              : 'Klik untuk hanya menampilkan bar Realisasi'
+                          }
+                        >
+                          <span className="w-3 h-3 rounded-xs bg-[#00873D] shrink-0" />
+                          <span>Realisasi (Ha)</span>
+                          {barVisibility === 'realisasi' && (
+                            <span className="text-[10px] font-black bg-emerald-600 text-white px-1.5 py-0.2 rounded-full">
+                              Aktif
+                            </span>
+                          )}
+                        </button>
+
+                        {barVisibility !== 'both' && (
+                          <button
+                            type="button"
+                            onClick={() => setBarVisibility('both')}
+                            className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer active:scale-95"
+                            title="Tampilkan kedua grafik kembali"
+                          >
+                            <RotateCcw className="w-3 h-3 text-slate-500" />
+                            <span>Tampilkan Kedua Bar</span>
+                          </button>
+                        )}
+                      </div>
+                    );
                   }}
-                  formatter={(val) => (
-                    <span className="text-slate-900 dark:text-slate-100 font-bold text-xs">
-                      {val}
-                    </span>
-                  )}
                 />
-                <Bar
-                  dataKey="rencana"
-                  name="Rencana (Ha)"
-                  fill="#009EE2"
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={
-                    periodMode === 'daily'
-                      ? activeChartData.length > 25
-                        ? 16
-                        : 24
-                      : periodMode === 'weekly'
-                      ? activeChartData.length <= 16
-                        ? 28
-                        : 16
-                      : 28
-                  }
-                />
-                <Bar
-                  dataKey="realisasi"
-                  name="Realisasi (Ha)"
-                  fill="#00873D"
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={
-                    periodMode === 'daily'
-                      ? activeChartData.length > 25
-                        ? 16
-                        : 24
-                      : periodMode === 'weekly'
-                      ? activeChartData.length <= 16
-                        ? 28
-                        : 16
-                      : 28
-                  }
-                />
+                {(barVisibility === 'both' || barVisibility === 'rencana') && (
+                  <Bar
+                    dataKey="rencana"
+                    name="Rencana (Ha)"
+                    fill="#009EE2"
+                    radius={[4, 4, 0, 0]}
+                    cursor="pointer"
+                    className="cursor-pointer transition-opacity duration-150 hover:opacity-80"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => handleBarToggle('rencana')}
+                    maxBarSize={
+                      barVisibility === 'rencana'
+                        ? 32
+                        : periodMode === 'daily'
+                        ? activeChartData.length > 25
+                          ? 16
+                          : 24
+                        : periodMode === 'weekly'
+                        ? activeChartData.length <= 16
+                          ? 28
+                          : 16
+                        : 28
+                    }
+                  />
+                )}
+                {(barVisibility === 'both' || barVisibility === 'realisasi') && (
+                  <Bar
+                    dataKey="realisasi"
+                    name="Realisasi (Ha)"
+                    fill="#00873D"
+                    radius={[4, 4, 0, 0]}
+                    cursor="pointer"
+                    className="cursor-pointer transition-opacity duration-150 hover:opacity-80"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => handleBarToggle('realisasi')}
+                    maxBarSize={
+                      barVisibility === 'realisasi'
+                        ? 32
+                        : periodMode === 'daily'
+                        ? activeChartData.length > 25
+                          ? 16
+                          : 24
+                        : periodMode === 'weekly'
+                        ? activeChartData.length <= 16
+                          ? 28
+                          : 16
+                        : 28
+                    }
+                  />
+                )}
               </BarChart>
             </ResponsiveContainer>
           </div>
