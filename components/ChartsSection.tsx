@@ -573,7 +573,9 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
   const isDark = theme === 'dark';
   const [targetCategory, setTargetCategory] = useState<'BONGKAR' | 'BAJAK' | 'SIAP_TANAM'>('BONGKAR');
   const [periodMode, setPeriodMode] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
-  const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>('ALL');
+  const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>('Okt-26');
+  // Default weekly: 9 minggu realisasi terakhir (Mgg 32) s/d minggu saat ini (Mgg 40) + 3 minggu forecast (Mgg 43)
+  const [weeklyRange, setWeeklyRange] = useState<[number, number]>([32, 43]);
 
   // Available unique months for Daily mode (Must be called unconditionally before any early returns)
   const availableMonths = useMemo(() => {
@@ -605,9 +607,34 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
       rawDataList = rawDataList.filter((item: any) => item.monthKey === selectedMonthFilter);
     }
   } else if (periodMode === 'weekly') {
-    if (targetCategory === 'BONGKAR') rawDataList = chartsData?.weeklyBongkar || [];
-    else if (targetCategory === 'BAJAK') rawDataList = chartsData?.weeklyBajak || [];
-    else rawDataList = chartsData?.weeklySiapTanam || [];
+    let sourceList: any[] = [];
+    if (targetCategory === 'BONGKAR') sourceList = chartsData?.weeklyBongkar || [];
+    else if (targetCategory === 'BAJAK') sourceList = chartsData?.weeklyBajak || [];
+    else sourceList = chartsData?.weeklySiapTanam || [];
+
+    // Map data minggu yang sudah ada
+    const weekMap = new Map<number, any>();
+    sourceList.forEach((item: any) => {
+      const num = parseInt(String(item.periodKey || item.rawWeek || '').replace(/\D/g, ''), 10);
+      if (!isNaN(num)) weekMap.set(num, item);
+    });
+
+    // Susun secara terurut dan berkesinambungan dari startWeek ke endWeek
+    rawDataList = [];
+    for (let w = weeklyRange[0]; w <= weeklyRange[1]; w++) {
+      if (weekMap.has(w)) {
+        rawDataList.push(weekMap.get(w));
+      } else {
+        const key = `Mgg ${String(w).padStart(2, '0')}`;
+        rawDataList.push({
+          periodKey: key,
+          rawWeek: key,
+          rencana: 0,
+          realisasi: 0,
+          deviasi: 0,
+        });
+      }
+    }
   } else {
     // monthly
     if (targetCategory === 'BONGKAR') rawDataList = chartsData?.monthlyBongkar || [];
@@ -646,9 +673,11 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
     periodMode === 'daily'
       ? selectedMonthFilter === 'ALL'
         ? Math.max(activeChartData.length * 36, 2200)
-        : Math.max(activeChartData.length * 50, 1400)
+        : Math.max(activeChartData.length * 44, 850)
       : periodMode === 'weekly'
-      ? Math.max(activeChartData.length * 52, 2400)
+      ? activeChartData.length <= 16
+        ? undefined // 12-16 minggu pas dan memenuhi kartu secara proporsional tanpa scroll berlebih
+        : Math.max(activeChartData.length * 48, 1200)
       : undefined;
 
   const getCategoryTitle = () => {
@@ -665,11 +694,11 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
   const getPeriodLabel = () => {
     switch (periodMode) {
       case 'daily':
-        return 'Harian (Daily)';
+        return selectedMonthFilter === 'ALL' ? 'Harian (Semua Bulan)' : `Harian (${selectedMonthFilter})`;
       case 'weekly':
-        return 'Mingguan (Weekly)';
+        return `Mingguan (Mgg ${String(weeklyRange[0]).padStart(2, '0')} - Mgg ${String(weeklyRange[1]).padStart(2, '0')})`;
       case 'monthly':
-        return 'Bulanan (Monthly)';
+        return 'Bulanan (Jan - Des 2026)';
     }
   };
 
@@ -922,6 +951,126 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
         </div>
       )}
 
+      {/* Filter Rentang Periode khusus Weekly (Dual-Handle Range Slider persis sesuai referensi) */}
+      {periodMode === 'weekly' && (
+        <div className="p-3.5 mb-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/90 dark:border-slate-800 shadow-2xs transition-all">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
+                <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                Filter Rentang Minggu:
+              </span>
+              <span className="px-2.5 py-1 rounded-lg text-xs font-black font-mono bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 shadow-2xs">
+                Mgg {String(weeklyRange[0]).padStart(2, '0')} — Mgg {String(weeklyRange[1]).padStart(2, '0')} (2026)
+              </span>
+              <span className="text-[10.5px] font-semibold text-slate-500 dark:text-slate-400">
+                ({weeklyRange[1] - weeklyRange[0] + 1} Minggu Terpilih)
+              </span>
+            </div>
+
+            {/* Quick Presets */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setWeeklyRange([32, 43])}
+                className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer ${
+                  weeklyRange[0] === 32 && weeklyRange[1] === 43
+                    ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
+                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Default: 9 Minggu Realisasi Terakhir + Minggu Berjalan + 3 Minggu Rencana"
+              >
+                Default (Mgg 32 - 43)
+              </button>
+              <button
+                type="button"
+                onClick={() => setWeeklyRange([1, 52])}
+                className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer ${
+                  weeklyRange[0] === 1 && weeklyRange[1] === 52
+                    ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
+                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Tampilkan Seluruh 52 Minggu (1 Tahun Penuh)"
+              >
+                Semua Minggu (01 - 52)
+              </button>
+            </div>
+          </div>
+
+          {/* Dual Handle Range Slider Track */}
+          <div className="pt-4 pb-1 px-2">
+            <div className="relative flex items-center w-full h-8 select-none">
+              {/* Base Track */}
+              <div className="absolute left-0 right-0 h-2 bg-slate-200 dark:bg-slate-800 rounded-full" />
+
+              {/* Active Highlighted Range Bar */}
+              <div
+                className="absolute h-2 bg-gradient-to-r from-emerald-500 via-[#00873D] to-teal-500 rounded-full shadow-xs pointer-events-none"
+                style={{
+                  left: `${((weeklyRange[0] - 1) / (52 - 1)) * 100}%`,
+                  width: `${((weeklyRange[1] - weeklyRange[0]) / (52 - 1)) * 100}%`,
+                }}
+              />
+
+              {/* Tooltip Badge Handle Kiri (Start) */}
+              <div
+                className="absolute -top-4 -translate-x-1/2 pointer-events-none transition-all"
+                style={{ left: `${((weeklyRange[0] - 1) / (52 - 1)) * 100}%` }}
+              >
+                <span className="px-1.5 py-0.5 text-[9.5px] font-black font-mono rounded bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-md whitespace-nowrap">
+                  W{weeklyRange[0]}
+                </span>
+              </div>
+
+              {/* Tooltip Badge Handle Kanan (End) */}
+              <div
+                className="absolute -top-4 -translate-x-1/2 pointer-events-none transition-all"
+                style={{ left: `${((weeklyRange[1] - 1) / (52 - 1)) * 100}%` }}
+              >
+                <span className="px-1.5 py-0.5 text-[9.5px] font-black font-mono rounded bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-md whitespace-nowrap">
+                  W{weeklyRange[1]}
+                </span>
+              </div>
+
+              {/* Native Input 1 (Min) */}
+              <input
+                type="range"
+                min={1}
+                max={52}
+                value={weeklyRange[0]}
+                onChange={(e) => {
+                  const val = Math.min(Number(e.target.value), weeklyRange[1] - 1);
+                  setWeeklyRange([val, weeklyRange[1]]);
+                }}
+                className="range-slider-thumb absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none z-20 focus:outline-none"
+              />
+
+              {/* Native Input 2 (Max) */}
+              <input
+                type="range"
+                min={1}
+                max={52}
+                value={weeklyRange[1]}
+                onChange={(e) => {
+                  const val = Math.max(Number(e.target.value), weeklyRange[0] + 1);
+                  setWeeklyRange([weeklyRange[0], val]);
+                }}
+                className="range-slider-thumb absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none z-30 focus:outline-none"
+              />
+            </div>
+
+            {/* Marker Skala Bawah */}
+            <div className="flex justify-between items-center text-[9px] text-slate-500 dark:text-slate-400 font-mono mt-0.5 px-0.5 select-none">
+              <span>Mgg 01 (Jan)</span>
+              <span>Mgg 13 (Mar)</span>
+              <span>Mgg 26 (Jun)</span>
+              <span>Mgg 39 (Sep)</span>
+              <span>Mgg 52 (Des)</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Empty State when no data matches category */}
       {activeChartData.length === 0 ? (
         <div className="py-12 px-4 text-center rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-dashed border-slate-200 dark:border-slate-800">
@@ -942,7 +1091,17 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
               <BarChart
                 data={activeChartData}
                 margin={{ top: 10, right: 20, left: -15, bottom: periodMode === 'daily' ? 24 : 15 }}
-                barCategoryGap={periodMode === 'daily' ? '28%' : periodMode === 'weekly' ? '28%' : '15%'}
+                barCategoryGap={
+                  periodMode === 'daily'
+                    ? selectedMonthFilter === 'ALL'
+                      ? '28%'
+                      : '20%'
+                    : periodMode === 'weekly'
+                    ? activeChartData.length <= 16
+                      ? '22%'
+                      : '28%'
+                    : '15%'
+                }
                 barGap={4}
                 className="outline-none focus:outline-none"
                 style={{ outline: 'none' }}
@@ -953,8 +1112,8 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                   stroke={isDark ? '#475569' : '#cbd5e1'}
                   fontSize={10}
                   tickLine={false}
-                  height={periodMode === 'daily' ? 52 : 44}
-                  angle={periodMode === 'daily' ? -45 : periodMode === 'weekly' ? -40 : -30}
+                  height={periodMode === 'daily' ? 52 : periodMode === 'weekly' && activeChartData.length > 16 ? 46 : 38}
+                  angle={periodMode === 'daily' ? -45 : periodMode === 'weekly' && activeChartData.length > 16 ? -40 : -25}
                   textAnchor="end"
                   interval={periodMode === 'daily' && selectedMonthFilter === 'ALL' ? 'preserveStartEnd' : 0}
                   tick={{ fill: isDark ? '#f1f5f9' : '#0f172a', fontSize: 10, fontWeight: 700 }}
@@ -988,14 +1147,34 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                   name="Rencana (Ha)"
                   fill="#009EE2"
                   radius={[4, 4, 0, 0]}
-                  maxBarSize={periodMode === 'daily' ? 14 : periodMode === 'weekly' ? 16 : 28}
+                  maxBarSize={
+                    periodMode === 'daily'
+                      ? selectedMonthFilter === 'ALL'
+                        ? 14
+                        : 22
+                      : periodMode === 'weekly'
+                      ? activeChartData.length <= 16
+                        ? 28
+                        : 16
+                      : 28
+                  }
                 />
                 <Bar
                   dataKey="realisasi"
                   name="Realisasi (Ha)"
                   fill="#00873D"
                   radius={[4, 4, 0, 0]}
-                  maxBarSize={periodMode === 'daily' ? 14 : periodMode === 'weekly' ? 16 : 28}
+                  maxBarSize={
+                    periodMode === 'daily'
+                      ? selectedMonthFilter === 'ALL'
+                        ? 14
+                        : 22
+                      : periodMode === 'weekly'
+                      ? activeChartData.length <= 16
+                        ? 28
+                        : 16
+                      : 28
+                  }
                 />
               </BarChart>
             </ResponsiveContainer>
