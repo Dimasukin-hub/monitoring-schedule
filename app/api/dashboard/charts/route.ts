@@ -137,6 +137,7 @@ export async function GET(request: Request) {
         realBajak: true,
         realMulaiTanam: true,
         realSelesaiTanam: true,
+        aplikasiDetails: true,
         activities: {
           select: { code: true, status: true, rencanaDate: true, realisasiDate: true },
         },
@@ -309,6 +310,80 @@ export async function GET(request: Request) {
 
     const yearPrefix = yearParam !== 'ALL' ? String(targetYear) : '2026';
 
+    const BONGKAR_CODES = [
+      '01.CHOPPER',
+      '02.CHOPPER_LU',
+      '03.RH1',
+      '04.CUTTING_BANANA',
+      '05.DOLOMIT',
+      '06.DP1',
+      '07.DP_CROSS',
+      '08.DP2',
+      '09.BELERANG',
+      '10.KOMPOS',
+    ];
+
+    const BAJAK_CODES = [
+      '11.BAJAK_AWAL',
+      '17.SUBSOILER',
+      '18.FINISHING_HARROW',
+      '19.FINISHING_ROTARY',
+      '20.ROTARY_FH2',
+      '21.RIDGER',
+    ];
+
+    const BAJAK_DETAILS_RENC = [
+      'bajakAwalMb5Btr',
+      'bajakAwalMb25',
+      'bajakAwalMph',
+      'bajakAwalNardi',
+      'hrEksMb',
+      'rgKons',
+      'tnmKons',
+      'tutupParit',
+      'gypsum',
+      'komFaba',
+      'freeLand',
+      'bedder',
+      'fhHarrow',
+      'subsoilerSs1',
+      'subsoilerSs2',
+      'finishingFhkRent',
+      'finishingRotaryFh1',
+      'finishingRotaryFh2',
+      'ridger',
+    ];
+
+    const BAJAK_DETAILS_REAL = [
+      'realBajakAwalMb5Btr',
+      'realBajakAwalMb25',
+      'realBajakAwalHoward',
+      'realBajakAwalNardi',
+      'realHrEksMb',
+      'realExcaStdAwal',
+      'realExcaStdAkhir',
+      'realTutupParit',
+      'realGypsum',
+      'realKompos2',
+      'realFreeLand',
+      'realBedder',
+      'realFhHarrow',
+      'realSubsoilerSs1',
+      'realFinishingFhkRent',
+      'realFinishingRotaryFh1',
+      'realRotaryFh2',
+      'realRidger',
+    ];
+
+    const getEarliestDate = (dates: (string | null | undefined)[]): string | null => {
+      const isos = dates
+        .map((d) => parseDateToIso(d))
+        .filter((d): d is string => Boolean(d));
+      if (isos.length === 0) return null;
+      isos.sort();
+      return isos[0];
+    };
+
     const dailyBongkarMap: Record<string, { rencana: number; realisasi: number }> = {};
     const weeklyBongkarMap: Record<string, { rencana: number; realisasi: number }> = {};
 
@@ -320,10 +395,13 @@ export async function GET(request: Request) {
 
     for (const l of lands) {
       const luas = Number(l.luasNetto) || 0;
+      const details = (l.aplikasiDetails as Record<string, string>) || {};
 
-      // Bongkar
-      const rBkr = parseDateToIso(l.rencBkr);
-      const aBkr = parseDateToIso(l.realBkr);
+      // Bongkar (Chopper s/d Kompos: Kolom N s/d W untuk Rencana, Kolom BW s/d CF untuk Realisasi)
+      const bkrRencDates = l.activities.filter((a) => BONGKAR_CODES.includes(a.code)).map((a) => a.rencanaDate);
+      const bkrRealDates = l.activities.filter((a) => BONGKAR_CODES.includes(a.code)).map((a) => a.realisasiDate);
+      const rBkr = getEarliestDate(bkrRencDates) || parseDateToIso(l.rencBkr);
+      const aBkr = getEarliestDate(bkrRealDates) || parseDateToIso(l.realBkr);
       if (rBkr && rBkr.startsWith(yearPrefix)) {
         if (!dailyBongkarMap[rBkr]) dailyBongkarMap[rBkr] = { rencana: 0, realisasi: 0 };
         dailyBongkarMap[rBkr].rencana += luas;
@@ -339,9 +417,17 @@ export async function GET(request: Request) {
         weeklyBongkarMap[w].realisasi += luas;
       }
 
-      // Bajak
-      const rBjk = parseDateToIso(l.rencBajak);
-      const aBjk = parseDateToIso(l.realBajak);
+      // Bajak (MB 5 BTR s/d Ridger: Kolom Z s/d AR untuk Rencana, Kolom CG s/d CX untuk Realisasi)
+      const bjkRencDates = [
+        ...l.activities.filter((a) => BAJAK_CODES.includes(a.code)).map((a) => a.rencanaDate),
+        ...BAJAK_DETAILS_RENC.map((k) => details[k]),
+      ];
+      const bjkRealDates = [
+        ...l.activities.filter((a) => BAJAK_CODES.includes(a.code)).map((a) => a.realisasiDate),
+        ...BAJAK_DETAILS_REAL.map((k) => details[k]),
+      ];
+      const rBjk = getEarliestDate(bjkRencDates) || parseDateToIso(l.rencBajak);
+      const aBjk = getEarliestDate(bjkRealDates) || parseDateToIso(l.realBajak);
       if (rBjk && rBjk.startsWith(yearPrefix)) {
         if (!dailyBajakMap[rBjk]) dailyBajakMap[rBjk] = { rencana: 0, realisasi: 0 };
         dailyBajakMap[rBjk].rencana += luas;

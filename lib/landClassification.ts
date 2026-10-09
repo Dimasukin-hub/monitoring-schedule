@@ -49,16 +49,14 @@ export function getLandStokCategory(land: LandLike): StokCategory {
     return 'PROSES';
   }
 
-  // 3. SN: diambil datanya dari jalan & sal dan siap tanam
+  // 3. SN: murni diambil datanya dari jalan & sal (22.JALAN_SAL)
   if (
-    app.includes('22.Siap Tanam') ||
-    appLower.includes('siap tanam') ||
     app.includes('22.JALAN & SAL') ||
     appLower.includes('jalan & sal') ||
     appLower.includes('jalan dan sal') ||
     land.activities?.some(
       (a) =>
-        (a.code === '22.SIAP_TANAM' || a.code === '22.JALAN_SAL') &&
+        a.code === '22.JALAN_SAL' &&
         a.realisasiDate &&
         a.realisasiDate !== '-' &&
         a.realisasiDate !== '0'
