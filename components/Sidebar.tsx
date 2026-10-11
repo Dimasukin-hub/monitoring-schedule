@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import {
   LayoutDashboard,
-  MapPin,
   Boxes,
   Tractor,
   Sprout,
@@ -47,13 +46,6 @@ export default function Sidebar({
       icon: LayoutDashboard,
       desc: 'Ringkasan KPI & Visualisasi',
       colorTheme: 'green',
-    },
-    {
-      id: 'lahan',
-      label: 'Data Lahan',
-      icon: MapPin,
-      desc: 'Daftar & Detail Seluruh Lahan',
-      colorTheme: 'blue',
     },
     {
       id: 'stok',

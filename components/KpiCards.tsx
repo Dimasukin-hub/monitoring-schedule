@@ -246,7 +246,7 @@ export default function KpiCards({
   return (
     <div className="space-y-4">
       {/* 1. EXECUTIVE SUMMARY SECTION (Urutan 3 Card: Stok Bongkar, Stok Bajak, Stok SN) */}
-      <div className="relative overflow-visible rounded-2xl bg-gradient-to-br from-emerald-50/70 via-white to-white dark:from-emerald-950/30 dark:via-slate-900 dark:to-slate-900 border border-emerald-200/90 dark:border-emerald-500/25 p-5 glass-panel shadow-xs transition-colors">
+      <div className="relative overflow-visible rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200/90 dark:border-emerald-500/25 p-5 glass-panel shadow-xs transition-colors">
         {/* Top Header of Executive Summary */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/70 dark:border-slate-800">
           <div className="flex items-center gap-3">
@@ -472,7 +472,7 @@ export default function KpiCards({
       {/* 2. OPERATIONAL REALIZATION ROW (Realisasi Tanam Ukuran Semula & Kolom Kanan Dibagi 2) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* CARD 1: REALISASI TANAM TAHUNAN (Kiri - Ukuran Asli 50% / lg:col-span-6) */}
-        <div className="lg:col-span-6 relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900/90 border border-cyan-200 dark:border-cyan-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
+        <div className="lg:col-span-6 relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-cyan-200 dark:border-cyan-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
           <div className="flex items-center justify-between mb-3">
             <div>
               <span className="text-xs font-bold text-cyan-700 dark:text-cyan-400 uppercase tracking-wider block">
@@ -533,7 +533,7 @@ export default function KpiCards({
         {/* KOLOM KANAN: KOTAK PROSES TANAM DIBAGI 2 DENGAN REAL TANAM BULANAN & PROSES TANAM (lg:col-span-6) */}
         <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* SUB-KARTU 1: REAL TANAM BULANAN */}
-          <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900/90 border border-emerald-200 dark:border-emerald-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
+          <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
             <div className="flex items-center justify-between gap-1.5 mb-3">
               <div className="min-w-0 flex flex-col">
                 <span className="text-[11px] sm:text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-tight leading-tight">
@@ -590,7 +590,7 @@ export default function KpiCards({
           </div>
 
           {/* SUB-KARTU 2: PROSES TANAM */}
-          <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900/90 border border-amber-200 dark:border-amber-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
+          <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
             <div className="flex items-center justify-between gap-1.5 mb-3">
               <div className="min-w-0">
                 <span className="text-[11px] sm:text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-tight whitespace-nowrap block truncate">

@@ -59,6 +59,7 @@ interface PlantingSummary {
 interface PlantingViewProps {
   onOpenLand?: (lokasi: string) => void;
   refreshTrigger?: number;
+  isAdmin?: boolean;
 }
 
 const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -101,7 +102,7 @@ function formatToRtnDate(d: Date): string {
   return `${day}-${m}-${y}`;
 }
 
-export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: PlantingViewProps) {
+export default function PlantingView({ onOpenLand, refreshTrigger = 0, isAdmin = true }: PlantingViewProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -124,9 +125,9 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
   const [search, setSearch] = useState<string>('');
   const [selectedJenis, setSelectedJenis] = useState<string[]>([]);
   const [selectedKelas, setSelectedKelas] = useState<string[]>([]);
-  const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<string>('id');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [selectedStatus, setSelectedStatus] = useState<string[]>(['PROSES']);
+  const [sortBy, setSortBy] = useState<string>('leadtime');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(15);
   const [pagination, setPagination] = useState<{ total: number; totalPages: number }>({
@@ -220,19 +221,26 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
     fetchPlantingData();
   }, [page, limit, search, selectedJenis, selectedKelas, selectedStatus, sortBy, sortOrder, refreshTrigger]);
 
-  // Handle Sort Toggle
+  // Handle Sort Toggle (Siklus: kecil ke besar -> besar ke kecil -> kecil ke besar lagi)
   const handleSort = (field: string) => {
     if (sortBy === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
       setSortBy(field);
-      setSortOrder('asc');
+      if (field === 'leadtime') {
+        // Leadtime defaultnya yang besar leadtimenya (desc)
+        setSortOrder('desc');
+      } else {
+        // Kolom lain (termasuk awalTanam yang oldest/terlama tanggalnya) defaultnya dari kecil ke besar (asc)
+        setSortOrder('asc');
+      }
     }
     setPage(1);
   };
 
   // Start Inline Editing for text/number/select
   const startEdit = (item: PlantingItem, field: string) => {
+    if (!isAdmin) return;
     if (editingCell?.id === item.id && editingCell?.field === field) {
       return;
     }
@@ -253,6 +261,7 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
     item: PlantingItem,
     field: string
   ) => {
+    if (!isAdmin) return;
     if (closeTimerRef.current) {
       clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
@@ -420,16 +429,16 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
       const headers = [
         'NO',
         'LOKASI',
-        'LUAS (HA)',
         'JENIS BIBIT',
         'KELAS BIBIT',
+        'STATUS',
+        'AWAL TANAM',
+        'EST. SELESAI',
+        'LEADTIME (HARI)',
+        'LUAS (HA)',
         'REAL TANAM (HA)',
         'SISA (HA)',
-        'EST. SELESAI',
         'PROGRESS (%)',
-        'AWAL TANAM',
-        'LEADTIME (HARI)',
-        'STATUS',
       ];
 
       const sheetData = [
@@ -437,34 +446,34 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
         ...allItems.map((item, idx) => [
           idx + 1,
           item.lokasi,
-          item.luas !== null ? Number(item.luas.toFixed(2)) : 0,
           item.jenisBibit || '-',
           item.kelasBibit || '-',
+          item.status || 'BELUM TANAM',
+          item.awalTanam || '-',
+          item.estSelesai || '-',
+          item.leadtime !== null ? item.leadtime : '-',
+          item.luas !== null ? Number(item.luas.toFixed(2)) : 0,
           item.realTanam !== null ? Number(item.realTanam.toFixed(2)) : 0,
           item.sisa !== null ? Number(item.sisa.toFixed(2)) : 0,
-          item.estSelesai || '-',
           item.progress !== null ? `${item.progress}%` : '0%',
-          item.awalTanam || '-',
-          item.leadtime !== null ? item.leadtime : '-',
-          item.status || 'BELUM TANAM',
         ]),
       ];
 
       const ws = XLSX.utils.aoa_to_sheet(sheetData);
 
       ws['!cols'] = [
-        { wch: 6 },
-        { wch: 12 },
-        { wch: 12 },
-        { wch: 14 },
-        { wch: 14 },
-        { wch: 16 },
-        { wch: 12 },
-        { wch: 15 },
-        { wch: 14 },
-        { wch: 15 },
-        { wch: 16 },
-        { wch: 14 },
+        { wch: 6 },  // NO
+        { wch: 12 }, // LOKASI
+        { wch: 14 }, // JENIS BIBIT
+        { wch: 14 }, // KELAS BIBIT
+        { wch: 14 }, // STATUS
+        { wch: 15 }, // AWAL TANAM
+        { wch: 15 }, // EST. SELESAI
+        { wch: 16 }, // LEADTIME
+        { wch: 12 }, // LUAS
+        { wch: 16 }, // REAL TANAM
+        { wch: 12 }, // SISA
+        { wch: 14 }, // PROGRESS
       ];
 
       // Freeze Panes Baris Header (Kolom NO sampai STATUS)
@@ -1164,7 +1173,7 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
           <table className="w-full text-center text-xs min-w-[1320px] border-separate border-spacing-0">
             <thead className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider shadow-sm">
               <tr>
-                {/* NO */}
+                {/* 1. NO */}
                 <th
                   onClick={() => handleSort('id')}
                   className="py-3 px-3 w-16 text-center cursor-pointer hover:text-emerald-600 transition-colors whitespace-nowrap bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800"
@@ -1176,7 +1185,7 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                   </div>
                 </th>
 
-                {/* Lokasi */}
+                {/* 2. Lokasi */}
                 <th
                   onClick={() => handleSort('lokasi')}
                   className="py-3 px-4 text-center cursor-pointer hover:text-emerald-600 transition-colors whitespace-nowrap bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800"
@@ -1188,19 +1197,7 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                   </div>
                 </th>
 
-                {/* Luas */}
-                <th
-                  onClick={() => handleSort('luas')}
-                  className="py-3 px-4 text-center cursor-pointer hover:text-emerald-600 transition-colors whitespace-nowrap bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800"
-                  title="Urutkan Luas (Klik sel untuk edit)"
-                >
-                  <div className="inline-flex items-center justify-center gap-1">
-                    <span>Luas (Ha)</span>
-                    {renderSortArrows('luas')}
-                  </div>
-                </th>
-
-                {/* Jenis Bibit */}
+                {/* 3. Jenis Bibit */}
                 <th
                   onClick={() => handleSort('jenisBibit')}
                   className="py-3 px-4 text-center cursor-pointer hover:text-emerald-600 transition-colors whitespace-nowrap bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800"
@@ -1212,7 +1209,7 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                   </div>
                 </th>
 
-                {/* Kelas Bibit */}
+                {/* 4. Kelas Bibit */}
                 <th
                   onClick={() => handleSort('kelasBibit')}
                   className="py-3 px-4 text-center cursor-pointer hover:text-emerald-600 transition-colors whitespace-nowrap bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800"
@@ -1224,55 +1221,19 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                   </div>
                 </th>
 
-                {/* Real Tanam */}
+                {/* 5. Status */}
                 <th
-                  onClick={() => handleSort('realTanam')}
+                  onClick={() => handleSort('status')}
                   className="py-3 px-4 text-center cursor-pointer hover:text-emerald-600 transition-colors whitespace-nowrap bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800"
-                  title="Urutkan Real Tanam (Klik sel untuk edit)"
+                  title="Urutkan Status"
                 >
                   <div className="inline-flex items-center justify-center gap-1">
-                    <span>Real Tanam</span>
-                    {renderSortArrows('realTanam')}
+                    <span>Status</span>
+                    {renderSortArrows('status')}
                   </div>
                 </th>
 
-                {/* Sisa */}
-                <th
-                  onClick={() => handleSort('sisa')}
-                  className="py-3 px-4 text-center cursor-pointer hover:text-emerald-600 transition-colors whitespace-nowrap bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800"
-                  title="Urutkan Sisa (Rumus: Real Tanam - Luas)"
-                >
-                  <div className="inline-flex items-center justify-center gap-1">
-                    <span>Sisa (Ha)</span>
-                    {renderSortArrows('sisa')}
-                  </div>
-                </th>
-
-                {/* Est. Selesai */}
-                <th
-                  onClick={() => handleSort('estSelesai')}
-                  className="py-3 px-4 text-center cursor-pointer hover:text-emerald-600 transition-colors whitespace-nowrap bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800"
-                  title="Urutkan Est. Selesai (Arahkan kursor untuk date picker)"
-                >
-                  <div className="inline-flex items-center justify-center gap-1">
-                    <span>Est. Selesai</span>
-                    {renderSortArrows('estSelesai')}
-                  </div>
-                </th>
-
-                {/* Progress */}
-                <th
-                  onClick={() => handleSort('progress')}
-                  className="py-3 px-4 w-44 text-center cursor-pointer hover:text-emerald-600 transition-colors whitespace-nowrap bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800"
-                  title="Urutkan Progress"
-                >
-                  <div className="inline-flex items-center justify-center gap-1">
-                    <span>Progress</span>
-                    {renderSortArrows('progress')}
-                  </div>
-                </th>
-
-                {/* Awal Tanam */}
+                {/* 6. Awal Tanam */}
                 <th
                   onClick={() => handleSort('awalTanam')}
                   className="py-3 px-4 text-center cursor-pointer hover:text-emerald-600 transition-colors whitespace-nowrap bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800"
@@ -1284,7 +1245,19 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                   </div>
                 </th>
 
-                {/* Leadtime */}
+                {/* 7. Est. Selesai */}
+                <th
+                  onClick={() => handleSort('estSelesai')}
+                  className="py-3 px-4 text-center cursor-pointer hover:text-emerald-600 transition-colors whitespace-nowrap bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800"
+                  title="Urutkan Est. Selesai (Arahkan kursor untuk date picker)"
+                >
+                  <div className="inline-flex items-center justify-center gap-1">
+                    <span>Est. Selesai</span>
+                    {renderSortArrows('estSelesai')}
+                  </div>
+                </th>
+
+                {/* 8. Leadtime */}
                 <th
                   onClick={() => handleSort('leadtime')}
                   className="py-3 px-4 text-center cursor-pointer hover:text-emerald-600 transition-colors whitespace-nowrap bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800"
@@ -1296,15 +1269,51 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                   </div>
                 </th>
 
-                {/* Status */}
+                {/* 9. Luas */}
                 <th
-                  onClick={() => handleSort('status')}
+                  onClick={() => handleSort('luas')}
                   className="py-3 px-4 text-center cursor-pointer hover:text-emerald-600 transition-colors whitespace-nowrap bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800"
-                  title="Urutkan Status"
+                  title="Urutkan Luas (Klik sel untuk edit)"
                 >
                   <div className="inline-flex items-center justify-center gap-1">
-                    <span>Status</span>
-                    {renderSortArrows('status')}
+                    <span>Luas (Ha)</span>
+                    {renderSortArrows('luas')}
+                  </div>
+                </th>
+
+                {/* 10. Real Tanam */}
+                <th
+                  onClick={() => handleSort('realTanam')}
+                  className="py-3 px-4 text-center cursor-pointer hover:text-emerald-600 transition-colors whitespace-nowrap bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800"
+                  title="Urutkan Real Tanam (Klik sel untuk edit)"
+                >
+                  <div className="inline-flex items-center justify-center gap-1">
+                    <span>Real Tanam</span>
+                    {renderSortArrows('realTanam')}
+                  </div>
+                </th>
+
+                {/* 11. Sisa (Ha) */}
+                <th
+                  onClick={() => handleSort('sisa')}
+                  className="py-3 px-4 text-center cursor-pointer hover:text-emerald-600 transition-colors whitespace-nowrap bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800"
+                  title="Urutkan Sisa (Rumus: Real Tanam - Luas)"
+                >
+                  <div className="inline-flex items-center justify-center gap-1">
+                    <span>Sisa (Ha)</span>
+                    {renderSortArrows('sisa')}
+                  </div>
+                </th>
+
+                {/* 12. Progress */}
+                <th
+                  onClick={() => handleSort('progress')}
+                  className="py-3 px-4 w-44 text-center cursor-pointer hover:text-emerald-600 transition-colors whitespace-nowrap bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800"
+                  title="Urutkan Progress"
+                >
+                  <div className="inline-flex items-center justify-center gap-1">
+                    <span>Progress</span>
+                    {renderSortArrows('progress')}
                   </div>
                 </th>
               </tr>
@@ -1350,12 +1359,12 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                         isSavingThisRow ? 'bg-emerald-50/30 dark:bg-emerald-950/20' : ''
                       }`}
                     >
-                      {/* NO */}
+                      {/* 1. NO */}
                       <td className="py-3 px-3 text-center text-slate-400 font-mono text-[11px] whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800">
                         {rowNumber}
                       </td>
 
-                      {/* Lokasi */}
+                      {/* 2. Lokasi */}
                       <td className="py-3 px-4 text-center whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800">
                         <div className="flex items-center justify-center">
                           <button
@@ -1370,42 +1379,7 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                         </div>
                       </td>
 
-                      {/* Luas (INLINE EDITABLE - RATA TENGAH) */}
-                      <td
-                        className={`py-2 px-3 text-center font-medium cursor-pointer transition-all whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800 ${
-                          savedSuccessCell?.id === item.id && savedSuccessCell?.field === 'luas'
-                            ? 'bg-emerald-100/60 dark:bg-emerald-900/40'
-                            : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'
-                        }`}
-                        onClick={() => startEdit(item, 'luas')}
-                        title="Klik untuk mengedit Luas"
-                      >
-                        {editingCell?.id === item.id && editingCell?.field === 'luas' ? (
-                          <input
-                            ref={inputRef as any}
-                            type="number"
-                            step="0.01"
-                            value={editValue}
-                            onClick={(e) => e.stopPropagation()}
-                            onMouseDown={(e) => e.stopPropagation()}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onBlur={(e) => saveInlineEdit(item, 'luas', e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') saveInlineEdit(item, 'luas', (e.target as HTMLInputElement).value);
-                              if (e.key === 'Escape') cancelEdit();
-                            }}
-                            className="w-24 px-1.5 py-0.5 text-center text-xs font-bold rounded border border-emerald-500 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm mx-auto block"
-                          />
-                        ) : (
-                          <div className="flex items-center justify-center gap-1 group-hover:text-emerald-600">
-                            <span className="text-slate-800 dark:text-slate-200 font-semibold">
-                              {item.luas?.toFixed(2)}
-                            </span>
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Jenis Bibit (INLINE EDITABLE DROPDOWN - RATA TENGAH) */}
+                      {/* 3. Jenis Bibit (INLINE EDITABLE DROPDOWN - RATA TENGAH) */}
                       <td
                         className={`py-2 px-3 text-center cursor-pointer transition-all whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800 ${
                           savedSuccessCell?.id === item.id && savedSuccessCell?.field === 'jenisBibit'
@@ -1441,7 +1415,7 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                         )}
                       </td>
 
-                      {/* Kelas Bibit (INLINE EDITABLE DROPDOWN - RATA TENGAH) */}
+                      {/* 4. Kelas Bibit (INLINE EDITABLE DROPDOWN - RATA TENGAH) */}
                       <td
                         className={`py-2 px-3 text-center cursor-pointer transition-all whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800 ${
                           savedSuccessCell?.id === item.id && savedSuccessCell?.field === 'kelasBibit'
@@ -1479,7 +1453,119 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                         )}
                       </td>
 
-                      {/* Real Tanam (INLINE EDITABLE - RATA TENGAH) */}
+                      {/* 5. Status (RATA TENGAH) */}
+                      <td className="py-3 px-4 text-center whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800">
+                        {isDone ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            Selesai
+                          </span>
+                        ) : isProses ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                            <Clock className="w-3 h-3 text-amber-600 animate-pulse" />
+                            Proses
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                            Belum
+                          </span>
+                        )}
+                      </td>
+
+                      {/* 6. Awal Tanam (Poin 3: DATE PICKER HOVER - RATA TENGAH) */}
+                      <td
+                        className={`py-2 px-3 text-center cursor-pointer transition-all whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800 ${
+                          savedSuccessCell?.id === item.id && savedSuccessCell?.field === 'awalTanam'
+                            ? 'bg-emerald-100/60 dark:bg-emerald-900/40'
+                            : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                        }`}
+                        onMouseEnter={(e) => handleDateCellMouseEnter(e, item, 'awalTanam')}
+                        onMouseLeave={handleDateCellMouseLeave}
+                        title="Arahkan kursor untuk memilih tanggal"
+                      >
+                        <div className="flex items-center justify-center gap-1">
+                          {item.awalTanam ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded font-medium text-slate-700 dark:text-slate-300">
+                              <Calendar className="w-3 h-3 text-slate-400" />
+                              {item.awalTanam}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 dark:text-slate-500">-</span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* 7. Est. Selesai (Poin 3: DATE PICKER HOVER - RATA TENGAH) */}
+                      <td
+                        className={`py-2 px-3 text-center cursor-pointer transition-all whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800 ${
+                          savedSuccessCell?.id === item.id && savedSuccessCell?.field === 'estSelesai'
+                            ? 'bg-emerald-100/60 dark:bg-emerald-900/40'
+                            : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                        }`}
+                        onMouseEnter={(e) => handleDateCellMouseEnter(e, item, 'estSelesai')}
+                        onMouseLeave={handleDateCellMouseLeave}
+                        title="Arahkan kursor untuk memilih tanggal"
+                      >
+                        <div className="flex items-center justify-center gap-1">
+                          {item.estSelesai ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded font-medium text-slate-700 dark:text-slate-300">
+                              <CalendarDays className="w-3 h-3 text-slate-400" />
+                              {item.estSelesai}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 dark:text-slate-500">-</span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* 8. Leadtime (RUMUS OTOMATIS - RATA TENGAH) */}
+                      <td className="py-3 px-4 text-center bg-slate-50/40 dark:bg-slate-950/20 whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800">
+                        {item.leadtime !== null ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40">
+                            <Clock className="w-3 h-3 text-indigo-500" />
+                            {item.leadtime} hr
+                          </span>
+                        ) : (
+                          <span className="text-slate-300 dark:text-slate-600">-</span>
+                        )}
+                      </td>
+
+                      {/* 9. Luas (INLINE EDITABLE - RATA TENGAH) */}
+                      <td
+                        className={`py-2 px-3 text-center font-medium cursor-pointer transition-all whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800 ${
+                          savedSuccessCell?.id === item.id && savedSuccessCell?.field === 'luas'
+                            ? 'bg-emerald-100/60 dark:bg-emerald-900/40'
+                            : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                        }`}
+                        onClick={() => startEdit(item, 'luas')}
+                        title="Klik untuk mengedit Luas"
+                      >
+                        {editingCell?.id === item.id && editingCell?.field === 'luas' ? (
+                          <input
+                            ref={inputRef as any}
+                            type="number"
+                            step="0.01"
+                            value={editValue}
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onBlur={(e) => saveInlineEdit(item, 'luas', e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveInlineEdit(item, 'luas', (e.target as HTMLInputElement).value);
+                              if (e.key === 'Escape') cancelEdit();
+                            }}
+                            className="w-24 px-1.5 py-0.5 text-center text-xs font-bold rounded border border-emerald-500 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm mx-auto block"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center gap-1 group-hover:text-emerald-600">
+                            <span className="text-slate-800 dark:text-slate-200 font-semibold">
+                              {item.luas?.toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* 10. Real Tanam (INLINE EDITABLE - RATA TENGAH) */}
                       <td
                         className={`py-2 px-3 text-center cursor-pointer transition-all whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800 ${
                           savedSuccessCell?.id === item.id && savedSuccessCell?.field === 'realTanam'
@@ -1514,7 +1600,7 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                         )}
                       </td>
 
-                      {/* Sisa (RUMUS OTOMATIS - RATA TENGAH) */}
+                      {/* 11. Sisa (Ha) (RUMUS OTOMATIS - RATA TENGAH) */}
                       <td className="py-3 px-4 text-center bg-slate-50/40 dark:bg-slate-950/20 whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800">
                         {item.sisa !== null ? (
                           <span
@@ -1533,30 +1619,7 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                         )}
                       </td>
 
-                      {/* Est. Selesai (Poin 3: DATE PICKER HOVER - RATA TENGAH) */}
-                      <td
-                        className={`py-2 px-3 text-center cursor-pointer transition-all whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800 ${
-                          savedSuccessCell?.id === item.id && savedSuccessCell?.field === 'estSelesai'
-                            ? 'bg-emerald-100/60 dark:bg-emerald-900/40'
-                            : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'
-                        }`}
-                        onMouseEnter={(e) => handleDateCellMouseEnter(e, item, 'estSelesai')}
-                        onMouseLeave={handleDateCellMouseLeave}
-                        title="Arahkan kursor untuk memilih tanggal"
-                      >
-                        <div className="flex items-center justify-center gap-1">
-                          {item.estSelesai ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded font-medium text-slate-700 dark:text-slate-300">
-                              <CalendarDays className="w-3 h-3 text-slate-400" />
-                              {item.estSelesai}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400 dark:text-slate-500">-</span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Progress (RUMUS OTOMATIS - RATA TENGAH) */}
+                      {/* 12. Progress (RUMUS OTOMATIS - RATA TENGAH) */}
                       <td className="py-3 px-4 text-center bg-slate-50/40 dark:bg-slate-950/20 whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800">
                         <div className="space-y-1 max-w-[120px] mx-auto">
                           <div className="text-[11px] font-bold text-slate-700 dark:text-slate-200 font-mono text-center">
@@ -1566,7 +1629,7 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                             <div
                               className={`h-2 rounded-full transition-all duration-300 ${
                                 isDone
-                                  ? 'bg-emerald-500'
+                                   ? 'bg-emerald-500'
                                   : isProses
                                   ? 'bg-amber-500'
                                   : 'bg-slate-300 dark:bg-slate-700'
@@ -1575,60 +1638,6 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0 }: Plantin
                             />
                           </div>
                         </div>
-                      </td>
-
-                      {/* Awal Tanam (Poin 3: DATE PICKER HOVER - RATA TENGAH) */}
-                      <td
-                        className={`py-2 px-3 text-center cursor-pointer transition-all whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800 ${
-                          savedSuccessCell?.id === item.id && savedSuccessCell?.field === 'awalTanam'
-                            ? 'bg-emerald-100/60 dark:bg-emerald-900/40'
-                            : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'
-                        }`}
-                        onMouseEnter={(e) => handleDateCellMouseEnter(e, item, 'awalTanam')}
-                        onMouseLeave={handleDateCellMouseLeave}
-                        title="Arahkan kursor untuk memilih tanggal"
-                      >
-                        <div className="flex items-center justify-center gap-1">
-                          {item.awalTanam ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded font-medium text-slate-700 dark:text-slate-300">
-                              <Calendar className="w-3 h-3 text-slate-400" />
-                              {item.awalTanam}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400 dark:text-slate-500">-</span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Leadtime (RUMUS OTOMATIS - RATA TENGAH) */}
-                      <td className="py-3 px-4 text-center bg-slate-50/40 dark:bg-slate-950/20 whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800">
-                        {item.leadtime !== null ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40">
-                            <Clock className="w-3 h-3 text-indigo-500" />
-                            {item.leadtime} hr
-                          </span>
-                        ) : (
-                          <span className="text-slate-300 dark:text-slate-600">-</span>
-                        )}
-                      </td>
-
-                      {/* Status (RATA TENGAH) */}
-                      <td className="py-3 px-4 text-center whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800">
-                        {isDone ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            Selesai
-                          </span>
-                        ) : isProses ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-                            <Clock className="w-3 h-3 text-amber-600 animate-pulse" />
-                            Proses
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                            Belum
-                          </span>
-                        )}
                       </td>
                     </tr>
                   );

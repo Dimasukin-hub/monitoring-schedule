@@ -1,6 +1,39 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+const MONTHS_MAP: Record<string, number> = {
+  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+};
+
+function parseDateTimestamp(str: string | null | undefined): number | null {
+  if (!str || str === '-' || str.trim() === '') return null;
+  const s = str.trim();
+  const parts = s.split('-');
+  if (parts.length === 3) {
+    if (isNaN(Number(parts[0]))) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+      if (!isNaN(y) && !isNaN(m) && !isNaN(d)) return new Date(y, m, d).getTime();
+    } else {
+      const d = parseInt(parts[0], 10);
+      const mStr = parts[1].toLowerCase().slice(0, 3);
+      let y = parseInt(parts[2], 10);
+      if (y < 100) y += 2000;
+      const m = MONTHS_MAP[mStr];
+      if (!isNaN(d) && m !== undefined && !isNaN(y)) return new Date(y, m, d).getTime();
+    }
+  } else if (parts.length === 2) {
+    const d = parseInt(parts[0], 10);
+    const mStr = parts[1].toLowerCase().slice(0, 3);
+    const m = MONTHS_MAP[mStr];
+    if (!isNaN(d) && m !== undefined) return new Date(2026, m, d).getTime();
+  }
+  const t = new Date(s).getTime();
+  return isNaN(t) ? null : t;
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -57,44 +90,101 @@ export async function GET(request: Request) {
       ];
     }
 
-    // Build orderBy
-    const orderBy: any = {};
-    if (['lokasi', 'luas', 'realTanam', 'sisa', 'progress', 'leadtime', 'status', 'id'].includes(sortBy)) {
-      orderBy[sortBy] = sortOrder;
-    } else {
-      orderBy.id = 'asc';
-    }
+    const isDateSort = sortBy === 'awalTanam' || sortBy === 'estSelesai';
 
     // Parallel fetch: data, total count, and summary stats
-    const [total, data, allSummary, distinctJenis, distinctKelas] = await Promise.all([
-      prisma.planting.count({ where }),
-      prisma.planting.findMany({
-        where,
-        skip: isAll ? 0 : (page - 1) * limit,
-        take: limit,
-        orderBy,
-      }),
-      prisma.planting.findMany({
-        select: {
-          luas: true,
-          realTanam: true,
-          sisa: true,
-          progress: true,
-          leadtime: true,
-          status: true,
-        },
-      }),
-      prisma.planting.findMany({
-        where: { jenisBibit: { not: null } },
-        distinct: ['jenisBibit'],
-        select: { jenisBibit: true },
-      }),
-      prisma.planting.findMany({
-        where: { kelasBibit: { not: null } },
-        distinct: ['kelasBibit'],
-        select: { kelasBibit: true },
-      }),
-    ]);
+    let total = 0;
+    let data: any[] = [];
+    let allSummary: any[] = [];
+    let distinctJenis: any[] = [];
+    let distinctKelas: any[] = [];
+
+    if (isDateSort) {
+      const [totalCount, allMatchingRows, summaryRows, dJenis, dKelas] = await Promise.all([
+        prisma.planting.count({ where }),
+        prisma.planting.findMany({ where }),
+        prisma.planting.findMany({
+          select: {
+            luas: true,
+            realTanam: true,
+            sisa: true,
+            progress: true,
+            leadtime: true,
+            status: true,
+          },
+        }),
+        prisma.planting.findMany({
+          where: { jenisBibit: { not: null } },
+          distinct: ['jenisBibit'],
+          select: { jenisBibit: true },
+        }),
+        prisma.planting.findMany({
+          where: { kelasBibit: { not: null } },
+          distinct: ['kelasBibit'],
+          select: { kelasBibit: true },
+        }),
+      ]);
+
+      total = totalCount;
+      allSummary = summaryRows;
+      distinctJenis = dJenis;
+      distinctKelas = dKelas;
+
+      allMatchingRows.sort((a: any, b: any) => {
+        const ta = parseDateTimestamp(a[sortBy]);
+        const tb = parseDateTimestamp(b[sortBy]);
+        if (ta === null && tb === null) return 0;
+        if (ta === null) return 1;
+        if (tb === null) return -1;
+        return sortOrder === 'asc' ? ta - tb : tb - ta;
+      });
+
+      data = isAll ? allMatchingRows : allMatchingRows.slice((page - 1) * limit, page * limit);
+    } else {
+      // Build orderBy
+      const orderBy: any = {};
+      if (['lokasi', 'luas', 'realTanam', 'sisa', 'progress', 'leadtime', 'status', 'id', 'jenisBibit', 'kelasBibit'].includes(sortBy)) {
+        orderBy[sortBy] = { sort: sortOrder, nulls: 'last' };
+      } else {
+        orderBy.id = 'asc';
+      }
+
+      const [totalCount, queryData, summaryRows, dJenis, dKelas] = await Promise.all([
+        prisma.planting.count({ where }),
+        prisma.planting.findMany({
+          where,
+          skip: isAll ? 0 : (page - 1) * limit,
+          take: limit,
+          orderBy,
+        }),
+        prisma.planting.findMany({
+          select: {
+            luas: true,
+            realTanam: true,
+            sisa: true,
+            progress: true,
+            leadtime: true,
+            status: true,
+          },
+        }),
+        prisma.planting.findMany({
+          where: { jenisBibit: { not: null } },
+          distinct: ['jenisBibit'],
+          select: { jenisBibit: true },
+        }),
+        prisma.planting.findMany({
+          where: { kelasBibit: { not: null } },
+          distinct: ['kelasBibit'],
+          select: { kelasBibit: true },
+        }),
+      ]);
+
+      total = totalCount;
+      data = queryData;
+      allSummary = summaryRows;
+      distinctJenis = dJenis;
+      distinctKelas = dKelas;
+    }
 
     // KPI Metrics calculation
     const totalLokasi = allSummary.length;

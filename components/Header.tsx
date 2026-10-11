@@ -1,295 +1,337 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Search, Filter, Sun, Moon, ChevronDown, Check, X, RotateCcw, XCircle } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
+import { Sun, Moon, LogOut, ShieldCheck, Eye, ChevronDown, User } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
+import { useAuth } from '@/components/AuthProvider';
+
+export interface MainMenuItem {
+  id: string;
+  label: string;
+}
+
+export const MAIN_MENU_ITEMS: MainMenuItem[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'stok', label: 'List Stok Lahan' },
+  { id: 'planting', label: 'Planting' },
+  { id: 'pengolahan', label: 'Pengolahan Lahan' },
+  { id: 'tanam', label: 'Monitoring Tanam' },
+  { id: 'bibit', label: 'Monitoring Bibit' },
+  { id: 'panen', label: 'Panen & Produksi' },
+];
+
+export interface SubMenuItem {
+  id: string;
+  label: string;
+}
+
+export const OVERVIEW_SUB_MENUS: SubMenuItem[] = [
+  { id: 'executive_summary', label: 'Executive Summary' },
+  { id: 'posisi_lahan', label: 'Posisi Lahan' },
+  { id: 'rencana_realisasi', label: 'Rencana vs Realisasi' },
+  { id: 'rerata_bero_tanam', label: 'Rerata Bero dan Tanam' },
+  { id: 'proses_selesai_tanam', label: 'Proses Tanam & Selesai Tanam' },
+  { id: 'data_lahan', label: 'Data Lahan' },
+];
+
+export interface MenuThemeConfig {
+  activeText: string;
+  activeLine: string;
+  hoverText: string;
+  hoverLine: string;
+  subActiveText: string;
+  subActiveLine: string;
+  subHoverText: string;
+}
+
+export const MENU_THEMES: Record<string, MenuThemeConfig> = {
+  overview: {
+    activeText: 'text-emerald-700 dark:text-emerald-300',
+    activeLine: 'bg-emerald-600 dark:bg-emerald-400',
+    hoverText: 'hover:text-emerald-600 dark:hover:text-emerald-300',
+    hoverLine: 'bg-emerald-500/40',
+    subActiveText: 'text-emerald-700 dark:text-emerald-300',
+    subActiveLine: 'bg-emerald-600 dark:bg-emerald-400',
+    subHoverText: 'hover:text-emerald-600 dark:hover:text-emerald-300',
+  },
+  stok: {
+    activeText: 'text-teal-700 dark:text-teal-300',
+    activeLine: 'bg-teal-600 dark:bg-teal-400',
+    hoverText: 'hover:text-teal-600 dark:hover:text-teal-300',
+    hoverLine: 'bg-teal-500/40',
+    subActiveText: 'text-teal-700 dark:text-teal-300',
+    subActiveLine: 'bg-teal-600 dark:bg-teal-400',
+    subHoverText: 'hover:text-teal-600 dark:hover:text-teal-300',
+  },
+  planting: {
+    activeText: 'text-emerald-700 dark:text-emerald-200',
+    activeLine: 'bg-emerald-500 dark:bg-emerald-300',
+    hoverText: 'hover:text-emerald-600 dark:hover:text-emerald-200',
+    hoverLine: 'bg-emerald-400/40',
+    subActiveText: 'text-emerald-700 dark:text-emerald-200',
+    subActiveLine: 'bg-emerald-500 dark:bg-emerald-300',
+    subHoverText: 'hover:text-emerald-600 dark:hover:text-emerald-200',
+  },
+  pengolahan: {
+    activeText: 'text-sky-700 dark:text-sky-300',
+    activeLine: 'bg-sky-600 dark:bg-sky-400',
+    hoverText: 'hover:text-sky-600 dark:hover:text-sky-300',
+    hoverLine: 'bg-sky-500/40',
+    subActiveText: 'text-sky-700 dark:text-sky-300',
+    subActiveLine: 'bg-sky-600 dark:bg-sky-400',
+    subHoverText: 'hover:text-sky-600 dark:hover:text-sky-300',
+  },
+  tanam: {
+    activeText: 'text-lime-700 dark:text-lime-300',
+    activeLine: 'bg-lime-600 dark:bg-lime-400',
+    hoverText: 'hover:text-lime-600 dark:hover:text-lime-300',
+    hoverLine: 'bg-lime-500/40',
+    subActiveText: 'text-lime-700 dark:text-lime-300',
+    subActiveLine: 'bg-lime-600 dark:bg-lime-400',
+    subHoverText: 'hover:text-lime-600 dark:hover:text-lime-300',
+  },
+  bibit: {
+    activeText: 'text-green-700 dark:text-green-300',
+    activeLine: 'bg-green-600 dark:bg-green-400',
+    hoverText: 'hover:text-green-600 dark:hover:text-green-300',
+    hoverLine: 'bg-green-500/40',
+    subActiveText: 'text-green-700 dark:text-green-300',
+    subActiveLine: 'bg-green-600 dark:bg-green-400',
+    subHoverText: 'hover:text-green-600 dark:hover:text-green-300',
+  },
+  panen: {
+    activeText: 'text-amber-700 dark:text-amber-300',
+    activeLine: 'bg-amber-600 dark:bg-amber-400',
+    hoverText: 'hover:text-amber-600 dark:hover:text-amber-300',
+    hoverLine: 'bg-amber-500/40',
+    subActiveText: 'text-amber-700 dark:text-amber-300',
+    subActiveLine: 'bg-amber-600 dark:bg-amber-400',
+    subHoverText: 'hover:text-amber-600 dark:hover:text-amber-300',
+  },
+};
 
 interface HeaderProps {
-  activeTabTitle: string;
-  activeTab?: string;
-  selectedWilayah: string;
-  setSelectedWilayah: (wilayah: string) => void;
-  availableWilayahs: string[];
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  activeTabTitle?: string;
+  selectedWilayah?: string;
+  setSelectedWilayah?: (wilayah: string) => void;
+  availableWilayahs?: string[];
+  searchQuery?: string;
+  setSearchQuery?: (query: string) => void;
   onRefresh?: () => void;
   isLoading?: boolean;
+  overviewSubTab?: string;
+  setOverviewSubTab?: (subTab: string) => void;
+  totalLands?: number;
 }
 
 export default function Header({
-  activeTabTitle,
-  activeTab = 'overview',
-  selectedWilayah,
-  setSelectedWilayah,
-  availableWilayahs = [],
-  searchQuery,
-  setSearchQuery,
-  onRefresh,
-  isLoading = false,
+  activeTab,
+  setActiveTab,
+  overviewSubTab = 'executive_summary',
+  setOverviewSubTab,
 }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
-  const [isWilayahOpen, setIsWilayahOpen] = useState(false);
-  const wilayahDropdownRef = useRef<HTMLDivElement>(null);
+  const { user, isAdmin, logout } = useAuth();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+  const currentTheme = MENU_THEMES[activeTab] || MENU_THEMES.overview;
 
-  // Close when clicking outside or pressing Escape
   useEffect(() => {
-    if (!isWilayahOpen) return;
-    const handlePointerDown = (e: MouseEvent) => {
-      if (wilayahDropdownRef.current && !wilayahDropdownRef.current.contains(e.target as Node)) {
-        setIsWilayahOpen(false);
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setIsProfileOpen(false);
       }
     };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsWilayahOpen(false);
-    };
-    window.addEventListener('mousedown', handlePointerDown);
-    window.addEventListener('keydown', handleKeyDown);
+    if (isProfileOpen) {
+      document.addEventListener('mousedown', handleOutsideClick);
+    }
     return () => {
-      window.removeEventListener('mousedown', handlePointerDown);
-      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleOutsideClick);
     };
-  }, [isWilayahOpen]);
-
-  const selectedList = useMemo(() => {
-    if (!selectedWilayah || selectedWilayah === 'ALL') return [];
-    return selectedWilayah.split(',').map((w) => w.trim()).filter(Boolean);
-  }, [selectedWilayah]);
-
-  const isAllChecked = useMemo(() => {
-    if (!selectedWilayah || selectedWilayah === 'ALL') return false;
-    return selectedList.length === availableWilayahs.length && availableWilayahs.length > 0;
-  }, [selectedWilayah, selectedList, availableWilayahs]);
-
-  const handleSelectAll = () => {
-    if (isAllChecked) {
-      setSelectedWilayah('ALL');
-    } else {
-      setSelectedWilayah(availableWilayahs.join(','));
-    }
-  };
-
-  const handleReset = () => {
-    setSelectedWilayah('ALL');
-  };
-
-  const handleToggleWilayah = (w: string) => {
-    if (isAllChecked) {
-      setSelectedWilayah(w);
-    } else if (selectedList.includes(w)) {
-      const next = selectedList.filter((item) => item !== w);
-      if (next.length === 0) {
-        setSelectedWilayah('ALL');
-      } else {
-        setSelectedWilayah(next.join(','));
-      }
-    } else {
-      const next = [...selectedList, w];
-      if (next.length >= availableWilayahs.length) {
-        setSelectedWilayah(availableWilayahs.join(','));
-      } else {
-        setSelectedWilayah(next.join(','));
-      }
-    }
-  };
+  }, [isProfileOpen]);
 
   return (
-    <header className="sticky top-0 z-30 flex flex-col shrink-0 select-none transition-colors duration-200 shadow-2xs">
-      {/* 1. Top 3.5px GGF Tricolor Bar aligned seamlessly with Sidebar */}
-      <div className="h-[3.5px] w-full bg-gradient-to-r from-[#00873D] via-[#F58220] to-[#009EE2] shrink-0 z-20" />
-
-      {/* 2. Full-width Lahan Nanas Image & Semi-Transparent Image Overlay matching the Sidebar */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
-        <img
-          src="/assets/Lahan Nanas.jpg"
-          alt="Lahan Nanas Header Background"
-          className="w-full h-full object-cover object-top filter saturate-110 contrast-105"
-        />
-        {/* Semi-transparent Image Overlay matching the Sidebar */}
-        <div className="absolute inset-0 bg-white/75 dark:bg-slate-950/80 backdrop-blur-[1px]" />
-
-        {/* Subtle Ambient Brand Gradient Radiance */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#00873D]/10 via-transparent to-[#009EE2]/8 dark:from-[#00873D]/20 dark:via-transparent dark:to-[#009EE2]/15" />
-      </div>
-
-      {/* 3. Header Inner Row with exact matching height of 128px (Total 131.5px, perfectly aligned with Sidebar header) */}
-      <div className="h-[128px] border-b border-slate-200/80 dark:border-white/10 px-6 flex md:items-center justify-between gap-3 md:gap-4 z-10 bg-transparent">
-        {/* Title & Context */}
-        <div className="flex flex-col justify-center">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 bg-white/80 dark:bg-emerald-950/70 px-2.5 py-0.5 rounded-md border border-emerald-500/30 flex items-center gap-1.5 shadow-2xs backdrop-blur-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              GGF Monitoring
-            </span>
-          </div>
-          <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 capitalize tracking-tight leading-tight mt-1">
-            {activeTabTitle}
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-            Perencana Pengendali Operasional • PG 1
-          </p>
+    <header className="flex flex-col shrink-0 select-none bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 transition-colors duration-200 shadow-2xs">
+      {/* Header Paling Atas (Row 1): Logo GGF, Menu Utama, Theme Toggle & Menu Profil Terpadu */}
+      <div className="px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
+        {/* Sisi Kiri: Logo GGF Kotak Putih */}
+        <div className="flex items-center shrink-0">
+          <Link
+            href="/"
+            title="Ke Portal Halaman Depan"
+            className="w-9 h-9 rounded-xl overflow-hidden bg-white border border-slate-200/90 dark:border-slate-700/80 flex items-center justify-center p-1 shadow-xs hover:ring-2 hover:ring-emerald-400/40 transition-all cursor-pointer"
+          >
+            <img
+              src="/assets/logo.png"
+              alt="Great Giant Foods"
+              className="w-full h-full object-contain"
+            />
+          </Link>
         </div>
 
-        {/* Controls & Quick Filters */}
-        <div className="flex items-center flex-wrap gap-2 sm:gap-2.5">
-          {activeTab === 'overview' && (
-            <>
-              {/* Quick Search */}
-              <div className="relative min-w-[170px] sm:min-w-[210px] flex items-center">
-                <Search className="w-4 h-4 text-slate-400 dark:text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
-                <input
-                  type="text"
-                  placeholder="Cari lokasi"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white/75 dark:bg-slate-950/70 border border-slate-300/80 dark:border-white/10 rounded-xl pl-9 pr-8 py-1.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 backdrop-blur-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-2xs"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer p-0.5 rounded-full hover:bg-slate-200/60 dark:hover:bg-slate-700/60 flex items-center justify-center z-10"
-                    title="Hapus pencarian"
-                    aria-label="Hapus pencarian"
-                  >
-                    <XCircle className="w-4 h-4" />
-                  </button>
+        {/* Sisi Tengah: Menu Utama (Overview sampai Panen & Produksi) */}
+        <nav className="flex-1 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth px-2">
+          {MAIN_MENU_ITEMS.map((item) => {
+            const isActive = activeTab === item.id;
+            const itemTheme = MENU_THEMES[item.id] || MENU_THEMES.overview;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  setActiveTab(item.id);
+                  if (item.id === 'overview' && setOverviewSubTab) {
+                    setOverviewSubTab('executive_summary');
+                  }
+                }}
+                className={`relative py-2 px-1 text-xs sm:text-[13px] tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
+                  isActive
+                    ? `${itemTheme.activeText} font-semibold`
+                    : `text-slate-600 dark:text-slate-400 ${itemTheme.hoverText} font-normal`
+                }`}
+              >
+                <span>{item.label}</span>
+
+                {/* Active Bottom Indicator Line */}
+                {isActive ? (
+                  <span className={`absolute bottom-0 left-0 right-0 h-[2.5px] ${itemTheme.activeLine} rounded-full`} />
+                ) : (
+                  <span className={`absolute bottom-0 left-0 right-0 h-[2px] ${itemTheme.hoverLine} rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-200`} />
                 )}
-              </div>
+              </button>
+            );
+          })}
+        </nav>
 
-              {/* Wilayah Dropdown Filter - Menyamping (Grid Horizontal) & Checklist */}
-              <div ref={wilayahDropdownRef} className="relative inline-block">
-                {/* Trigger Button - Always displays "Wilayah" with indicator if filtered */}
-                <button
-                  type="button"
-                  onClick={() => setIsWilayahOpen(!isWilayahOpen)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-xl border transition-all cursor-pointer select-none font-semibold shadow-2xs backdrop-blur-sm ${selectedWilayah && selectedWilayah !== 'ALL' && !isAllChecked
-                    ? 'bg-emerald-50/95 dark:bg-emerald-950/90 border-emerald-500 text-emerald-950 dark:text-emerald-200 ring-1 ring-emerald-500/25'
-                    : 'bg-white/75 dark:bg-slate-950/70 border-slate-300/80 dark:border-white/10 hover:border-slate-400 dark:hover:border-white/20 text-slate-800 dark:text-slate-200'
-                    }`}
-                  title="Filter Wilayah"
-                >
-                  <Filter className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span>Wilayah</span>
-                  {selectedWilayah && selectedWilayah !== 'ALL' && !isAllChecked && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                  )}
-                  <ChevronDown
-                    className={`w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 transition-transform duration-150 ${isWilayahOpen ? 'rotate-180' : ''
-                      }`}
-                  />
-                </button>
-
-                {/* Popover Dropdown - Menyamping & Checklist */}
-                {isWilayahOpen && (
-                  <div className="absolute top-full mt-1.5 right-0 z-50 w-[300px] sm:w-[380px] max-w-[94vw] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-3.5 text-xs ring-1 ring-black/5 dark:ring-white/10 select-none animate-in fade-in zoom-in-95 duration-100">
-                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
-                      <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                        <Filter className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                        Filter Wilayah
-                      </span>
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500">
-                        {availableWilayahs.length} Wilayah
-                      </span>
-                    </div>
-
-                    {/* Row: Tombol Pilih Semua (kiri) & Tombol Reset (paling kanan) */}
-                    <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-slate-100 dark:border-slate-800">
-                      <button
-                        type="button"
-                        onClick={handleSelectAll}
-                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer select-none ${isAllChecked
-                          ? 'bg-emerald-500/15 border-emerald-500 text-emerald-950 dark:text-emerald-200 shadow-2xs ring-1 ring-emerald-500/25'
-                          : 'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                          }`}
-                      >
-                        <div
-                          className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all shrink-0 ${isAllChecked
-                            ? 'bg-emerald-600 border-emerald-600 text-white'
-                            : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
-                            }`}
-                        >
-                          {isAllChecked && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                        </div>
-                        <span>Pilih Semua</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleReset}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-rose-500 hover:text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-                        title="Menampilkan keseluruhan data pada semua wilayah"
-                      >
-                        <RotateCcw className="w-3 h-3" />
-                        <span>Reset</span>
-                      </button>
-                    </div>
-
-                    {/* Options Grid Layout ("menyamping dan checklist") */}
-                    <div className="max-h-64 overflow-y-auto pr-1">
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                        {availableWilayahs.map((w) => {
-                          const isChecked = isAllChecked || selectedList.includes(w);
-                          return (
-                            <label
-                              key={w}
-                              onClick={() => handleToggleWilayah(w)}
-                              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs cursor-pointer select-none transition-all ${isChecked
-                                ? 'bg-emerald-500/15 border-emerald-500 text-emerald-950 dark:text-emerald-200 font-bold shadow-2xs ring-1 ring-emerald-500/30'
-                                : 'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                                }`}
-                            >
-                              <div
-                                className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all shrink-0 ${isChecked
-                                  ? 'bg-emerald-600 border-emerald-600 text-white'
-                                  : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
-                                  }`}
-                              >
-                                {isChecked && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                              </div>
-                              <span className="truncate flex-1 text-[11px] font-medium">{w}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Footer Status */}
-                    <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
-                      <span>
-                        {selectedWilayah === 'ALL' || !selectedWilayah
-                          ? 'Semua wilayah aktif'
-                          : isAllChecked
-                            ? `Semua wilayah dipilih (${availableWilayahs.length} wilayah)`
-                            : `${selectedList.length} dari ${availableWilayahs.length} wilayah dipilih`}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* Theme Toggle (Mode Terang / Mode Gelap) */}
+        {/* Sisi Kanan: Theme Toggle & Menu Profil Terpadu (Menyatukan Role Admin & Keluar/Logout) */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
             title={theme === 'dark' ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}
             aria-label="Toggle Theme"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/75 dark:bg-slate-950/70 border border-slate-300/80 dark:border-white/10 hover:border-slate-400 dark:hover:border-white/20 text-slate-800 dark:text-slate-200 hover:text-amber-500 dark:hover:text-amber-400 transition-all cursor-pointer shadow-2xs backdrop-blur-sm"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-amber-500 dark:hover:text-amber-400 transition-all cursor-pointer shadow-2xs"
           >
             {theme === 'dark' ? (
-              <>
-                <Sun className="w-4 h-4 text-amber-400 animate-pulse" />
-                <span className="text-[11px] font-semibold hidden md:inline">Terang</span>
-              </>
+              <Sun className="w-4 h-4 text-amber-400" />
             ) : (
-              <>
-                <Moon className="w-4 h-4 text-indigo-600" />
-                <span className="text-[11px] font-semibold hidden md:inline">Gelap</span>
-              </>
+              <Moon className="w-4 h-4 text-indigo-600" />
             )}
           </button>
+
+          {/* Profil Button & Dropdown */}
+          {user ? (
+            <div className="relative" ref={profileRef}>
+              <button
+                type="button"
+                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer shadow-2xs ${
+                  isProfileOpen
+                    ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-100 ring-2 ring-emerald-500/20'
+                    : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200'
+                }`}
+                title="Profil & Pengaturan Akun"
+              >
+                {/* Avatar Initial */}
+                <div
+                  className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                    isAdmin
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-slate-600 dark:bg-slate-500 text-white'
+                  }`}
+                >
+                  {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                </div>
+
+                <div className="flex items-center gap-1 text-xs font-semibold">
+                  <span className="max-w-[90px] sm:max-w-[120px] truncate">
+                    {user.name || 'Profil'}
+                  </span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                      isProfileOpen ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : ''
+                    }`}
+                  />
+                </div>
+              </button>
+
+              {/* Dropdown Menu Popover */}
+              {isProfileOpen && (
+                <div className="absolute right-0 top-full mt-2 min-w-[140px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-1.5">
+                  {/* Kotak Hijau Admin / Kotak Abu User */}
+                  <div className="pb-1.5 border-b border-slate-100 dark:border-slate-800/80">
+                    {isAdmin ? (
+                      <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 w-full shadow-2xs">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span>Admin</span>
+                      </div>
+                    ) : (
+                      <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 w-full shadow-2xs">
+                        <Eye className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                        <span>User</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tombol Keluar (Logout) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProfileOpen(false);
+                      logout();
+                    }}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Keluar (Logout)</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs transition-colors"
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>Masuk</span>
+            </Link>
+          )}
         </div>
       </div>
+
+      {/* Row 2: Sub Menu untuk Overview */}
+      {activeTab === 'overview' && (
+        <div className="px-6 py-2 bg-slate-50/50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
+          {OVERVIEW_SUB_MENUS.map((item) => {
+            const isActive = overviewSubTab === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setOverviewSubTab?.(item.id)}
+                className={`relative py-1 px-1 text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
+                  isActive
+                    ? `${currentTheme.subActiveText} font-semibold`
+                    : `text-slate-500 dark:text-slate-400 ${currentTheme.subHoverText} font-normal`
+                }`}
+              >
+                <span>{item.label}</span>
+
+                {/* Active Underline Indicator Sub Menu */}
+                {isActive ? (
+                  <span className={`absolute -bottom-1 left-0 right-0 h-[2px] ${currentTheme.subActiveLine} rounded-full`} />
+                ) : (
+                  <span className={`absolute -bottom-1 left-0 right-0 h-[1.5px] ${currentTheme.hoverLine} rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-150`} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </header>
   );
 }

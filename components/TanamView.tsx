@@ -111,7 +111,7 @@ export default function TanamView({
   return (
     <div className="space-y-6">
       {/* Top Banner (Bab 24 PRD) */}
-      <div className="p-6 rounded-3xl bg-gradient-to-r from-emerald-50 via-white to-slate-50 dark:from-emerald-950/40 dark:via-slate-900 dark:to-slate-900 border border-emerald-200 dark:border-emerald-500/20 glass-panel flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xs">
+      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-500/20 glass-panel flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xs">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
@@ -130,7 +130,7 @@ export default function TanamView({
           </p>
         </div>
 
-        <div className="flex items-center gap-4 bg-white/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shrink-0 shadow-xs">
+        <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shrink-0 shadow-xs">
           <div className="text-right">
             <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">Realisasi Tanam</span>
             <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
@@ -145,7 +145,7 @@ export default function TanamView({
 
       {/* KPI Status Row (Istilah Lokasi - Bab 11 PRD) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/90 border border-emerald-200 dark:border-emerald-500/30 glass-panel flex items-center justify-between shadow-xs">
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-500/30 glass-panel flex items-center justify-between shadow-xs">
           <div>
             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">Selesai Tanam</span>
             <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1 block">
@@ -160,7 +160,7 @@ export default function TanamView({
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/90 border border-amber-200 dark:border-amber-500/30 glass-panel flex items-center justify-between shadow-xs">
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-500/30 glass-panel flex items-center justify-between shadow-xs">
           <div>
             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">Sedang Proses Tanam</span>
             <span className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1 block">
@@ -175,7 +175,7 @@ export default function TanamView({
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 glass-panel flex items-center justify-between shadow-xs">
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 glass-panel flex items-center justify-between shadow-xs">
           <div>
             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">Belum Mulai Tanam</span>
             <span className="text-2xl font-bold text-slate-800 dark:text-slate-300 mt-1 block">
@@ -194,7 +194,7 @@ export default function TanamView({
       {/* Visualizations Grid (Bab 24 PRD: Rencana vs Realisasi & Distribusi Tanam) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Chart 1: Rencana vs Realisasi Tanam (from sheet Summ) */}
-        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 glass-panel shadow-xs">
+        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 glass-panel shadow-xs">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
@@ -236,7 +236,7 @@ export default function TanamView({
         </div>
 
         {/* Chart 2: Distribusi Luas per Bulan Tanam */}
-        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 glass-panel shadow-xs">
+        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 glass-panel shadow-xs">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-600 dark:text-teal-400">
@@ -274,7 +274,7 @@ export default function TanamView({
       </div>
 
       {/* Interactive Detail Table (Bab 24 PRD: Rencana/Realisasi Mulai & Selesai Tanam, Bibit, Kelas, Lokasi, Wilayah) */}
-      <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden glass-panel flex flex-col shadow-xs">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden glass-panel flex flex-col shadow-xs">
         {/* Table Filter Controls */}
         <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2">

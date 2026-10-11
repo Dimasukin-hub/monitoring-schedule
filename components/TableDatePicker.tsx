@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, X, Check } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
 
 interface TableDatePickerProps {
   value: string | null | undefined;
@@ -13,6 +14,7 @@ interface TableDatePickerProps {
   align?: 'left' | 'center' | 'right';
   isMonthOnly?: boolean;
   formatDisplay?: 'full' | 'short';
+  disabled?: boolean;
 }
 
 const INDONESIAN_MONTHS = [
@@ -92,7 +94,10 @@ export default function TableDatePicker({
   align = 'center',
   isMonthOnly = false,
   formatDisplay = 'short',
+  disabled,
 }: TableDatePickerProps) {
+  const { isAdmin } = useAuth();
+  const isDisabled = disabled !== undefined ? disabled : !isAdmin;
   const [isOpen, setIsOpen] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
 
@@ -147,6 +152,7 @@ export default function TableDatePicker({
   };
 
   const openPicker = () => {
+    if (isDisabled) return;
     if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     updatePosition();
     setIsOpen(true);
@@ -160,6 +166,7 @@ export default function TableDatePicker({
   };
 
   const handleMouseEnter = () => {
+    if (isDisabled) return;
     if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     hoverTimerRef.current = setTimeout(() => {
       openPicker();
@@ -295,14 +302,16 @@ export default function TableDatePicker({
         onMouseLeave={handleMouseLeave}
         onClick={(e) => {
           e.stopPropagation();
-          openPicker();
+          if (!isDisabled) openPicker();
         }}
-        className={`group/date relative inline-flex items-center gap-1 cursor-pointer select-none rounded px-1 py-0.5 transition-all ${
-          isOpen
-            ? 'ring-1 ring-emerald-500 bg-emerald-50 dark:bg-emerald-950/80'
-            : 'hover:bg-emerald-50/80 dark:hover:bg-slate-800/80 hover:ring-1 hover:ring-emerald-400/50'
+        className={`group/date relative inline-flex items-center gap-1 select-none rounded px-1 py-0.5 transition-all ${
+          isDisabled
+            ? 'cursor-default'
+            : isOpen
+            ? 'ring-1 ring-emerald-500 bg-emerald-50 dark:bg-emerald-950/80 cursor-pointer'
+            : 'hover:bg-emerald-50/80 dark:hover:bg-slate-800/80 hover:ring-1 hover:ring-emerald-400/50 cursor-pointer'
         } ${className}`}
-        title="Arahkan kursor atau klik untuk memilih tanggal via calendar date picker"
+        title={isDisabled ? undefined : 'Arahkan kursor atau klik untuk memilih tanggal via calendar date picker'}
       >
         {label && (
           <span

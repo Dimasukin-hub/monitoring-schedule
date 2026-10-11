@@ -19,6 +19,7 @@ import {
 import TableDatePicker from '@/components/TableDatePicker';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
 import { PIPELINE_ORDER, computeAktivitasTerakhir, isValidDate } from '@/lib/landActivityUtils';
+import { useAuth } from '@/components/AuthProvider';
 
 export const REAL_MASTER_STATUSES = [
   'JBBK', 'NRBB', 'NRST', 'NSBB', 'NSBK', 'NSCL', 'NSFC', 'NSSC', 'NSST',
@@ -37,6 +38,7 @@ interface InlineCellProps {
   textClassName?: string;
   displayFormatter?: (val: any) => React.ReactNode;
   onSave: (val: any) => void;
+  disabled?: boolean;
 }
 
 function InlineCell({
@@ -50,7 +52,10 @@ function InlineCell({
   textClassName = '',
   displayFormatter,
   onSave,
+  disabled,
 }: InlineCellProps) {
+  const { isAdmin } = useAuth();
+  const isDisabled = disabled !== undefined ? disabled : !isAdmin;
   const [isEditing, setIsEditing] = useState(false);
   const [val, setVal] = useState(value !== null && value !== undefined ? String(value) : '');
   const inputRef = useRef<HTMLInputElement | HTMLSelectElement>(null);
@@ -151,6 +156,24 @@ function InlineCell({
   }
 
   const hasVal = value !== null && value !== undefined && value !== '' && value !== '-' && value !== 0;
+
+  if (isDisabled) {
+    return (
+      <div
+        className={`select-none rounded px-1 py-0.5 flex items-center ${
+          align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center text-center' : 'justify-start'
+        } ${className}`}
+      >
+        <div className={`max-w-full w-full ${textClassName.includes('whitespace-normal') ? 'whitespace-normal text-center flex flex-col items-center justify-center' : `truncate ${align === 'center' ? 'text-center' : ''}`} ${textClassName}`}>
+          {displayFormatter
+            ? displayFormatter(value)
+            : hasVal
+            ? String(value)
+            : '-'}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -514,6 +537,9 @@ interface LandTableProps {
   initialSearch?: string;
   selectedWilayah?: string;
   refreshTrigger?: number;
+  isAdmin?: boolean;
+  selectedPeriod?: string;
+  searchQuery?: string;
 }
 
 export default function LandTable({
@@ -522,6 +548,9 @@ export default function LandTable({
   initialSearch = '',
   selectedWilayah = 'ALL',
   refreshTrigger = 0,
+  isAdmin: propIsAdmin,
+  selectedPeriod,
+  searchQuery,
 }: LandTableProps) {
   const [lands, setLands] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -656,6 +685,12 @@ export default function LandTable({
   useEffect(() => {
     setSearch(initialSearch);
   }, [initialSearch]);
+
+  useEffect(() => {
+    if (searchQuery !== undefined) {
+      setSearch(searchQuery);
+    }
+  }, [searchQuery]);
 
   useEffect(() => {
     if (selectedWilayah) {
@@ -1479,7 +1514,7 @@ export default function LandTable({
 
 
   return (
-    <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden glass-panel flex flex-col shadow-xs transition-colors">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden glass-panel flex flex-col shadow-xs transition-colors">
       {/* Header Controls & Multi-Filter Bar (Bab 20 PRD) */}
       <div className="p-5 border-b border-slate-200 dark:border-slate-800 space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -1552,7 +1587,7 @@ export default function LandTable({
           </div>
 
           {/* Baris Filter Menyamping (Horizontal Inline Row) */}
-          <div className="flex items-center flex-wrap gap-2.5 p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs">
+          <div className="flex items-center flex-wrap gap-2.5 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs">
             {/* 1. Aktivitas (Dropdown Checklist Menyamping) */}
             <MultiSelectDropdown
               label="Aktivitas"

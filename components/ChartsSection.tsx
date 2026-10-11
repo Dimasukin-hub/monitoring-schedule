@@ -28,6 +28,7 @@ import {
   Info,
 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
+import WilayahFilterDropdown from './WilayahFilterDropdown';
 
 export interface ChartsDataProps {
   monthlyBongkar?: Array<{
@@ -183,13 +184,22 @@ export interface ChartsDataProps {
 interface CommonChartProps {
   chartsData: ChartsDataProps | null;
   onSelectLand?: (lokasi: string) => void;
+  selectedWilayah?: string;
+  setSelectedWilayah?: (wilayah: string) => void;
+  availableWilayahs?: string[];
 }
 
 // =========================================================================
 // 1. POSISI LAHAN PER WILAYAH (BK, BJK, SN)
 //    Warna batang dinamis berdasar ketinggian nilai (Tinggi -> Rendah)
 // =========================================================================
-export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProps) {
+export function PosisiLahanSection({
+  chartsData,
+  onSelectLand,
+  selectedWilayah,
+  setSelectedWilayah,
+  availableWilayahs,
+}: CommonChartProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -247,14 +257,34 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
   const sortedBJK = aggregateByWilayah('bjkLuas', 'bjkLocations');
   const sortedSN = aggregateByWilayah('snLuas', 'snLocations');
 
-  const maxBK = Math.max(...sortedBK.map((w) => w.luas), 1);
-  const maxBJK = Math.max(...sortedBJK.map((w) => w.luas), 1);
-  const maxSN = Math.max(...sortedSN.map((w) => w.luas), 1);
+  const selectedWilayahList = useMemo(() => {
+    if (!selectedWilayah || selectedWilayah === 'ALL') return null;
+    return selectedWilayah.split(',').map((w) => w.trim()).filter(Boolean);
+  }, [selectedWilayah]);
+
+  const displayBK = useMemo(() => {
+    if (!selectedWilayahList || selectedWilayahList.length === 0) return sortedBK;
+    return sortedBK.filter((w) => selectedWilayahList.includes(w.wilayah));
+  }, [sortedBK, selectedWilayahList]);
+
+  const displayBJK = useMemo(() => {
+    if (!selectedWilayahList || selectedWilayahList.length === 0) return sortedBJK;
+    return sortedBJK.filter((w) => selectedWilayahList.includes(w.wilayah));
+  }, [sortedBJK, selectedWilayahList]);
+
+  const displaySN = useMemo(() => {
+    if (!selectedWilayahList || selectedWilayahList.length === 0) return sortedSN;
+    return sortedSN.filter((w) => selectedWilayahList.includes(w.wilayah));
+  }, [sortedSN, selectedWilayahList]);
+
+  const maxBK = Math.max(...displayBK.map((w) => w.luas), 1);
+  const maxBJK = Math.max(...displayBJK.map((w) => w.luas), 1);
+  const maxSN = Math.max(...displaySN.map((w) => w.luas), 1);
 
   // Cari wilayah dengan luas tertinggi untuk ditampilkan pada label ringkasan
-  const highestBK = [...sortedBK].sort((a, b) => b.luas - a.luas)[0];
-  const highestBJK = [...sortedBJK].sort((a, b) => b.luas - a.luas)[0];
-  const highestSN = [...sortedSN].sort((a, b) => b.luas - a.luas)[0];
+  const highestBK = [...displayBK].sort((a, b) => b.luas - a.luas)[0];
+  const highestBJK = [...displayBJK].sort((a, b) => b.luas - a.luas)[0];
+  const highestSN = [...displaySN].sort((a, b) => b.luas - a.luas)[0];
 
   // Helper untuk ranking
   const getRankMap = (list: typeof sortedBK) => {
@@ -262,9 +292,9 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
     return new Map(sortedByLuas.map((item, idx) => [item.wilayah, idx + 1]));
   };
 
-  const rankMapBK = getRankMap(sortedBK);
-  const rankMapBJK = getRankMap(sortedBJK);
-  const rankMapSN = getRankMap(sortedSN);
+  const rankMapBK = getRankMap(displayBK);
+  const rankMapBJK = getRankMap(displayBJK);
+  const rankMapSN = getRankMap(displaySN);
 
   // Dynamic bar coloring based on height/value relative to maximum (GGF Logo Palette)
   const getDynamicHeightColor = (val: number, maxVal: number) => {
@@ -366,25 +396,38 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             Posisi Lahan per Wilayah (BK, BJK, SN)
           </h3>
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            Monitoring sebaran luas lahan per wilayah operasional (Bongkar, Bajak, Siap Tanam)
+          </span>
         </div>
+
+        {setSelectedWilayah && (
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <WilayahFilterDropdown
+              selectedWilayah={selectedWilayah}
+              setSelectedWilayah={setSelectedWilayah}
+              availableWilayahs={availableWilayahs || officialWilayahs}
+            />
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Grafik 1: BK (Bongkar) */}
-        <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h4 className="text-xs font-extrabold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
                 Posisi Lahan BK per Wilayah
               </h4>
               <span className="text-[10px] font-medium text-slate-600 dark:text-slate-400">
-                Tertinggi: <strong className="text-slate-900 dark:text-slate-200 font-bold">{highestBK?.wilayah}</strong> ({highestBK?.luas.toFixed(1)} Ha)
+                Tertinggi: <strong className="text-slate-900 dark:text-slate-200 font-bold">{highestBK?.wilayah || '-'}</strong> ({highestBK ? highestBK.luas.toFixed(1) : '0'} Ha)
               </span>
             </div>
             <span className="text-[10px] text-amber-800 dark:text-amber-300 font-bold bg-amber-500/15 px-2 py-0.5 rounded border border-amber-500/30">
@@ -395,7 +438,7 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
           <div className="h-60 w-full outline-none focus:outline-none select-none">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={sortedBK.map((item) => ({ ...item, rank: rankMapBK.get(item.wilayah) || 1 }))}
+                data={displayBK.map((item) => ({ ...item, rank: rankMapBK.get(item.wilayah) || 1 }))}
                 margin={{ top: 10, right: 10, left: -20, bottom: 8 }}
                 className="outline-none focus:outline-none"
               >
@@ -422,7 +465,7 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
                   }
                 />
                 <Bar dataKey="luas" name="Luas BK (Ha)" radius={[4, 4, 0, 0]} maxBarSize={32}>
-                  {sortedBK.map((entry, index) => {
+                  {displayBK.map((entry, index) => {
                     const colorInfo = getDynamicHeightColor(entry.luas, maxBK);
                     return (
                       <Cell
@@ -438,14 +481,14 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
         </div>
 
         {/* Grafik 2: BJK (Bajak) */}
-        <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h4 className="text-xs font-extrabold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
                 Posisi Lahan BJK per Wilayah
               </h4>
               <span className="text-[10px] font-medium text-slate-600 dark:text-slate-400">
-                Tertinggi: <strong className="text-slate-900 dark:text-slate-200 font-bold">{highestBJK?.wilayah}</strong> ({highestBJK?.luas.toFixed(1)} Ha)
+                Tertinggi: <strong className="text-slate-900 dark:text-slate-200 font-bold">{highestBJK?.wilayah || '-'}</strong> ({highestBJK ? highestBJK.luas.toFixed(1) : '0'} Ha)
               </span>
             </div>
             <span className="text-[10px] text-blue-800 dark:text-blue-300 font-bold bg-blue-500/15 px-2 py-0.5 rounded border border-blue-500/30">
@@ -456,7 +499,7 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
           <div className="h-60 w-full outline-none focus:outline-none select-none">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={sortedBJK.map((item) => ({ ...item, rank: rankMapBJK.get(item.wilayah) || 1 }))}
+                data={displayBJK.map((item) => ({ ...item, rank: rankMapBJK.get(item.wilayah) || 1 }))}
                 margin={{ top: 10, right: 10, left: -20, bottom: 8 }}
                 className="outline-none focus:outline-none"
               >
@@ -483,7 +526,7 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
                   }
                 />
                 <Bar dataKey="luas" name="Luas BJK (Ha)" radius={[4, 4, 0, 0]} maxBarSize={32}>
-                  {sortedBJK.map((entry, index) => {
+                  {displayBJK.map((entry, index) => {
                     const colorInfo = getDynamicHeightColor(entry.luas, maxBJK);
                     return (
                       <Cell
@@ -499,14 +542,14 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
         </div>
 
         {/* Grafik 3: SN (Siap Tanam) */}
-        <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h4 className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
                 Posisi Lahan SN per Wilayah
               </h4>
               <span className="text-[10px] font-medium text-slate-600 dark:text-slate-400">
-                Tertinggi: <strong className="text-slate-900 dark:text-slate-200 font-bold">{highestSN?.wilayah}</strong> ({highestSN?.luas.toFixed(1)} Ha)
+                Tertinggi: <strong className="text-slate-900 dark:text-slate-200 font-bold">{highestSN?.wilayah || '-'}</strong> ({highestSN ? highestSN.luas.toFixed(1) : '0'} Ha)
               </span>
             </div>
             <span className="text-[10px] text-emerald-800 dark:text-emerald-300 font-bold bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30">
@@ -517,7 +560,7 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
           <div className="h-60 w-full outline-none focus:outline-none select-none">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={sortedSN.map((item) => ({ ...item, rank: rankMapSN.get(item.wilayah) || 1 }))}
+                data={displaySN.map((item) => ({ ...item, rank: rankMapSN.get(item.wilayah) || 1 }))}
                 margin={{ top: 10, right: 10, left: -20, bottom: 8 }}
                 className="outline-none focus:outline-none"
               >
@@ -544,7 +587,7 @@ export function PosisiLahanSection({ chartsData, onSelectLand }: CommonChartProp
                   }
                 />
                 <Bar dataKey="luas" name="Luas SN (Ha)" radius={[4, 4, 0, 0]} maxBarSize={32}>
-                  {sortedSN.map((entry, index) => {
+                  {displaySN.map((entry, index) => {
                     const colorInfo = getDynamicHeightColor(entry.luas, maxSN);
                     return (
                       <Cell
@@ -945,7 +988,7 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors">
       {/* Header Bar */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-3.5">
         <div className="flex items-center gap-2.5">
@@ -1493,7 +1536,13 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
 // =========================================================================
 // 3. PROSES TANAM & SELESAI TANAM PER WILAYAH
 // =========================================================================
-export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProps) {
+export function ProsesTanamSection({
+  chartsData,
+  onSelectLand,
+  selectedWilayah,
+  setSelectedWilayah,
+  availableWilayahs,
+}: CommonChartProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [hideProses, setHideProses] = useState(false);
@@ -1551,6 +1600,16 @@ export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProp
     }));
   }, [chartsData?.wilayahPositions]);
 
+  const selectedWilayahList = useMemo(() => {
+    if (!selectedWilayah || selectedWilayah === 'ALL') return null;
+    return selectedWilayah.split(',').map((w) => w.trim()).filter(Boolean);
+  }, [selectedWilayah]);
+
+  const displayData = useMemo(() => {
+    if (!selectedWilayahList || selectedWilayahList.length === 0) return normalizedData;
+    return normalizedData.filter((item) => selectedWilayahList.includes(item.wilayah));
+  }, [normalizedData, selectedWilayahList]);
+
   if (!chartsData || !chartsData.wilayahPositions) return null;
 
   // Clicking W01..W07 below the chart cycles through hide legend
@@ -1570,16 +1629,16 @@ export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProp
     }
   };
 
-  const totalProses = normalizedData.reduce((acc, curr) => acc + curr.prosesCount, 0);
-  const totalProsesLuas = Math.round(normalizedData.reduce((acc, curr) => acc + curr.prosesLuas, 0) * 100) / 100;
-  const totalSelesai = normalizedData.reduce((acc, curr) => acc + curr.selesaiCount, 0);
-  const totalSelesaiLuas = Math.round(normalizedData.reduce((acc, curr) => acc + curr.selesaiLuas, 0) * 100) / 100;
+  const totalProses = displayData.reduce((acc, curr) => acc + curr.prosesCount, 0);
+  const totalProsesLuas = Math.round(displayData.reduce((acc, curr) => acc + curr.prosesLuas, 0) * 100) / 100;
+  const totalSelesai = displayData.reduce((acc, curr) => acc + curr.selesaiCount, 0);
+  const totalSelesaiLuas = Math.round(displayData.reduce((acc, curr) => acc + curr.selesaiLuas, 0) * 100) / 100;
   const totalTanamLokasi = totalProses + totalSelesai;
   const totalTanamLuas = Math.round((totalProsesLuas + totalSelesaiLuas) * 100) / 100;
 
   const CustomPlantingTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      const item = normalizedData.find((w) => w.wilayah === label);
+      const item = displayData.find((w) => w.wilayah === label);
       const prosesLocs = item?.prosesLocations || [];
       const selesaiLocs = item?.selesaiLocations || [];
       const prosesLuas = item?.prosesLuas || 0;
@@ -1681,7 +1740,7 @@ export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProp
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
@@ -1698,12 +1757,22 @@ export function ProsesTanamSection({ chartsData, onSelectLand }: CommonChartProp
             </div>
           </div>
         </div>
+
+        {setSelectedWilayah && (
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <WilayahFilterDropdown
+              selectedWilayah={selectedWilayah}
+              setSelectedWilayah={setSelectedWilayah}
+              availableWilayahs={availableWilayahs || ['W01', 'W02', 'W03', 'W04', 'W05', 'W06', 'W07']}
+            />
+          </div>
+        )}
       </div>
 
       <div className="h-80 w-full outline-none focus:outline-none select-none">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
-            data={normalizedData}
+            data={displayData}
             margin={{ top: 10, right: 10, left: -20, bottom: 14 }}
             className="outline-none focus:outline-none"
           >

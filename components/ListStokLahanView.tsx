@@ -499,7 +499,7 @@ export default function ListStokLahanView({
   return (
     <div className="space-y-6">
       {/* Top Banner */}
-      <div className="p-6 rounded-3xl bg-gradient-to-r from-emerald-500/10 via-white to-amber-500/10 dark:from-emerald-950/40 dark:via-slate-900 dark:to-slate-900 border border-emerald-500/25 dark:border-emerald-500/20 glass-panel flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xs transition-colors">
+      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-emerald-500/25 dark:border-emerald-500/20 glass-panel flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xs transition-colors">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-lg bg-emerald-500/15 dark:bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
@@ -547,7 +547,7 @@ export default function ListStokLahanView({
               className={`p-4 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between cursor-pointer ${
                 isActive
                   ? `${cat.activeBorder} shadow-md`
-                  : 'bg-white dark:bg-slate-950/70 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50'
+                  : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900'
               }`}
             >
               <div className="flex items-center justify-between mb-3">
@@ -569,7 +569,7 @@ export default function ListStokLahanView({
       </div>
 
       {/* Table Container with Grouped Header for PH (Bab 23 PRD) */}
-      <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden glass-panel flex flex-col shadow-xs transition-colors">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden glass-panel flex flex-col shadow-xs transition-colors">
         {/* Table Filter Controls */}
         <div className="p-5 border-b border-slate-200 dark:border-slate-800 space-y-3">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

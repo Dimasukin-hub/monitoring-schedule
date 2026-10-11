@@ -66,7 +66,7 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
 
   if (loading) {
     return (
-      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 glass-panel animate-pulse space-y-4">
+      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 glass-panel animate-pulse space-y-4">
         <div className="h-6 w-64 bg-slate-200 dark:bg-slate-800 rounded"></div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
           <div className="h-88 bg-slate-100 dark:bg-slate-950/60 rounded-2xl"></div>
@@ -91,7 +91,7 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
   const filteredBeroData = filterByYear(data.beroChartData);
 
   return (
-    <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 glass-panel shadow-sm dark:shadow-2xl space-y-6 transition-colors">
+    <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 glass-panel shadow-sm dark:shadow-2xl space-y-6 transition-colors">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
         <div className="flex items-center gap-2.5">

@@ -82,7 +82,7 @@ export default function PanenView({ onOpenLand, refreshTrigger = 0 }: PanenViewP
   return (
     <div className="space-y-6">
       {/* Top Banner (Bab 26 PRD) */}
-      <div className="p-6 rounded-3xl bg-gradient-to-r from-purple-50 via-white to-slate-50 dark:from-purple-950/40 dark:via-slate-900 dark:to-slate-900 border border-purple-200 dark:border-purple-500/20 glass-panel flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xs">
+      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-500/20 glass-panel flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xs">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-lg bg-purple-500/10 dark:bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
@@ -101,7 +101,7 @@ export default function PanenView({ onOpenLand, refreshTrigger = 0 }: PanenViewP
           </p>
         </div>
 
-        <div className="flex items-center gap-4 bg-white/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shrink-0 shadow-xs">
+        <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shrink-0 shadow-xs">
           <div className="text-right">
             <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">Estimasi Panen</span>
             <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">
@@ -116,7 +116,7 @@ export default function PanenView({ onOpenLand, refreshTrigger = 0 }: PanenViewP
 
       {/* KPI Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/90 border border-purple-200 dark:border-purple-500/30 glass-panel shadow-xs">
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-500/30 glass-panel shadow-xs">
           <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">Total Lokasi Panen</span>
           <span className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1 block">
             {summary.totalLocations} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">Lokasi Terjadwal</span>
@@ -124,7 +124,7 @@ export default function PanenView({ onOpenLand, refreshTrigger = 0 }: PanenViewP
           <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 block">Kategori produksi NSFC & NSSC</span>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/90 border border-emerald-200 dark:border-emerald-500/30 glass-panel shadow-xs">
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-500/30 glass-panel shadow-xs">
           <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">Total Estimasi Luas</span>
           <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1 block">
             {summary.totalHa.toLocaleString('id-ID')} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">Ha Netto</span>
@@ -132,7 +132,7 @@ export default function PanenView({ onOpenLand, refreshTrigger = 0 }: PanenViewP
           <span className="text-[11px] text-emerald-700 dark:text-emerald-400/80 mt-1 block">Luas produktif nanas 2026/2027</span>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/90 border border-cyan-200 dark:border-cyan-500/30 glass-panel shadow-xs">
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-cyan-200 dark:border-cyan-500/30 glass-panel shadow-xs">
           <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">Bulan Panen Terdaftar</span>
           <span className="text-2xl font-bold text-cyan-600 dark:text-cyan-400 mt-1 block">
             {summary.availableMonths.length} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">Periode</span>
@@ -142,7 +142,7 @@ export default function PanenView({ onOpenLand, refreshTrigger = 0 }: PanenViewP
       </div>
 
       {/* Visual Chart: Proyeksi Panen (Ha) per Bulan */}
-      <div className="p-6 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 glass-panel shadow-xs">
+      <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 glass-panel shadow-xs">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-600 dark:text-purple-400">
@@ -179,7 +179,7 @@ export default function PanenView({ onOpenLand, refreshTrigger = 0 }: PanenViewP
       </div>
 
       {/* Harvest Projections Table (Bab 26 PRD) */}
-      <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden glass-panel shadow-xs">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden glass-panel shadow-xs">
         <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
