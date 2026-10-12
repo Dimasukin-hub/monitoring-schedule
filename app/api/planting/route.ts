@@ -144,7 +144,7 @@ export async function GET(request: Request) {
       // Build orderBy
       const orderBy: any = {};
       if (['lokasi', 'luas', 'realTanam', 'sisa', 'progress', 'leadtime', 'status', 'id', 'jenisBibit', 'kelasBibit'].includes(sortBy)) {
-        orderBy[sortBy] = { sort: sortOrder, nulls: 'last' };
+        orderBy[sortBy] = sortOrder;
       } else {
         orderBy.id = 'asc';
       }
