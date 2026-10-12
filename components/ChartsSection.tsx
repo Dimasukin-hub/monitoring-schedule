@@ -648,7 +648,14 @@ export function PosisiLahanSection({
     stageTitle: string,
     badgeClass: string
   ) => {
-    const sortedDesc = [...list].sort((a, b) => b.luas - a.luas);
+    // Urutan wilayah dibuat mulai dari W01 sampai W07 sesuai permintaan
+    const sortedByWilayah = [...list].sort((a, b) => a.wilayah.localeCompare(b.wilayah));
+    const barColor = stageTitle.includes('BK')
+      ? 'bg-amber-500'
+      : stageTitle.includes('BJK')
+      ? 'bg-blue-600'
+      : 'bg-emerald-500';
+
     return (
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs flex flex-col justify-between">
         <div>
@@ -658,7 +665,7 @@ export function PosisiLahanSection({
                 Rincian Wilayah {stageTitle}
               </h5>
               <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                Peringkat luas lahan per wilayah operasional
+                Rincian luas lahan per wilayah operasional (W01 - W07)
               </span>
             </div>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${badgeClass}`}>
@@ -667,7 +674,7 @@ export function PosisiLahanSection({
           </div>
 
           <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-            {sortedDesc.map((item, idx) => {
+            {sortedByWilayah.map((item, idx) => {
               const pct = totalLuas > 0 ? (item.luas / totalLuas) * 100 : 0;
               return (
                 <div
@@ -695,7 +702,7 @@ export function PosisiLahanSection({
                   {/* Mini progress bar */}
                   <div className="w-full h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-emerald-500 rounded-full"
+                      className={`h-full ${barColor} rounded-full`}
                       style={{ width: `${Math.min(100, pct)}%` }}
                     />
                   </div>
