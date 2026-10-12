@@ -221,17 +221,101 @@ export default function KpiCards({
   // Compute stock summary: use server-provided data if matched, or compute instantaneously on client
   const stokSummary: StokLahanSummaryResult = useMemo(() => {
     const effectiveMonth = selectedMonths.length === 0 ? currentMonthName : internalMonthStr;
-    if (
-      data?.stokLahanSummary &&
-      data.stokLahanSummary.year === internalYear &&
-      (data.stokLahanSummary.month === effectiveMonth ||
-        (selectedMonths.length === 0 && data.stokLahanSummary.month === currentMonthName) ||
-        (internalMonthStr === 'ALL' && data.stokLahanSummary.month === 'ALL'))
-    ) {
-      return data.stokLahanSummary;
+    if (data?.stokLahanSummary) {
+      // 1. Direct match with current selection
+      if (
+        data.stokLahanSummary.year === internalYear &&
+        (data.stokLahanSummary.month === effectiveMonth ||
+          (selectedMonths.length === 0 && data.stokLahanSummary.month === currentMonthName) ||
+          (internalMonthStr === 'ALL' && data.stokLahanSummary.month === 'ALL'))
+      ) {
+        return data.stokLahanSummary;
+      }
+
+      // 2. Derive dynamically from monthlyBreakdown provided by PostgreSQL
+      if (data.stokLahanSummary.monthlyBreakdown && data.stokLahanSummary.monthlyBreakdown.length > 0) {
+        const breakdown = data.stokLahanSummary.monthlyBreakdown;
+        const targetMonths = selectedMonths.length === 0 ? [currentMonthName] : selectedMonths;
+
+        if (internalMonthStr === 'ALL') {
+          const decRecord = breakdown.find((r) => r.monthIndex === 12) || breakdown[breakdown.length - 1];
+          let totalBongkar = 0;
+          let totalBajak = 0;
+          let totalSn = 0;
+          let totalTanam = 0;
+          for (const r of breakdown) {
+            totalBongkar += r.bongkar;
+            totalBajak += r.bajak;
+            totalSn += r.sn;
+            totalTanam += r.tanam;
+          }
+          const totalLahan = totalBongkar + totalBajak + totalSn + totalTanam;
+          return {
+            year: internalYear,
+            month: 'ALL',
+            monthLabel: `Tahun ${internalYear} (Semua Bulan)`,
+            stokLahan: {
+              value: Math.round(totalLahan * 100) / 100,
+              formula: `Bongkar (${totalBongkar.toFixed(2)}) + Bajak (${totalBajak.toFixed(2)}) + SN (${totalSn.toFixed(2)}) + Tanam (${totalTanam.toFixed(2)})`,
+              details: {
+                bongkar: Math.round(totalBongkar * 100) / 100,
+                bajak: Math.round(totalBajak * 100) / 100,
+                sn: Math.round(totalSn * 100) / 100,
+                tanam: Math.round(totalTanam * 100) / 100,
+              },
+            },
+            stokBongkar: { value: decRecord.stokBongkar, formula: decRecord.stokBongkarFormula || '' },
+            stokBajak: { value: decRecord.stokBajak, formula: decRecord.stokBajakFormula || '' },
+            stokSN: { value: decRecord.stokSN, formula: decRecord.stokSNFormula || '' },
+            totalStok: { value: decRecord.totalStok, formula: '' },
+            monthlyBreakdown: breakdown,
+            availableYears: AVAILABLE_STOK_YEARS,
+            availableMonths: ALL_MONTH_NAMES,
+          };
+        }
+
+        const filtered = breakdown.filter((r) => targetMonths.includes(r.month));
+        if (filtered.length > 0) {
+          filtered.sort((a, b) => a.monthIndex - b.monthIndex);
+          const latestItem = filtered[filtered.length - 1];
+          let totalBongkar = 0;
+          let totalBajak = 0;
+          let totalSn = 0;
+          let totalTanam = 0;
+          for (const item of filtered) {
+            totalBongkar += item.bongkar;
+            totalBajak += item.bajak;
+            totalSn += item.sn;
+            totalTanam += item.tanam;
+          }
+          const totalMonthLahan = totalBongkar + totalBajak + totalSn + totalTanam;
+          return {
+            year: internalYear,
+            month: targetMonths.join(','),
+            monthLabel: filtered.length === 1 ? `${filtered[0].month} ${internalYear}` : `${filtered.length} Bulan`,
+            stokLahan: {
+              value: Math.round(totalMonthLahan * 100) / 100,
+              formula: `Bongkar (${totalBongkar.toFixed(2)}) + Bajak (${totalBajak.toFixed(2)}) + SN (${totalSn.toFixed(2)}) + Tanam (${totalTanam.toFixed(2)})`,
+              details: {
+                bongkar: Math.round(totalBongkar * 100) / 100,
+                bajak: Math.round(totalBajak * 100) / 100,
+                sn: Math.round(totalSn * 100) / 100,
+                tanam: Math.round(totalTanam * 100) / 100,
+              },
+            },
+            stokBongkar: { value: latestItem.stokBongkar, formula: latestItem.stokBongkarFormula || '' },
+            stokBajak: { value: latestItem.stokBajak, formula: latestItem.stokBajakFormula || '' },
+            stokSN: { value: latestItem.stokSN, formula: latestItem.stokSNFormula || '' },
+            totalStok: { value: latestItem.totalStok, formula: '' },
+            monthlyBreakdown: breakdown,
+            availableYears: AVAILABLE_STOK_YEARS,
+            availableMonths: ALL_MONTH_NAMES,
+          };
+        }
+      }
     }
     return getStokLahanSummary(internalYear, selectedMonths.length === 0 ? 'CURRENT' : internalMonthStr);
-  }, [data?.stokLahanSummary, internalYear, internalMonthStr, selectedMonths.length, currentMonthName]);
+  }, [data?.stokLahanSummary, internalYear, internalMonthStr, selectedMonths, currentMonthName]);
 
   if (!data) {
     return (

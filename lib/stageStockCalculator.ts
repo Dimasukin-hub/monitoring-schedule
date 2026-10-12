@@ -25,9 +25,15 @@ interface MonthlyBaselineItem {
 
 interface LandBaselineItem {
   netto: number;
-  ds: string;
-  dt: string;
-  du: string;
+  baseRealBkr?: any;
+  baseRealBajak?: any;
+  baseBulanSn?: any;
+  baseRealBkrMonth?: number | null;
+  baseRealBajakMonth?: number | null;
+  baseRealSnMonth?: number | null;
+  ds?: string;
+  dt?: string;
+  du?: string;
   rencBkr?: any;
   rencBajak?: any;
   bulanSn?: any;
@@ -105,6 +111,59 @@ export function parseDateVal(val: any): Date | null {
   return null;
 }
 
+/**
+ * Ekstrak bulan (1..12) untuk tahun target dari berbagai format tanggal
+ */
+export function parseDateToMonth(val: any, targetYear: number = 2026): number | null {
+  if (val === null || val === undefined) return null;
+  if (val instanceof Date && !isNaN(val.getTime())) {
+    if (val.getFullYear() === targetYear) return val.getMonth() + 1;
+    return null;
+  }
+  const s = String(val).trim();
+  if (!s || s === '-' || s === '0' || s.toLowerCase() === 'null' || s.toLowerCase() === 'undefined') return null;
+
+  // Format DD/MM/YYYY atau D/M/YYYY
+  const pSlash = s.split('/');
+  if (pSlash.length === 3) {
+    const m = parseInt(pSlash[1], 10);
+    let y = parseInt(pSlash[2], 10);
+    if (y < 100) y += 2000;
+    if (y === targetYear && m >= 1 && m <= 12) return m;
+  }
+
+  // Format YYYY-MM-DD
+  const pDash = s.split('-');
+  if (pDash.length === 3 && pDash[0].length === 4) {
+    const y = parseInt(pDash[0], 10);
+    const m = parseInt(pDash[1], 10);
+    if (y === targetYear && m >= 1 && m <= 12) return m;
+  }
+
+  // Format MMM-YY (contoh: Okt-26, Nov-26, Sep-26)
+  if (pDash.length === 2) {
+    const mStr = pDash[0].toLowerCase().slice(0, 3);
+    let y = parseInt(pDash[1], 10);
+    if (y < 100) y += 2000;
+    if (y === targetYear && MONTH_MAP[mStr] !== undefined) return MONTH_MAP[mStr] + 1;
+  }
+
+  // Excel serial number
+  const num = Number(s);
+  if (!isNaN(num) && num > 30000 && num < 60000) {
+    const epoch = new Date(1899, 11, 30);
+    const d = new Date(epoch.getTime() + num * 86400000);
+    if (d.getFullYear() === targetYear) return d.getMonth() + 1;
+  }
+
+  const dIso = new Date(s);
+  if (!isNaN(dIso.getTime()) && dIso.getFullYear() === targetYear) {
+    return dIso.getMonth() + 1;
+  }
+
+  return null;
+}
+
 export function getEffectiveMonthYear(d: Date | null): { month: number; year: number; key: string } | null {
   if (!d || isNaN(d.getTime())) return null;
   const month = d.getMonth() + 1;
@@ -121,12 +180,12 @@ export function maxDate(d1: Date | null, d2: Date | null): Date | null {
  * Menghitung ulang seluruh tabel StageStockSummary untuk tahun target (default 2026)
  * berdasarkan rumus Sheet Stok Lahan di Excel Schedule 2026 Update 09:
  *
- * 1. Bongkar(m) = SUMIF(Master!$DS:$DS, N57, Master!$F:$F) di mana DO = MAX(L, BU)
- * 2. Bajak(m) = SUMIF(Master!$DT:$DT, N57, Master!$F:$F) di mana DP = MAX(M, BV)
- * 3. SN(m) = SUMIF(Master!$DU:$DU, N57, Master!$F:$F) di mana DQ = +B (Bulan SN)
- * 4. Stok Bongkar(m) = Stok Bongkar(m-1) + Bongkar(m) - Bajak(m)
- * 5. Stok Bajak(m) = Stok Bajak(m-1) + Bajak(m) - SN(m)
- * 6. Stok SN(m) = Stok SN(m-1) + SN(m) - Tanam(m)
+ * 1. Bongkar(m): Baseline Excel dimodifikasi delta realisasi Bongkar
+ * 2. Bajak(m): Baseline Excel dimodifikasi delta realisasi Bajak (MB 5 BTR, MB 25, Howard, dll.)
+ * 3. SN(m): Baseline Excel dimodifikasi delta realisasi Siap Tanam
+ * 4. Stok Bongkar(m) = Stok Bongkar(m-1) + Bongkar(m) - Bajak(m) (+M64 + N59 - N60)
+ * 5. Stok Bajak(m) = Stok Bajak(m-1) + Bajak(m) - SN(m) (+M65 + N60 - N61)
+ * 6. Stok SN(m) = Stok SN(m-1) + SN(m) - Tanam(m) (+M66 + N61 - N62)
  * 7. Total Stok(m) = Stok Bongkar(m) + Stok Bajak(m) + Stok SN(m)
  */
 export async function recalculateAndPersistStageStocks(targetYear: number = 2026) {
@@ -161,7 +220,7 @@ export async function recalculateAndPersistStageStocks(targetYear: number = 2026
     monthlyTanam[m.monthIndex] = m.tanam;
   }
 
-  // 3. Terapkan delta dinamis persis sesuai rumus Sheet Master Excel:
+  // 3. Terapkan delta dinamis saat pengguna memasukkan / mengubah tanggal realisasi:
   for (const l of lands) {
     const base = lands2026Baselines[l.lokasi];
     if (!base) continue;
@@ -169,27 +228,21 @@ export async function recalculateAndPersistStageStocks(targetYear: number = 2026
     const netto = Number(l.luasNetto) || base.netto;
     const details = (typeof l.aplikasiDetails === 'object' && l.aplikasiDetails !== null) ? (l.aplikasiDetails as any) : {};
 
-    // 3a. Bongkar = MAX(Rencana Bongkar, Realisasi Bongkar) -> Tag DS
+    // 3a. Bongkar (Chopper / RH1)
     const realBkrStr = l.realBkr || details.realChopper || details.realRh1 || null;
-    const rencBkrStr = l.rencBkr || details.chopper || null;
-    const dRencBkr = parseDateVal(rencBkrStr) || parseDateVal(base.rencBkr);
-    const dRealBkr = parseDateVal(realBkrStr);
-    const dDO = maxDate(dRencBkr, dRealBkr);
-    const mDO = getEffectiveMonthYear(dDO);
-    const curDS = mDO ? mDO.key : base.ds;
+    const curBkrMonth = parseDateToMonth(realBkrStr, targetYear);
+    const baseBkrMonth = base.baseRealBkrMonth ?? null;
 
-    if (curDS && curDS !== base.ds) {
-      const baseM = parseInt(base.ds.slice(0, -4), 10);
-      const baseY = parseInt(base.ds.slice(-4), 10);
-      if (baseY === targetYear && baseM >= 1 && baseM <= 12) {
-        monthlyBongkar[baseM] -= netto;
+    if (curBkrMonth !== baseBkrMonth) {
+      if (baseBkrMonth && baseBkrMonth >= 1 && baseBkrMonth <= 12) {
+        monthlyBongkar[baseBkrMonth] -= netto;
       }
-      if (mDO && mDO.year === targetYear && mDO.month >= 1 && mDO.month <= 12) {
-        monthlyBongkar[mDO.month] += netto;
+      if (curBkrMonth && curBkrMonth >= 1 && curBkrMonth <= 12) {
+        monthlyBongkar[curBkrMonth] += netto;
       }
     }
 
-    // 3b. Bajak = MAX(Rencana Bajak, Realisasi Bajak) -> Tag DT
+    // 3b. Bajak (MB 5 BTR, MB 25, Howard, Nardi, Hr Eks Mb, dll)
     const realBjkStr =
       l.realBajak ||
       details.realBajak ||
@@ -199,43 +252,37 @@ export async function recalculateAndPersistStageStocks(targetYear: number = 2026
       details.realBajakAwalNardi ||
       details.realHrEksMb ||
       null;
-    const rencBjkStr = l.rencBajak || details.rencAwalMb5Btr || details.bajakAwalMb5Btr || null;
-    const dRencBjk = parseDateVal(rencBjkStr) || parseDateVal(base.rencBajak);
-    const dRealBjk = parseDateVal(realBjkStr);
-    const dDP = maxDate(dRencBjk, dRealBjk);
-    const mDP = getEffectiveMonthYear(dDP);
-    const curDT = mDP ? mDP.key : base.dt;
+    const curBjkMonth = parseDateToMonth(realBjkStr, targetYear);
+    const baseBjkMonth = base.baseRealBajakMonth ?? null;
 
-    if (curDT && curDT !== base.dt) {
-      const baseM = parseInt(base.dt.slice(0, -4), 10);
-      const baseY = parseInt(base.dt.slice(-4), 10);
-      if (baseY === targetYear && baseM >= 1 && baseM <= 12) {
-        monthlyBajak[baseM] -= netto;
+    if (curBjkMonth !== baseBjkMonth) {
+      if (baseBjkMonth && baseBjkMonth >= 1 && baseBjkMonth <= 12) {
+        monthlyBajak[baseBjkMonth] -= netto;
       }
-      if (mDP && mDP.year === targetYear && mDP.month >= 1 && mDP.month <= 12) {
-        monthlyBajak[mDP.month] += netto;
+      if (curBjkMonth && curBjkMonth >= 1 && curBjkMonth <= 12) {
+        monthlyBajak[curBjkMonth] += netto;
       }
     }
 
-    // 3c. Siap Tanam / SN = Bulan SN (Kolom B di Sheet Master) -> Tag DU
-    const rencSnDate = parseDateVal(l.bulanSn) || parseDateVal(base.bulanSn);
-    const dDQ = rencSnDate;
-    const mDQ = getEffectiveMonthYear(dDQ);
-    const curDU = mDQ ? mDQ.key : base.du;
+    // 3c. Siap Tanam / SN (Bulan SN, realSiapTanam)
+    const realSnStr = l.bulanSn || details.realSiapTanam || null;
+    const curSnMonth = parseDateToMonth(realSnStr, targetYear);
+    const baseSnMonth = base.baseRealSnMonth ?? null;
 
-    if (curDU && curDU !== base.du) {
-      const baseM = parseInt(base.du.slice(0, -4), 10);
-      const baseY = parseInt(base.du.slice(-4), 10);
-      if (baseY === targetYear && baseM >= 1 && baseM <= 12) {
-        monthlySN[baseM] -= netto;
+    if (curSnMonth !== baseSnMonth) {
+      if (baseSnMonth && baseSnMonth >= 1 && baseSnMonth <= 12) {
+        monthlySN[baseSnMonth] -= netto;
       }
-      if (mDQ && mDQ.year === targetYear && mDQ.month >= 1 && mDQ.month <= 12) {
-        monthlySN[mDQ.month] += netto;
+      if (curSnMonth && curSnMonth >= 1 && curSnMonth <= 12) {
+        monthlySN[curSnMonth] += netto;
       }
     }
   }
 
-  // 4. Hitung rolling carryover stok
+  // 4. Hitung rolling carryover stok persis rumus Excel:
+  // Stok Bongkar = Stok Bongkar(m-1) + Bongkar(m) - Bajak(m)
+  // Stok Bajak = Stok Bajak(m-1) + Bajak(m) - SN(m)
+  // Stok SN = Stok SN(m-1) + SN(m) - Tanam(m)
   let rollingBk = baselineData.initialCarryover.bongkar;
   let rollingBjk = baselineData.initialCarryover.bajak;
   let rollingSN = baselineData.initialCarryover.sn;
