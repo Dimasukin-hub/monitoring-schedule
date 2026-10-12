@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import KpiCards from '@/components/KpiCards';
 import {
-  PosisiLahanSection,
   RencanaRealisasiSection,
   ProsesTanamSection,
 } from '@/components/ChartsSection';
@@ -106,7 +105,6 @@ export default function LabitaDashboardPage() {
       case 'overview': {
         const subTitles: Record<string, string> = {
           executive_summary: 'Executive Summary',
-          posisi_lahan: 'Posisi Lahan per Wilayah',
           rencana_realisasi: 'Rencana vs Realisasi',
           rerata_bero_tanam: 'Rerata Bero dan Tanam',
           proses_selesai_tanam: 'Proses Tanam & Selesai Tanam',
@@ -192,14 +190,11 @@ export default function LabitaDashboardPage() {
                 }}
                 selectedPeriod={selectedPeriod}
                 onSelectPeriod={(p) => setSelectedPeriod(p)}
-              />
-            )}
-
-            {/* 2. SUB MENU: POSISI LAHAN PER WILAYAH */}
-            {overviewSubTab === 'posisi_lahan' && (
-              <PosisiLahanSection
                 chartsData={chartsData}
                 onSelectLand={(loc) => setSelectedLandId(loc)}
+                selectedWilayah={selectedWilayah}
+                setSelectedWilayah={setSelectedWilayah}
+                availableWilayahs={summaryData?.availableWilayahs || []}
               />
             )}
 

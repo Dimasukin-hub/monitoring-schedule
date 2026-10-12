@@ -28,7 +28,6 @@ export interface SubMenuItem {
 
 export const OVERVIEW_SUB_MENUS: SubMenuItem[] = [
   { id: 'executive_summary', label: 'Executive Summary' },
-  { id: 'posisi_lahan', label: 'Posisi Lahan' },
   { id: 'rencana_realisasi', label: 'Rencana vs Realisasi' },
   { id: 'rerata_bero_tanam', label: 'Rerata Bero dan Tanam' },
   { id: 'proses_selesai_tanam', label: 'Proses Tanam & Selesai Tanam' },

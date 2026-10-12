@@ -26,6 +26,8 @@ import {
   BarChart3,
   Table,
   Info,
+  Boxes,
+  Sparkles,
 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import WilayahFilterDropdown from './WilayahFilterDropdown';
@@ -181,12 +183,19 @@ export interface ChartsDataProps {
   }>;
 }
 
-interface CommonChartProps {
+export interface CommonChartProps {
   chartsData: ChartsDataProps | null;
   onSelectLand?: (lokasi: string) => void;
   selectedWilayah?: string;
   setSelectedWilayah?: (wilayah: string) => void;
   availableWilayahs?: string[];
+}
+
+export interface PosisiLahanProps extends CommonChartProps {
+  activeStage?: 'BK' | 'BJK' | 'SN' | 'ALL';
+  onStageChange?: (stage: 'BK' | 'BJK' | 'SN' | 'ALL') => void;
+  onClose?: () => void;
+  showStageSwitcher?: boolean;
 }
 
 // =========================================================================
@@ -199,7 +208,11 @@ export function PosisiLahanSection({
   selectedWilayah,
   setSelectedWilayah,
   availableWilayahs,
-}: CommonChartProps) {
+  activeStage = 'ALL',
+  onStageChange,
+  onClose,
+  showStageSwitcher = true,
+}: PosisiLahanProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -394,214 +407,445 @@ export function PosisiLahanSection({
     return null;
   };
 
+  const [selectedStage, setSelectedStage] = useState<'BK' | 'BJK' | 'SN' | 'ALL'>(activeStage || 'ALL');
+
+  useEffect(() => {
+    if (activeStage) {
+      setSelectedStage(activeStage);
+    }
+  }, [activeStage]);
+
+  const handleStageChange = (st: 'BK' | 'BJK' | 'SN' | 'ALL') => {
+    setSelectedStage(st);
+    onStageChange?.(st);
+  };
+
+  const totalLuasBK = useMemo(() => Math.round(displayBK.reduce((acc, curr) => acc + curr.luas, 0) * 100) / 100, [displayBK]);
+  const totalLuasBJK = useMemo(() => Math.round(displayBJK.reduce((acc, curr) => acc + curr.luas, 0) * 100) / 100, [displayBJK]);
+  const totalLuasSN = useMemo(() => Math.round(displaySN.reduce((acc, curr) => acc + curr.luas, 0) * 100) / 100, [displaySN]);
+
+  const stageHeaderInfo = useMemo(() => {
+    switch (selectedStage) {
+      case 'BK':
+        return {
+          title: 'Posisi Lahan BK per Wilayah (Bongkar)',
+          subtitle: `Monitoring sebaran luas lahan tahapan Bongkar di 7 wilayah operasional (Total: ${totalLuasBK.toFixed(2)} Ha • Tertinggi: Wilayah ${highestBK?.wilayah || '-'})`,
+          icon: <Boxes className="w-4 h-4 text-amber-600 dark:text-amber-400" />,
+        };
+      case 'BJK':
+        return {
+          title: 'Posisi Lahan BJK per Wilayah (Bajak)',
+          subtitle: `Monitoring sebaran luas lahan tahapan Bajak di 7 wilayah operasional (Total: ${totalLuasBJK.toFixed(2)} Ha • Tertinggi: Wilayah ${highestBJK?.wilayah || '-'})`,
+          icon: <TrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />,
+        };
+      case 'SN':
+        return {
+          title: 'Posisi Lahan SN per Wilayah (Siap Tanam)',
+          subtitle: `Monitoring sebaran luas lahan tahapan Siap Tanam di 7 wilayah operasional (Total: ${totalLuasSN.toFixed(2)} Ha • Tertinggi: Wilayah ${highestSN?.wilayah || '-'})`,
+          icon: <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />,
+        };
+      default:
+        return {
+          title: 'Posisi Lahan per Wilayah (BK, BJK, SN)',
+          subtitle: 'Monitoring sebaran luas lahan per wilayah operasional (Bongkar, Bajak, Siap Tanam)',
+          icon: <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />,
+        };
+    }
+  }, [selectedStage, totalLuasBK, totalLuasBJK, totalLuasSN, highestBK, highestBJK, highestSN]);
+
+  const renderBKChart = (isSingle: boolean = false) => (
+    <div className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors ${isSingle ? 'h-full' : ''}`}>
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h4 className="text-xs font-extrabold text-amber-700 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Boxes className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            Posisi Lahan BK per Wilayah
+          </h4>
+          <span className="text-[10px] font-medium text-slate-600 dark:text-slate-400">
+            Tertinggi: <strong className="text-slate-900 dark:text-slate-200 font-bold">{highestBK?.wilayah || '-'}</strong> ({highestBK ? highestBK.luas.toFixed(1) : '0'} Ha)
+          </span>
+        </div>
+        <span className="text-[10px] text-amber-800 dark:text-amber-300 font-bold bg-amber-500/15 px-2 py-0.5 rounded border border-amber-500/30">
+          Bongkar
+        </span>
+      </div>
+
+      <div className={`${isSingle ? 'h-64 sm:h-72' : 'h-60'} w-full outline-none focus:outline-none select-none`}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={displayBK.map((item) => ({ ...item, rank: rankMapBK.get(item.wilayah) || 1 }))}
+            margin={{ top: 10, right: 10, left: -20, bottom: 8 }}
+            className="outline-none focus:outline-none"
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
+            <XAxis
+              dataKey="wilayah"
+              stroke={isDark ? '#475569' : '#cbd5e1'}
+              tickLine={false}
+              interval={0}
+              dy={6}
+              tick={{ fill: isDark ? '#f1f5f9' : '#0f172a', fontSize: 11, fontWeight: 700, fontFamily: 'monospace' }}
+            />
+            <YAxis
+              stroke={isDark ? '#475569' : '#cbd5e1'}
+              tickLine={false}
+              tick={{ fill: isDark ? '#cbd5e1' : '#334155', fontSize: 10, fontWeight: 600 }}
+            />
+            <Tooltip
+              content={
+                <CustomWilayahRankTooltip
+                  title="Luas Bongkar (BK)"
+                  maxVal={maxBK}
+                />
+              }
+            />
+            <Bar dataKey="luas" name="Luas BK (Ha)" radius={[4, 4, 0, 0]} maxBarSize={36}>
+              {displayBK.map((entry, index) => {
+                const colorInfo = getDynamicHeightColor(entry.luas, maxBK);
+                return (
+                  <Cell
+                    key={`cell-bk-${index}`}
+                    fill={colorInfo.fill}
+                  />
+                );
+              })}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+
+  const renderBJKChart = (isSingle: boolean = false) => (
+    <div className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors ${isSingle ? 'h-full' : ''}`}>
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h4 className="text-xs font-extrabold text-blue-700 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+            <TrendingUp className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+            Posisi Lahan BJK per Wilayah
+          </h4>
+          <span className="text-[10px] font-medium text-slate-600 dark:text-slate-400">
+            Tertinggi: <strong className="text-slate-900 dark:text-slate-200 font-bold">{highestBJK?.wilayah || '-'}</strong> ({highestBJK ? highestBJK.luas.toFixed(1) : '0'} Ha)
+          </span>
+        </div>
+        <span className="text-[10px] text-blue-800 dark:text-blue-300 font-bold bg-blue-500/15 px-2 py-0.5 rounded border border-blue-500/30">
+          Bajak
+        </span>
+      </div>
+
+      <div className={`${isSingle ? 'h-64 sm:h-72' : 'h-60'} w-full outline-none focus:outline-none select-none`}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={displayBJK.map((item) => ({ ...item, rank: rankMapBJK.get(item.wilayah) || 1 }))}
+            margin={{ top: 10, right: 10, left: -20, bottom: 8 }}
+            className="outline-none focus:outline-none"
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
+            <XAxis
+              dataKey="wilayah"
+              stroke={isDark ? '#475569' : '#cbd5e1'}
+              tickLine={false}
+              interval={0}
+              dy={6}
+              tick={{ fill: isDark ? '#f1f5f9' : '#0f172a', fontSize: 11, fontWeight: 700, fontFamily: 'monospace' }}
+            />
+            <YAxis
+              stroke={isDark ? '#475569' : '#cbd5e1'}
+              tickLine={false}
+              tick={{ fill: isDark ? '#cbd5e1' : '#334155', fontSize: 10, fontWeight: 600 }}
+            />
+            <Tooltip
+              content={
+                <CustomWilayahRankTooltip
+                  title="Luas Bajak (BJK)"
+                  maxVal={maxBJK}
+                />
+              }
+            />
+            <Bar dataKey="luas" name="Luas BJK (Ha)" radius={[4, 4, 0, 0]} maxBarSize={36}>
+              {displayBJK.map((entry, index) => {
+                const colorInfo = getDynamicHeightColor(entry.luas, maxBJK);
+                return (
+                  <Cell
+                    key={`cell-bjk-${index}`}
+                    fill={colorInfo.fill}
+                  />
+                );
+              })}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+
+  const renderSNChart = (isSingle: boolean = false) => (
+    <div className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors ${isSingle ? 'h-full' : ''}`}>
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h4 className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            Posisi Lahan SN per Wilayah
+          </h4>
+          <span className="text-[10px] font-medium text-slate-600 dark:text-slate-400">
+            Tertinggi: <strong className="text-slate-900 dark:text-slate-200 font-bold">{highestSN?.wilayah || '-'}</strong> ({highestSN ? highestSN.luas.toFixed(1) : '0'} Ha)
+          </span>
+        </div>
+        <span className="text-[10px] text-emerald-800 dark:text-emerald-300 font-bold bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30">
+          Siap Tanam
+        </span>
+      </div>
+
+      <div className={`${isSingle ? 'h-64 sm:h-72' : 'h-60'} w-full outline-none focus:outline-none select-none`}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={displaySN.map((item) => ({ ...item, rank: rankMapSN.get(item.wilayah) || 1 }))}
+            margin={{ top: 10, right: 10, left: -20, bottom: 8 }}
+            className="outline-none focus:outline-none"
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
+            <XAxis
+              dataKey="wilayah"
+              stroke={isDark ? '#475569' : '#cbd5e1'}
+              tickLine={false}
+              interval={0}
+              dy={6}
+              tick={{ fill: isDark ? '#f1f5f9' : '#0f172a', fontSize: 11, fontWeight: 700, fontFamily: 'monospace' }}
+            />
+            <YAxis
+              stroke={isDark ? '#475569' : '#cbd5e1'}
+              tickLine={false}
+              tick={{ fill: isDark ? '#cbd5e1' : '#334155', fontSize: 10, fontWeight: 600 }}
+            />
+            <Tooltip
+              content={
+                <CustomWilayahRankTooltip
+                  title="Luas Siap Tanam (SN)"
+                  maxVal={maxSN}
+                />
+              }
+            />
+            <Bar dataKey="luas" name="Luas SN (Ha)" radius={[4, 4, 0, 0]} maxBarSize={36}>
+              {displaySN.map((entry, index) => {
+                const colorInfo = getDynamicHeightColor(entry.luas, maxSN);
+                return (
+                  <Cell
+                    key={`cell-sn-${index}`}
+                    fill={colorInfo.fill}
+                  />
+                );
+              })}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+
+  const renderWilayahBreakdownPanel = (
+    list: typeof sortedBK,
+    totalLuas: number,
+    stageTitle: string,
+    badgeClass: string
+  ) => {
+    const sortedDesc = [...list].sort((a, b) => b.luas - a.luas);
+    return (
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs flex flex-col justify-between">
+        <div>
+          <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                Rincian Wilayah {stageTitle}
+              </h5>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                Peringkat luas lahan per wilayah operasional
+              </span>
+            </div>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${badgeClass}`}>
+              Total: {totalLuas.toFixed(2)} Ha
+            </span>
+          </div>
+
+          <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+            {sortedDesc.map((item, idx) => {
+              const pct = totalLuas > 0 ? (item.luas / totalLuas) * 100 : 0;
+              return (
+                <div
+                  key={item.wilayah}
+                  className="p-2 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-slate-900 dark:text-slate-100">
+                      <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700 text-[10px] flex items-center justify-center font-sans font-bold text-slate-700 dark:text-slate-300">
+                        {idx + 1}
+                      </span>
+                      <span>Wilayah {item.wilayah}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-black text-slate-900 dark:text-slate-100 font-mono">
+                        {item.luas.toFixed(2)}
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1">Ha</span>
+                      <span className="text-[9px] text-slate-400 dark:text-slate-500 ml-1 font-mono">
+                        ({pct.toFixed(1)}%)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Mini progress bar */}
+                  <div className="w-full h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500 rounded-full"
+                      style={{ width: `${Math.min(100, pct)}%` }}
+                    />
+                  </div>
+
+                  {item.locations.length > 0 && (
+                    <div className="mt-1.5 flex items-center gap-1 flex-wrap">
+                      <span className="text-[9px] text-slate-400 font-medium">Lokasi:</span>
+                      {item.locations.slice(0, 4).map((loc) => (
+                        <button
+                          key={loc}
+                          type="button"
+                          onClick={() => onSelectLand && onSelectLand(loc)}
+                          className="text-[9px] font-mono px-1 py-0.2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-emerald-600 hover:border-emerald-400 cursor-pointer"
+                        >
+                          {loc}
+                        </button>
+                      ))}
+                      {item.locations.length > 4 && (
+                        <span className="text-[9px] text-slate-400 font-mono">
+                          +{item.locations.length - 4} lagi
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            Posisi Lahan per Wilayah (BK, BJK, SN)
+            {stageHeaderInfo.icon}
+            {stageHeaderInfo.title}
           </h3>
           <span className="text-xs text-slate-500 dark:text-slate-400">
-            Monitoring sebaran luas lahan per wilayah operasional (Bongkar, Bajak, Siap Tanam)
+            {stageHeaderInfo.subtitle}
           </span>
         </div>
 
-        {setSelectedWilayah && (
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <WilayahFilterDropdown
-              selectedWilayah={selectedWilayah}
-              setSelectedWilayah={setSelectedWilayah}
-              availableWilayahs={availableWilayahs || officialWilayahs}
-            />
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Grafik 1: BK (Bongkar) */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h4 className="text-xs font-extrabold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
-                Posisi Lahan BK per Wilayah
-              </h4>
-              <span className="text-[10px] font-medium text-slate-600 dark:text-slate-400">
-                Tertinggi: <strong className="text-slate-900 dark:text-slate-200 font-bold">{highestBK?.wilayah || '-'}</strong> ({highestBK ? highestBK.luas.toFixed(1) : '0'} Ha)
-              </span>
-            </div>
-            <span className="text-[10px] text-amber-800 dark:text-amber-300 font-bold bg-amber-500/15 px-2 py-0.5 rounded border border-amber-500/30">
-              Bongkar
-            </span>
-          </div>
-
-          <div className="h-60 w-full outline-none focus:outline-none select-none">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={displayBK.map((item) => ({ ...item, rank: rankMapBK.get(item.wilayah) || 1 }))}
-                margin={{ top: 10, right: 10, left: -20, bottom: 8 }}
-                className="outline-none focus:outline-none"
+        <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+          {/* Stage Switcher Pills */}
+          {showStageSwitcher && (
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700/60 text-xs">
+              <button
+                type="button"
+                onClick={() => handleStageChange('BK')}
+                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                  selectedStage === 'BK'
+                    ? 'bg-amber-500 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
-                <XAxis
-                  dataKey="wilayah"
-                  stroke={isDark ? '#475569' : '#cbd5e1'}
-                  tickLine={false}
-                  interval={0}
-                  dy={6}
-                  tick={{ fill: isDark ? '#f1f5f9' : '#0f172a', fontSize: 11, fontWeight: 700, fontFamily: 'monospace' }}
-                />
-                <YAxis
-                  stroke={isDark ? '#475569' : '#cbd5e1'}
-                  tickLine={false}
-                  tick={{ fill: isDark ? '#cbd5e1' : '#334155', fontSize: 10, fontWeight: 600 }}
-                />
-                <Tooltip
-                  content={
-                    <CustomWilayahRankTooltip
-                      title="Luas Bongkar (BK)"
-                      maxVal={maxBK}
-                    />
-                  }
-                />
-                <Bar dataKey="luas" name="Luas BK (Ha)" radius={[4, 4, 0, 0]} maxBarSize={32}>
-                  {displayBK.map((entry, index) => {
-                    const colorInfo = getDynamicHeightColor(entry.luas, maxBK);
-                    return (
-                      <Cell
-                        key={`cell-bk-${index}`}
-                        fill={colorInfo.fill}
-                      />
-                    );
-                  })}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Grafik 2: BJK (Bajak) */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h4 className="text-xs font-extrabold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
-                Posisi Lahan BJK per Wilayah
-              </h4>
-              <span className="text-[10px] font-medium text-slate-600 dark:text-slate-400">
-                Tertinggi: <strong className="text-slate-900 dark:text-slate-200 font-bold">{highestBJK?.wilayah || '-'}</strong> ({highestBJK ? highestBJK.luas.toFixed(1) : '0'} Ha)
-              </span>
-            </div>
-            <span className="text-[10px] text-blue-800 dark:text-blue-300 font-bold bg-blue-500/15 px-2 py-0.5 rounded border border-blue-500/30">
-              Bajak
-            </span>
-          </div>
-
-          <div className="h-60 w-full outline-none focus:outline-none select-none">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={displayBJK.map((item) => ({ ...item, rank: rankMapBJK.get(item.wilayah) || 1 }))}
-                margin={{ top: 10, right: 10, left: -20, bottom: 8 }}
-                className="outline-none focus:outline-none"
+                Bongkar (BK)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleStageChange('BJK')}
+                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                  selectedStage === 'BJK'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
-                <XAxis
-                  dataKey="wilayah"
-                  stroke={isDark ? '#475569' : '#cbd5e1'}
-                  tickLine={false}
-                  interval={0}
-                  dy={6}
-                  tick={{ fill: isDark ? '#f1f5f9' : '#0f172a', fontSize: 11, fontWeight: 700, fontFamily: 'monospace' }}
-                />
-                <YAxis
-                  stroke={isDark ? '#475569' : '#cbd5e1'}
-                  tickLine={false}
-                  tick={{ fill: isDark ? '#cbd5e1' : '#334155', fontSize: 10, fontWeight: 600 }}
-                />
-                <Tooltip
-                  content={
-                    <CustomWilayahRankTooltip
-                      title="Luas Bajak (BJK)"
-                      maxVal={maxBJK}
-                    />
-                  }
-                />
-                <Bar dataKey="luas" name="Luas BJK (Ha)" radius={[4, 4, 0, 0]} maxBarSize={32}>
-                  {displayBJK.map((entry, index) => {
-                    const colorInfo = getDynamicHeightColor(entry.luas, maxBJK);
-                    return (
-                      <Cell
-                        key={`cell-bjk-${index}`}
-                        fill={colorInfo.fill}
-                      />
-                    );
-                  })}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Grafik 3: SN (Siap Tanam) */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h4 className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
-                Posisi Lahan SN per Wilayah
-              </h4>
-              <span className="text-[10px] font-medium text-slate-600 dark:text-slate-400">
-                Tertinggi: <strong className="text-slate-900 dark:text-slate-200 font-bold">{highestSN?.wilayah || '-'}</strong> ({highestSN ? highestSN.luas.toFixed(1) : '0'} Ha)
-              </span>
-            </div>
-            <span className="text-[10px] text-emerald-800 dark:text-emerald-300 font-bold bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30">
-              Siap Tanam
-            </span>
-          </div>
-
-          <div className="h-60 w-full outline-none focus:outline-none select-none">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={displaySN.map((item) => ({ ...item, rank: rankMapSN.get(item.wilayah) || 1 }))}
-                margin={{ top: 10, right: 10, left: -20, bottom: 8 }}
-                className="outline-none focus:outline-none"
+                Bajak (BJK)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleStageChange('SN')}
+                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                  selectedStage === 'SN'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
-                <XAxis
-                  dataKey="wilayah"
-                  stroke={isDark ? '#475569' : '#cbd5e1'}
-                  tickLine={false}
-                  interval={0}
-                  dy={6}
-                  tick={{ fill: isDark ? '#f1f5f9' : '#0f172a', fontSize: 11, fontWeight: 700, fontFamily: 'monospace' }}
-                />
-                <YAxis
-                  stroke={isDark ? '#475569' : '#cbd5e1'}
-                  tickLine={false}
-                  tick={{ fill: isDark ? '#cbd5e1' : '#334155', fontSize: 10, fontWeight: 600 }}
-                />
-                <Tooltip
-                  content={
-                    <CustomWilayahRankTooltip
-                      title="Luas Siap Tanam (SN)"
-                      maxVal={maxSN}
-                    />
-                  }
-                />
-                <Bar dataKey="luas" name="Luas SN (Ha)" radius={[4, 4, 0, 0]} maxBarSize={32}>
-                  {displaySN.map((entry, index) => {
-                    const colorInfo = getDynamicHeightColor(entry.luas, maxSN);
-                    return (
-                      <Cell
-                        key={`cell-sn-${index}`}
-                        fill={colorInfo.fill}
-                      />
-                    );
-                  })}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+                Siap Tanam (SN)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleStageChange('ALL')}
+                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                  selectedStage === 'ALL'
+                    ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
+              >
+                Semua
+              </button>
+            </div>
+          )}
+
+          {setSelectedWilayah && (
+            <div className="flex items-center gap-2">
+              <WilayahFilterDropdown
+                selectedWilayah={selectedWilayah}
+                setSelectedWilayah={setSelectedWilayah}
+                availableWilayahs={availableWilayahs || officialWilayahs}
+              />
+            </div>
+          )}
+
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 font-semibold text-xs transition-colors cursor-pointer"
+              title="Tutup Grafik"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Tutup</span>
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Render Chart Content based on selectedStage */}
+      {selectedStage === 'BK' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 animate-in fade-in duration-200">
+          <div className="lg:col-span-8">{renderBKChart(true)}</div>
+          <div className="lg:col-span-4">{renderWilayahBreakdownPanel(displayBK, totalLuasBK, 'Bongkar (BK)', 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30')}</div>
+        </div>
+      )}
+
+      {selectedStage === 'BJK' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 animate-in fade-in duration-200">
+          <div className="lg:col-span-8">{renderBJKChart(true)}</div>
+          <div className="lg:col-span-4">{renderWilayahBreakdownPanel(displayBJK, totalLuasBJK, 'Bajak (BJK)', 'bg-blue-500/15 text-blue-800 dark:text-blue-300 border border-blue-500/30')}</div>
+        </div>
+      )}
+
+      {selectedStage === 'SN' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 animate-in fade-in duration-200">
+          <div className="lg:col-span-8">{renderSNChart(true)}</div>
+          <div className="lg:col-span-4">{renderWilayahBreakdownPanel(displaySN, totalLuasSN, 'Siap Tanam (SN)', 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30')}</div>
+        </div>
+      )}
+
+      {selectedStage === 'ALL' && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in duration-200">
+          {renderBKChart(false)}
+          {renderBJKChart(false)}
+          {renderSNChart(false)}
+        </div>
+      )}
     </div>
   );
 }
