@@ -233,6 +233,7 @@ export default function LabitaDashboardPage() {
                     setEditingLandId(id);
                   }
                 }}
+                onDataChanged={handleRefresh}
                 initialSearch={searchQuery}
                 selectedWilayah={selectedWilayah}
                 refreshTrigger={refreshLandTrigger}

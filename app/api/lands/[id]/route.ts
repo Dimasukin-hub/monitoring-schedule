@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { computeAktivitasTerakhir } from '@/lib/landActivityUtils';
+import { recalculateAndPersistStageStocks, syncStokLahanMasterForLand, parseDateVal } from '@/lib/stageStockCalculator';
+import lands2026BaselinesJson from '@/lib/lands2026Baselines.json';
 
 export async function GET(
   request: Request,
@@ -144,7 +146,7 @@ export async function PUT(
 
     // Activity to aplikasiDetails and Land direct columns mapping
     const ACTIVITY_SYNC_MAP: Record<string, { detailsRealKey: string; detailsRencKey?: string; landRealCol?: string; landRencCol?: string }> = {
-      '01.CHOPPER': { detailsRealKey: 'realChopper', detailsRencKey: 'chopper' },
+      '01.CHOPPER': { detailsRealKey: 'realChopper', detailsRencKey: 'chopper', landRealCol: 'realBkr', landRencCol: 'rencBkr' },
       '02.CHOPPER_LU': { detailsRealKey: 'realChopperLu', detailsRencKey: 'chopperLu' },
       '03.RH1': { detailsRealKey: 'realRh1', detailsRencKey: 'rh1' },
       '04.CUTTING_BANANA': { detailsRealKey: 'realCuttingBanana', detailsRencKey: 'cuttingBanana' },
@@ -189,6 +191,77 @@ export async function PUT(
         ...body.aplikasiDetails,
         realisasiAplikasi: incomingReal,
       };
+
+      // Sync aliases direct into mergedDetails root if sent flat
+      for (const [k, v] of Object.entries(body.aplikasiDetails)) {
+        if (k !== 'realisasiAplikasi') {
+          mergedDetails[k] = v;
+        }
+      }
+    }
+
+    // Sync direct Land columns from mergedDetails if not explicitly provided
+    if (body.realBajak !== undefined) {
+      updateData.realBajak = body.realBajak ? String(body.realBajak).trim() : null;
+    } else {
+      const effectiveRealBajak =
+        mergedDetails.realBajak ||
+        mergedDetails.realBajakAwalMb5Btr ||
+        mergedDetails.realBajakAwalMb25 ||
+        mergedDetails.realBajakAwalHoward ||
+        mergedDetails.realBajakAwalNardi ||
+        mergedDetails.realHrEksMb ||
+        null;
+      if (effectiveRealBajak !== undefined && effectiveRealBajak !== existingLand.realBajak) {
+        updateData.realBajak = effectiveRealBajak && effectiveRealBajak !== '-' && effectiveRealBajak !== '0'
+          ? String(effectiveRealBajak).trim()
+          : null;
+      }
+    }
+
+    if (body.realBkr !== undefined) {
+      updateData.realBkr = body.realBkr ? String(body.realBkr).trim() : null;
+    } else {
+      const effectiveRealBkr = mergedDetails.realChopper || mergedDetails.realRh1 || null;
+      if (effectiveRealBkr !== undefined && effectiveRealBkr !== existingLand.realBkr) {
+        updateData.realBkr = effectiveRealBkr && effectiveRealBkr !== '-' && effectiveRealBkr !== '0'
+          ? String(effectiveRealBkr).trim()
+          : null;
+      }
+    }
+
+    if (body.bulanSn !== undefined) {
+      updateData.bulanSn = body.bulanSn ? String(body.bulanSn).trim() : null;
+    } else {
+      const effectiveSn = mergedDetails.realSiapTanam;
+      if (effectiveSn && effectiveSn !== '-' && effectiveSn !== '0') {
+        const snDateParts = String(effectiveSn).trim().split('/');
+        if (snDateParts.length === 3) {
+          const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+          const mIdx = parseInt(snDateParts[1], 10) - 1;
+          const yr = snDateParts[2].slice(-2);
+          if (mIdx >= 0 && mIdx < 12) {
+            updateData.bulanSn = `${MONTH_NAMES[mIdx]}-${yr}`;
+          }
+        }
+      } else if (
+        body.aplikasiDetails &&
+        (body.aplikasiDetails.realSiapTanam === null ||
+          body.aplikasiDetails.realSiapTanam === '' ||
+          body.aplikasiDetails.siapTanam === null ||
+          body.aplikasiDetails.siapTanam === '')
+      ) {
+        const base = (lands2026BaselinesJson as Record<string, any>)[existingLand.lokasi];
+        if (base && base.bulanSn) {
+          const dBase = parseDateVal(base.bulanSn);
+          if (dBase) {
+            const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            updateData.bulanSn = `${MONTH_NAMES[dBase.getMonth()]}-${String(dBase.getFullYear()).slice(-2)}`;
+          } else {
+            updateData.bulanSn = String(base.bulanSn).trim();
+          }
+        }
+      }
     }
 
     // Sync direct Land columns to mergedDetails
@@ -342,6 +415,15 @@ export async function PUT(
           },
         },
       });
+    }
+
+    // Automatically recalculate StageStockSummary (Stok Bongkar, Stok Bajak, Stok SN)
+    // and sync StokLahanMaster category & details for real-time dashboard updates
+    try {
+      await recalculateAndPersistStageStocks(2026);
+      await syncStokLahanMasterForLand(currentId);
+    } catch (calcErr) {
+      console.error('Error recalculating stage stocks:', calcErr);
     }
 
     const actDict: Record<string, any> = {};

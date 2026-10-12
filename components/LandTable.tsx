@@ -534,6 +534,7 @@ function ScheduleTypeDropdown({
 interface LandTableProps {
   onSelectLand: (landId: number) => void;
   onEditLand?: (landId: number) => void;
+  onDataChanged?: () => void;
   initialSearch?: string;
   selectedWilayah?: string;
   refreshTrigger?: number;
@@ -545,6 +546,7 @@ interface LandTableProps {
 export default function LandTable({
   onSelectLand,
   onEditLand,
+  onDataChanged,
   initialSearch = '',
   selectedWilayah = 'ALL',
   refreshTrigger = 0,
@@ -1118,6 +1120,7 @@ export default function LandTable({
           )
         );
       }
+      onDataChanged?.();
     } catch (err: any) {
       console.error('Error updating field:', err);
       alert(`Gagal memperbarui data: ${err.message}`);
@@ -1152,6 +1155,7 @@ export default function LandTable({
           )
         );
       }
+      onDataChanged?.();
     } catch (err: any) {
       console.error('Error updating bibit & kelas:', err);
       alert(`Gagal memperbarui bibit & kelas: ${err.message}`);
@@ -1252,6 +1256,7 @@ export default function LandTable({
           )
         );
       }
+      onDataChanged?.();
     } catch (err: any) {
       console.error('Error updating activity date:', err);
       alert(`Gagal memperbarui tanggal aktivitas: ${err.message}`);
@@ -1410,6 +1415,7 @@ export default function LandTable({
           })
         );
       }
+      onDataChanged?.();
     } catch (err: any) {
       console.error('Error updating pengolahan date:', err);
       alert(`Gagal memperbarui tanggal: ${err.message}`);
@@ -1504,6 +1510,7 @@ export default function LandTable({
           )
         );
       }
+      onDataChanged?.();
     } catch (err: any) {
       console.error('Error updating pengolahan date:', err);
       alert(`Gagal memperbarui data pengolahan: ${err.message}`);
