@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getLandStokCategory } from '@/lib/landClassification';
+import masterScheduleBaselinesJson from '@/lib/masterScheduleBaselines.json';
+import lands2026BaselinesJson from '@/lib/lands2026Baselines.json';
+import { parseDateVal, getEffectiveMonthYear } from '@/lib/stageStockCalculator';
+import { getCurrentMonthName } from '@/lib/stokLahanCalculator';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const wilayahFilter = searchParams.get('wilayah');
     const yearParam = searchParams.get('year');
+    const monthParam = searchParams.get('month');
     const targetYear = yearParam && yearParam !== 'ALL' ? parseInt(yearParam, 10) : 2026;
 
     const landWhere: any = {};
@@ -137,6 +142,7 @@ export async function GET(request: Request) {
         realBajak: true,
         realMulaiTanam: true,
         realSelesaiTanam: true,
+        bulanSn: true,
         aplikasiDetails: true,
         activities: {
           select: { code: true, status: true, rencanaDate: true, realisasiDate: true },
@@ -241,16 +247,136 @@ export async function GET(request: Request) {
       } else if (cat === 'PROSES') {
         posMap[w].prosesLocations.push(l.lokasi);
         posMap[w].prosesLuas += luas;
-      } else if (cat === 'SN') {
-        posMap[w].snLocations.push(l.lokasi);
-        posMap[w].snLuas += luas;
-      } else if (cat === 'BJK') {
-        posMap[w].bjkLocations.push(l.lokasi);
-        posMap[w].bjkLuas += luas;
-      } else {
-        posMap[w].bkLocations.push(l.lokasi);
-        posMap[w].bkLuas += luas;
       }
+    }
+
+    // 4b. Posisi Lahan BK, BJK, SN per Wilayah (Kasus A: Aktivitas Bulanan Terpilih per Wilayah)
+    const MONTH_INDEX_MAP: Record<string, number> = {
+      jan: 1, feb: 2, mar: 3, apr: 4, mei: 5, jun: 6,
+      jul: 7, agu: 8, aug: 8, sep: 9, okt: 10, oct: 10, nov: 11, des: 12, dec: 12,
+    };
+
+    let resolvedMonth = monthParam;
+    if (!resolvedMonth || resolvedMonth === 'CURRENT' || resolvedMonth === 'DEFAULT') {
+      resolvedMonth = getCurrentMonthName(); // Default bulan berjalan (misal: 'Okt')
+    }
+
+    const isAllMonths = resolvedMonth === 'ALL';
+    const targetMonthKeys = new Set<string>();
+
+    if (!isAllMonths) {
+      const mList = resolvedMonth.split(',').map((m) => m.trim().toLowerCase()).filter(Boolean);
+      for (const mName of mList) {
+        const mIdx = MONTH_INDEX_MAP[mName];
+        if (mIdx) {
+          targetMonthKeys.add(`${mIdx}${targetYear}`);
+        }
+      }
+    }
+
+    // Reset BK, BJK, SN in posMap
+    for (const stdW of targetWilayahList) {
+      posMap[stdW].bkLocations = [];
+      posMap[stdW].bkLuas = 0;
+      posMap[stdW].bjkLocations = [];
+      posMap[stdW].bjkLuas = 0;
+      posMap[stdW].snLocations = [];
+      posMap[stdW].snLuas = 0;
+    }
+
+    // Build live edits map from lands2026Baselines and prisma.land
+    const movedDS = new Map<string, string>();
+    const movedDT = new Map<string, string>();
+    const movedDU = new Map<string, string>();
+    const liveWilayah = new Map<string, string>();
+
+    for (const l of lands) {
+      const base = (lands2026BaselinesJson as Record<string, any>)[l.lokasi];
+      if (!base) continue;
+
+      if (l.wilayah) {
+        liveWilayah.set(l.lokasi, normalizeWilayah(l.wilayah));
+      }
+
+      const details = (typeof l.aplikasiDetails === 'object' && l.aplikasiDetails !== null) ? (l.aplikasiDetails as any) : {};
+      const realBkrStr = l.realBkr || details.realChopper || details.realRh1 || null;
+      const rencBkrStr = l.rencBkr || details.chopper || null;
+      const dRencBkr = parseDateVal(rencBkrStr);
+      const dRealBkr = parseDateVal(realBkrStr);
+      let dDO: Date | null = null;
+      if (dRencBkr && dRealBkr) dDO = dRealBkr > dRencBkr ? dRealBkr : dRencBkr;
+      else dDO = dRealBkr || dRencBkr;
+      const mDO = getEffectiveMonthYear(dDO);
+      const curDS = mDO ? mDO.key : '';
+      if (curDS && curDS !== base.ds) {
+        movedDS.set(l.lokasi, curDS);
+      }
+
+      const realBjkStr = l.realBajak || details.realBajakAwalMb5Btr || details.realBajakAwalMb25 || null;
+      const rencBjkStr = l.rencBajak || details.rencAwalMb5Btr || details.bajakAwalMb5Btr || null;
+      const dRencBjk = parseDateVal(rencBjkStr);
+      const dRealBjk = parseDateVal(realBjkStr);
+      let dDP: Date | null = null;
+      if (dRencBjk && dRealBjk) dDP = dRealBjk > dRencBjk ? dRealBjk : dRencBjk;
+      else dDP = dRealBjk || dRencBjk;
+      const mDP = getEffectiveMonthYear(dDP);
+      const curDT = mDP ? mDP.key : '';
+      if (curDT && curDT !== base.dt) {
+        movedDT.set(l.lokasi, curDT);
+      }
+
+      const snDateStr = l.bulanSn || base.bulanSn || null;
+      const dDQ = parseDateVal(snDateStr);
+      const mDQ = getEffectiveMonthYear(dDQ);
+      const curDU = mDQ ? mDQ.key : base.du;
+      if (curDU && curDU !== base.du) {
+        movedDU.set(l.lokasi, curDU);
+      }
+    }
+
+    const baselinesList = masterScheduleBaselinesJson as Array<{
+      lokasi: string;
+      wilayah: string;
+      netto: number;
+      ds: string;
+      dt: string;
+      du: string;
+    }>;
+
+    for (const item of baselinesList) {
+      const w = liveWilayah.get(item.lokasi) || normalizeWilayah(item.wilayah);
+      if (!posMap[w]) continue;
+
+      const effDS = movedDS.get(item.lokasi) || item.ds;
+      const effDT = movedDT.get(item.lokasi) || item.dt;
+      const effDU = movedDU.get(item.lokasi) || item.du;
+      const effNetto = item.netto;
+
+      const isMatchDS = isAllMonths ? effDS.endsWith(String(targetYear)) : targetMonthKeys.has(effDS);
+      const isMatchDT = isAllMonths ? effDT.endsWith(String(targetYear)) : targetMonthKeys.has(effDT);
+      const isMatchDU = isAllMonths ? effDU.endsWith(String(targetYear)) : targetMonthKeys.has(effDU);
+
+      if (isMatchDS) {
+        posMap[w].bkLocations.push(item.lokasi);
+        posMap[w].bkLuas += effNetto;
+      }
+      if (isMatchDT) {
+        posMap[w].bjkLocations.push(item.lokasi);
+        posMap[w].bjkLuas += effNetto;
+      }
+      if (isMatchDU) {
+        posMap[w].snLocations.push(item.lokasi);
+        posMap[w].snLuas += effNetto;
+      }
+    }
+
+    for (const stdW of targetWilayahList) {
+      posMap[stdW].bkLuas = Math.round(posMap[stdW].bkLuas * 100) / 100;
+      posMap[stdW].bjkLuas = Math.round(posMap[stdW].bjkLuas * 100) / 100;
+      posMap[stdW].snLuas = Math.round(posMap[stdW].snLuas * 100) / 100;
+      posMap[stdW].bkLocations = Array.from(new Set(posMap[stdW].bkLocations));
+      posMap[stdW].bjkLocations = Array.from(new Set(posMap[stdW].bjkLocations));
+      posMap[stdW].snLocations = Array.from(new Set(posMap[stdW].snLocations));
     }
 
     const wilayahPositions = Object.values(posMap).sort((a, b) =>

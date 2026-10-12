@@ -597,6 +597,7 @@ export default function KpiCards({
               onStageChange={(newStage) => setActiveStageChart(newStage)}
               onClose={() => setActiveStageChart(null)}
               showStageSwitcher={true}
+              periodLabel={cardMonthBadge}
             />
           </div>
         )}

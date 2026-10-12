@@ -68,6 +68,9 @@ export default function LabitaDashboardPage() {
     if (stokYear) {
       chartsParams.set('year', String(stokYear));
     }
+    if (stokMonth) {
+      chartsParams.set('month', stokMonth);
+    }
 
     const startTime = Date.now();
 

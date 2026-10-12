@@ -196,6 +196,7 @@ export interface PosisiLahanProps extends CommonChartProps {
   onStageChange?: (stage: 'BK' | 'BJK' | 'SN' | 'ALL') => void;
   onClose?: () => void;
   showStageSwitcher?: boolean;
+  periodLabel?: string;
 }
 
 // =========================================================================
@@ -212,6 +213,7 @@ export function PosisiLahanSection({
   onStageChange,
   onClose,
   showStageSwitcher = true,
+  periodLabel,
 }: PosisiLahanProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -425,33 +427,34 @@ export function PosisiLahanSection({
   const totalLuasSN = useMemo(() => Math.round(displaySN.reduce((acc, curr) => acc + curr.luas, 0) * 100) / 100, [displaySN]);
 
   const stageHeaderInfo = useMemo(() => {
+    const periodSuffix = periodLabel ? ` • Periode: ${periodLabel}` : '';
     switch (selectedStage) {
       case 'BK':
         return {
-          title: 'Posisi Lahan BK per Wilayah (Bongkar)',
-          subtitle: `Monitoring sebaran luas lahan tahapan Bongkar di 7 wilayah operasional (Total: ${totalLuasBK.toFixed(2)} Ha • Tertinggi: Wilayah ${highestBK?.wilayah || '-'})`,
+          title: `Posisi Lahan BK per Wilayah (Bongkar)${periodLabel ? ` - ${periodLabel}` : ''}`,
+          subtitle: `Monitoring sebaran luas lahan tahapan Bongkar di 7 wilayah operasional (Total: ${totalLuasBK.toFixed(2)} Ha • Tertinggi: Wilayah ${highestBK?.wilayah || '-'}${periodSuffix})`,
           icon: <Boxes className="w-4 h-4 text-amber-600 dark:text-amber-400" />,
         };
       case 'BJK':
         return {
-          title: 'Posisi Lahan BJK per Wilayah (Bajak)',
-          subtitle: `Monitoring sebaran luas lahan tahapan Bajak di 7 wilayah operasional (Total: ${totalLuasBJK.toFixed(2)} Ha • Tertinggi: Wilayah ${highestBJK?.wilayah || '-'})`,
+          title: `Posisi Lahan BJK per Wilayah (Bajak)${periodLabel ? ` - ${periodLabel}` : ''}`,
+          subtitle: `Monitoring sebaran luas lahan tahapan Bajak di 7 wilayah operasional (Total: ${totalLuasBJK.toFixed(2)} Ha • Tertinggi: Wilayah ${highestBJK?.wilayah || '-'}${periodSuffix})`,
           icon: <TrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />,
         };
       case 'SN':
         return {
-          title: 'Posisi Lahan SN per Wilayah (Siap Tanam)',
-          subtitle: `Monitoring sebaran luas lahan tahapan Siap Tanam di 7 wilayah operasional (Total: ${totalLuasSN.toFixed(2)} Ha • Tertinggi: Wilayah ${highestSN?.wilayah || '-'})`,
+          title: `Posisi Lahan SN per Wilayah (Siap Tanam)${periodLabel ? ` - ${periodLabel}` : ''}`,
+          subtitle: `Monitoring sebaran luas lahan tahapan Siap Tanam di 7 wilayah operasional (Total: ${totalLuasSN.toFixed(2)} Ha • Tertinggi: Wilayah ${highestSN?.wilayah || '-'}${periodSuffix})`,
           icon: <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />,
         };
       default:
         return {
-          title: 'Posisi Lahan per Wilayah (BK, BJK, SN)',
-          subtitle: 'Monitoring sebaran luas lahan per wilayah operasional (Bongkar, Bajak, Siap Tanam)',
+          title: `Posisi Lahan per Wilayah (BK, BJK, SN)${periodLabel ? ` - ${periodLabel}` : ''}`,
+          subtitle: `Monitoring sebaran luas lahan per wilayah operasional (Bongkar, Bajak, Siap Tanam${periodSuffix})`,
           icon: <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />,
         };
     }
-  }, [selectedStage, totalLuasBK, totalLuasBJK, totalLuasSN, highestBK, highestBJK, highestSN]);
+  }, [selectedStage, periodLabel, totalLuasBK, totalLuasBJK, totalLuasSN, highestBK, highestBJK, highestSN]);
 
   const renderBKChart = (isSingle: boolean = false) => (
     <div className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors ${isSingle ? 'h-full' : ''}`}>
@@ -662,7 +665,7 @@ export function PosisiLahanSection({
           <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-100 dark:border-slate-800">
             <div>
               <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                Rincian Wilayah {stageTitle}
+                Rincian Wilayah {stageTitle} {periodLabel ? `(${periodLabel})` : ''}
               </h5>
               <span className="text-[10px] text-slate-500 dark:text-slate-400">
                 Rincian luas lahan per wilayah operasional (W01 - W07)
