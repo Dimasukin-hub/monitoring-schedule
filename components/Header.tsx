@@ -2,9 +2,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { Sun, Moon, LogOut, ShieldCheck, Eye, ChevronDown, User } from 'lucide-react';
+import { Sun, Moon, LogOut, ShieldCheck, Eye, ChevronDown, User, UserCog } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAuth } from '@/components/AuthProvider';
+import EditProfileModal from './EditProfileModal';
 
 export interface MainMenuItem {
   id: string;
@@ -133,8 +134,9 @@ export default function Header({
   setOverviewSubTab,
 }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
-  const { user, isAdmin, logout } = useAuth();
+  const { user, isAdmin, logout, setUserDirectly } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const currentTheme = MENU_THEMES[activeTab] || MENU_THEMES.overview;
 
@@ -224,68 +226,58 @@ export default function Header({
           {/* Profil Button & Dropdown */}
           {user ? (
             <div className="relative" ref={profileRef}>
+              {/* Profil Button (Hanya Ikon Lingkaran) */}
               <button
                 type="button"
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer shadow-2xs ${
+                className={`w-9 h-9 rounded-full border-2 transition-all cursor-pointer shadow-xs overflow-hidden flex items-center justify-center shrink-0 ${
                   isProfileOpen
-                    ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-100 ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200'
+                    ? 'border-emerald-500 ring-2 ring-emerald-500/30'
+                    : 'border-emerald-500/40 hover:border-emerald-500'
                 }`}
-                title="Profil & Pengaturan Akun"
+                title={user.name || 'Profil Akun'}
+                aria-label="Menu Profil"
               >
-                {/* Avatar Initial */}
-                <div
-                  className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
-                    isAdmin
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-slate-600 dark:bg-slate-500 text-white'
-                  }`}
-                >
-                  {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
-                </div>
-
-                <div className="flex items-center gap-1 text-xs font-semibold">
-                  <span className="max-w-[90px] sm:max-w-[120px] truncate">
-                    {user.name || 'Profil'}
-                  </span>
-                  <ChevronDown
-                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
-                      isProfileOpen ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : ''
-                    }`}
+                {user.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.name || 'Avatar'}
+                    className="w-full h-full object-cover"
                   />
-                </div>
+                ) : (
+                  <div className="w-full h-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold uppercase">
+                    {user.name ? user.name.charAt(0) : 'A'}
+                  </div>
+                )}
               </button>
 
               {/* Dropdown Menu Popover */}
               {isProfileOpen && (
-                <div className="absolute right-0 top-full mt-2 min-w-[140px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-1.5">
-                  {/* Kotak Hijau Admin / Kotak Abu User */}
-                  <div className="pb-1.5 border-b border-slate-100 dark:border-slate-800/80">
-                    {isAdmin ? (
-                      <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 w-full shadow-2xs">
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                        <span>Admin</span>
-                      </div>
-                    ) : (
-                      <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 w-full shadow-2xs">
-                        <Eye className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                        <span>User</span>
-                      </div>
-                    )}
-                  </div>
+                <div className="absolute right-0 top-full mt-2 min-w-[145px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-1">
+                  {/* Tombol Edit Profil */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProfileOpen(false);
+                      setIsEditProfileOpen(true);
+                    }}
+                    className="w-full flex items-center justify-start gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    <UserCog className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                    <span>Edit Profil</span>
+                  </button>
 
-                  {/* Tombol Keluar (Logout) */}
+                  {/* Tombol Logout */}
                   <button
                     type="button"
                     onClick={() => {
                       setIsProfileOpen(false);
                       logout();
                     }}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-start gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
                   >
                     <LogOut className="w-3.5 h-3.5" />
-                    <span>Keluar (Logout)</span>
+                    <span>Logout</span>
                   </button>
                 </div>
               )}
@@ -302,9 +294,9 @@ export default function Header({
         </div>
       </div>
 
-      {/* Row 2: Sub Menu untuk Overview */}
+      {/* Row 2: Sub Menu untuk Overview (Garis batas/border-t dihilangkan sesuai permintaan) */}
       {activeTab === 'overview' && (
-        <div className="px-6 py-2 bg-slate-50/50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
+        <div className="px-6 py-1.5 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
           {OVERVIEW_SUB_MENUS.map((item) => {
             const isActive = overviewSubTab === item.id;
             return (
@@ -331,6 +323,16 @@ export default function Header({
           })}
         </div>
       )}
+
+      {/* Modal Edit Profil */}
+      <EditProfileModal
+        isOpen={isEditProfileOpen}
+        onClose={() => setIsEditProfileOpen(false)}
+        user={user}
+        onProfileUpdated={(updated) => {
+          setUserDirectly(updated);
+        }}
+      />
     </header>
   );
 }

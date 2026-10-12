@@ -87,8 +87,12 @@ export default function PortalLandingPage() {
           {user ? (
             <div className="flex items-center gap-2">
               <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-white/20 dark:border-slate-700 shadow-sm backdrop-blur-sm">
-                <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">
-                  {user.name.charAt(0).toUpperCase()}
+                <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold overflow-hidden shrink-0">
+                  {user.avatar ? (
+                    <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                  ) : (
+                    user.name.charAt(0).toUpperCase()
+                  )}
                 </div>
                 <div className="flex flex-col text-left">
                   <span className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
@@ -113,16 +117,10 @@ export default function PortalLandingPage() {
             <div className="flex items-center gap-2">
               <Link
                 href="/login"
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white/90 dark:bg-slate-900/90 hover:bg-white text-slate-900 dark:text-white text-xs font-bold border border-white/30 dark:border-slate-700 shadow-sm transition-all backdrop-blur-sm"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/90 dark:bg-slate-900/90 hover:bg-white text-slate-900 dark:text-white text-xs font-bold border border-white/30 dark:border-slate-700 shadow-sm transition-all backdrop-blur-sm"
               >
                 <LogIn className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Masuk</span>
-              </Link>
-              <Link
-                href="/login?mode=register"
-                className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all"
-              >
-                <span>Daftar</span>
               </Link>
             </div>
           )}

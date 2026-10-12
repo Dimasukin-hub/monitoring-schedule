@@ -5,6 +5,7 @@ export interface AuthUser {
   name: string;
   email: string;
   role: 'admin' | 'user';
+  avatar?: string | null;
 }
 
 // Akun Default (Fallback & Quick Login)
@@ -15,6 +16,7 @@ export const DEFAULT_USERS: Array<AuthUser & { password: string }> = [
     email: 'admin',
     password: 'admin123',
     role: 'admin',
+    avatar: null,
   },
   {
     id: 2,
@@ -22,6 +24,7 @@ export const DEFAULT_USERS: Array<AuthUser & { password: string }> = [
     email: 'admin@ggf.co.id',
     password: 'admin123',
     role: 'admin',
+    avatar: null,
   },
   {
     id: 3,
@@ -29,6 +32,7 @@ export const DEFAULT_USERS: Array<AuthUser & { password: string }> = [
     email: 'user',
     password: 'user123',
     role: 'user',
+    avatar: null,
   },
   {
     id: 4,
@@ -36,6 +40,7 @@ export const DEFAULT_USERS: Array<AuthUser & { password: string }> = [
     email: 'user@ggf.co.id',
     password: 'user123',
     role: 'user',
+    avatar: null,
   },
 ];
 
@@ -115,6 +120,7 @@ export async function findUserByEmail(identifier: string) {
         email: user.email,
         password: user.password,
         role: (user.role === 'admin' ? 'admin' : 'user') as 'admin' | 'user',
+        avatar: (user as any).avatar || null,
       };
     }
   } catch (error) {

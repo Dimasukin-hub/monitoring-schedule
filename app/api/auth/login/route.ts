@@ -29,6 +29,7 @@ export async function POST(req: Request) {
       name: user.name,
       email: user.email,
       role: user.role,
+      avatar: (user as any).avatar || null,
     };
 
     const response = NextResponse.json({
