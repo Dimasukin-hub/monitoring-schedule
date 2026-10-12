@@ -147,7 +147,7 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0, isAdmin =
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
-  // Date Picker Hover State (Poin 3: Muncul saat kursor diarahkan ke datanya)
+  // Date Picker State (Muncul hanya saat sel tanggal diklik)
   interface HoverDatePickerState {
     id: number;
     field: string;
@@ -157,7 +157,35 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0, isAdmin =
   }
   const [hoverDatePicker, setHoverDatePicker] = useState<HoverDatePickerState | null>(null);
   const [pickerViewMonth, setPickerViewMonth] = useState<Date>(new Date());
-  const closeTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const datePickerPopoverRef = useRef<HTMLDivElement>(null);
+
+  // Close Date Picker on click outside or Escape
+  useEffect(() => {
+    if (!hoverDatePicker) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (datePickerPopoverRef.current && !datePickerPopoverRef.current.contains(e.target as Node)) {
+        setHoverDatePicker(null);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setHoverDatePicker(null);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      window.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('keydown', handleKeyDown);
+    }, 10);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [hoverDatePicker]);
 
   // Modal Detail State (jika klik badge lokasi)
   const [selectedItem, setSelectedItem] = useState<PlantingItem | null>(null);
@@ -255,16 +283,16 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0, isAdmin =
     setEditValue('');
   };
 
-  // Hover Handlers for Date Picker (Poin 3)
-  const handleDateCellMouseEnter = (
+  // Click Handler for Date Picker (Muncul saat diklik, bukan hover)
+  const handleDateCellClick = (
     e: React.MouseEvent<HTMLTableCellElement>,
     item: PlantingItem,
     field: string
   ) => {
     if (!isAdmin) return;
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
+    if (hoverDatePicker && hoverDatePicker.id === item.id && hoverDatePicker.field === field) {
+      setHoverDatePicker(null);
+      return;
     }
 
     const rect = e.currentTarget.getBoundingClientRect();
@@ -284,25 +312,6 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0, isAdmin =
       y,
     });
     setPickerViewMonth(new Date(existingDate.getFullYear(), existingDate.getMonth(), 1));
-  };
-
-  const handleDateCellMouseLeave = () => {
-    closeTimerRef.current = setTimeout(() => {
-      setHoverDatePicker(null);
-    }, 280);
-  };
-
-  const handlePickerMouseEnter = () => {
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-  };
-
-  const handlePickerMouseLeave = () => {
-    closeTimerRef.current = setTimeout(() => {
-      setHoverDatePicker(null);
-    }, 200);
   };
 
   // Save Inline Editing dengan Live Formula & API Update
@@ -1237,7 +1246,7 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0, isAdmin =
                 <th
                   onClick={() => handleSort('awalTanam')}
                   className="py-3 px-4 text-center cursor-pointer hover:text-emerald-600 transition-colors whitespace-nowrap bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800"
-                  title="Urutkan Awal Tanam (Arahkan kursor untuk date picker)"
+                  title="Urutkan Awal Tanam (Klik sel untuk date picker)"
                 >
                   <div className="inline-flex items-center justify-center gap-1">
                     <span>Awal Tanam</span>
@@ -1249,7 +1258,7 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0, isAdmin =
                 <th
                   onClick={() => handleSort('estSelesai')}
                   className="py-3 px-4 text-center cursor-pointer hover:text-emerald-600 transition-colors whitespace-nowrap bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800"
-                  title="Urutkan Est. Selesai (Arahkan kursor untuk date picker)"
+                  title="Urutkan Est. Selesai (Klik sel untuk date picker)"
                 >
                   <div className="inline-flex items-center justify-center gap-1">
                     <span>Est. Selesai</span>
@@ -1472,16 +1481,18 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0, isAdmin =
                         )}
                       </td>
 
-                      {/* 6. Awal Tanam (Poin 3: DATE PICKER HOVER - RATA TENGAH) */}
+                      {/* 6. Awal Tanam (DATE PICKER KLIK - RATA TENGAH) */}
                       <td
                         className={`py-2 px-3 text-center cursor-pointer transition-all whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800 ${
                           savedSuccessCell?.id === item.id && savedSuccessCell?.field === 'awalTanam'
                             ? 'bg-emerald-100/60 dark:bg-emerald-900/40'
                             : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'
                         }`}
-                        onMouseEnter={(e) => handleDateCellMouseEnter(e, item, 'awalTanam')}
-                        onMouseLeave={handleDateCellMouseLeave}
-                        title="Arahkan kursor untuk memilih tanggal"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDateCellClick(e, item, 'awalTanam');
+                        }}
+                        title="Klik untuk memilih tanggal"
                       >
                         <div className="flex items-center justify-center gap-1">
                           {item.awalTanam ? (
@@ -1495,16 +1506,18 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0, isAdmin =
                         </div>
                       </td>
 
-                      {/* 7. Est. Selesai (Poin 3: DATE PICKER HOVER - RATA TENGAH) */}
+                      {/* 7. Est. Selesai (DATE PICKER KLIK - RATA TENGAH) */}
                       <td
                         className={`py-2 px-3 text-center cursor-pointer transition-all whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800 ${
                           savedSuccessCell?.id === item.id && savedSuccessCell?.field === 'estSelesai'
                             ? 'bg-emerald-100/60 dark:bg-emerald-900/40'
                             : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'
                         }`}
-                        onMouseEnter={(e) => handleDateCellMouseEnter(e, item, 'estSelesai')}
-                        onMouseLeave={handleDateCellMouseLeave}
-                        title="Arahkan kursor untuk memilih tanggal"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDateCellClick(e, item, 'estSelesai');
+                        }}
+                        title="Klik untuk memilih tanggal"
                       >
                         <div className="flex items-center justify-center gap-1">
                           {item.estSelesai ? (
@@ -1646,17 +1659,17 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0, isAdmin =
             </tbody>
           </table>
 
-          {/* DATE PICKER FLOATING POPOVER (Poin 3: Muncul Melayang di Posisi Kursor/Sel) */}
+          {/* DATE PICKER FLOATING POPOVER (Muncul Melayang Hanya Saat Sel Diklik) */}
           {hoverDatePicker && (
             <div
+              ref={datePickerPopoverRef}
               style={{
                 position: 'fixed',
                 top: `${hoverDatePicker.y}px`,
                 left: `${hoverDatePicker.x}px`,
                 zIndex: 60,
               }}
-              onMouseEnter={handlePickerMouseEnter}
-              onMouseLeave={handlePickerMouseLeave}
+              onClick={(e) => e.stopPropagation()}
               className="w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-4 animate-in fade-in zoom-in-95 duration-150"
             >
               {/* Popover Header */}

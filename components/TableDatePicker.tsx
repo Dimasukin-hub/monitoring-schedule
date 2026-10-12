@@ -111,8 +111,6 @@ export default function TableDatePicker({
 
   const triggerRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
-  const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const closeTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Sync internal state when value changes or popover opens
   useEffect(() => {
@@ -151,38 +149,14 @@ export default function TableDatePicker({
     setCoords({ top, left });
   };
 
-  const openPicker = () => {
+  const togglePicker = () => {
     if (isDisabled) return;
-    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-    updatePosition();
-    setIsOpen(true);
-  };
-
-  const scheduleClose = () => {
-    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-    closeTimerRef.current = setTimeout(() => {
+    if (isOpen) {
       setIsOpen(false);
-    }, 250);
-  };
-
-  const handleMouseEnter = () => {
-    if (isDisabled) return;
-    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-    hoverTimerRef.current = setTimeout(() => {
-      openPicker();
-    }, 200);
-  };
-
-  const handleMouseLeave = () => {
-    scheduleClose();
-  };
-
-  const handlePopoverMouseEnter = () => {
-    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-  };
-
-  const handlePopoverMouseLeave = () => {
-    scheduleClose();
+    } else {
+      updatePosition();
+      setIsOpen(true);
+    }
   };
 
   // Close on outside click
@@ -298,11 +272,9 @@ export default function TableDatePicker({
     <>
       <div
         ref={triggerRef}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
         onClick={(e) => {
           e.stopPropagation();
-          if (!isDisabled) openPicker();
+          togglePicker();
         }}
         className={`group/date relative inline-flex items-center gap-1 select-none rounded px-1 py-0.5 transition-all ${
           isDisabled
@@ -311,7 +283,7 @@ export default function TableDatePicker({
             ? 'ring-1 ring-emerald-500 bg-emerald-50 dark:bg-emerald-950/80 cursor-pointer'
             : 'hover:bg-emerald-50/80 dark:hover:bg-slate-800/80 hover:ring-1 hover:ring-emerald-400/50 cursor-pointer'
         } ${className}`}
-        title={isDisabled ? undefined : 'Arahkan kursor atau klik untuk memilih tanggal via calendar date picker'}
+        title={isDisabled ? undefined : 'Klik untuk memilih tanggal via calendar date picker'}
       >
         {label && (
           <span
@@ -343,8 +315,6 @@ export default function TableDatePicker({
         createPortal(
           <div
             ref={popoverRef}
-            onMouseEnter={handlePopoverMouseEnter}
-            onMouseLeave={handlePopoverMouseLeave}
             onClick={(e) => e.stopPropagation()}
             style={{
               position: 'fixed',
