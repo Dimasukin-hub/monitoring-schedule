@@ -1,4 +1,5 @@
 import { STOK_LAHAN_EXCEL_DATA } from './stokLahanData';
+import baselineStageStockJson from './baselineStageStock.json';
 
 export interface MonthActivity {
   bongkar: number;
@@ -40,7 +41,76 @@ export interface YearStokData {
   monthly: Record<string, MonthData>;
 }
 
-const typedStokData = STOK_LAHAN_EXCEL_DATA as unknown as Record<string, YearStokData>;
+// Bangun data tahun 2026 dari baselineStageStock.json
+const baseline2026 = baselineStageStockJson as {
+  initialCarryover: { bongkar: number; bajak: number; sn: number };
+  monthly: Array<{
+    monthIndex: number;
+    month: string;
+    monthYear: string;
+    bongkar: number;
+    bajak: number;
+    sn: number;
+    tanam: number;
+    stokBongkar: number;
+    stokBajak: number;
+    stokSN: number;
+    totalStok: number;
+  }>;
+};
+
+const monthly2026Map: Record<string, MonthData> = {};
+let total2026Bkr = 0;
+let total2026Bjk = 0;
+let total2026Sn = 0;
+let total2026Tnm = 0;
+
+for (const m of baseline2026.monthly || []) {
+  total2026Bkr += m.bongkar;
+  total2026Bjk += m.bajak;
+  total2026Sn += m.sn;
+  total2026Tnm += m.tanam;
+  monthly2026Map[m.month] = {
+    monthIndex: m.monthIndex,
+    monthName: m.month,
+    activities: {
+      bongkar: m.bongkar,
+      bajak: m.bajak,
+      sn: m.sn,
+      tanam: m.tanam,
+      totalStokLahan: Math.round((m.bongkar + m.bajak + m.sn + m.tanam) * 100) / 100,
+    },
+    stok: {
+      bongkar: m.stokBongkar,
+      bajak: m.stokBajak,
+      sn: m.stokSN,
+      total: m.totalStok,
+    },
+  };
+}
+
+const data2026: YearStokData = {
+  year: 2026,
+  initialStok: {
+    bongkar: baseline2026.initialCarryover.bongkar,
+    bajak: baseline2026.initialCarryover.bajak,
+    sn: baseline2026.initialCarryover.sn,
+    total: Math.round((baseline2026.initialCarryover.bongkar + baseline2026.initialCarryover.bajak + baseline2026.initialCarryover.sn) * 100) / 100,
+  },
+  totalActivities: {
+    bongkar: Math.round(total2026Bkr * 100) / 100,
+    bajak: Math.round(total2026Bjk * 100) / 100,
+    sn: Math.round(total2026Sn * 100) / 100,
+    tanam: Math.round(total2026Tnm * 100) / 100,
+    totalStokLahan: Math.round((total2026Bkr + total2026Bjk + total2026Sn + total2026Tnm) * 100) / 100,
+  },
+  monthly: monthly2026Map,
+};
+
+const typedStokData: Record<string, YearStokData> = {
+  ...(STOK_LAHAN_EXCEL_DATA as unknown as Record<string, YearStokData>),
+  '2026': data2026,
+};
 
 export const AVAILABLE_STOK_YEARS = [2026];
 export const ALL_MONTH_NAMES = [
@@ -142,10 +212,21 @@ export function getStokLahanSummary(
   targetMonth: string = 'CURRENT'
 ): StokLahanSummaryResult {
   const safeYear = AVAILABLE_STOK_YEARS.includes(targetYear) ? targetYear : 2026;
-  const yearData = typedStokData[String(safeYear)];
+  const yearData = typedStokData[String(safeYear)] || typedStokData['2026'] || Object.values(typedStokData)[0];
 
   if (!yearData) {
-    throw new Error(`Data stok lahan tahun ${safeYear} tidak ditemukan`);
+    return {
+      year: safeYear,
+      month: 'Okt',
+      monthLabel: `Okt ${safeYear}`,
+      stokLahan: { value: 0, formula: '', details: { bongkar: 0, bajak: 0, sn: 0, tanam: 0 } },
+      stokBongkar: { value: 0, formula: '' },
+      stokBajak: { value: 0, formula: '' },
+      stokSN: { value: 0, formula: '' },
+      totalStok: { value: 0, formula: '' },
+      availableYears: AVAILABLE_STOK_YEARS,
+      availableMonths: ALL_MONTH_NAMES,
+    };
   }
 
   // Jika targetMonth adalah 'CURRENT' atau string kosong, otomatis gunakan bulan berjalan saat ini (Okt, Nov, dst)
