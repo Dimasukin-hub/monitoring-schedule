@@ -167,14 +167,12 @@ export async function recalculateAndPersistStageStocks(targetYear: number = 2026
     const netto = Number(l.luasNetto) || base.netto;
     const details = (typeof l.aplikasiDetails === 'object' && l.aplikasiDetails !== null) ? (l.aplikasiDetails as any) : {};
 
-    // 3a. Bongkar (DO = MAX(rencBkr, realBkr))
+    // 3a. Bongkar (Prioritas Realisasi jika ada, fallback ke Rencana)
     const realBkrStr = l.realBkr || details.realChopper || details.realRh1 || null;
     const rencBkrStr = l.rencBkr || details.chopper || null;
     const dRencBkr = parseDateVal(rencBkrStr);
     const dRealBkr = parseDateVal(realBkrStr);
-    let dDO: Date | null = null;
-    if (dRencBkr && dRealBkr) dDO = dRealBkr > dRencBkr ? dRealBkr : dRencBkr;
-    else dDO = dRealBkr || dRencBkr;
+    const dDO: Date | null = dRealBkr || dRencBkr;
     const mDO = getEffectiveMonthYear(dDO);
     const curDS = mDO ? mDO.key : '';
 
@@ -189,9 +187,10 @@ export async function recalculateAndPersistStageStocks(targetYear: number = 2026
       }
     }
 
-    // 3b. Bajak (DP = MAX(rencBajak, realBajak))
+    // 3b. Bajak (Prioritas Realisasi jika ada, fallback ke Rencana)
     const realBjkStr =
       l.realBajak ||
+      details.realBajak ||
       details.realBajakAwalMb5Btr ||
       details.realBajakAwalMb25 ||
       details.realBajakAwalHoward ||
@@ -201,9 +200,7 @@ export async function recalculateAndPersistStageStocks(targetYear: number = 2026
     const rencBjkStr = l.rencBajak || details.rencAwalMb5Btr || details.bajakAwalMb5Btr || null;
     const dRencBjk = parseDateVal(rencBjkStr);
     const dRealBjk = parseDateVal(realBjkStr);
-    let dDP: Date | null = null;
-    if (dRencBjk && dRealBjk) dDP = dRealBjk > dRencBjk ? dRealBjk : dRencBjk;
-    else dDP = dRealBjk || dRencBjk;
+    const dDP: Date | null = dRealBjk || dRencBjk;
     const mDP = getEffectiveMonthYear(dDP);
     const curDT = mDP ? mDP.key : '';
 
@@ -218,10 +215,9 @@ export async function recalculateAndPersistStageStocks(targetYear: number = 2026
       }
     }
 
-    // 3c. Siap Tanam / SN (DQ = +B)
-    const snDateStr = l.bulanSn || base.bulanSn || null;
-    const dDQ = parseDateVal(snDateStr);
-    const mDQ = getEffectiveMonthYear(dDQ);
+    // 3c. Siap Tanam / SN (Prioritas Realisasi Siap Tanam jika ada, fallback ke Bulan SN)
+    const realSnDate = parseDateVal(details.realSiapTanam) || parseDateVal(l.bulanSn) || parseDateVal(base.bulanSn);
+    const mDQ = getEffectiveMonthYear(realSnDate);
     const curDU = mDQ ? mDQ.key : base.du;
 
     if (curDU && curDU !== base.du) {
