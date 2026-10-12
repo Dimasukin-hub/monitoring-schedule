@@ -317,18 +317,6 @@ export default function KpiCards({
     return getStokLahanSummary(internalYear, selectedMonths.length === 0 ? 'CURRENT' : internalMonthStr);
   }, [data?.stokLahanSummary, internalYear, internalMonthStr, selectedMonths, currentMonthName]);
 
-  if (!data) {
-    return (
-      <div className="space-y-4 animate-pulse">
-        <div className="h-48 rounded-2xl bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800"></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="h-32 rounded-2xl bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800"></div>
-          <div className="h-32 rounded-2xl bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800"></div>
-        </div>
-      </div>
-    );
-  }
-
   // Trigger button label like in Data Lahan
   // Badge pada kartu: jika default (kosong), tampilkan bulan berjalan otomatis (misal Okt-26)
   const cardMonthBadge = useMemo(() => {
@@ -343,6 +331,18 @@ export default function KpiCards({
     }
     return `${selectedMonths[0]} - ${selectedMonths[selectedMonths.length - 1]}`;
   }, [selectedMonths, internalYear, currentMonthName]);
+
+  if (!data) {
+    return (
+      <div className="space-y-4 animate-pulse">
+        <div className="h-48 rounded-2xl bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="h-32 rounded-2xl bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800"></div>
+          <div className="h-32 rounded-2xl bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -526,7 +526,7 @@ export default function KpiCards({
               </div>
               <div className="flex items-baseline gap-1 mt-2">
                 <span className="text-2xl lg:text-3xl font-black text-amber-600 dark:text-amber-400 tracking-tight">
-                  {stokSummary.stokBongkar.value.toLocaleString('id-ID', {
+                  {(stokSummary?.stokBongkar?.value ?? 0).toLocaleString('id-ID', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
@@ -583,7 +583,7 @@ export default function KpiCards({
               </div>
               <div className="flex items-baseline gap-1 mt-2">
                 <span className="text-2xl lg:text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tight">
-                  {stokSummary.stokBajak.value.toLocaleString('id-ID', {
+                  {(stokSummary?.stokBajak?.value ?? 0).toLocaleString('id-ID', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
@@ -640,7 +640,7 @@ export default function KpiCards({
               </div>
               <div className="flex items-baseline gap-1 mt-2">
                 <span className="text-2xl lg:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
-                  {stokSummary.stokSN.value.toLocaleString('id-ID', {
+                  {(stokSummary?.stokSN?.value ?? 0).toLocaleString('id-ID', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
