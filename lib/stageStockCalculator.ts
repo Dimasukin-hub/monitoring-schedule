@@ -112,13 +112,18 @@ export function getEffectiveMonthYear(d: Date | null): { month: number; year: nu
   return { month, year, key: `${month}${year}` };
 }
 
+export function maxDate(d1: Date | null, d2: Date | null): Date | null {
+  if (d1 && d2) return d1.getTime() > d2.getTime() ? d1 : d2;
+  return d1 || d2 || null;
+}
+
 /**
  * Menghitung ulang seluruh tabel StageStockSummary untuk tahun target (default 2026)
  * berdasarkan rumus Sheet Stok Lahan di Excel Schedule 2026 Update 09:
  *
- * 1. Bongkar(m) = SUMIF(Master!$DS:$DS, N57, Master!$F:$F)
- * 2. Bajak(m) = SUMIF(Master!$DT:$DT, N57, Master!$F:$F)
- * 3. SN(m) = SUMIF(Master!$DU:$DU, N57, Master!$F:$F)
+ * 1. Bongkar(m) = SUMIF(Master!$DS:$DS, N57, Master!$F:$F) di mana DO = MAX(L, BU)
+ * 2. Bajak(m) = SUMIF(Master!$DT:$DT, N57, Master!$F:$F) di mana DP = MAX(M, BV)
+ * 3. SN(m) = SUMIF(Master!$DU:$DU, N57, Master!$F:$F) di mana DQ = +B (Bulan SN)
  * 4. Stok Bongkar(m) = Stok Bongkar(m-1) + Bongkar(m) - Bajak(m)
  * 5. Stok Bajak(m) = Stok Bajak(m-1) + Bajak(m) - SN(m)
  * 6. Stok SN(m) = Stok SN(m-1) + SN(m) - Tanam(m)
@@ -128,10 +133,7 @@ export async function recalculateAndPersistStageStocks(targetYear: number = 2026
   // 1. Ambil data lahan untuk tahun target
   const lands = await prisma.land.findMany({
     where: {
-      OR: [
-        { year: targetYear },
-        { year: null },
-      ],
+      year: targetYear,
     },
     select: {
       id: true,
@@ -159,7 +161,7 @@ export async function recalculateAndPersistStageStocks(targetYear: number = 2026
     monthlyTanam[m.monthIndex] = m.tanam;
   }
 
-  // 3. Terapkan delta dinamis untuk setiap lahan yang tanggalnya diubah
+  // 3. Terapkan delta dinamis persis sesuai rumus Sheet Master Excel:
   for (const l of lands) {
     const base = lands2026Baselines[l.lokasi];
     if (!base) continue;
@@ -167,14 +169,14 @@ export async function recalculateAndPersistStageStocks(targetYear: number = 2026
     const netto = Number(l.luasNetto) || base.netto;
     const details = (typeof l.aplikasiDetails === 'object' && l.aplikasiDetails !== null) ? (l.aplikasiDetails as any) : {};
 
-    // 3a. Bongkar (Prioritas Realisasi jika ada, fallback ke Rencana)
+    // 3a. Bongkar = MAX(Rencana Bongkar, Realisasi Bongkar) -> Tag DS
     const realBkrStr = l.realBkr || details.realChopper || details.realRh1 || null;
     const rencBkrStr = l.rencBkr || details.chopper || null;
-    const dRencBkr = parseDateVal(rencBkrStr);
+    const dRencBkr = parseDateVal(rencBkrStr) || parseDateVal(base.rencBkr);
     const dRealBkr = parseDateVal(realBkrStr);
-    const dDO: Date | null = dRealBkr || dRencBkr;
+    const dDO = maxDate(dRencBkr, dRealBkr);
     const mDO = getEffectiveMonthYear(dDO);
-    const curDS = mDO ? mDO.key : '';
+    const curDS = mDO ? mDO.key : base.ds;
 
     if (curDS && curDS !== base.ds) {
       const baseM = parseInt(base.ds.slice(0, -4), 10);
@@ -187,7 +189,7 @@ export async function recalculateAndPersistStageStocks(targetYear: number = 2026
       }
     }
 
-    // 3b. Bajak (Prioritas Realisasi jika ada, fallback ke Rencana)
+    // 3b. Bajak = MAX(Rencana Bajak, Realisasi Bajak) -> Tag DT
     const realBjkStr =
       l.realBajak ||
       details.realBajak ||
@@ -198,11 +200,11 @@ export async function recalculateAndPersistStageStocks(targetYear: number = 2026
       details.realHrEksMb ||
       null;
     const rencBjkStr = l.rencBajak || details.rencAwalMb5Btr || details.bajakAwalMb5Btr || null;
-    const dRencBjk = parseDateVal(rencBjkStr);
+    const dRencBjk = parseDateVal(rencBjkStr) || parseDateVal(base.rencBajak);
     const dRealBjk = parseDateVal(realBjkStr);
-    const dDP: Date | null = dRealBjk || dRencBjk;
+    const dDP = maxDate(dRencBjk, dRealBjk);
     const mDP = getEffectiveMonthYear(dDP);
-    const curDT = mDP ? mDP.key : '';
+    const curDT = mDP ? mDP.key : base.dt;
 
     if (curDT && curDT !== base.dt) {
       const baseM = parseInt(base.dt.slice(0, -4), 10);
@@ -215,9 +217,10 @@ export async function recalculateAndPersistStageStocks(targetYear: number = 2026
       }
     }
 
-    // 3c. Siap Tanam / SN (Prioritas Realisasi Siap Tanam jika ada, fallback ke Bulan SN)
-    const realSnDate = parseDateVal(details.realSiapTanam) || parseDateVal(l.bulanSn) || parseDateVal(base.bulanSn);
-    const mDQ = getEffectiveMonthYear(realSnDate);
+    // 3c. Siap Tanam / SN = Bulan SN (Kolom B di Sheet Master) -> Tag DU
+    const rencSnDate = parseDateVal(l.bulanSn) || parseDateVal(base.bulanSn);
+    const dDQ = rencSnDate;
+    const mDQ = getEffectiveMonthYear(dDQ);
     const curDU = mDQ ? mDQ.key : base.du;
 
     if (curDU && curDU !== base.du) {

@@ -9,6 +9,8 @@ const MONTH_NAMES = [
   'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
 ];
 
+const MONTH_COLS = ['E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'];
+
 async function main() {
   console.log('🚀 Membaca sheet "Stok Lahan" dari Schedule 2026 Update 09.xlsx...');
   const filePath = path.join(__dirname, '..', 'excel', 'Schedule 2026 Update 09.xlsx');
@@ -19,42 +21,42 @@ async function main() {
     throw new Error('Sheet "Stok Lahan" tidak ditemukan di file Excel!');
   }
 
-  // Definisi blok baris tiap tahun di sheet Stok Lahan
+  // Baris Excel literal (1-indexed) untuk setiap tahun:
+  // Row Bongkar, Row Stok Bongkar
   const yearBlocks = [
-    { year: 2022, actStart: 6,  stokStart: 11 }, // Bongkar r7, Bajak r8, SN r9, Tnm r10, StokBk r12, StokBjk r13, StokSN r14, Tot r15
-    { year: 2023, actStart: 19, stokStart: 24 }, // Bongkar r20, Bajak r21, SN r22, Tnm r23, StokBk r25, StokBjk r26, StokSN r27, Tot r28
-    { year: 2024, actStart: 32, stokStart: 37 }, // Bongkar r33, Bajak r34, SN r35, Tnm r36, StokBk r38, StokBjk r39, StokSN r40, Tot r41
-    { year: 2025, actStart: 45, stokStart: 50 }, // Bongkar r46, Bajak r47, SN r48, Tnm r49, StokBk r51, StokBjk r52, StokSN r53, Tot r54
-    { year: 2026, actStart: 58, stokStart: 63 }, // Bongkar r59, Bajak r60, SN r61, Tnm r62, StokBk r64, StokBjk r65, StokSN r66, Tot r67
+    { year: 2022, bkrRow: 7,  stokBkrRow: 12 },
+    { year: 2023, bkrRow: 20, stokBkrRow: 25 },
+    { year: 2024, bkrRow: 33, stokBkrRow: 38 },
+    { year: 2025, bkrRow: 46, stokBkrRow: 51 },
+    { year: 2026, bkrRow: 59, stokBkrRow: 64 },
   ];
 
   let totalUpserted = 0;
 
   for (const block of yearBlocks) {
-    const { year, actStart, stokStart } = block;
+    const { year, bkrRow, stokBkrRow } = block;
 
-    // Saldo awal tahun (Kolom C, index 2)
-    const initBk = ws[xlsx.utils.encode_cell({ r: stokStart, c: 2 })]?.v || 0;
-    const initBjk = ws[xlsx.utils.encode_cell({ r: stokStart + 1, c: 2 })]?.v || 0;
-    const initSN = ws[xlsx.utils.encode_cell({ r: stokStart + 2, c: 2 })]?.v || 0;
+    // Saldo awal tahun (Kolom C)
+    const initBk = Number(ws['C' + stokBkrRow]?.v) || 0;
+    const initBjk = Number(ws['C' + (stokBkrRow + 1)]?.v) || 0;
+    const initSN = Number(ws['C' + (stokBkrRow + 2)]?.v) || 0;
 
-    console.log(`\n📅 Memproses Tahun ${year} (Saldo Awal: BK=${Number(initBk).toFixed(2)}, BJK=${Number(initBjk).toFixed(2)}, SN=${Number(initSN).toFixed(2)} Ha)...`);
+    console.log(`\n📅 Memproses Tahun ${year} (Saldo Awal: BK=${initBk.toFixed(2)}, BJK=${initBjk.toFixed(2)}, SN=${initSN.toFixed(2)} Ha)...`);
 
-    // Kolom E (idx 4) s/d Kolom P (idx 15) untuk Jan s/d Des
     for (let mIdx = 0; mIdx < 12; mIdx++) {
-      const c = 4 + mIdx;
+      const col = MONTH_COLS[mIdx];
       const monthName = MONTH_NAMES[mIdx];
       const monthYear = `${monthName}-${String(year).slice(2)}`;
 
-      const bongkar = Number(ws[xlsx.utils.encode_cell({ r: actStart, c })]?.v) || 0;
-      const bajak = Number(ws[xlsx.utils.encode_cell({ r: actStart + 1, c })]?.v) || 0;
-      const sn = Number(ws[xlsx.utils.encode_cell({ r: actStart + 2, c })]?.v) || 0;
-      const tanam = Number(ws[xlsx.utils.encode_cell({ r: actStart + 3, c })]?.v) || 0;
+      const bongkar = Number(ws[col + bkrRow]?.v) || 0;
+      const bajak = Number(ws[col + (bkrRow + 1)]?.v) || 0;
+      const sn = Number(ws[col + (bkrRow + 2)]?.v) || 0;
+      const tanam = Number(ws[col + (bkrRow + 3)]?.v) || 0;
 
-      const stokBongkar = Number(ws[xlsx.utils.encode_cell({ r: stokStart, c })]?.v) || 0;
-      const stokBajak = Number(ws[xlsx.utils.encode_cell({ r: stokStart + 1, c })]?.v) || 0;
-      const stokSN = Number(ws[xlsx.utils.encode_cell({ r: stokStart + 2, c })]?.v) || 0;
-      const totalStok = Number(ws[xlsx.utils.encode_cell({ r: stokStart + 3, c })]?.v) || (stokBongkar + stokBajak + stokSN);
+      const stokBongkar = Number(ws[col + stokBkrRow]?.v) || 0;
+      const stokBajak = Number(ws[col + (stokBkrRow + 1)]?.v) || 0;
+      const stokSN = Number(ws[col + (stokBkrRow + 2)]?.v) || 0;
+      const totalStok = Number(ws[col + (stokBkrRow + 3)]?.v) || (stokBongkar + stokBajak + stokSN);
 
       await prisma.stageStockSummary.upsert({
         where: {
@@ -74,9 +76,9 @@ async function main() {
           stokBajak: Math.round(stokBajak * 100) / 100,
           stokSN: Math.round(stokSN * 100) / 100,
           totalStok: Math.round(totalStok * 100) / 100,
-          initialCarryoverBongkar: Number(initBk),
-          initialCarryoverBajak: Number(initBjk),
-          initialCarryoverSN: Number(initSN),
+          initialCarryoverBongkar: initBk,
+          initialCarryoverBajak: initBjk,
+          initialCarryoverSN: initSN,
         },
         create: {
           year,
@@ -91,9 +93,9 @@ async function main() {
           stokBajak: Math.round(stokBajak * 100) / 100,
           stokSN: Math.round(stokSN * 100) / 100,
           totalStok: Math.round(totalStok * 100) / 100,
-          initialCarryoverBongkar: Number(initBk),
-          initialCarryoverBajak: Number(initBjk),
-          initialCarryoverSN: Number(initSN),
+          initialCarryoverBongkar: initBk,
+          initialCarryoverBajak: initBjk,
+          initialCarryoverSN: initSN,
         },
       });
 
@@ -103,30 +105,36 @@ async function main() {
 
   console.log(`\n🎉 SELESAI! Berhasil memasukkan ${totalUpserted} bulan data ke tabel StageStockSummary PostgreSQL.`);
 
-  // Verifikasi Posisi Akhir 2026
-  const sample2026 = await prisma.stageStockSummary.findUnique({
-    where: {
-      year_monthIndex: {
-        year: 2026,
-        monthIndex: 12,
-      },
-    },
+  // Validasi posisi Oktober 2026 dan Desember 2026
+  const okt26 = await prisma.stageStockSummary.findFirst({
+    where: { year: 2026, monthIndex: 10 },
+  });
+  const des26 = await prisma.stageStockSummary.findFirst({
+    where: { year: 2026, monthIndex: 12 },
   });
 
-  console.log('\n📊 Validasi Posisi Akhir Des 2026 di PostgreSQL Database:');
+  console.log('\n📊 Validasi Posisi Okt 2026 di Database:');
   console.log({
-    Bulan: sample2026.monthYear,
-    'Stok Bongkar': `${sample2026.stokBongkar} Ha`,
-    'Stok Bajak': `${sample2026.stokBajak} Ha`,
-    'Stok SN': `${sample2026.stokSN} Ha`,
-    'Total Stok Operasional': `${sample2026.totalStok} Ha`,
-    'Saldo Awal Tahun': `BK: ${sample2026.initialCarryoverBongkar?.toFixed(1)} Ha, BJK: ${sample2026.initialCarryoverBajak?.toFixed(1)} Ha, SN: ${sample2026.initialCarryoverSN?.toFixed(1)} Ha`,
+    Bulan: okt26?.monthYear,
+    'Stok Bongkar': `${okt26?.stokBongkar} Ha`,
+    'Stok Bajak': `${okt26?.stokBajak} Ha`,
+    'Stok SN': `${okt26?.stokSN} Ha`,
+    'Total Stok': `${okt26?.totalStok} Ha`,
+  });
+
+  console.log('\n📊 Validasi Posisi Des 2026 di Database:');
+  console.log({
+    Bulan: des26?.monthYear,
+    'Stok Bongkar': `${des26?.stokBongkar} Ha`,
+    'Stok Bajak': `${des26?.stokBajak} Ha`,
+    'Stok SN': `${des26?.stokSN} Ha`,
+    'Total Stok': `${des26?.totalStok} Ha`,
   });
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Gagal sinkronisasi data:', e);
+    console.error('❌ Terjadi kesalahan saat sinkronisasi:', e);
     process.exit(1);
   })
   .finally(async () => {
