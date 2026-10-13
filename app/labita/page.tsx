@@ -50,8 +50,10 @@ export default function LabitaDashboardPage() {
   }, [activeTab]);
 
   // Load Dashboard Summary & Charts
-  const loadDashboardData = (isManualRefresh = false) => {
-    setIsLoading(true);
+  const loadDashboardData = (isManualRefresh = false, isSilent = false) => {
+    if (!isSilent) {
+      setIsLoading(true);
+    }
     const summaryParams = new URLSearchParams();
     if (selectedWilayah && selectedWilayah !== 'ALL') {
       summaryParams.set('wilayah', selectedWilayah);
@@ -89,6 +91,9 @@ export default function LabitaDashboardPage() {
       })
       .catch((err) => console.error('Error fetching dashboard data:', err))
       .finally(() => {
+        if (isSilent) {
+          return;
+        }
         if (isManualRefresh) {
           const elapsed = Date.now() - startTime;
           const remaining = Math.max(0, 500 - elapsed);
@@ -102,6 +107,11 @@ export default function LabitaDashboardPage() {
   const handleRefresh = () => {
     setRefreshLandTrigger((prev) => prev + 1);
     loadDashboardData(true);
+  };
+
+  const handleSilentDataChanged = () => {
+    // Perbarui kartu dashboard di latar belakang tanpa reload tabel dan tanpa jeda/kedipan loading
+    loadDashboardData(false, true);
   };
 
   useEffect(() => {
@@ -241,7 +251,7 @@ export default function LabitaDashboardPage() {
                   setEditingLandId(id);
                 }
               }}
-              onDataChanged={handleRefresh}
+              onDataChanged={handleSilentDataChanged}
               initialSearch={searchQuery}
               onSearchChange={(query) => {
                 setSearchQuery(query);

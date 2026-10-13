@@ -2592,7 +2592,7 @@ export default function LandTable({
           </thead>
 
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 text-slate-800 dark:text-slate-300">
-            {loading ? (
+            {loading && lands.length === 0 ? (
               <tr>
                 <td colSpan={totalVisibleCols} className="py-12 text-center text-slate-500 dark:text-slate-400">
                   <div className="flex flex-col items-center gap-2">
