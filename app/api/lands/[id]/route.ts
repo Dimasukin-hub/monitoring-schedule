@@ -252,13 +252,14 @@ export async function PUT(
           body.aplikasiDetails.siapTanam === '')
       ) {
         const base = (lands2026BaselinesJson as Record<string, any>)[existingLand.lokasi];
-        if (base && base.bulanSn) {
-          const dBase = parseDateVal(base.bulanSn);
+        const defaultBulanSn = base?.baseBulanSn || base?.bulanSn || existingLand.bulanTanam;
+        if (defaultBulanSn) {
+          const dBase = parseDateVal(defaultBulanSn);
           if (dBase) {
             const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
             updateData.bulanSn = `${MONTH_NAMES[dBase.getMonth()]}-${String(dBase.getFullYear()).slice(-2)}`;
           } else {
-            updateData.bulanSn = String(base.bulanSn).trim();
+            updateData.bulanSn = String(defaultBulanSn).trim();
           }
         }
       }
