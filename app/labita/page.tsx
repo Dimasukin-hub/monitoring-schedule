@@ -27,7 +27,12 @@ export default function LabitaDashboardPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>('LATEST');
   const [stokYear, setStokYear] = useState<number>(2026);
   const [stokMonth, setStokMonth] = useState<string>('CURRENT');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('labita_table_search') || '';
+    }
+    return '';
+  });
   const [selectedLandId, setSelectedLandId] = useState<number | string | null>(null);
   const [editingLandId, setEditingLandId] = useState<number | string | null>(null);
   const [refreshLandTrigger, setRefreshLandTrigger] = useState<number>(0);
@@ -153,6 +158,13 @@ export default function LabitaDashboardPage() {
         searchQuery={searchQuery}
         setSearchQuery={(query) => {
           setSearchQuery(query);
+          if (typeof window !== 'undefined') {
+            if (query) {
+              sessionStorage.setItem('labita_table_search', query);
+            } else {
+              sessionStorage.removeItem('labita_table_search');
+            }
+          }
           if (query.trim() && overviewSubTab !== 'data_lahan') {
             setOverviewSubTab('data_lahan');
           }
@@ -179,67 +191,75 @@ export default function LabitaDashboardPage() {
         )}
 
         {/* TAB 1: OVERVIEW */}
-        {activeTab === 'overview' && (
-          <div className="space-y-8 animate-in fade-in duration-200">
-            {/* 1. SUB MENU: EXECUTIVE SUMMARY */}
-            {overviewSubTab === 'executive_summary' && (
-              <KpiCards
-                data={summaryData}
-                selectedYear={stokYear}
-                selectedMonth={stokMonth}
-                onSelectStokFilter={(yr, m) => {
-                  setStokYear(yr);
-                  setStokMonth(m);
-                }}
-                selectedPeriod={selectedPeriod}
-                onSelectPeriod={(p) => setSelectedPeriod(p)}
-                chartsData={chartsData}
-                onSelectLand={(loc) => setSelectedLandId(loc)}
-                selectedWilayah={selectedWilayah}
-                setSelectedWilayah={setSelectedWilayah}
-                availableWilayahs={summaryData?.availableWilayahs || []}
-              />
-            )}
+        <div className={activeTab === 'overview' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
+          {/* 1. SUB MENU: EXECUTIVE SUMMARY */}
+          {overviewSubTab === 'executive_summary' && (
+            <KpiCards
+              data={summaryData}
+              selectedYear={stokYear}
+              selectedMonth={stokMonth}
+              onSelectStokFilter={(yr, m) => {
+                setStokYear(yr);
+                setStokMonth(m);
+              }}
+              selectedPeriod={selectedPeriod}
+              onSelectPeriod={(p) => setSelectedPeriod(p)}
+              chartsData={chartsData}
+              onSelectLand={(loc) => setSelectedLandId(loc)}
+              selectedWilayah={selectedWilayah}
+              setSelectedWilayah={setSelectedWilayah}
+              availableWilayahs={summaryData?.availableWilayahs || []}
+            />
+          )}
 
-            {/* 3. SUB MENU: RENCANA VS REALISASI */}
-            {overviewSubTab === 'rencana_realisasi' && (
-              <RencanaRealisasiSection
-                chartsData={chartsData}
-                onSelectLand={(loc) => setSelectedLandId(loc)}
-              />
-            )}
+          {/* 3. SUB MENU: RENCANA VS REALISASI */}
+          {overviewSubTab === 'rencana_realisasi' && (
+            <RencanaRealisasiSection
+              chartsData={chartsData}
+              onSelectLand={(loc) => setSelectedLandId(loc)}
+            />
+          )}
 
-            {/* 4. SUB MENU: RERATA BERO DAN TANAM */}
-            {overviewSubTab === 'rerata_bero_tanam' && (
-              <RerataBeroSection refreshTrigger={refreshLandTrigger} />
-            )}
+          {/* 4. SUB MENU: RERATA BERO DAN TANAM */}
+          {overviewSubTab === 'rerata_bero_tanam' && (
+            <RerataBeroSection refreshTrigger={refreshLandTrigger} />
+          )}
 
-            {/* 5. SUB MENU: PROSES TANAM & SELESAI TANAM */}
-            {overviewSubTab === 'proses_selesai_tanam' && (
-              <ProsesTanamSection
-                chartsData={chartsData}
-                onSelectLand={(loc) => setSelectedLandId(loc)}
-              />
-            )}
+          {/* 5. SUB MENU: PROSES TANAM & SELESAI TANAM */}
+          {overviewSubTab === 'proses_selesai_tanam' && (
+            <ProsesTanamSection
+              chartsData={chartsData}
+              onSelectLand={(loc) => setSelectedLandId(loc)}
+            />
+          )}
 
-            {/* 6. SUB MENU: DATA LAHAN */}
-            {overviewSubTab === 'data_lahan' && (
-              <LandTable
-                onSelectLand={(id) => setSelectedLandId(id)}
-                onEditLand={(id) => {
-                  if (isAdmin) {
-                    setEditingLandId(id);
+          {/* 6. SUB MENU: DATA LAHAN (Keep-Alive agar pencarian tidak reset saat buka menu/sub-menu lain) */}
+          <div className={overviewSubTab === 'data_lahan' ? 'block' : 'hidden'}>
+            <LandTable
+              onSelectLand={(id) => setSelectedLandId(id)}
+              onEditLand={(id) => {
+                if (isAdmin) {
+                  setEditingLandId(id);
+                }
+              }}
+              onDataChanged={handleRefresh}
+              initialSearch={searchQuery}
+              onSearchChange={(query) => {
+                setSearchQuery(query);
+                if (typeof window !== 'undefined') {
+                  if (query) {
+                    sessionStorage.setItem('labita_table_search', query);
+                  } else {
+                    sessionStorage.removeItem('labita_table_search');
                   }
-                }}
-                onDataChanged={handleRefresh}
-                initialSearch={searchQuery}
-                selectedWilayah={selectedWilayah}
-                refreshTrigger={refreshLandTrigger}
-                isAdmin={isAdmin}
-              />
-            )}
+                }
+              }}
+              selectedWilayah={selectedWilayah}
+              refreshTrigger={refreshLandTrigger}
+              isAdmin={isAdmin}
+            />
           </div>
-        )}
+        </div>
 
         {/* TAB 2: LIST STOK LAHAN */}
         {activeTab === 'stok' && (

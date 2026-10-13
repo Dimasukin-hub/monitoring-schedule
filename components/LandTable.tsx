@@ -536,6 +536,7 @@ interface LandTableProps {
   onEditLand?: (landId: number) => void;
   onDataChanged?: () => void;
   initialSearch?: string;
+  onSearchChange?: (search: string) => void;
   selectedWilayah?: string;
   refreshTrigger?: number;
   isAdmin?: boolean;
@@ -548,6 +549,7 @@ export default function LandTable({
   onEditLand,
   onDataChanged,
   initialSearch = '',
+  onSearchChange,
   selectedWilayah = 'ALL',
   refreshTrigger = 0,
   isAdmin: propIsAdmin,
@@ -557,7 +559,13 @@ export default function LandTable({
   const [lands, setLands] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
-  const [search, setSearch] = useState(initialSearch);
+  const [search, setSearch] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('labita_table_search');
+      if (saved !== null && saved !== undefined) return saved;
+    }
+    return initialSearch || searchQuery || '';
+  });
   const [selectedYears, setSelectedYears] = useState<string[]>([]);
   const [selectedWilayahs, setSelectedWilayahs] = useState<string[]>(
     selectedWilayah && selectedWilayah !== 'ALL' ? [selectedWilayah] : []
@@ -573,7 +581,16 @@ export default function LandTable({
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const prevSelectedActivitiesRef = useRef<string[]>([]);
   const [highlightedColumn, setHighlightedColumn] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedPage = sessionStorage.getItem('labita_table_page');
+      if (savedPage) {
+        const p = parseInt(savedPage, 10);
+        if (!isNaN(p) && p > 0) return p;
+      }
+    }
+    return 1;
+  });
   const [limit, setLimit] = useState(15);
   const [sortBy, setSortBy] = useState('lokasi');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -685,11 +702,29 @@ export default function LandTable({
   };
 
   useEffect(() => {
-    setSearch(initialSearch);
+    if (typeof window !== 'undefined') {
+      if (search) {
+        sessionStorage.setItem('labita_table_search', search);
+      } else {
+        sessionStorage.removeItem('labita_table_search');
+      }
+    }
+  }, [search]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('labita_table_page', String(page));
+    }
+  }, [page]);
+
+  useEffect(() => {
+    if (initialSearch !== undefined && initialSearch.trim() !== '' && initialSearch !== search) {
+      setSearch(initialSearch);
+    }
   }, [initialSearch]);
 
   useEffect(() => {
-    if (searchQuery !== undefined) {
+    if (searchQuery !== undefined && searchQuery.trim() !== '' && searchQuery !== search) {
       setSearch(searchQuery);
     }
   }, [searchQuery]);
@@ -1543,7 +1578,9 @@ export default function LandTable({
                 placeholder="Cari lokasi"
                 value={search}
                 onChange={(e) => {
-                  setSearch(e.target.value);
+                  const val = e.target.value;
+                  setSearch(val);
+                  onSearchChange?.(val);
                   setPage(1);
                 }}
                 className="w-full bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-800 rounded-xl pl-9 pr-8 py-1.5 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-emerald-500"
@@ -1553,6 +1590,7 @@ export default function LandTable({
                   type="button"
                   onClick={() => {
                     setSearch('');
+                    onSearchChange?.('');
                     setPage(1);
                   }}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer p-0.5 rounded-full hover:bg-slate-200/60 dark:hover:bg-slate-700/60 flex items-center justify-center z-10"
@@ -1795,6 +1833,7 @@ export default function LandTable({
                   setActivityType('all');
                   setSelectedActivityMonths([]);
                   setSearch('');
+                  onSearchChange?.('');
                   setPage(1);
                 }}
                 className="text-xs font-semibold text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 underline underline-offset-2 cursor-pointer transition-colors leading-none inline-flex items-center"
