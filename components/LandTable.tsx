@@ -17,7 +17,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import TableDatePicker from '@/components/TableDatePicker';
-import MultiSelectDropdown from '@/components/MultiSelectDropdown';
+import MultiSelectDropdown, { FilterGroup } from '@/components/MultiSelectDropdown';
 import { PIPELINE_ORDER, computeAktivitasTerakhir, isValidDate } from '@/lib/landActivityUtils';
 import { useAuth } from '@/components/AuthProvider';
 
@@ -353,6 +353,70 @@ const ACTIVITY_OPTIONS = [
   'PROSES TANAM',
   'SELESAI TANAM',
 ];
+
+const ACTIVITY_GROUPS: FilterGroup[] = [
+  {
+    name: 'Kelompok Bongkar (BK)',
+    shortBadge: 'BK',
+    color: 'amber',
+    options: [
+      'CHOPPER',
+      'CHOPPER LU',
+      'RH1',
+      'CUTTING BANANA',
+      'DOLOMIT',
+      'DP 1',
+      'DP CROSS',
+      'DP 2',
+      'BELERANG',
+      'KOMPOS',
+    ],
+  },
+  {
+    name: 'Kelompok Bajak (BJK)',
+    shortBadge: 'BJK',
+    color: 'blue',
+    options: [
+      'MB 5 BTR',
+      'MB 2.5',
+      'MPH',
+      'NARDI',
+      'HR EKS MB',
+      'SS1',
+      'SS2',
+      'Rotary FH1',
+      'Rotary FH2',
+      'RIDGER',
+    ],
+  },
+  {
+    name: 'Kelompok Siap Tanam (SN)',
+    shortBadge: 'SN',
+    color: 'cyan',
+    options: [
+      'JALAN & SAL',
+      'SIAP TANAM',
+    ],
+  },
+  {
+    name: 'Kelompok Tanam',
+    shortBadge: 'TNM',
+    color: 'emerald',
+    options: [
+      'PROSES TANAM',
+      'SELESAI TANAM',
+    ],
+  },
+];
+
+const getActivityGroupBadge = (act: string): string => {
+  for (const grp of ACTIVITY_GROUPS) {
+    if (grp.options.includes(act)) {
+      return grp.shortBadge || '';
+    }
+  }
+  return '';
+};
 
 const ACTIVITY_LABEL_TO_KEY: Record<string, string> = {
   'CHOPPER': 'chopper',
@@ -1633,10 +1697,11 @@ export default function LandTable({
 
           {/* Baris Filter Menyamping (Horizontal Inline Row) */}
           <div className="flex items-center flex-wrap gap-2.5 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs">
-            {/* 1. Aktivitas (Dropdown Checklist Menyamping) */}
+            {/* 1. Aktivitas (Dropdown Checklist Menyamping dengan Pengelompokan BK, BJK, SN, Tanam) */}
             <MultiSelectDropdown
               label="Aktivitas"
               options={ACTIVITY_OPTIONS}
+              groups={ACTIVITY_GROUPS}
               selected={selectedActivities}
               preserveOrder
               onChange={(val) => {
@@ -1836,7 +1901,9 @@ export default function LandTable({
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium bg-emerald-100 dark:bg-emerald-950 border border-emerald-400 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 shadow-2xs cursor-pointer hover:bg-emerald-200 dark:hover:bg-emerald-900 transition-colors"
                   title={`Klik untuk scroll ke kolom ${act}`}
                 >
-                  <span className="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400">Aktivitas:</span>
+                  <span className="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400">
+                    {getActivityGroupBadge(act) ? `Akt (${getActivityGroupBadge(act)}):` : 'Aktivitas:'}
+                  </span>
                   <span className="font-semibold">{act}</span>
                   <button
                     type="button"

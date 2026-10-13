@@ -3,9 +3,17 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ChevronDown, Check, X, Search, Calendar, Filter } from 'lucide-react';
 
-interface MultiSelectDropdownProps {
+export interface FilterGroup {
+  name: string;
+  shortBadge?: string;
+  color?: 'amber' | 'blue' | 'cyan' | 'emerald' | string;
+  options: string[];
+}
+
+export interface MultiSelectDropdownProps {
   label: string;
   options: string[];
+  groups?: FilterGroup[];
   selected: string[];
   onChange: (selected: string[]) => void;
   placeholder?: string;
@@ -42,6 +50,7 @@ function sortChronologicalMonths(months: string[]): string[] {
 export default function MultiSelectDropdown({
   label,
   options,
+  groups,
   selected,
   onChange,
   placeholder,
@@ -57,6 +66,8 @@ export default function MultiSelectDropdown({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [effectiveAlign, setEffectiveAlign] = useState<'left' | 'right'>(align);
 
+  const isGrouped = Boolean(groups && groups.length > 0);
+
   useEffect(() => {
     setEffectiveAlign(align);
   }, [align]);
@@ -64,7 +75,7 @@ export default function MultiSelectDropdown({
   useEffect(() => {
     if (isOpen && dropdownRef.current) {
       const rect = dropdownRef.current.getBoundingClientRect();
-      const popoverWidth = isMonthFilter ? 480 : filteredOptions.length <= 4 ? 420 : 540;
+      const popoverWidth = isMonthFilter ? 480 : isGrouped ? 640 : filteredOptions.length <= 4 ? 420 : 540;
       if (align === 'right') {
         if (rect.right - popoverWidth < 16) {
           setEffectiveAlign('left');
@@ -79,7 +90,7 @@ export default function MultiSelectDropdown({
         }
       }
     }
-  }, [isOpen, align, isMonthFilter]);
+  }, [isOpen, align, isMonthFilter, isGrouped]);
 
   // Close when clicking outside or pressing Escape
   useEffect(() => {
@@ -106,7 +117,7 @@ export default function MultiSelectDropdown({
     };
   }, [isOpen]);
 
-  // Sort and filter options
+  // Sort and filter options for non-grouped
   const sortedOptions = useMemo(() => {
     if (isMonthFilter) {
       return sortChronologicalMonths(options);
@@ -149,6 +160,39 @@ export default function MultiSelectDropdown({
     });
   }, [sortedOptions, search, isMonthFilter, yearFilter]);
 
+  // Filtered groups when grouped mode is active
+  const filteredGroups = useMemo(() => {
+    if (!groups) return null;
+    const q = search.toLowerCase().trim();
+    if (!q) return groups;
+    return groups
+      .map((grp) => {
+        const matchesGroupName = grp.name.toLowerCase().includes(q) || (grp.shortBadge && grp.shortBadge.toLowerCase().includes(q));
+        const matchingOptions = grp.options.filter(
+          (opt) => matchesGroupName || opt.toLowerCase().includes(q)
+        );
+        return {
+          ...grp,
+          options: matchingOptions,
+        };
+      })
+      .filter((grp) => grp.options.length > 0);
+  }, [groups, search]);
+
+  const totalFilteredCount = useMemo(() => {
+    if (isGrouped && filteredGroups) {
+      return filteredGroups.reduce((acc, g) => acc + g.options.length, 0);
+    }
+    return filteredOptions.length;
+  }, [isGrouped, filteredGroups, filteredOptions]);
+
+  const totalPossibleCount = useMemo(() => {
+    if (isGrouped && groups) {
+      return groups.reduce((acc, g) => acc + g.options.length, 0);
+    }
+    return options.length;
+  }, [isGrouped, groups, options]);
+
   const handleToggle = (opt: string) => {
     if (selected.includes(opt)) {
       onChange(selected.filter((item) => item !== opt));
@@ -157,10 +201,23 @@ export default function MultiSelectDropdown({
     }
   };
 
+  const handleToggleGroup = (groupOptions: string[]) => {
+    const allSelected = groupOptions.length > 0 && groupOptions.every((opt) => selected.includes(opt));
+    if (allSelected) {
+      onChange(selected.filter((item) => !groupOptions.includes(item)));
+    } else {
+      onChange(Array.from(new Set([...selected, ...groupOptions])));
+    }
+  };
+
   const handleSelectAll = () => {
-    const allFiltered = filteredOptions;
-    const combined = Array.from(new Set([...selected, ...allFiltered]));
-    onChange(combined);
+    if (isGrouped && filteredGroups) {
+      const allFiltered = filteredGroups.flatMap((g) => g.options);
+      onChange(Array.from(new Set([...selected, ...allFiltered])));
+    } else {
+      const allFiltered = filteredOptions;
+      onChange(Array.from(new Set([...selected, ...allFiltered])));
+    }
   };
 
   const handleClear = (e?: React.MouseEvent) => {
@@ -207,6 +264,8 @@ export default function MultiSelectDropdown({
           } ${
             isMonthFilter
               ? 'w-[320px] sm:w-[480px] max-w-[94vw]'
+              : isGrouped
+              ? 'w-[340px] sm:w-[580px] md:w-[650px] max-w-[96vw]'
               : filteredOptions.length <= 4
               ? 'w-[320px] sm:w-[420px] max-w-[94vw]'
               : 'w-[340px] sm:w-[520px] md:w-[580px] max-w-[95vw]'
@@ -230,13 +289,13 @@ export default function MultiSelectDropdown({
             </div>
           )}
 
-          {/* Search Box if more than 6 options */}
-          {options.length > 6 && (
+          {/* Search Box if more than 6 options or grouped */}
+          {(options.length > 6 || isGrouped) && (
             <div className="relative mb-2.5">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder={`Cari ${label.toLowerCase()}...`}
+                placeholder={placeholder || `Cari ${label.toLowerCase()}...`}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pl-8 pr-7 py-1.5 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-emerald-500"
@@ -292,7 +351,7 @@ export default function MultiSelectDropdown({
               onClick={handleSelectAll}
               className="text-emerald-600 dark:text-emerald-400 hover:underline font-semibold cursor-pointer"
             >
-              Pilih Semua ({filteredOptions.length})
+              Pilih Semua ({totalFilteredCount})
             </button>
             {selected.length > 0 && (
               <button
@@ -305,9 +364,98 @@ export default function MultiSelectDropdown({
             )}
           </div>
 
-          {/* Options Grid Layout ("pilihannya menyamping") */}
-          <div className="max-h-72 overflow-y-auto pr-1">
-            {filteredOptions.length === 0 ? (
+          {/* Options Container (Grouped or Flat Grid Layout) */}
+          <div className="max-h-80 sm:max-h-96 overflow-y-auto pr-1">
+            {isGrouped && filteredGroups ? (
+              filteredGroups.length === 0 ? (
+                <div className="py-6 text-center text-slate-400 text-xs">
+                  Tidak ada aktivitas yang cocok dengan &quot;{search}&quot;
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filteredGroups.map((grp) => {
+                    const groupSelectedCount = grp.options.filter((opt) => selected.includes(opt)).length;
+                    const isAllSelected = grp.options.length > 0 && groupSelectedCount === grp.options.length;
+
+                    const badgeColorMap: Record<string, string> = {
+                      amber: 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border-amber-300 dark:border-amber-700',
+                      blue: 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border-blue-300 dark:border-blue-700',
+                      cyan: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-950/80 dark:text-cyan-300 border-cyan-300 dark:border-cyan-700',
+                      emerald: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700',
+                    };
+                    const badgeClass = (grp.color && badgeColorMap[grp.color]) || badgeColorMap.emerald;
+
+                    return (
+                      <div
+                        key={grp.name}
+                        className="rounded-xl border border-slate-200/90 dark:border-slate-800/90 bg-slate-50/70 dark:bg-slate-950/50 p-2.5 transition-all"
+                      >
+                        {/* Group Header Bar */}
+                        <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200/70 dark:border-slate-800/70">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            {grp.shortBadge && (
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${badgeClass} shrink-0`}>
+                                {grp.shortBadge}
+                              </span>
+                            )}
+                            <span className="font-bold text-xs text-slate-800 dark:text-slate-100 truncate">
+                              {grp.name}
+                            </span>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal shrink-0">
+                              ({groupSelectedCount}/{grp.options.length})
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleToggleGroup(grp.options)}
+                            className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-lg transition-colors cursor-pointer shrink-0 ${
+                              isAllSelected
+                                ? 'text-rose-500 hover:text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50'
+                                : 'text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/50'
+                            }`}
+                          >
+                            {isAllSelected ? 'Batal Semua' : 'Pilih Semua'}
+                          </button>
+                        </div>
+
+                        {/* Group Options Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                          {grp.options.map((opt) => {
+                            const isChecked = selected.includes(opt);
+                            return (
+                              <label
+                                key={opt}
+                                onClick={() => handleToggle(opt)}
+                                className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-xs cursor-pointer select-none transition-all ${
+                                  isChecked
+                                    ? 'bg-emerald-500/15 border-emerald-500 text-emerald-950 dark:text-emerald-200 font-bold shadow-2xs ring-1 ring-emerald-500/30'
+                                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                                }`}
+                                title={opt}
+                              >
+                                <div
+                                  className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all shrink-0 ${
+                                    isChecked
+                                      ? 'bg-emerald-600 border-emerald-600 text-white'
+                                      : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
+                                  }`}
+                                >
+                                  {isChecked && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                </div>
+                                <span className="flex-1 text-[10.5px] leading-snug whitespace-normal break-words text-left">
+                                  {opt}
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )
+            ) : filteredOptions.length === 0 ? (
               <div className="py-6 text-center text-slate-400 text-xs">
                 Tidak ada opsi yang cocok dengan &quot;{search}&quot;
               </div>
@@ -354,23 +502,31 @@ export default function MultiSelectDropdown({
           </div>
 
           {/* Footer Status */}
-          <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 text-[11px]">
+          <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] flex items-center justify-between">
             <span className="text-slate-500 dark:text-slate-400">
               {selected.length > 0 ? (
                 <span>
                   <strong className="text-emerald-600 dark:text-emerald-400 font-bold">
                     {selected.length}
                   </strong>{' '}
-                  dari {options.length} dipilih
+                  dari {totalPossibleCount} dipilih
                 </span>
               ) : (
                 'Semua data ditampilkan'
               )}
             </span>
+            {selected.length > 0 && (
+              <button
+                type="button"
+                onClick={() => handleClear()}
+                className="text-rose-500 hover:text-rose-600 dark:text-rose-400 hover:underline font-semibold cursor-pointer"
+              >
+                Reset Semua
+              </button>
+            )}
           </div>
         </div>
       )}
     </div>
   );
 }
-
