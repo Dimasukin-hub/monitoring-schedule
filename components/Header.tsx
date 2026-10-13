@@ -13,13 +13,9 @@ export interface MainMenuItem {
 }
 
 export const MAIN_MENU_ITEMS: MainMenuItem[] = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'stok', label: 'List Stok Lahan' },
+  { id: 'executive_summary', label: 'Executive Summary' },
+  { id: 'pengolahan_lahan_bibit_tanam', label: 'Pengolahan Lahan Bibit Tanam' },
   { id: 'planting', label: 'Planting' },
-  { id: 'pengolahan', label: 'Pengolahan Lahan' },
-  { id: 'tanam', label: 'Monitoring Tanam' },
-  { id: 'bibit', label: 'Monitoring Bibit' },
-  { id: 'panen', label: 'Panen & Produksi' },
 ];
 
 export interface SubMenuItem {
@@ -27,13 +23,15 @@ export interface SubMenuItem {
   label: string;
 }
 
-export const OVERVIEW_SUB_MENUS: SubMenuItem[] = [
-  { id: 'executive_summary', label: 'Executive Summary' },
+export const PENGOLAHAN_SUB_MENUS: SubMenuItem[] = [
   { id: 'rencana_realisasi', label: 'Rencana vs Realisasi' },
   { id: 'rerata_bero_tanam', label: 'Rerata Bero dan Tanam' },
-  { id: 'proses_selesai_tanam', label: 'Proses Tanam & Selesai Tanam' },
+  { id: 'list_stok_lahan', label: 'List Stok Lahan' },
   { id: 'data_lahan', label: 'Data Lahan' },
 ];
+
+// Fallback alias
+export const OVERVIEW_SUB_MENUS = PENGOLAHAN_SUB_MENUS;
 
 export interface MenuThemeConfig {
   activeText: string;
@@ -46,7 +44,7 @@ export interface MenuThemeConfig {
 }
 
 export const MENU_THEMES: Record<string, MenuThemeConfig> = {
-  overview: {
+  executive_summary: {
     activeText: 'text-emerald-700 dark:text-emerald-300',
     activeLine: 'bg-emerald-600 dark:bg-emerald-400',
     hoverText: 'hover:text-emerald-600 dark:hover:text-emerald-300',
@@ -55,7 +53,7 @@ export const MENU_THEMES: Record<string, MenuThemeConfig> = {
     subActiveLine: 'bg-emerald-600 dark:bg-emerald-400',
     subHoverText: 'hover:text-emerald-600 dark:hover:text-emerald-300',
   },
-  stok: {
+  pengolahan_lahan_bibit_tanam: {
     activeText: 'text-teal-700 dark:text-teal-300',
     activeLine: 'bg-teal-600 dark:bg-teal-400',
     hoverText: 'hover:text-teal-600 dark:hover:text-teal-300',
@@ -73,42 +71,6 @@ export const MENU_THEMES: Record<string, MenuThemeConfig> = {
     subActiveLine: 'bg-emerald-500 dark:bg-emerald-300',
     subHoverText: 'hover:text-emerald-600 dark:hover:text-emerald-200',
   },
-  pengolahan: {
-    activeText: 'text-sky-700 dark:text-sky-300',
-    activeLine: 'bg-sky-600 dark:bg-sky-400',
-    hoverText: 'hover:text-sky-600 dark:hover:text-sky-300',
-    hoverLine: 'bg-sky-500/40',
-    subActiveText: 'text-sky-700 dark:text-sky-300',
-    subActiveLine: 'bg-sky-600 dark:bg-sky-400',
-    subHoverText: 'hover:text-sky-600 dark:hover:text-sky-300',
-  },
-  tanam: {
-    activeText: 'text-lime-700 dark:text-lime-300',
-    activeLine: 'bg-lime-600 dark:bg-lime-400',
-    hoverText: 'hover:text-lime-600 dark:hover:text-lime-300',
-    hoverLine: 'bg-lime-500/40',
-    subActiveText: 'text-lime-700 dark:text-lime-300',
-    subActiveLine: 'bg-lime-600 dark:bg-lime-400',
-    subHoverText: 'hover:text-lime-600 dark:hover:text-lime-300',
-  },
-  bibit: {
-    activeText: 'text-green-700 dark:text-green-300',
-    activeLine: 'bg-green-600 dark:bg-green-400',
-    hoverText: 'hover:text-green-600 dark:hover:text-green-300',
-    hoverLine: 'bg-green-500/40',
-    subActiveText: 'text-green-700 dark:text-green-300',
-    subActiveLine: 'bg-green-600 dark:bg-green-400',
-    subHoverText: 'hover:text-green-600 dark:hover:text-green-300',
-  },
-  panen: {
-    activeText: 'text-amber-700 dark:text-amber-300',
-    activeLine: 'bg-amber-600 dark:bg-amber-400',
-    hoverText: 'hover:text-amber-600 dark:hover:text-amber-300',
-    hoverLine: 'bg-amber-500/40',
-    subActiveText: 'text-amber-700 dark:text-amber-300',
-    subActiveLine: 'bg-amber-600 dark:bg-amber-400',
-    subHoverText: 'hover:text-amber-600 dark:hover:text-amber-300',
-  },
 };
 
 interface HeaderProps {
@@ -122,6 +84,8 @@ interface HeaderProps {
   setSearchQuery?: (query: string) => void;
   onRefresh?: () => void;
   isLoading?: boolean;
+  pengolahanSubTab?: string;
+  setPengolahanSubTab?: (subTab: string) => void;
   overviewSubTab?: string;
   setOverviewSubTab?: (subTab: string) => void;
   totalLands?: number;
@@ -130,7 +94,9 @@ interface HeaderProps {
 export default function Header({
   activeTab,
   setActiveTab,
-  overviewSubTab = 'executive_summary',
+  pengolahanSubTab,
+  setPengolahanSubTab,
+  overviewSubTab,
   setOverviewSubTab,
 }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
@@ -138,7 +104,9 @@ export default function Header({
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
-  const currentTheme = MENU_THEMES[activeTab] || MENU_THEMES.overview;
+  const currentSubTab = pengolahanSubTab || overviewSubTab || 'rencana_realisasi';
+  const handleSetSubTab = setPengolahanSubTab || setOverviewSubTab;
+  const currentTheme = MENU_THEMES[activeTab] || MENU_THEMES.executive_summary;
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -173,19 +141,19 @@ export default function Header({
           </Link>
         </div>
 
-        {/* Sisi Tengah: Menu Utama (Overview sampai Panen & Produksi) */}
+        {/* Sisi Tengah: Menu Utama (3 Menu: Executive Summary, Pengolahan Lahan Bibit Tanam, Planting) */}
         <nav className="flex-1 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth px-2">
           {MAIN_MENU_ITEMS.map((item) => {
             const isActive = activeTab === item.id;
-            const itemTheme = MENU_THEMES[item.id] || MENU_THEMES.overview;
+            const itemTheme = MENU_THEMES[item.id] || MENU_THEMES.executive_summary;
             return (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => {
                   setActiveTab(item.id);
-                  if (item.id === 'overview' && setOverviewSubTab) {
-                    setOverviewSubTab('executive_summary');
+                  if (item.id === 'pengolahan_lahan_bibit_tanam' && handleSetSubTab && !currentSubTab) {
+                    handleSetSubTab('rencana_realisasi');
                   }
                 }}
                 className={`relative py-2 px-1 text-xs sm:text-[13px] tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
@@ -294,16 +262,16 @@ export default function Header({
         </div>
       </div>
 
-      {/* Row 2: Sub Menu untuk Overview (Garis batas/border-t dihilangkan sesuai permintaan) */}
-      {activeTab === 'overview' && (
+      {/* Row 2: Sub Menu untuk Pengolahan Lahan Bibit Tanam (Rencana vs Real, Rerata Bero & Tanam, List Stok Lahan, Data Lahan) */}
+      {activeTab === 'pengolahan_lahan_bibit_tanam' && (
         <div className="px-6 py-1.5 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
-          {OVERVIEW_SUB_MENUS.map((item) => {
-            const isActive = overviewSubTab === item.id;
+          {PENGOLAHAN_SUB_MENUS.map((item) => {
+            const isActive = currentSubTab === item.id;
             return (
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setOverviewSubTab?.(item.id)}
+                onClick={() => handleSetSubTab?.(item.id)}
                 className={`relative py-1 px-1 text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
                   isActive
                     ? `${currentTheme.subActiveText} font-semibold`

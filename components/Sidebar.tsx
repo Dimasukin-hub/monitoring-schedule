@@ -41,53 +41,25 @@ export default function Sidebar({
 }: SidebarProps) {
   const menuItems: MenuItem[] = [
     {
-      id: 'overview',
-      label: 'Overview',
+      id: 'executive_summary',
+      label: 'Executive Summary',
       icon: LayoutDashboard,
       desc: 'Ringkasan KPI & Visualisasi',
       colorTheme: 'green',
     },
     {
-      id: 'stok',
-      label: 'List Stok Lahan',
-      icon: Boxes,
-      desc: 'Bongkar, Bajak & Siap Tanam',
-      colorTheme: 'orange',
+      id: 'pengolahan_lahan_bibit_tanam',
+      label: 'Pengolahan Lahan Bibit Tanam',
+      icon: Tractor,
+      desc: 'Rencana vs Real, Bero, Stok, Lahan',
+      colorTheme: 'leaf',
     },
     {
       id: 'planting',
       label: 'Planting',
       icon: CalendarCheck,
-      desc: 'Real Tanam Nanas (RTN)',
-      colorTheme: 'leaf',
-    },
-    {
-      id: 'pengolahan',
-      label: 'Pengolahan Lahan',
-      icon: Tractor,
-      desc: 'Tahapan Aktivitas Fisik',
-      colorTheme: 'leaf',
-    },
-    {
-      id: 'tanam',
-      label: 'Monitoring Tanam',
-      icon: Sprout,
-      desc: 'Jadwal & Realisasi Planting',
+      desc: 'Proses Tanam & Selesai Tanam',
       colorTheme: 'green',
-    },
-    {
-      id: 'bibit',
-      label: 'Monitoring Bibit',
-      icon: Wheat,
-      desc: 'Kebutuhan vs Potensi Bibit',
-      colorTheme: 'orange',
-    },
-    {
-      id: 'panen',
-      label: 'Panen & Produksi',
-      icon: BarChart3,
-      desc: 'Proyeksi & Standar Panen',
-      colorTheme: 'blue',
     },
   ];
 

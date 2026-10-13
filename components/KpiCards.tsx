@@ -667,37 +667,17 @@ export default function KpiCards({
             </div>
           </div>
         </div>
-
-        {/* INLINE POSISI LAHAN PER WILAYAH CHART SECTION */}
-        {activeStageChart && chartsData && (
-          <div className="mt-5 pt-4 border-t border-slate-200/80 dark:border-slate-800 animate-in fade-in slide-in-from-top-2 duration-200">
-            <PosisiLahanSection
-              chartsData={chartsData}
-              onSelectLand={onSelectLand}
-              selectedWilayah={selectedWilayah}
-              setSelectedWilayah={setSelectedWilayah}
-              availableWilayahs={availableWilayahs}
-              activeStage={activeStageChart}
-              onStageChange={(newStage) => setActiveStageChart(newStage)}
-              onClose={() => setActiveStageChart(null)}
-              showStageSwitcher={true}
-              periodLabel={cardMonthBadge}
-            />
-          </div>
-        )}
       </div>
 
       {/* 2. OPERATIONAL REALIZATION ROW (Realisasi Tanam Ukuran Semula & Kolom Kanan Dibagi 2) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* CARD 1: REALISASI TANAM TAHUNAN (Kiri - Ukuran Asli 50% / lg:col-span-6) */}
         <div className="lg:col-span-6 relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-cyan-200 dark:border-cyan-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <span className="text-xs font-bold text-cyan-700 dark:text-cyan-400 uppercase tracking-wider block">
-                REALISASI TANAM
-              </span>
-            </div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-50 dark:bg-cyan-950/80 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 whitespace-nowrap">
+          <div className="flex items-center justify-between gap-2 h-7 mb-3">
+            <span className="text-xs font-bold text-cyan-700 dark:text-cyan-400 uppercase tracking-wider truncate block">
+              REALISASI TANAM
+            </span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-50 dark:bg-cyan-950/80 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 whitespace-nowrap shrink-0">
               {data.realisasiTanamSummary?.periodLabel || 'Jan - Sep 2026'}
             </span>
           </div>
@@ -752,15 +732,10 @@ export default function KpiCards({
         <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* SUB-KARTU 1: REAL TANAM BULANAN */}
           <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
-            <div className="flex items-center justify-between gap-1.5 mb-3">
-              <div className="min-w-0 flex flex-col">
-                <span className="text-[11px] sm:text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-tight leading-tight">
-                  REAL TANAM
-                </span>
-                <span className="text-[11px] sm:text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-tight leading-tight">
-                  BULANAN
-                </span>
-              </div>
+            <div className="flex items-center justify-between gap-2 h-7 mb-3">
+              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider truncate block">
+                REAL TANAM BULANAN
+              </span>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 whitespace-nowrap shrink-0">
                 {data.realisasiTanamMtdSummary?.periodLabel || '1 - 6 Okt 2026'}
               </span>
@@ -809,12 +784,10 @@ export default function KpiCards({
 
           {/* SUB-KARTU 2: PROSES TANAM */}
           <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
-            <div className="flex items-center justify-between gap-1.5 mb-3">
-              <div className="min-w-0">
-                <span className="text-[11px] sm:text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-tight whitespace-nowrap block truncate">
-                  PROSES TANAM
-                </span>
-              </div>
+            <div className="flex items-center justify-between gap-2 h-7 mb-3">
+              <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider truncate block">
+                PROSES TANAM
+              </span>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 whitespace-nowrap shrink-0">
                 {data.prosesTanamSummary?.prosesCount ?? data.stockStageCounts?.proses ?? 15} Lokasi
               </span>
@@ -853,6 +826,24 @@ export default function KpiCards({
           </div>
         </div>
       </div>
+
+      {/* 3. POSISI LAHAN PER WILAYAH CHART (Bongkar, Bajak, Siap Tanam) - Ditampilkan persis di bawah card Realisasi Tanam */}
+      {activeStageChart && chartsData && (
+        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 glass-panel shadow-xs transition-colors animate-in fade-in slide-in-from-top-2 duration-200">
+          <PosisiLahanSection
+            chartsData={chartsData}
+            onSelectLand={onSelectLand}
+            selectedWilayah={selectedWilayah}
+            setSelectedWilayah={setSelectedWilayah}
+            availableWilayahs={availableWilayahs}
+            activeStage={activeStageChart}
+            onStageChange={(newStage) => setActiveStageChart(newStage)}
+            onClose={() => setActiveStageChart(null)}
+            showStageSwitcher={true}
+            periodLabel={cardMonthBadge}
+          />
+        </div>
+      )}
 
       {/* MODAL REKAP 12 BULAN REMOVED PER USER REQUEST */}
     </div>

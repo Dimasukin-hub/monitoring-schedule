@@ -12,17 +12,12 @@ import ListStokLahanView from '@/components/ListStokLahanView';
 import LandDetailModal from '@/components/LandDetailModal';
 import LandEditModal from '@/components/LandEditModal';
 import RerataBeroSection from '@/components/RerataBeroSection';
-import PengolahanView from '@/components/PengolahanView';
-import TanamView from '@/components/TanamView';
-import BibitView from '@/components/BibitView';
-import PanenView from '@/components/PanenView';
-import PlantingView from '@/components/PlantingView';
 import { useAuth } from '@/components/AuthProvider';
 
 export default function LabitaDashboardPage() {
   const { user, isAdmin, isUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>('overview');
-  const [overviewSubTab, setOverviewSubTab] = useState<string>('executive_summary');
+  const [activeTab, setActiveTab] = useState<string>('executive_summary');
+  const [pengolahanSubTab, setPengolahanSubTab] = useState<string>('rencana_realisasi');
   const [selectedWilayah, setSelectedWilayah] = useState<string>('ALL');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('LATEST');
   const [stokYear, setStokYear] = useState<number>(2026);
@@ -40,14 +35,6 @@ export default function LabitaDashboardPage() {
   const [summaryData, setSummaryData] = useState<any>(null);
   const [chartsData, setChartsData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  // Redirect legacy / external 'lahan' tab to overview sub-tab data_lahan
-  useEffect(() => {
-    if (activeTab === 'lahan') {
-      setActiveTab('overview');
-      setOverviewSubTab('data_lahan');
-    }
-  }, [activeTab]);
 
   // Load Dashboard Summary & Charts
   const loadDashboardData = (isManualRefresh = false, isSilent = false) => {
@@ -120,31 +107,20 @@ export default function LabitaDashboardPage() {
 
   const getTabTitle = () => {
     switch (activeTab) {
-      case 'overview': {
+      case 'executive_summary':
+        return 'Executive Summary';
+      case 'pengolahan_lahan_bibit_tanam': {
         const subTitles: Record<string, string> = {
-          executive_summary: 'Executive Summary',
           rencana_realisasi: 'Rencana vs Realisasi',
           rerata_bero_tanam: 'Rerata Bero dan Tanam',
-          proses_selesai_tanam: 'Proses Tanam & Selesai Tanam',
+          list_stok_lahan: 'List Stok Lahan',
           data_lahan: 'Data Lahan',
         };
-        const sub = subTitles[overviewSubTab];
-        return sub ? `Overview • ${sub}` : 'Overview Dashboard';
+        const sub = subTitles[pengolahanSubTab];
+        return sub ? `Pengolahan Lahan Bibit Tanam • ${sub}` : 'Pengolahan Lahan Bibit Tanam';
       }
-      case 'lahan':
-        return 'Data Lahan & Rencana vs Real';
-      case 'stok':
-        return 'List Stok Lahan';
-      case 'pengolahan':
-        return 'Tahapan Aktivitas Fisik';
-      case 'tanam':
-        return 'Monitoring Tanam';
       case 'planting':
-        return 'Monitoring Planting - Real Tanam Nanas';
-      case 'bibit':
-        return 'Monitoring Bibit';
-      case 'panen':
-        return 'Panen & Produksi';
+        return 'Planting • Proses Tanam & Selesai Tanam';
       default:
         return 'LABITA - Monitor Schedule 2026';
     }
@@ -152,15 +128,12 @@ export default function LabitaDashboardPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-700 dark:selection:text-emerald-200 transition-colors duration-200">
-      {/* Top Header with Brand, Controls, Main Menu Navigation & Overview Sub-Menu Navigation */}
+      {/* Top Header with Brand, Controls, Main Menu Navigation & Sub-Menu Navigation */}
       <Header
         activeTab={activeTab}
-        setActiveTab={(tab) => {
-          setActiveTab(tab);
-          if (tab === 'overview') {
-            setOverviewSubTab('executive_summary');
-          }
-        }}
+        setActiveTab={setActiveTab}
+        pengolahanSubTab={pengolahanSubTab}
+        setPengolahanSubTab={setPengolahanSubTab}
         activeTabTitle={getTabTitle()}
         selectedWilayah={selectedWilayah}
         setSelectedWilayah={setSelectedWilayah}
@@ -175,14 +148,13 @@ export default function LabitaDashboardPage() {
               sessionStorage.removeItem('labita_table_search');
             }
           }
-          if (query.trim() && overviewSubTab !== 'data_lahan') {
-            setOverviewSubTab('data_lahan');
+          if (query.trim() && (activeTab !== 'pengolahan_lahan_bibit_tanam' || pengolahanSubTab !== 'data_lahan')) {
+            setActiveTab('pengolahan_lahan_bibit_tanam');
+            setPengolahanSubTab('data_lahan');
           }
         }}
         onRefresh={handleRefresh}
         isLoading={isLoading}
-        overviewSubTab={overviewSubTab}
-        setOverviewSubTab={setOverviewSubTab}
         totalLands={summaryData?.totalLands || 0}
       />
 
@@ -200,10 +172,9 @@ export default function LabitaDashboardPage() {
           </div>
         )}
 
-        {/* TAB 1: OVERVIEW */}
-        <div className={activeTab === 'overview' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
-          {/* 1. SUB MENU: EXECUTIVE SUMMARY */}
-          {overviewSubTab === 'executive_summary' && (
+        {/* 1. MENU: EXECUTIVE SUMMARY */}
+        {activeTab === 'executive_summary' && (
+          <div className="space-y-8 animate-in fade-in duration-200">
             <KpiCards
               data={summaryData}
               selectedYear={stokYear}
@@ -220,31 +191,35 @@ export default function LabitaDashboardPage() {
               setSelectedWilayah={setSelectedWilayah}
               availableWilayahs={summaryData?.availableWilayahs || []}
             />
-          )}
+          </div>
+        )}
 
-          {/* 3. SUB MENU: RENCANA VS REALISASI */}
-          {overviewSubTab === 'rencana_realisasi' && (
+        {/* 2. MENU: PENGOLAHAN LAHAN BIBIT TANAM (Dengan 4 Sub-Menu) */}
+        <div className={activeTab === 'pengolahan_lahan_bibit_tanam' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
+          {/* 2.1 SUB MENU: RENCANA VS REALISASI */}
+          {pengolahanSubTab === 'rencana_realisasi' && (
             <RencanaRealisasiSection
               chartsData={chartsData}
               onSelectLand={(loc) => setSelectedLandId(loc)}
             />
           )}
 
-          {/* 4. SUB MENU: RERATA BERO DAN TANAM */}
-          {overviewSubTab === 'rerata_bero_tanam' && (
+          {/* 2.2 SUB MENU: RERATA BERO DAN TANAM */}
+          {pengolahanSubTab === 'rerata_bero_tanam' && (
             <RerataBeroSection refreshTrigger={refreshLandTrigger} />
           )}
 
-          {/* 5. SUB MENU: PROSES TANAM & SELESAI TANAM */}
-          {overviewSubTab === 'proses_selesai_tanam' && (
-            <ProsesTanamSection
-              chartsData={chartsData}
-              onSelectLand={(loc) => setSelectedLandId(loc)}
+          {/* 2.3 SUB MENU: LIST STOK LAHAN */}
+          {pengolahanSubTab === 'list_stok_lahan' && (
+            <ListStokLahanView
+              onSelectLand={(id) => setSelectedLandId(id)}
+              selectedWilayah={selectedWilayah}
+              refreshTrigger={refreshLandTrigger}
             />
           )}
 
-          {/* 6. SUB MENU: DATA LAHAN (Keep-Alive agar pencarian tidak reset saat buka menu/sub-menu lain) */}
-          <div className={overviewSubTab === 'data_lahan' ? 'block' : 'hidden'}>
+          {/* 2.4 SUB MENU: DATA LAHAN (Keep-Alive agar pencarian tidak reset saat buka menu/sub-menu lain) */}
+          <div className={pengolahanSubTab === 'data_lahan' ? 'block' : 'hidden'}>
             <LandTable
               onEditLand={(id) => {
                 if (isAdmin) {
@@ -270,66 +245,13 @@ export default function LabitaDashboardPage() {
           </div>
         </div>
 
-        {/* TAB 2: LIST STOK LAHAN */}
-        {activeTab === 'stok' && (
-          <div className="animate-in fade-in duration-200">
-            <ListStokLahanView
-              onSelectLand={(id) => setSelectedLandId(id)}
-              selectedWilayah={selectedWilayah}
-              refreshTrigger={refreshLandTrigger}
-            />
-          </div>
-        )}
-
-        {/* TAB 3: PLANTING */}
+        {/* 3. MENU: PLANTING (PROSES TANAM & SELESAI TANAM) */}
         {activeTab === 'planting' && (
-          <div className="animate-in fade-in duration-200">
-            <PlantingView
-              onOpenLand={(lokasi) => setSelectedLandId(lokasi)}
-              refreshTrigger={refreshLandTrigger}
-              isAdmin={isAdmin}
+          <div className="space-y-8 animate-in fade-in duration-200">
+            <ProsesTanamSection
+              chartsData={chartsData}
+              onSelectLand={(loc) => setSelectedLandId(loc)}
             />
-          </div>
-        )}
-
-        {/* TAB 4: PENGOLAHAN LAHAN */}
-        {activeTab === 'pengolahan' && (
-          <div className="animate-in fade-in duration-200">
-            <PengolahanView
-              activityFunnel={chartsData?.activityFunnel || []}
-              onFilterByActivity={() => {
-                setActiveTab('overview');
-                setOverviewSubTab('data_lahan');
-              }}
-            />
-          </div>
-        )}
-
-        {/* TAB 5: MONITORING TANAM */}
-        {activeTab === 'tanam' && (
-          <div className="animate-in fade-in duration-200">
-            <TanamView
-              tanamCounts={summaryData?.tanamStatusCounts}
-              totalRealisasiHa={summaryData?.totalRealisasiHa || 0}
-              totalLuasNetto={summaryData?.totalLuasNetto || 0}
-              plantingByMonth={chartsData?.plantingByMonth || []}
-              onOpenLand={(lokasi) => setSelectedLandId(lokasi)}
-              refreshTrigger={refreshLandTrigger}
-            />
-          </div>
-        )}
-
-        {/* TAB 6: MONITORING BIBIT */}
-        {activeTab === 'bibit' && (
-          <div className="animate-in fade-in duration-200">
-            <BibitView seedSummaries={chartsData?.seedSummaries || []} />
-          </div>
-        )}
-
-        {/* TAB 7: PANEN & PRODUKSI */}
-        {activeTab === 'panen' && (
-          <div className="animate-in fade-in duration-200">
-            <PanenView onOpenLand={(lokasi) => setSelectedLandId(lokasi)} refreshTrigger={refreshLandTrigger} />
           </div>
         )}
       </main>
