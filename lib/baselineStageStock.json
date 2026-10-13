@@ -11,12 +11,12 @@
       "monthYear": "Jan-26",
       "bongkar": 137.64,
       "bajak": 45.07000000000001,
-      "sn": 34.13,
+      "sn": 40.879999999999995,
       "tanam": 105.4,
-      "stokBongkar": 429.16,
-      "stokBajak": 75.76,
-      "stokSN": 10.77,
-      "totalStok": 515.69
+      "stokBongkar": 429.1599999999998,
+      "stokBajak": 69.00999999999999,
+      "stokSN": 17.524811563514547,
+      "totalStok": 515.6948115635143
     },
     {
       "monthIndex": 2,
@@ -24,12 +24,12 @@
       "monthYear": "Feb-26",
       "bongkar": 118.23000000000002,
       "bajak": 63.32999999999999,
-      "sn": 32.43,
+      "sn": 40.300000000000004,
       "tanam": 33.71,
-      "stokBongkar": 484.06,
-      "stokBajak": 106.66,
-      "stokSN": 9.49,
-      "totalStok": 600.21
+      "stokBongkar": 484.0599999999999,
+      "stokBajak": 92.03999999999996,
+      "stokSN": 24.11481156351455,
+      "totalStok": 600.2148115635144
     },
     {
       "monthIndex": 3,
@@ -37,12 +37,12 @@
       "monthYear": "Mar-26",
       "bongkar": 76.1,
       "bajak": 115.07999999999998,
-      "sn": 104.55,
+      "sn": 96.92,
       "tanam": 92.46000000000004,
-      "stokBongkar": 445.08,
-      "stokBajak": 117.19,
-      "stokSN": 21.58,
-      "totalStok": 583.85
+      "stokBongkar": 445.07999999999987,
+      "stokBajak": 110.19999999999995,
+      "stokSN": 28.574811563514515,
+      "totalStok": 583.8548115635144
     },
     {
       "monthIndex": 4,
@@ -50,12 +50,12 @@
       "monthYear": "Apr-26",
       "bongkar": 84.97000000000001,
       "bajak": 92.35,
-      "sn": 110.8,
+      "sn": 111.91999999999999,
       "tanam": 90,
-      "stokBongkar": 437.7,
-      "stokBajak": 98.74,
-      "stokSN": 42.38,
-      "totalStok": 578.82
+      "stokBongkar": 437.6999999999998,
+      "stokBajak": 90.62999999999997,
+      "stokSN": 50.4948115635145,
+      "totalStok": 578.8248115635143
     },
     {
       "monthIndex": 5,
@@ -63,12 +63,12 @@
       "monthYear": "Mei-26",
       "bongkar": 124.54,
       "bajak": 83.19999999999999,
-      "sn": 117.2,
+      "sn": 111.09,
       "tanam": 120.9,
-      "stokBongkar": 479.04,
-      "stokBajak": 64.74,
-      "stokSN": 38.68,
-      "totalStok": 582.46
+      "stokBongkar": 479.0399999999998,
+      "stokBajak": 62.73999999999995,
+      "stokSN": 40.6848115635145,
+      "totalStok": 582.4648115635142
     },
     {
       "monthIndex": 6,
@@ -76,12 +76,12 @@
       "monthYear": "Jun-26",
       "bongkar": 54.57000000000001,
       "bajak": 289.78000000000003,
-      "sn": 194.81,
+      "sn": 218.87,
       "tanam": 170.35000000000002,
-      "stokBongkar": 243.83,
-      "stokBajak": 159.71,
-      "stokSN": 63.14,
-      "totalStok": 466.68
+      "stokBongkar": 243.82999999999976,
+      "stokBajak": 133.64999999999998,
+      "stokSN": 89.20481156351445,
+      "totalStok": 466.6848115635142
     },
     {
       "monthIndex": 7,
@@ -89,12 +89,12 @@
       "monthYear": "Jul-26",
       "bongkar": 96.21999999999998,
       "bajak": 194.14999999999998,
-      "sn": 202.79,
+      "sn": 189.48000000000002,
       "tanam": 175.22,
-      "stokBongkar": 145.9,
-      "stokBajak": 151.07,
-      "stokSN": 90.71,
-      "totalStok": 387.68
+      "stokBongkar": 145.89999999999975,
+      "stokBajak": 138.31999999999994,
+      "stokSN": 103.46481156351447,
+      "totalStok": 387.68481156351413
     },
     {
       "monthIndex": 8,
@@ -102,12 +102,12 @@
       "monthYear": "Agu-26",
       "bongkar": 111.34,
       "bajak": 139.98,
-      "sn": 187.81,
+      "sn": 175.05999999999997,
       "tanam": 140.2,
-      "stokBongkar": 117.26,
-      "stokBajak": 103.24,
-      "stokSN": 138.32,
-      "totalStok": 358.82
+      "stokBongkar": 117.25999999999979,
+      "stokBajak": 103.23999999999998,
+      "stokSN": 138.32481156351446,
+      "totalStok": 358.82481156351423
     },
     {
       "monthIndex": 9,
@@ -115,12 +115,12 @@
       "monthYear": "Sep-26",
       "bongkar": 205.64999999999998,
       "bajak": 133.10999999999999,
-      "sn": 151.91,
+      "sn": 126.34000000000002,
       "tanam": 120.30000000000008,
-      "stokBongkar": 189.8,
-      "stokBajak": 84.44,
-      "stokSN": 169.93,
-      "totalStok": 444.17
+      "stokBongkar": 189.79999999999976,
+      "stokBajak": 110.00999999999995,
+      "stokSN": 144.36481156351442,
+      "totalStok": 444.17481156351414
     },
     {
       "monthIndex": 10,
@@ -128,12 +128,12 @@
       "monthYear": "Okt-26",
       "bongkar": 168.57,
       "bajak": 154.75,
-      "sn": 0,
+      "sn": 119.94,
       "tanam": 130,
-      "stokBongkar": 203.62,
-      "stokBajak": 239.19,
-      "stokSN": 39.93,
-      "totalStok": 482.74
+      "stokBongkar": 203.61999999999978,
+      "stokBajak": 144.81999999999994,
+      "stokSN": 134.30481156351442,
+      "totalStok": 482.74481156351413
     },
     {
       "monthIndex": 11,
@@ -141,12 +141,12 @@
       "monthYear": "Nov-26",
       "bongkar": 160.79,
       "bajak": 147.23,
-      "sn": 0,
+      "sn": 100.72,
       "tanam": 120,
-      "stokBongkar": 217.18,
-      "stokBajak": 386.42,
-      "stokSN": -80.07,
-      "totalStok": 523.53
+      "stokBongkar": 217.17999999999975,
+      "stokBajak": 191.32999999999996,
+      "stokSN": 115.02481156351442,
+      "totalStok": 523.5348115635142
     },
     {
       "monthIndex": 12,
@@ -154,12 +154,12 @@
       "monthYear": "Des-26",
       "bongkar": 166.49000000000004,
       "bajak": 183.19999999999996,
-      "sn": 0,
+      "sn": 119.05000000000001,
       "tanam": 101,
-      "stokBongkar": 200.47,
-      "stokBajak": 569.62,
-      "stokSN": -181.07,
-      "totalStok": 589.02
+      "stokBongkar": 200.46999999999983,
+      "stokBajak": 255.4799999999999,
+      "stokSN": 133.07481156351443,
+      "totalStok": 589.0248115635142
     }
   ],
   "landBaselines": {
