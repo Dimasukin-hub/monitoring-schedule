@@ -236,7 +236,6 @@ export default function LabitaDashboardPage() {
           {/* 6. SUB MENU: DATA LAHAN (Keep-Alive agar pencarian tidak reset saat buka menu/sub-menu lain) */}
           <div className={overviewSubTab === 'data_lahan' ? 'block' : 'hidden'}>
             <LandTable
-              onSelectLand={(id) => setSelectedLandId(id)}
               onEditLand={(id) => {
                 if (isAdmin) {
                   setEditingLandId(id);

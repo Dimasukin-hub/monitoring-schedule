@@ -532,7 +532,7 @@ function ScheduleTypeDropdown({
 }
 
 interface LandTableProps {
-  onSelectLand: (landId: number) => void;
+  onSelectLand?: (landId: number) => void;
   onEditLand?: (landId: number) => void;
   onDataChanged?: () => void;
   initialSearch?: string;
@@ -1768,23 +1768,6 @@ export default function LandTable({
               setPage(1);
             }}
           />
-
-          {/* 6. Aktivitas Terakhir Filter */}
-          <MultiSelectDropdown
-            label="Aktivitas Terakhir"
-            options={
-              filters.aktivitasTerakhir && filters.aktivitasTerakhir.length > 0
-                ? filters.aktivitasTerakhir
-                : PIPELINE_ORDER
-            }
-            selected={selectedAktivitasTerakhirs}
-            preserveOrder
-            align="right"
-            onChange={(val) => {
-              setSelectedAktivitasTerakhirs(val);
-              setPage(1);
-            }}
-          />
         </div>
 
         {/* Baris Data Terpilih Diperlihatkan Lebih Rapi & Sejajar Kanan-Kiri */}
@@ -1794,7 +1777,6 @@ export default function LandTable({
           selectedJenisBibits.length > 0 ||
           selectedKelasBibits.length > 0 ||
           selectedBulanTanams.length > 0 ||
-          selectedAktivitasTerakhirs.length > 0 ||
           selectedActivities.length > 0 ||
           activityType !== 'all' ||
           selectedActivityMonths.length > 0) && (
@@ -1811,7 +1793,6 @@ export default function LandTable({
                     selectedJenisBibits.length +
                     selectedKelasBibits.length +
                     selectedBulanTanams.length +
-                    selectedAktivitasTerakhirs.length +
                     selectedActivities.length +
                     (activityType !== 'all' ? 1 : 0) +
                     selectedActivityMonths.length}{' '}
@@ -1828,7 +1809,6 @@ export default function LandTable({
                   setSelectedJenisBibits([]);
                   setSelectedKelasBibits([]);
                   setSelectedBulanTanams([]);
-                  setSelectedAktivitasTerakhirs([]);
                   setSelectedActivities([]);
                   setActivityType('all');
                   setSelectedActivityMonths([]);
@@ -1845,27 +1825,6 @@ export default function LandTable({
 
             {/* Grid Badges: Pilihan data yang difilter */}
             <div className="flex items-center flex-wrap gap-1.5 w-full">
-              {/* Aktivitas Terakhir badges */}
-              {selectedAktivitasTerakhirs.map((akt) => (
-                <span
-                  key={`akt-terakhir-${akt}`}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium bg-emerald-100 dark:bg-emerald-950 border border-emerald-400 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 shadow-2xs"
-                >
-                  <span className="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400">Akt. Terakhir:</span>
-                  <span className="font-semibold">{akt}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedAktivitasTerakhirs((prev) => prev.filter((item) => item !== akt));
-                      setPage(1);
-                    }}
-                    className="p-0.5 rounded-full hover:bg-rose-500 hover:text-white text-emerald-700 dark:text-emerald-300 transition-colors cursor-pointer"
-                    title={`Hapus filter Aktivitas Terakhir ${akt}`}
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              ))}
               {/* Activity badges */}
               {selectedActivities.map((act) => (
                 <span
@@ -2590,9 +2549,7 @@ export default function LandTable({
                 return (
                   <tr
                     key={land.id}
-                    onClick={() => onSelectLand(land.id)}
-                    title="Klik baris untuk melihat detail profil lokasi"
-                    className="hover:bg-slate-100/70 dark:hover:bg-slate-800/40 cursor-pointer transition-colors group"
+                    className="hover:bg-slate-100/70 dark:hover:bg-slate-800/40 transition-colors group"
                   >
                     {/* 0. NO */}
                     <td className="sticky left-0 z-10 w-[50px] min-w-[50px] max-w-[50px] overflow-hidden py-1 px-0.5 font-mono text-[10px] text-slate-400 dark:text-slate-500 border-r border-b border-slate-200 dark:border-slate-800/60 text-center align-middle bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors">
@@ -2725,24 +2682,18 @@ export default function LandTable({
                       </div>
                     </td>
                     
-                    {/* 10. Aktivitas Terakhir (Freeze Pane batas akhir) */}
+                    {/* 10. Aktivitas Terakhir (Freeze Pane batas akhir - Status Read-only) */}
                     <td
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectLand(land.id);
-                      }}
-                      title="Klik untuk membuka dan mengedit detail isian data lahan"
-                      className="sticky left-[668px] z-10 w-[114px] min-w-[114px] max-w-[114px] overflow-hidden py-1 px-1 border-r-2 border-b border-slate-300 dark:border-slate-700 text-center align-middle bg-white dark:bg-slate-900 hover:bg-emerald-50 dark:hover:bg-emerald-950 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors shadow-[4px_0_10px_-2px_rgba(0,0,0,0.12)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.4)] cursor-pointer"
+                      className="sticky left-[668px] z-10 w-[114px] min-w-[114px] max-w-[114px] overflow-hidden py-1 px-1 border-r-2 border-b border-slate-300 dark:border-slate-700 text-center align-middle bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors shadow-[4px_0_10px_-2px_rgba(0,0,0,0.12)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.4)]"
                     >
                       {land.aktivitasTerakhir ? (
                         <span
-                          className="font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/20 px-1.5 py-0.5 rounded leading-tight text-[9px] inline-flex flex-col items-center justify-center text-center whitespace-normal max-w-full break-words hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors shadow-xs"
-                          title="Klik untuk membuka dan mengedit detail isian data lahan"
+                          className="font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/20 px-1.5 py-0.5 rounded leading-tight text-[9px] inline-flex flex-col items-center justify-center text-center whitespace-normal max-w-full break-words shadow-xs"
                         >
                           {land.aktivitasTerakhir}
                         </span>
                       ) : (
-                        <span className="text-slate-400 dark:text-slate-500 text-[9.5px] italic hover:text-emerald-500 transition-colors">
+                        <span className="text-slate-400 dark:text-slate-500 text-[9.5px] italic">
                           -
                         </span>
                       )}
