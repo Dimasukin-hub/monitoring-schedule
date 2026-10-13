@@ -2907,12 +2907,12 @@ export default function LandTable({
                                   ? 'bg-emerald-100/90 dark:bg-emerald-900/50 font-semibold border border-emerald-300/60 dark:border-emerald-700/60'
                                   : 'hover:bg-slate-100/70 dark:hover:bg-slate-800/40'
                               }`}>
-                                <span className={`text-[9px] font-sans transition-colors ${
+                                <span className={`text-[9px] font-sans px-1 py-0.5 rounded transition-colors ${
                                   activityType === 'rencana'
-                                    ? 'text-emerald-800 dark:text-emerald-300 font-bold uppercase tracking-wider'
-                                    : 'text-slate-500 dark:text-slate-400 font-medium'
+                                    ? 'bg-slate-700 text-white font-bold'
+                                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700 font-medium'
                                 }`}>
-                                  Rencana
+                                  Renc
                                 </span>
                                 <TableDatePicker
                                   value={actData.rencana}
@@ -2937,12 +2937,10 @@ export default function LandTable({
                                   ? 'bg-emerald-100/90 dark:bg-emerald-900/50 font-semibold border border-emerald-300/60 dark:border-emerald-700/60'
                                   : 'hover:bg-slate-100/70 dark:hover:bg-slate-800/40'
                               }`}>
-                                <span className={`text-[9px] font-sans transition-colors ${
-                                  activityType === 'real'
-                                    ? 'text-emerald-800 dark:text-emerald-300 font-bold uppercase tracking-wider'
-                                    : hasRealValue
-                                    ? 'text-emerald-700 dark:text-emerald-400 font-semibold'
-                                    : 'text-slate-500 dark:text-slate-400 font-medium'
+                                <span className={`text-[9px] font-sans px-1 py-0.5 rounded font-bold transition-colors ${
+                                  activityType === 'real' || hasRealValue
+                                    ? 'bg-emerald-600 text-white shadow-2xs'
+                                    : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
                                 }`}>
                                   Real
                                 </span>

@@ -273,6 +273,10 @@ export async function PUT(
           ? mergedDetails.realSiapTanam
           : (mergedDetails.realJalanSal && mergedDetails.realJalanSal !== '-' && mergedDetails.realJalanSal !== '0')
           ? mergedDetails.realJalanSal
+          : (mergedDetails.siapTanam && mergedDetails.siapTanam !== '-' && mergedDetails.siapTanam !== '0')
+          ? mergedDetails.siapTanam
+          : (mergedDetails.jalanSal && mergedDetails.jalanSal !== '-' && mergedDetails.jalanSal !== '0')
+          ? mergedDetails.jalanSal
           : null;
 
       if (effectiveSn) {

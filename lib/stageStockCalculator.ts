@@ -264,13 +264,15 @@ export async function recalculateAndPersistStageStocks(targetYear: number = 2026
       }
     }
 
-    // 3c. Siap Tanam / SN (realSiapTanam, realJalanSal, bulanSn)
+    // 3c. Siap Tanam / SN (realSiapTanam, realJalanSal, siapTanam)
     const effectiveSnStr =
       (details.realSiapTanam && details.realSiapTanam !== '-' && details.realSiapTanam !== '0')
         ? details.realSiapTanam
         : (details.realJalanSal && details.realJalanSal !== '-' && details.realJalanSal !== '0')
         ? details.realJalanSal
-        : l.bulanSn || null;
+        : (details.siapTanam && details.siapTanam !== '-' && details.siapTanam !== '0')
+        ? details.siapTanam
+        : null;
     const curSnMonth = parseDateToMonth(effectiveSnStr, targetYear);
     const baseSnMonth = base.baseRealSnMonth ?? null;
 
@@ -299,14 +301,14 @@ export async function recalculateAndPersistStageStocks(targetYear: number = 2026
     const monthName = baseM.month;
     const monthYear = baseM.monthYear;
 
-    const bkr = Math.round(monthlyBongkar[m] * 100) / 100;
-    const bjk = Math.round(monthlyBajak[m] * 100) / 100;
-    const sn = Math.round(monthlySN[m] * 100) / 100;
-    const tanam = Math.round(monthlyTanam[m] * 100) / 100;
+    const bkr = Math.max(0, Math.round(monthlyBongkar[m] * 100) / 100);
+    const bjk = Math.max(0, Math.round(monthlyBajak[m] * 100) / 100);
+    const sn = Math.max(0, Math.round(monthlySN[m] * 100) / 100);
+    const tanam = Math.max(0, Math.round(monthlyTanam[m] * 100) / 100);
 
-    rollingBk = Math.round((rollingBk + bkr - bjk) * 100) / 100;
-    rollingBjk = Math.round((rollingBjk + bjk - sn) * 100) / 100;
-    rollingSN = Math.round((rollingSN + sn - tanam) * 100) / 100;
+    rollingBk = Math.max(0, Math.round((rollingBk + bkr - bjk) * 100) / 100);
+    rollingBjk = Math.max(0, Math.round((rollingBjk + bjk - sn) * 100) / 100);
+    rollingSN = Math.max(0, Math.round((rollingSN + sn - tanam) * 100) / 100);
     const totalStok = Math.round((rollingBk + rollingBjk + rollingSN) * 100) / 100;
 
     const payload = {

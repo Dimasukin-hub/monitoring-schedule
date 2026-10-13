@@ -56,6 +56,7 @@ export function getLandStokCategory(land: LandLike): StokCategory {
   const hasRealSn =
     (details.realSiapTanam && details.realSiapTanam !== '-' && details.realSiapTanam !== '0') ||
     (details.realJalanSal && details.realJalanSal !== '-' && details.realJalanSal !== '0') ||
+    (details.siapTanam && details.siapTanam !== '-' && details.siapTanam !== '0') ||
     (land.realJalanSal && land.realJalanSal !== '-' && land.realJalanSal !== '0');
 
   if (
