@@ -200,7 +200,41 @@ export async function PUT(
       }
     }
 
-    // Sync direct Land columns from mergedDetails if not explicitly provided
+    // 1. If body.activities is provided, first sync to mergedDetails and direct Land columns
+    if (Array.isArray(body.activities)) {
+      for (const act of body.activities) {
+        if (!act.code) continue;
+        const syncInfo = ACTIVITY_SYNC_MAP[act.code];
+        if (syncInfo) {
+          if (act.realisasiDate !== undefined) {
+            const cleanReal = act.realisasiDate && act.realisasiDate !== '-' && act.realisasiDate !== '0' ? String(act.realisasiDate).trim() : null;
+            mergedDetails[syncInfo.detailsRealKey] = cleanReal;
+            if (syncInfo.landRealCol) {
+              updateData[syncInfo.landRealCol] = cleanReal;
+            }
+          }
+          if (act.rencanaDate !== undefined) {
+            const cleanRenc = act.rencanaDate && act.rencanaDate !== '-' && act.rencanaDate !== '0' ? String(act.rencanaDate).trim() : null;
+            if (syncInfo.detailsRencKey) {
+              mergedDetails[syncInfo.detailsRencKey] = cleanRenc;
+            }
+            if (syncInfo.landRencCol) {
+              updateData[syncInfo.landRencCol] = cleanRenc;
+            }
+          }
+        }
+      }
+    }
+
+    // Sync direct Land columns to mergedDetails
+    if (body.realMulaiTanam !== undefined) {
+      mergedDetails.realMulaiTanam = body.realMulaiTanam ? String(body.realMulaiTanam).trim() : null;
+    }
+    if (body.realSelesaiTanam !== undefined) {
+      mergedDetails.realSelesaiTanam = body.realSelesaiTanam ? String(body.realSelesaiTanam).trim() : null;
+    }
+
+    // 2. Sync direct Land columns from mergedDetails if not explicitly provided
     if (body.realBajak !== undefined) {
       updateData.realBajak = body.realBajak ? String(body.realBajak).trim() : null;
     } else {
@@ -233,8 +267,15 @@ export async function PUT(
     if (body.bulanSn !== undefined) {
       updateData.bulanSn = body.bulanSn ? String(body.bulanSn).trim() : null;
     } else {
-      const effectiveSn = mergedDetails.realSiapTanam;
-      if (effectiveSn && effectiveSn !== '-' && effectiveSn !== '0') {
+      // Recognize both Siap Tanam and Jalan & Sal as entering Siap Tanam (SN) stage
+      const effectiveSn =
+        (mergedDetails.realSiapTanam && mergedDetails.realSiapTanam !== '-' && mergedDetails.realSiapTanam !== '0')
+          ? mergedDetails.realSiapTanam
+          : (mergedDetails.realJalanSal && mergedDetails.realJalanSal !== '-' && mergedDetails.realJalanSal !== '0')
+          ? mergedDetails.realJalanSal
+          : null;
+
+      if (effectiveSn) {
         const snDateParts = String(effectiveSn).trim().split('/');
         if (snDateParts.length === 3) {
           const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -244,13 +285,7 @@ export async function PUT(
             updateData.bulanSn = `${MONTH_NAMES[mIdx]}-${yr}`;
           }
         }
-      } else if (
-        body.aplikasiDetails &&
-        (body.aplikasiDetails.realSiapTanam === null ||
-          body.aplikasiDetails.realSiapTanam === '' ||
-          body.aplikasiDetails.siapTanam === null ||
-          body.aplikasiDetails.siapTanam === '')
-      ) {
+      } else {
         const base = (lands2026BaselinesJson as Record<string, any>)[existingLand.lokasi];
         const defaultBulanSn = base?.baseBulanSn || base?.bulanSn || existingLand.bulanTanam;
         if (defaultBulanSn) {
@@ -260,40 +295,6 @@ export async function PUT(
             updateData.bulanSn = `${MONTH_NAMES[dBase.getMonth()]}-${String(dBase.getFullYear()).slice(-2)}`;
           } else {
             updateData.bulanSn = String(defaultBulanSn).trim();
-          }
-        }
-      }
-    }
-
-    // Sync direct Land columns to mergedDetails
-    if (body.realMulaiTanam !== undefined) {
-      mergedDetails.realMulaiTanam = body.realMulaiTanam ? String(body.realMulaiTanam).trim() : null;
-    }
-    if (body.realSelesaiTanam !== undefined) {
-      mergedDetails.realSelesaiTanam = body.realSelesaiTanam ? String(body.realSelesaiTanam).trim() : null;
-    }
-
-    // If body.activities is provided, also sync to mergedDetails and direct Land columns
-    if (Array.isArray(body.activities)) {
-      for (const act of body.activities) {
-        if (!act.code) continue;
-        const syncInfo = ACTIVITY_SYNC_MAP[act.code];
-        if (syncInfo) {
-          if (act.realisasiDate !== undefined) {
-            const cleanReal = act.realisasiDate && act.realisasiDate !== '-' && act.realisasiDate !== '0' ? String(act.realisasiDate).trim() : null;
-            mergedDetails[syncInfo.detailsRealKey] = cleanReal;
-            if (syncInfo.landRealCol) {
-              updateData[syncInfo.landRealCol] = cleanReal;
-            }
-          }
-          if (act.rencanaDate !== undefined) {
-            const cleanRenc = act.rencanaDate && act.rencanaDate !== '-' && act.rencanaDate !== '0' ? String(act.rencanaDate).trim() : null;
-            if (syncInfo.detailsRencKey) {
-              mergedDetails[syncInfo.detailsRencKey] = cleanRenc;
-            }
-            if (syncInfo.landRencCol) {
-              updateData[syncInfo.landRencCol] = cleanRenc;
-            }
           }
         }
       }

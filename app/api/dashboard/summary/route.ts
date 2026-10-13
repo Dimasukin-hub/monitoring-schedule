@@ -49,6 +49,7 @@ export async function GET(request: Request) {
         realBkr: true,
         realMulaiTanam: true,
         realSelesaiTanam: true,
+        aplikasiDetails: true,
         activities: {
           select: { code: true, status: true, realisasiDate: true },
         },

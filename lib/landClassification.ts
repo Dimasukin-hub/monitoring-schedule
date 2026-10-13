@@ -14,7 +14,9 @@ export interface LandLike {
   statusAplikasi?: string | null;
   realMulaiTanam?: string | null;
   realSelesaiTanam?: string | null;
+  realJalanSal?: string | null;
   progressTanam?: number | null;
+  aplikasiDetails?: any;
   activities?: Array<{ code?: string | null; realisasiDate?: string | null }>;
 }
 
@@ -49,14 +51,23 @@ export function getLandStokCategory(land: LandLike): StokCategory {
     return 'PROSES';
   }
 
-  // 3. SN: murni diambil datanya dari jalan & sal (22.JALAN_SAL)
+  // 3. SN (Siap Tanam): Jalan & Saluran dan Siap Tanam
+  const details = (typeof land.aplikasiDetails === 'object' && land.aplikasiDetails !== null) ? (land.aplikasiDetails as any) : {};
+  const hasRealSn =
+    (details.realSiapTanam && details.realSiapTanam !== '-' && details.realSiapTanam !== '0') ||
+    (details.realJalanSal && details.realJalanSal !== '-' && details.realJalanSal !== '0') ||
+    (land.realJalanSal && land.realJalanSal !== '-' && land.realJalanSal !== '0');
+
   if (
     app.includes('22.JALAN & SAL') ||
     appLower.includes('jalan & sal') ||
     appLower.includes('jalan dan sal') ||
+    app.includes('22.SIAP_TANAM') ||
+    appLower.includes('siap tanam') ||
+    hasRealSn ||
     land.activities?.some(
       (a) =>
-        a.code === '22.JALAN_SAL' &&
+        (a.code === '22.JALAN_SAL' || a.code === '22.SIAP_TANAM') &&
         a.realisasiDate &&
         a.realisasiDate !== '-' &&
         a.realisasiDate !== '0'

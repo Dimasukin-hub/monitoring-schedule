@@ -264,9 +264,14 @@ export async function recalculateAndPersistStageStocks(targetYear: number = 2026
       }
     }
 
-    // 3c. Siap Tanam / SN (Bulan SN, realSiapTanam)
-    const realSnStr = l.bulanSn || details.realSiapTanam || null;
-    const curSnMonth = parseDateToMonth(realSnStr, targetYear);
+    // 3c. Siap Tanam / SN (realSiapTanam, realJalanSal, bulanSn)
+    const effectiveSnStr =
+      (details.realSiapTanam && details.realSiapTanam !== '-' && details.realSiapTanam !== '0')
+        ? details.realSiapTanam
+        : (details.realJalanSal && details.realJalanSal !== '-' && details.realJalanSal !== '0')
+        ? details.realJalanSal
+        : l.bulanSn || null;
+    const curSnMonth = parseDateToMonth(effectiveSnStr, targetYear);
     const baseSnMonth = base.baseRealSnMonth ?? null;
 
     if (curSnMonth !== baseSnMonth) {
