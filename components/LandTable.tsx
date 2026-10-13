@@ -345,8 +345,8 @@ const ACTIVITY_OPTIONS = [
   'HR EKS MB',
   'SS1',
   'SS2',
-  'Rotary FH1',
-  'Rotary FH2',
+  'ROTARY FH1',
+  'ROTARY FH2',
   'RIDGER',
   'JALAN & SAL',
   'SIAP TANAM',
@@ -356,7 +356,7 @@ const ACTIVITY_OPTIONS = [
 
 const ACTIVITY_GROUPS: FilterGroup[] = [
   {
-    name: 'Kelompok Bongkar (BK)',
+    name: 'Bongkar',
     shortBadge: 'BK',
     color: 'amber',
     options: [
@@ -373,7 +373,7 @@ const ACTIVITY_GROUPS: FilterGroup[] = [
     ],
   },
   {
-    name: 'Kelompok Bajak (BJK)',
+    name: 'Bajak',
     shortBadge: 'BJK',
     color: 'blue',
     options: [
@@ -384,13 +384,13 @@ const ACTIVITY_GROUPS: FilterGroup[] = [
       'HR EKS MB',
       'SS1',
       'SS2',
-      'Rotary FH1',
-      'Rotary FH2',
+      'ROTARY FH1',
+      'ROTARY FH2',
       'RIDGER',
     ],
   },
   {
-    name: 'Kelompok Siap Tanam (SN)',
+    name: 'Siap Tanam',
     shortBadge: 'SN',
     color: 'cyan',
     options: [
@@ -399,7 +399,7 @@ const ACTIVITY_GROUPS: FilterGroup[] = [
     ],
   },
   {
-    name: 'Kelompok Tanam',
+    name: 'Tanam',
     shortBadge: 'TNM',
     color: 'emerald',
     options: [
