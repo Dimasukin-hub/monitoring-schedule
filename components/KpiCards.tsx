@@ -334,6 +334,16 @@ export default function KpiCards({
     return `${selectedMonths[0]} - ${selectedMonths[selectedMonths.length - 1]}`;
   }, [selectedMonths, internalYear, currentMonthName]);
 
+  const posisiLahanPeriodLabel = useMemo(() => {
+    if (selectedMonths.length === 0 || selectedMonths.length === ALL_MONTH_NAMES.length) {
+      return `Jan - Des ${internalYear}`;
+    }
+    if (selectedMonths.length === 1) {
+      return `${selectedMonths[0]}-${String(internalYear).slice(2)}`;
+    }
+    return `${selectedMonths[0]} - ${selectedMonths[selectedMonths.length - 1]}`;
+  }, [selectedMonths, internalYear]);
+
   if (!data) {
     return (
       <div className="space-y-4 animate-pulse">
@@ -743,7 +753,7 @@ export default function KpiCards({
             activeStage={activeStageChart}
             onStageChange={(newStage) => setActiveStageChart(newStage || 'ALL')}
             showStageSwitcher={true}
-            periodLabel={cardMonthBadge}
+            periodLabel={posisiLahanPeriodLabel}
           />
         </div>
       )}

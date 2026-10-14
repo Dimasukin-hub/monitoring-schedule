@@ -258,7 +258,7 @@ export async function GET(request: Request) {
 
     let resolvedMonth = monthParam;
     if (!resolvedMonth || resolvedMonth === 'CURRENT' || resolvedMonth === 'DEFAULT') {
-      resolvedMonth = getCurrentMonthName(); // Default bulan berjalan (misal: 'Okt')
+      resolvedMonth = 'ALL'; // Default posisi lahan BK, BJK, SN per wilayah: Jan - Des 2026
     }
 
     const isAllMonths = resolvedMonth === 'ALL';
@@ -284,14 +284,35 @@ export async function GET(request: Request) {
       posMap[stdW].snLuas = 0;
     }
 
-    // Build live edits map from lands2026Baselines and prisma.land
+    const baselinesList = masterScheduleBaselinesJson as Array<{
+      lokasi: string;
+      wilayah: string;
+      netto: number;
+      ds: string;
+      dt: string;
+      du: string;
+    }>;
+
+    // Build lookup for targetYear cycle baseline per location
+    const baseCycleMap = new Map<string, { ds: string; dt: string; du: string }>();
+    for (const item of baselinesList) {
+      if (
+        item.ds.endsWith(String(targetYear)) ||
+        item.dt.endsWith(String(targetYear)) ||
+        item.du.endsWith(String(targetYear))
+      ) {
+        baseCycleMap.set(item.lokasi, { ds: item.ds, dt: item.dt, du: item.du });
+      }
+    }
+
+    // Build live edits map from baseCycleMap and prisma.land
     const movedDS = new Map<string, string>();
     const movedDT = new Map<string, string>();
     const movedDU = new Map<string, string>();
     const liveWilayah = new Map<string, string>();
 
     for (const l of lands) {
-      const base = (lands2026BaselinesJson as Record<string, any>)[l.lokasi];
+      const base = baseCycleMap.get(l.lokasi);
       if (!base) continue;
 
       if (l.wilayah) {
@@ -325,7 +346,7 @@ export async function GET(request: Request) {
         movedDT.set(l.lokasi, curDT);
       }
 
-      const snDateStr = l.bulanSn || base.bulanSn || null;
+      const snDateStr = l.bulanSn || null;
       const dDQ = parseDateVal(snDateStr);
       const mDQ = getEffectiveMonthYear(dDQ);
       const curDU = mDQ ? mDQ.key : base.du;
@@ -334,22 +355,18 @@ export async function GET(request: Request) {
       }
     }
 
-    const baselinesList = masterScheduleBaselinesJson as Array<{
-      lokasi: string;
-      wilayah: string;
-      netto: number;
-      ds: string;
-      dt: string;
-      du: string;
-    }>;
-
     for (const item of baselinesList) {
       const w = liveWilayah.get(item.lokasi) || normalizeWilayah(item.wilayah);
       if (!posMap[w]) continue;
 
-      const effDS = movedDS.get(item.lokasi) || item.ds;
-      const effDT = movedDT.get(item.lokasi) || item.dt;
-      const effDU = movedDU.get(item.lokasi) || item.du;
+      const isCurrentCycle =
+        item.ds.endsWith(String(targetYear)) ||
+        item.dt.endsWith(String(targetYear)) ||
+        item.du.endsWith(String(targetYear));
+
+      const effDS = (isCurrentCycle && movedDS.get(item.lokasi)) || item.ds;
+      const effDT = (isCurrentCycle && movedDT.get(item.lokasi)) || item.dt;
+      const effDU = (isCurrentCycle && movedDU.get(item.lokasi)) || item.du;
       const effNetto = item.netto;
 
       const isMatchDS = isAllMonths ? effDS.endsWith(String(targetYear)) : targetMonthKeys.has(effDS);
