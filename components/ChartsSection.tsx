@@ -12,6 +12,7 @@ import {
   Legend,
   Cell,
   Rectangle,
+  LabelList,
 } from 'recharts';
 import {
   TrendingUp,
@@ -269,7 +270,7 @@ export function PosisiLahanSection({
   };
 
   // Agregasi defensif agar hanya 7 wilayah resmi (W01 s/d W07) yang ditampilkan di sumbu X
-  // Menggunakan monthlyWilayahPositions jika ada filter multi-bulan aktif
+  // Menggunakan monthlyWilayahPositions jika tersedia untuk konsistensi penuh 12 bulan maupun multi-bulan
   const aggregateByWilayah = (
     stageKey: 'bkLuas' | 'bjkLuas' | 'snLuas',
     locKey: 'bkLocations' | 'bjkLocations' | 'snLocations'
@@ -279,10 +280,14 @@ export function PosisiLahanSection({
       map[w] = { wilayah: w, luas: 0, locations: [] };
     }
 
-    const isFilteredMonths = effectiveSelectedMonths.length > 0 && effectiveSelectedMonths.length < 12;
+    const ALL_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const activeMonths =
+      effectiveSelectedMonths.length > 0 && effectiveSelectedMonths.length < 12
+        ? effectiveSelectedMonths
+        : ALL_MONTHS;
 
-    if (isFilteredMonths && chartsData.monthlyWilayahPositions) {
-      for (const m of effectiveSelectedMonths) {
+    if (chartsData.monthlyWilayahPositions) {
+      for (const m of activeMonths) {
         const mItems = chartsData.monthlyWilayahPositions[m] || [];
         for (const item of mItems) {
           const norm = normalizeW(item.wilayah);
@@ -316,6 +321,12 @@ export function PosisiLahanSection({
   const sortedBK = useMemo(() => aggregateByWilayah('bkLuas', 'bkLocations'), [chartsData, effectiveSelectedMonths]);
   const sortedBJK = useMemo(() => aggregateByWilayah('bjkLuas', 'bjkLocations'), [chartsData, effectiveSelectedMonths]);
   const sortedSN = useMemo(() => aggregateByWilayah('snLuas', 'snLocations'), [chartsData, effectiveSelectedMonths]);
+
+  const filterKey = useMemo(() => {
+    const monthsPart = effectiveSelectedMonths.length === 0 ? 'ALL' : effectiveSelectedMonths.join('-');
+    const wPart = selectedWilayah || 'ALL';
+    return `${monthsPart}_${wPart}`;
+  }, [effectiveSelectedMonths, selectedWilayah]);
 
   const selectedWilayahList = useMemo(() => {
     if (!selectedWilayah || selectedWilayah === 'ALL') return null;
@@ -476,7 +487,7 @@ export function PosisiLahanSection({
       return 'Jan - Des 2026';
     }
     if (effectiveSelectedMonths.length === 1) {
-      return `${effectiveSelectedMonths[0]}-26`;
+      return `${effectiveSelectedMonths[0]} 2026`;
     }
     if (effectiveSelectedMonths.length <= 3) {
       return `${effectiveSelectedMonths.join(', ')} 2026`;
@@ -508,7 +519,7 @@ export function PosisiLahanSection({
       default:
         return {
           title: `Posisi Lahan per Wilayah (BK, BJK, SN)`,
-          subtitle: `Monitoring sebaran luas lahan per wilayah operasional (Bongkar, Bajak, Siap Tanam${periodSuffix})`,
+          subtitle: `Monitoring sebaran luas lahan (Bongkar: ${totalLuasBK.toFixed(1)} Ha • Bajak: ${totalLuasBJK.toFixed(1)} Ha • Siap Tanam: ${totalLuasSN.toFixed(1)} Ha${periodSuffix})`,
           icon: <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />,
         };
     }
@@ -523,7 +534,7 @@ export function PosisiLahanSection({
             Posisi Lahan BK per Wilayah
           </h4>
           <span className="text-[10px] font-medium text-slate-600 dark:text-slate-400">
-            Tertinggi: <strong className="text-slate-900 dark:text-slate-200 font-bold">{highestBK?.wilayah || '-'}</strong> ({highestBK ? highestBK.luas.toFixed(1) : '0'} Ha)
+            Total: <strong className="text-slate-900 dark:text-slate-200 font-bold">{totalLuasBK.toFixed(1)} Ha</strong> • Tertinggi: <strong className="text-slate-900 dark:text-slate-200 font-bold">{highestBK?.wilayah || '-'}</strong> ({highestBK ? highestBK.luas.toFixed(1) : '0'} Ha)
           </span>
         </div>
         <span className="text-[10px] text-amber-800 dark:text-amber-300 font-bold bg-amber-500/15 px-2 py-0.5 rounded border border-amber-500/30">
@@ -534,8 +545,9 @@ export function PosisiLahanSection({
       <div className={`${isSingle ? 'h-64 sm:h-72' : 'h-60'} w-full outline-none focus:outline-none select-none`}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
+            key={`barchart-bk-${filterKey}`}
             data={displayBK.map((item) => ({ ...item, rank: rankMapBK.get(item.wilayah) || 1 }))}
-            margin={{ top: 10, right: 10, left: -20, bottom: 8 }}
+            margin={{ top: 16, right: 10, left: -20, bottom: 8 }}
             className="outline-none focus:outline-none"
           >
             <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
@@ -560,12 +572,31 @@ export function PosisiLahanSection({
                 />
               }
             />
-            <Bar dataKey="luas" name="Luas BK (Ha)" radius={[4, 4, 0, 0]} maxBarSize={36}>
-              {displayBK.map((entry, index) => {
+            <Bar
+              key={`bar-bk-${filterKey}`}
+              dataKey="luas"
+              name="Luas BK (Ha)"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={36}
+              isAnimationActive={false}
+            >
+              <LabelList
+                dataKey="luas"
+                position="top"
+                formatter={(val: any) => (Number(val) > 0 ? Number(val).toFixed(1) : '')}
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  fontFamily: 'monospace',
+                  fill: isDark ? '#cbd5e1' : '#475569',
+                }}
+                offset={4}
+              />
+              {displayBK.map((entry) => {
                 const colorInfo = getDynamicHeightColor(entry.luas, maxBK);
                 return (
                   <Cell
-                    key={`cell-bk-${index}`}
+                    key={`cell-bk-${filterKey}-${entry.wilayah}`}
                     fill={colorInfo.fill}
                   />
                 );
@@ -586,7 +617,7 @@ export function PosisiLahanSection({
             Posisi Lahan BJK per Wilayah
           </h4>
           <span className="text-[10px] font-medium text-slate-600 dark:text-slate-400">
-            Tertinggi: <strong className="text-slate-900 dark:text-slate-200 font-bold">{highestBJK?.wilayah || '-'}</strong> ({highestBJK ? highestBJK.luas.toFixed(1) : '0'} Ha)
+            Total: <strong className="text-slate-900 dark:text-slate-200 font-bold">{totalLuasBJK.toFixed(1)} Ha</strong> • Tertinggi: <strong className="text-slate-900 dark:text-slate-200 font-bold">{highestBJK?.wilayah || '-'}</strong> ({highestBJK ? highestBJK.luas.toFixed(1) : '0'} Ha)
           </span>
         </div>
         <span className="text-[10px] text-blue-800 dark:text-blue-300 font-bold bg-blue-500/15 px-2 py-0.5 rounded border border-blue-500/30">
@@ -597,8 +628,9 @@ export function PosisiLahanSection({
       <div className={`${isSingle ? 'h-64 sm:h-72' : 'h-60'} w-full outline-none focus:outline-none select-none`}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
+            key={`barchart-bjk-${filterKey}`}
             data={displayBJK.map((item) => ({ ...item, rank: rankMapBJK.get(item.wilayah) || 1 }))}
-            margin={{ top: 10, right: 10, left: -20, bottom: 8 }}
+            margin={{ top: 16, right: 10, left: -20, bottom: 8 }}
             className="outline-none focus:outline-none"
           >
             <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
@@ -623,12 +655,31 @@ export function PosisiLahanSection({
                 />
               }
             />
-            <Bar dataKey="luas" name="Luas BJK (Ha)" radius={[4, 4, 0, 0]} maxBarSize={36}>
-              {displayBJK.map((entry, index) => {
+            <Bar
+              key={`bar-bjk-${filterKey}`}
+              dataKey="luas"
+              name="Luas BJK (Ha)"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={36}
+              isAnimationActive={false}
+            >
+              <LabelList
+                dataKey="luas"
+                position="top"
+                formatter={(val: any) => (Number(val) > 0 ? Number(val).toFixed(1) : '')}
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  fontFamily: 'monospace',
+                  fill: isDark ? '#cbd5e1' : '#475569',
+                }}
+                offset={4}
+              />
+              {displayBJK.map((entry) => {
                 const colorInfo = getDynamicHeightColor(entry.luas, maxBJK);
                 return (
                   <Cell
-                    key={`cell-bjk-${index}`}
+                    key={`cell-bjk-${filterKey}-${entry.wilayah}`}
                     fill={colorInfo.fill}
                   />
                 );
@@ -649,7 +700,7 @@ export function PosisiLahanSection({
             Posisi Lahan SN per Wilayah
           </h4>
           <span className="text-[10px] font-medium text-slate-600 dark:text-slate-400">
-            Tertinggi: <strong className="text-slate-900 dark:text-slate-200 font-bold">{highestSN?.wilayah || '-'}</strong> ({highestSN ? highestSN.luas.toFixed(1) : '0'} Ha)
+            Total: <strong className="text-slate-900 dark:text-slate-200 font-bold">{totalLuasSN.toFixed(1)} Ha</strong> • Tertinggi: <strong className="text-slate-900 dark:text-slate-200 font-bold">{highestSN?.wilayah || '-'}</strong> ({highestSN ? highestSN.luas.toFixed(1) : '0'} Ha)
           </span>
         </div>
         <span className="text-[10px] text-emerald-800 dark:text-emerald-300 font-bold bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30">
@@ -660,8 +711,9 @@ export function PosisiLahanSection({
       <div className={`${isSingle ? 'h-64 sm:h-72' : 'h-60'} w-full outline-none focus:outline-none select-none`}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
+            key={`barchart-sn-${filterKey}`}
             data={displaySN.map((item) => ({ ...item, rank: rankMapSN.get(item.wilayah) || 1 }))}
-            margin={{ top: 10, right: 10, left: -20, bottom: 8 }}
+            margin={{ top: 16, right: 10, left: -20, bottom: 8 }}
             className="outline-none focus:outline-none"
           >
             <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
@@ -686,12 +738,31 @@ export function PosisiLahanSection({
                 />
               }
             />
-            <Bar dataKey="luas" name="Luas SN (Ha)" radius={[4, 4, 0, 0]} maxBarSize={36}>
-              {displaySN.map((entry, index) => {
+            <Bar
+              key={`bar-sn-${filterKey}`}
+              dataKey="luas"
+              name="Luas SN (Ha)"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={36}
+              isAnimationActive={false}
+            >
+              <LabelList
+                dataKey="luas"
+                position="top"
+                formatter={(val: any) => (Number(val) > 0 ? Number(val).toFixed(1) : '')}
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  fontFamily: 'monospace',
+                  fill: isDark ? '#cbd5e1' : '#475569',
+                }}
+                offset={4}
+              />
+              {displaySN.map((entry) => {
                 const colorInfo = getDynamicHeightColor(entry.luas, maxSN);
                 return (
                   <Cell
-                    key={`cell-sn-${index}`}
+                    key={`cell-sn-${filterKey}-${entry.wilayah}`}
                     fill={colorInfo.fill}
                   />
                 );
