@@ -93,7 +93,64 @@ export async function GET(request: Request) {
         phBk: l.phBk,
         phSn: l.phSn,
         aplikasiTerakhir: l.aplikasiTerakhir || 'Tahap Bongkar',
+        realBkr: l.realBkr,
+        realBajak: l.realBajak,
+        realSn: l.realSn,
         category: validCat,
+      });
+    }
+
+    const sortPreviewItems = (items: any[]) =>
+      items.sort((a, b) => {
+        const wCmp = (a.wilayah || '').localeCompare(b.wilayah || '');
+        if (wCmp !== 0) return wCmp;
+        return (a.lokasi || '').localeCompare(b.lokasi || '', undefined, { numeric: true });
+      });
+
+    const previewCards = {
+      BK: {
+        count: counts.BK.count,
+        totalNetto: counts.BK.totalNetto,
+        items: sortPreviewItems(
+          classified.BK.map((x) => ({
+            wilayah: x.wilayah,
+            lokasi: x.lokasi,
+            realDate: x.realBkr || '-',
+            luasNetto: x.luasNetto,
+          }))
+        ),
+      },
+      BJK: {
+        count: counts.BJK.count,
+        totalNetto: counts.BJK.totalNetto,
+        items: sortPreviewItems(
+          classified.BJK.map((x) => ({
+            wilayah: x.wilayah,
+            lokasi: x.lokasi,
+            realDate: x.realBajak || '-',
+            luasNetto: x.luasNetto,
+          }))
+        ),
+      },
+      SN: {
+        count: counts.SN.count,
+        totalNetto: counts.SN.totalNetto,
+        items: sortPreviewItems(
+          classified.SN.map((x) => ({
+            wilayah: x.wilayah,
+            lokasi: x.lokasi,
+            realDate: x.realSn || '-',
+            luasNetto: x.luasNetto,
+          }))
+        ),
+      },
+    };
+
+    if (searchParams.get('preview') === 'true') {
+      return NextResponse.json({
+        success: true,
+        previewCards,
+        categoryStats: counts,
       });
     }
 
@@ -170,6 +227,7 @@ export async function GET(request: Request) {
       success: true,
       category,
       categoryStats: counts,
+      previewCards,
       pagination: {
         total,
         page,

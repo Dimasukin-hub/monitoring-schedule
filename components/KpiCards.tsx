@@ -94,6 +94,125 @@ interface KpiCardsProps {
   activeSubTab?: 'pengolahan_lahan' | 'tanam';
 }
 
+interface PreviewItem {
+  wilayah: string;
+  lokasi: string;
+  realDate: string;
+  luasNetto?: number;
+}
+
+interface PreviewCardData {
+  count: number;
+  totalNetto: number;
+  items: PreviewItem[];
+}
+
+function CardStockPopupTable({
+  title,
+  dateColumnHeader,
+  titleColorClass,
+  data,
+  selectedWilayah,
+  onMouseEnter,
+  onMouseLeave,
+  align = 'left',
+}: {
+  title: string;
+  dateColumnHeader: string;
+  titleColorClass: string;
+  data?: PreviewCardData;
+  selectedWilayah?: string;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+  align?: 'left' | 'right';
+}) {
+  const displayItems = useMemo(() => {
+    if (!data?.items) return [];
+    if (selectedWilayah && selectedWilayah !== 'ALL') {
+      return data.items.filter((it) => it.wilayah === selectedWilayah);
+    }
+    return data.items;
+  }, [data, selectedWilayah]);
+
+  const displayNetto = useMemo(() => {
+    return displayItems.reduce((acc, it) => acc + (it.luasNetto || 0), 0);
+  }, [displayItems]);
+
+  return (
+    <div
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      className={`absolute top-full mt-2 ${
+        align === 'right' ? 'right-0' : 'left-0'
+      } z-50 w-[360px] sm:w-[380px] max-w-[calc(100vw-24px)] rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 shadow-2xl p-3.5 animate-in fade-in-0 zoom-in-95 duration-150 select-none ring-1 ring-black/5 dark:ring-white/10`}
+    >
+      {/* Judul Pop-up Ditengah (Tanpa keterangan jumlah lokasi) */}
+      <div className="text-center pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
+        <h4 className={`text-xs font-black tracking-wider uppercase ${titleColorClass}`}>
+          {title}
+        </h4>
+      </div>
+
+      {/* Tabel Pop-up: Header & Isi Kolom Ditengah */}
+      <div className="max-h-[220px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 rounded-lg border border-slate-200/70 dark:border-slate-800">
+        <table className="w-full text-xs border-collapse">
+          <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800 text-[10px] uppercase font-bold text-slate-700 dark:text-slate-300 shadow-2xs">
+            <tr>
+              <th className="py-1.5 px-2 text-center border-b border-slate-200 dark:border-slate-700/80 w-[28%]">
+                WILAYAH
+              </th>
+              <th className="py-1.5 px-2 text-center border-b border-slate-200 dark:border-slate-700/80 w-[32%]">
+                LOKASI
+              </th>
+              <th className="py-1.5 px-2 text-center border-b border-slate-200 dark:border-slate-700/80 w-[40%]">
+                {dateColumnHeader}
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 bg-white/50 dark:bg-slate-900/50">
+            {displayItems.length > 0 ? (
+              displayItems.map((item, idx) => (
+                <tr
+                  key={`${item.lokasi}-${idx}`}
+                  className="hover:bg-slate-100/70 dark:hover:bg-slate-800/60 transition-colors"
+                >
+                  <td className="py-1.5 px-2 text-center font-medium text-slate-700 dark:text-slate-300">
+                    {item.wilayah || '-'}
+                  </td>
+                  <td className="py-1.5 px-2 text-center font-bold text-slate-900 dark:text-slate-100">
+                    {item.lokasi || '-'}
+                  </td>
+                  <td className="py-1.5 px-2 text-center font-medium text-slate-600 dark:text-slate-400">
+                    {item.realDate || '-'}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={3} className="py-4 text-center text-slate-400 text-xs italic">
+                  Tidak ada data lokasi
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Footer Total di Kiri Sesuai Permintaan User */}
+      <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-left text-slate-600 dark:text-slate-400 font-medium">
+        Total: <strong className="font-bold text-slate-800 dark:text-slate-200">{displayItems.length} Lokasi</strong> •{' '}
+        <strong className="font-bold text-slate-800 dark:text-slate-200">
+          {displayNetto.toLocaleString('id-ID', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}{' '}
+          Ha Netto
+        </strong>
+      </div>
+    </div>
+  );
+}
+
 export default function KpiCards({
   data,
   selectedYear = 2026,
@@ -108,6 +227,48 @@ export default function KpiCards({
   availableWilayahs,
   activeSubTab = 'pengolahan_lahan',
 }: KpiCardsProps) {
+  // Popover state for Stok cards
+  const [hoveredCard, setHoveredCard] = useState<'BK' | 'BJK' | 'SN' | null>(null);
+  const hoverCloseTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [previewCards, setPreviewCards] = useState<{
+    BK?: PreviewCardData;
+    BJK?: PreviewCardData;
+    SN?: PreviewCardData;
+  } | null>(null);
+
+  // Fetch preview data for card hover tables
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/api/stok?preview=true')
+      .then((res) => res.json())
+      .then((res) => {
+        if (isMounted && res.success && res.previewCards) {
+          setPreviewCards(res.previewCards);
+        }
+      })
+      .catch((err) => console.error('Failed to load stok preview cards:', err));
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleCardMouseEnter = (cat: 'BK' | 'BJK' | 'SN') => {
+    if (hoverCloseTimerRef.current) {
+      clearTimeout(hoverCloseTimerRef.current);
+      hoverCloseTimerRef.current = null;
+    }
+    setHoveredCard(cat);
+  };
+
+  const handleCardMouseLeave = () => {
+    if (hoverCloseTimerRef.current) {
+      clearTimeout(hoverCloseTimerRef.current);
+    }
+    hoverCloseTimerRef.current = setTimeout(() => {
+      setHoveredCard(null);
+    }, 200);
+  };
+
   // Helper to parse month prop to array of month names
   // Catatan: Jika 'CURRENT' atau kosong, default adalah array KOSONG []
   // sehingga checkbox tidak tercentang semua secara default!
@@ -513,7 +674,14 @@ export default function KpiCards({
             {/* SISI KIRI (lg:col-span-6): 2 Card Kompak (Stok Bongkar & Stok Bajak) setara ukuran Real Tanam Bulanan & Proses Tanam */}
             <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* CARD 1: STOK BONGKAR */}
-              <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-950/80 border border-amber-300/80 dark:border-amber-500/30 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
+              <div
+                onMouseEnter={() => handleCardMouseEnter('BK')}
+                onMouseLeave={handleCardMouseLeave}
+                onClick={() => setHoveredCard((prev) => (prev === 'BK' ? null : 'BK'))}
+                className={`relative overflow-visible rounded-2xl bg-white dark:bg-slate-950/80 border border-amber-300/80 dark:border-amber-500/30 p-5 glass-panel flex flex-col justify-between shadow-xs transition-all cursor-pointer hover:border-amber-400 dark:hover:border-amber-500/60 ${
+                  hoveredCard === 'BK' ? 'z-40 ring-2 ring-amber-400/40 shadow-md' : 'z-10'
+                }`}
+              >
                 <div className="flex items-center justify-between gap-2 h-7 mb-3">
                   <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider truncate flex items-center gap-1.5">
                     <Boxes className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
@@ -545,10 +713,31 @@ export default function KpiCards({
                     </span>
                   </div>
                 </div>
+
+                {/* Pop-up Hover Tabel Stok Bongkar */}
+                {hoveredCard === 'BK' && (
+                  <CardStockPopupTable
+                    title="DAFTAR LOKASI STOK BONGKAR"
+                    dateColumnHeader="REAL BONGKAR"
+                    titleColorClass="text-amber-700 dark:text-amber-400"
+                    data={previewCards?.BK}
+                    selectedWilayah={selectedWilayah}
+                    onMouseEnter={() => handleCardMouseEnter('BK')}
+                    onMouseLeave={handleCardMouseLeave}
+                    align="left"
+                  />
+                )}
               </div>
 
               {/* CARD 2: STOK BAJAK */}
-              <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-950/80 border border-blue-200 dark:border-blue-500/30 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
+              <div
+                onMouseEnter={() => handleCardMouseEnter('BJK')}
+                onMouseLeave={handleCardMouseLeave}
+                onClick={() => setHoveredCard((prev) => (prev === 'BJK' ? null : 'BJK'))}
+                className={`relative overflow-visible rounded-2xl bg-white dark:bg-slate-950/80 border border-blue-200 dark:border-blue-500/30 p-5 glass-panel flex flex-col justify-between shadow-xs transition-all cursor-pointer hover:border-blue-300 dark:hover:border-blue-500/60 ${
+                  hoveredCard === 'BJK' ? 'z-40 ring-2 ring-blue-400/40 shadow-md' : 'z-10'
+                }`}
+              >
                 <div className="flex items-center justify-between gap-2 h-7 mb-3">
                   <span className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider truncate flex items-center gap-1.5">
                     <TrendingUp className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
@@ -580,11 +769,32 @@ export default function KpiCards({
                     </span>
                   </div>
                 </div>
+
+                {/* Pop-up Hover Tabel Stok Bajak */}
+                {hoveredCard === 'BJK' && (
+                  <CardStockPopupTable
+                    title="DAFTAR LOKASI STOK BAJAK"
+                    dateColumnHeader="REAL BAJAK"
+                    titleColorClass="text-blue-700 dark:text-blue-400"
+                    data={previewCards?.BJK}
+                    selectedWilayah={selectedWilayah}
+                    onMouseEnter={() => handleCardMouseEnter('BJK')}
+                    onMouseLeave={handleCardMouseLeave}
+                    align="right"
+                  />
+                )}
               </div>
             </div>
 
             {/* SISI KANAN (lg:col-span-6): Card Besar Stok Siap Tanam (SN) setara ukuran Card Realisasi Tanam */}
-            <div className="lg:col-span-6 relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-emerald-300/80 dark:border-emerald-500/30 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
+            <div
+              onMouseEnter={() => handleCardMouseEnter('SN')}
+              onMouseLeave={handleCardMouseLeave}
+              onClick={() => setHoveredCard((prev) => (prev === 'SN' ? null : 'SN'))}
+              className={`lg:col-span-6 relative overflow-visible rounded-2xl bg-white dark:bg-slate-900 border border-emerald-300/80 dark:border-emerald-500/30 p-5 glass-panel flex flex-col justify-between shadow-xs transition-all cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-500/60 ${
+                hoveredCard === 'SN' ? 'z-40 ring-2 ring-emerald-400/40 shadow-md' : 'z-10'
+              }`}
+            >
               <div className="flex items-center justify-between gap-2 h-7 mb-3">
                 <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider truncate flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
@@ -642,6 +852,20 @@ export default function KpiCards({
                   </span>
                 </div>
               </div>
+
+              {/* Pop-up Hover Tabel Stok Siap Tanam */}
+              {hoveredCard === 'SN' && (
+                <CardStockPopupTable
+                  title="DAFTAR LOKASI STOK SIAP TANAM"
+                  dateColumnHeader="REAL SIAP TANAM"
+                  titleColorClass="text-emerald-700 dark:text-emerald-400"
+                  data={previewCards?.SN}
+                  selectedWilayah={selectedWilayah}
+                  onMouseEnter={() => handleCardMouseEnter('SN')}
+                  onMouseLeave={handleCardMouseLeave}
+                  align="right"
+                />
+              )}
             </div>
           </div>
         </div>
