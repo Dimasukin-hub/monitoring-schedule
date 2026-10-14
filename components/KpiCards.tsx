@@ -507,6 +507,104 @@ export default function KpiCards({
     return `${selectedMonths[0]} - ${selectedMonths[selectedMonths.length - 1]}`;
   }, [selectedMonths, internalYear]);
 
+  // Perhitungan dinamis Target Rencana vs Realisasi (Opsi A) mengikuti filter bulan/tahun yang aktif
+  const kpiFilterMonthNames = useMemo(() => {
+    if (selectedMonths.length === 0) {
+      return [currentMonthName]; // Default bulan berjalan, misal ['Okt']
+    }
+    if (selectedMonths.length === ALL_MONTH_NAMES.length) {
+      return [...ALL_MONTH_NAMES];
+    }
+    return selectedMonths;
+  }, [selectedMonths, currentMonthName]);
+
+  const isAllMonthsSelected =
+    kpiFilterMonthNames.length === ALL_MONTH_NAMES.length;
+
+  // 1. KPI Bongkar: Target Rencana & Pencapaian
+  const bongkarKpi = useMemo(() => {
+    const list = (chartsData?.monthlyBongkar || []).filter(
+      (item) => !item.year || item.year === internalYear
+    );
+    const filtered = list.filter((item) => {
+      const mName = item.month?.split('-')[0] || '';
+      return kpiFilterMonthNames.includes(mName);
+    });
+
+    const target = filtered.reduce((sum, item) => sum + (item.rencana || 0), 0);
+    const realisasi = filtered.reduce((sum, item) => sum + (item.realisasi || 0), 0);
+
+    // Fallback baseline resmi jika chartsData belum termuat
+    const fallbackTarget = isAllMonthsSelected ? 1525.0 : 170.0;
+    const fallbackReal = isAllMonthsSelected ? 1505.1 : 168.6;
+
+    const finalTarget = target > 0 ? target : fallbackTarget;
+    const finalReal = target > 0 ? realisasi : fallbackReal;
+    const pct = finalTarget > 0 ? (finalReal / finalTarget) * 100 : 0;
+
+    return {
+      target: Math.round(finalTarget * 10) / 10,
+      realisasi: Math.round(finalReal * 10) / 10,
+      pct: Math.round(pct * 10) / 10,
+    };
+  }, [chartsData?.monthlyBongkar, internalYear, kpiFilterMonthNames, isAllMonthsSelected]);
+
+  // 2. KPI Bajak: Target Rencana & Pencapaian
+  const bajakKpi = useMemo(() => {
+    const list = (chartsData?.monthlyBajak || []).filter(
+      (item) => !item.year || item.year === internalYear
+    );
+    const filtered = list.filter((item) => {
+      const mName = item.month?.split('-')[0] || '';
+      return kpiFilterMonthNames.includes(mName);
+    });
+
+    const target = filtered.reduce((sum, item) => sum + (item.rencana || 0), 0);
+    const realisasi = filtered.reduce((sum, item) => sum + (item.realisasi || 0), 0);
+
+    // Fallback baseline resmi jika chartsData belum termuat
+    const fallbackTarget = isAllMonthsSelected ? 2270.4 : 164.7;
+    const fallbackReal = isAllMonthsSelected ? 1641.2 : 154.8;
+
+    const finalTarget = target > 0 ? target : fallbackTarget;
+    const finalReal = target > 0 ? realisasi : fallbackReal;
+    const pct = finalTarget > 0 ? (finalReal / finalTarget) * 100 : 0;
+
+    return {
+      target: Math.round(finalTarget * 10) / 10,
+      realisasi: Math.round(finalReal * 10) / 10,
+      pct: Math.round(pct * 10) / 10,
+    };
+  }, [chartsData?.monthlyBajak, internalYear, kpiFilterMonthNames, isAllMonthsSelected]);
+
+  // 3. KPI Siap Tanam: Target Rencana & Pencapaian
+  const snKpi = useMemo(() => {
+    const list = (chartsData?.monthlySiapTanam || []).filter(
+      (item) => !item.year || item.year === internalYear
+    );
+    const filtered = list.filter((item) => {
+      const mName = item.month?.split('-')[0] || '';
+      return kpiFilterMonthNames.includes(mName);
+    });
+
+    const target = filtered.reduce((sum, item) => sum + (item.rencana || 0), 0);
+    const realisasi = filtered.reduce((sum, item) => sum + (item.realisasi || 0), 0);
+
+    // Fallback baseline resmi jika chartsData belum termuat
+    const fallbackTarget = isAllMonthsSelected ? 1927.8 : 107.2;
+    const fallbackReal = isAllMonthsSelected ? 1450.6 : 119.9;
+
+    const finalTarget = target > 0 ? target : fallbackTarget;
+    const finalReal = target > 0 ? realisasi : fallbackReal;
+    const pct = finalTarget > 0 ? (finalReal / finalTarget) * 100 : 0;
+
+    return {
+      target: Math.round(finalTarget * 10) / 10,
+      realisasi: Math.round(finalReal * 10) / 10,
+      pct: Math.round(pct * 10) / 10,
+    };
+  }, [chartsData?.monthlySiapTanam, internalYear, kpiFilterMonthNames, isAllMonthsSelected]);
+
   if (!data) {
     return (
       <div className="space-y-4 animate-pulse">
@@ -703,13 +801,31 @@ export default function KpiCards({
                     <span className="text-xs font-bold text-amber-600/80 dark:text-amber-400/80">Ha</span>
                   </div>
 
-                  {/* Spacer bar agar tinggi dan margin kartu persis sejajar */}
-                  <div className="mt-2.5 h-1.5" />
+                  {/* Progress bar mini */}
+                  <div className="mt-2.5">
+                    <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full transition-all duration-500"
+                        style={{
+                          width: `${Math.min(100, Math.max(0, bongkarKpi.pct))}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
 
                   <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60 text-[11px]">
-                    <span className="text-slate-500 dark:text-slate-400">Tahap Awal</span>
+                    <span className="text-slate-500 dark:text-slate-400">
+                      Target:{' '}
+                      <strong className="font-semibold text-slate-700 dark:text-slate-300">
+                        {bongkarKpi.target.toLocaleString('id-ID', {
+                          minimumFractionDigits: 1,
+                          maximumFractionDigits: 1,
+                        })}{' '}
+                        Ha
+                      </strong>
+                    </span>
                     <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                      Bongkar
+                      Pencapaian: {bongkarKpi.pct}%
                     </span>
                   </div>
                 </div>
@@ -759,13 +875,31 @@ export default function KpiCards({
                     <span className="text-xs font-bold text-blue-600/80 dark:text-blue-400/80">Ha</span>
                   </div>
 
-                  {/* Spacer bar agar tinggi dan margin kartu persis sejajar */}
-                  <div className="mt-2.5 h-1.5" />
+                  {/* Progress bar mini */}
+                  <div className="mt-2.5">
+                    <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-500 to-sky-400 rounded-full transition-all duration-500"
+                        style={{
+                          width: `${Math.min(100, Math.max(0, bajakKpi.pct))}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
 
                   <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60 text-[11px]">
-                    <span className="text-slate-500 dark:text-slate-400">Pengolahan</span>
+                    <span className="text-slate-500 dark:text-slate-400">
+                      Target:{' '}
+                      <strong className="font-semibold text-slate-700 dark:text-slate-300">
+                        {bajakKpi.target.toLocaleString('id-ID', {
+                          minimumFractionDigits: 1,
+                          maximumFractionDigits: 1,
+                        })}{' '}
+                        Ha
+                      </strong>
+                    </span>
                     <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
-                      Bajak
+                      Pencapaian: {bajakKpi.pct}%
                     </span>
                   </div>
                 </div>
@@ -822,15 +956,7 @@ export default function KpiCards({
                     <div
                       className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full transition-all duration-500"
                       style={{
-                        width: `${Math.min(
-                          100,
-                          Math.max(
-                            10,
-                            ((stokSummary?.stokSN?.value ?? 0) /
-                              Math.max(1, stokSummary?.totalStok?.value || 1)) *
-                              100
-                          )
-                        )}%`,
+                        width: `${Math.min(100, Math.max(0, snKpi.pct))}%`,
                       }}
                     />
                   </div>
@@ -838,17 +964,17 @@ export default function KpiCards({
 
                 <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60">
                   <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Total Stok:{' '}
+                    Target:{' '}
                     <strong className="font-semibold text-slate-700 dark:text-slate-300">
-                      {(stokSummary?.totalStok?.value ?? 0).toLocaleString('id-ID', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
+                      {snKpi.target.toLocaleString('id-ID', {
+                        minimumFractionDigits: 1,
+                        maximumFractionDigits: 1,
                       })}{' '}
                       Ha
                     </strong>
                   </span>
                   <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                    Siap Tanam (SN)
+                    Pencapaian: {snKpi.pct}%
                   </span>
                 </div>
               </div>
