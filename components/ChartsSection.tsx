@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import WilayahFilterDropdown from './WilayahFilterDropdown';
+import MonthMultiFilterDropdown from './MonthMultiFilterDropdown';
 
 export interface ChartsDataProps {
   monthlyBongkar?: Array<{
@@ -181,6 +182,21 @@ export interface ChartsDataProps {
     realisasi: number;
     deviasi: number;
   }>;
+  monthlyWilayahPositions?: Record<
+    string,
+    Array<{
+      wilayah: string;
+      bkCount?: number;
+      bkLuas: number;
+      bkLocations: string[];
+      bjkCount?: number;
+      bjkLuas: number;
+      bjkLocations: string[];
+      snCount?: number;
+      snLuas: number;
+      snLocations: string[];
+    }>
+  >;
 }
 
 export interface CommonChartProps {
@@ -197,6 +213,8 @@ export interface PosisiLahanProps extends CommonChartProps {
   onClose?: () => void;
   showStageSwitcher?: boolean;
   periodLabel?: string;
+  selectedMonths?: string[];
+  setSelectedMonths?: (months: string[]) => void;
 }
 
 // =========================================================================
@@ -214,9 +232,16 @@ export function PosisiLahanSection({
   onClose,
   showStageSwitcher = true,
   periodLabel,
+  selectedMonths: propSelectedMonths,
+  setSelectedMonths: propSetSelectedMonths,
 }: PosisiLahanProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+
+  // State multi-filter bulan lokal untuk Posisi Lahan (default: kosong yang berarti semua bulan Jan - Des 26)
+  const [internalSelectedMonths, setInternalSelectedMonths] = useState<string[]>([]);
+  const effectiveSelectedMonths = propSelectedMonths !== undefined ? propSelectedMonths : internalSelectedMonths;
+  const setEffectiveSelectedMonths = propSetSelectedMonths || setInternalSelectedMonths;
 
   if (!chartsData || !chartsData.wilayahPositions) {
     return (
@@ -243,7 +268,8 @@ export function PosisiLahanSection({
     return clean;
   };
 
-  // Agregasi defensif agar hanya 7 wilayah resmi (W01 s/d W07) yang ditampilkan di sumbu X sehingga tidak saling bertumpuk
+  // Agregasi defensif agar hanya 7 wilayah resmi (W01 s/d W07) yang ditampilkan di sumbu X
+  // Menggunakan monthlyWilayahPositions jika ada filter multi-bulan aktif
   const aggregateByWilayah = (
     stageKey: 'bkLuas' | 'bjkLuas' | 'snLuas',
     locKey: 'bkLocations' | 'bjkLocations' | 'snLocations'
@@ -252,15 +278,34 @@ export function PosisiLahanSection({
     for (const w of officialWilayahs) {
       map[w] = { wilayah: w, luas: 0, locations: [] };
     }
-    for (const item of chartsData.wilayahPositions) {
-      const norm = normalizeW(item.wilayah);
-      if (!map[norm]) {
-        map[norm] = { wilayah: norm, luas: 0, locations: [] };
+
+    const isFilteredMonths = effectiveSelectedMonths.length > 0 && effectiveSelectedMonths.length < 12;
+
+    if (isFilteredMonths && chartsData.monthlyWilayahPositions) {
+      for (const m of effectiveSelectedMonths) {
+        const mItems = chartsData.monthlyWilayahPositions[m] || [];
+        for (const item of mItems) {
+          const norm = normalizeW(item.wilayah);
+          if (!map[norm]) {
+            map[norm] = { wilayah: norm, luas: 0, locations: [] };
+          }
+          map[norm].luas += (item as any)[stageKey] || 0;
+          const locs = (item as any)[locKey] || [];
+          map[norm].locations.push(...locs);
+        }
       }
-      map[norm].luas += (item as any)[stageKey] || 0;
-      const locs = (item as any)[locKey] || [];
-      map[norm].locations.push(...locs);
+    } else {
+      for (const item of chartsData.wilayahPositions) {
+        const norm = normalizeW(item.wilayah);
+        if (!map[norm]) {
+          map[norm] = { wilayah: norm, luas: 0, locations: [] };
+        }
+        map[norm].luas += (item as any)[stageKey] || 0;
+        const locs = (item as any)[locKey] || [];
+        map[norm].locations.push(...locs);
+      }
     }
+
     return officialWilayahs.map((w) => ({
       wilayah: w,
       luas: Math.round(map[w].luas * 100) / 100,
@@ -268,9 +313,9 @@ export function PosisiLahanSection({
     }));
   };
 
-  const sortedBK = aggregateByWilayah('bkLuas', 'bkLocations');
-  const sortedBJK = aggregateByWilayah('bjkLuas', 'bjkLocations');
-  const sortedSN = aggregateByWilayah('snLuas', 'snLocations');
+  const sortedBK = useMemo(() => aggregateByWilayah('bkLuas', 'bkLocations'), [chartsData, effectiveSelectedMonths]);
+  const sortedBJK = useMemo(() => aggregateByWilayah('bjkLuas', 'bjkLocations'), [chartsData, effectiveSelectedMonths]);
+  const sortedSN = useMemo(() => aggregateByWilayah('snLuas', 'snLocations'), [chartsData, effectiveSelectedMonths]);
 
   const selectedWilayahList = useMemo(() => {
     if (!selectedWilayah || selectedWilayah === 'ALL') return null;
@@ -426,35 +471,48 @@ export function PosisiLahanSection({
   const totalLuasBJK = useMemo(() => Math.round(displayBJK.reduce((acc, curr) => acc + curr.luas, 0) * 100) / 100, [displayBJK]);
   const totalLuasSN = useMemo(() => Math.round(displaySN.reduce((acc, curr) => acc + curr.luas, 0) * 100) / 100, [displaySN]);
 
+  const activePeriodLabel = useMemo(() => {
+    if (effectiveSelectedMonths.length === 0 || effectiveSelectedMonths.length === 12) {
+      return 'Jan - Des 2026';
+    }
+    if (effectiveSelectedMonths.length === 1) {
+      return `${effectiveSelectedMonths[0]}-26`;
+    }
+    if (effectiveSelectedMonths.length <= 3) {
+      return `${effectiveSelectedMonths.join(', ')} 2026`;
+    }
+    return `${effectiveSelectedMonths.length} Bulan (${effectiveSelectedMonths[0]}..${effectiveSelectedMonths[effectiveSelectedMonths.length - 1]})`;
+  }, [effectiveSelectedMonths]);
+
   const stageHeaderInfo = useMemo(() => {
-    const periodSuffix = periodLabel ? ` • Periode: ${periodLabel}` : '';
+    const periodSuffix = ` • Periode: ${activePeriodLabel}`;
     switch (selectedStage) {
       case 'BK':
         return {
-          title: `Posisi Lahan BK per Wilayah (Bongkar)${periodLabel ? ` - ${periodLabel}` : ''}`,
+          title: `Posisi Lahan BK per Wilayah (Bongkar)`,
           subtitle: `Monitoring sebaran luas lahan tahapan Bongkar di 7 wilayah operasional (Total: ${totalLuasBK.toFixed(2)} Ha • Tertinggi: Wilayah ${highestBK?.wilayah || '-'}${periodSuffix})`,
           icon: <Boxes className="w-4 h-4 text-amber-600 dark:text-amber-400" />,
         };
       case 'BJK':
         return {
-          title: `Posisi Lahan BJK per Wilayah (Bajak)${periodLabel ? ` - ${periodLabel}` : ''}`,
+          title: `Posisi Lahan BJK per Wilayah (Bajak)`,
           subtitle: `Monitoring sebaran luas lahan tahapan Bajak di 7 wilayah operasional (Total: ${totalLuasBJK.toFixed(2)} Ha • Tertinggi: Wilayah ${highestBJK?.wilayah || '-'}${periodSuffix})`,
           icon: <TrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />,
         };
       case 'SN':
         return {
-          title: `Posisi Lahan SN per Wilayah (Siap Tanam)${periodLabel ? ` - ${periodLabel}` : ''}`,
+          title: `Posisi Lahan SN per Wilayah (Siap Tanam)`,
           subtitle: `Monitoring sebaran luas lahan tahapan Siap Tanam di 7 wilayah operasional (Total: ${totalLuasSN.toFixed(2)} Ha • Tertinggi: Wilayah ${highestSN?.wilayah || '-'}${periodSuffix})`,
           icon: <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />,
         };
       default:
         return {
-          title: `Posisi Lahan per Wilayah (BK, BJK, SN)${periodLabel ? ` - ${periodLabel}` : ''}`,
+          title: `Posisi Lahan per Wilayah (BK, BJK, SN)`,
           subtitle: `Monitoring sebaran luas lahan per wilayah operasional (Bongkar, Bajak, Siap Tanam${periodSuffix})`,
           icon: <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />,
         };
     }
-  }, [selectedStage, periodLabel, totalLuasBK, totalLuasBJK, totalLuasSN, highestBK, highestBJK, highestSN]);
+  }, [selectedStage, activePeriodLabel, totalLuasBK, totalLuasBJK, totalLuasSN, highestBK, highestBJK, highestSN]);
 
   const renderBKChart = (isSingle: boolean = false) => (
     <div className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors ${isSingle ? 'h-full' : ''}`}>
@@ -665,7 +723,7 @@ export function PosisiLahanSection({
           <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-100 dark:border-slate-800">
             <div>
               <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                Rincian Wilayah {stageTitle} {periodLabel ? `(${periodLabel})` : ''}
+                Rincian Wilayah {stageTitle} ({activePeriodLabel})
               </h5>
               <span className="text-[10px] text-slate-500 dark:text-slate-400">
                 Rincian luas lahan per wilayah operasional (W01 - W07)
@@ -802,6 +860,12 @@ export function PosisiLahanSection({
               </button>
             </div>
           )}
+
+          {/* Multi-Filter Bulan (Jan - Des 26) */}
+          <MonthMultiFilterDropdown
+            selectedMonths={effectiveSelectedMonths}
+            setSelectedMonths={setEffectiveSelectedMonths}
+          />
 
           {setSelectedWilayah && (
             <div className="flex items-center gap-2">

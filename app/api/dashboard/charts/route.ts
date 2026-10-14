@@ -355,6 +355,29 @@ export async function GET(request: Request) {
       }
     }
 
+    const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+    const monthlyWilayahPositionsMap: Record<
+      string,
+      Record<string, { wilayah: string; bkLuas: number; bkLocations: string[]; bjkLuas: number; bjkLocations: string[]; snLuas: number; snLocations: string[] }>
+    > = {};
+
+    for (let m = 1; m <= 12; m++) {
+      const mName = MONTH_NAMES_SHORT[m - 1];
+      monthlyWilayahPositionsMap[mName] = {};
+      for (const stdW of standardWilayahs) {
+        monthlyWilayahPositionsMap[mName][stdW] = {
+          wilayah: stdW,
+          bkLuas: 0,
+          bkLocations: [],
+          bjkLuas: 0,
+          bjkLocations: [],
+          snLuas: 0,
+          snLocations: [],
+        };
+      }
+    }
+
     for (const item of baselinesList) {
       const w = liveWilayah.get(item.lokasi) || normalizeWilayah(item.wilayah);
       if (!posMap[w]) continue;
@@ -385,6 +408,67 @@ export async function GET(request: Request) {
         posMap[w].snLocations.push(item.lokasi);
         posMap[w].snLuas += effNetto;
       }
+
+      // Populate monthlyWilayahPositionsMap for 2026 months
+      const mDS = effDS.endsWith(String(targetYear)) ? parseInt(effDS.replace(String(targetYear), ''), 10) : 0;
+      const mDT = effDT.endsWith(String(targetYear)) ? parseInt(effDT.replace(String(targetYear), ''), 10) : 0;
+      const mDU = effDU.endsWith(String(targetYear)) ? parseInt(effDU.replace(String(targetYear), ''), 10) : 0;
+
+      if (mDS >= 1 && mDS <= 12) {
+        const mName = MONTH_NAMES_SHORT[mDS - 1];
+        if (monthlyWilayahPositionsMap[mName]?.[w]) {
+          monthlyWilayahPositionsMap[mName][w].bkLocations.push(item.lokasi);
+          monthlyWilayahPositionsMap[mName][w].bkLuas += effNetto;
+        }
+      }
+      if (mDT >= 1 && mDT <= 12) {
+        const mName = MONTH_NAMES_SHORT[mDT - 1];
+        if (monthlyWilayahPositionsMap[mName]?.[w]) {
+          monthlyWilayahPositionsMap[mName][w].bjkLocations.push(item.lokasi);
+          monthlyWilayahPositionsMap[mName][w].bjkLuas += effNetto;
+        }
+      }
+      if (mDU >= 1 && mDU <= 12) {
+        const mName = MONTH_NAMES_SHORT[mDU - 1];
+        if (monthlyWilayahPositionsMap[mName]?.[w]) {
+          monthlyWilayahPositionsMap[mName][w].snLocations.push(item.lokasi);
+          monthlyWilayahPositionsMap[mName][w].snLuas += effNetto;
+        }
+      }
+    }
+
+    const monthlyWilayahPositions: Record<
+      string,
+      Array<{
+        wilayah: string;
+        bkCount: number;
+        bkLuas: number;
+        bkLocations: string[];
+        bjkCount: number;
+        bjkLuas: number;
+        bjkLocations: string[];
+        snCount: number;
+        snLuas: number;
+        snLocations: string[];
+      }>
+    > = {};
+
+    for (let m = 1; m <= 12; m++) {
+      const mName = MONTH_NAMES_SHORT[m - 1];
+      monthlyWilayahPositions[mName] = Object.values(monthlyWilayahPositionsMap[mName])
+        .sort((a, b) => a.wilayah.localeCompare(b.wilayah, undefined, { numeric: true, sensitivity: 'base' }))
+        .map((wp) => ({
+          wilayah: wp.wilayah,
+          bkCount: wp.bkLocations.length,
+          bkLuas: Math.round(wp.bkLuas * 100) / 100,
+          bkLocations: Array.from(new Set(wp.bkLocations)),
+          bjkCount: wp.bjkLocations.length,
+          bjkLuas: Math.round(wp.bjkLuas * 100) / 100,
+          bjkLocations: Array.from(new Set(wp.bjkLocations)),
+          snCount: wp.snLocations.length,
+          snLuas: Math.round(wp.snLuas * 100) / 100,
+          snLocations: Array.from(new Set(wp.snLocations)),
+        }));
     }
 
     for (const stdW of targetWilayahList) {
@@ -410,7 +494,6 @@ export async function GET(request: Request) {
       .slice(0, 15);
 
     // 5. Daily and Weekly Aggregation for Bongkar, Bajak, Siap Tanam
-    const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
     const parseDateToIso = (dateStr: string | null | undefined): string | null => {
       if (!dateStr || typeof dateStr !== 'string') return null;
@@ -723,6 +806,7 @@ export async function GET(request: Request) {
           selesaiLuas: Math.round(wp.selesaiLuas * 100) / 100,
           selesaiLocations: wp.selesaiLocations,
         })),
+        monthlyWilayahPositions,
         plantingByMonth,
         activityFunnel: activityFunnel.map((act) => {
           const total = act.completed + act.inProgress + act.pending;
