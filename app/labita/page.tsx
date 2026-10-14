@@ -18,7 +18,8 @@ import { useAuth } from '@/components/AuthProvider';
 export default function LabitaDashboardPage() {
   const { user, isAdmin, isUser } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('executive_summary');
-  const [pengolahanSubTab, setPengolahanSubTab] = useState<string>('rencana_realisasi');
+  const [executiveSubTab, setExecutiveSubTab] = useState<string>('pengolahan_lahan');
+  const [pengolahanSubTab, setPengolahanSubTab] = useState<string>('list_stok_lahan');
   const [plantingSubTab, setPlantingSubTab] = useState<string>('real_tanam_nanas');
   const [selectedWilayah, setSelectedWilayah] = useState<string>('ALL');
   const [prosesTanamWilayah, setProsesTanamWilayah] = useState<string>('ALL');
@@ -116,12 +117,16 @@ export default function LabitaDashboardPage() {
 
   const getTabTitle = () => {
     switch (activeTab) {
-      case 'executive_summary':
-        return 'Executive Summary';
+      case 'executive_summary': {
+        const subTitles: Record<string, string> = {
+          pengolahan_lahan: 'Pengolahan Lahan',
+          tanam: 'Tanam',
+        };
+        const sub = subTitles[executiveSubTab];
+        return sub ? `Executive Summary • ${sub}` : 'Executive Summary';
+      }
       case 'pengolahan_lahan_bibit_tanam': {
         const subTitles: Record<string, string> = {
-          rencana_realisasi: 'Rencana vs Realisasi',
-          rerata_bero_tanam: 'Rerata Bero dan Tanam',
           list_stok_lahan: 'List Stok Lahan',
           data_lahan: 'Data Lahan',
         };
@@ -147,6 +152,8 @@ export default function LabitaDashboardPage() {
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        executiveSubTab={executiveSubTab}
+        setExecutiveSubTab={setExecutiveSubTab}
         pengolahanSubTab={pengolahanSubTab}
         setPengolahanSubTab={setPengolahanSubTab}
         plantingSubTab={plantingSubTab}
@@ -189,53 +196,81 @@ export default function LabitaDashboardPage() {
           </div>
         )}
 
-        {/* 1. MENU: EXECUTIVE SUMMARY */}
+        {/* 1. MENU: EXECUTIVE SUMMARY (Dengan 2 Sub-Menu: Pengolahan Lahan & Tanam) */}
         {activeTab === 'executive_summary' && (
           <div className="space-y-8 animate-in fade-in duration-200">
-            <KpiCards
-              data={summaryData}
-              selectedYear={stokYear}
-              selectedMonth={stokMonth}
-              onSelectStokFilter={(yr, m) => {
-                setStokYear(yr);
-                setStokMonth(m);
-              }}
-              selectedPeriod={selectedPeriod}
-              onSelectPeriod={(p) => setSelectedPeriod(p)}
-              chartsData={chartsData}
-              onSelectLand={(loc) => setSelectedLandId(loc)}
-              selectedWilayah={selectedWilayah}
-              setSelectedWilayah={setSelectedWilayah}
-              availableWilayahs={summaryData?.availableWilayahs || []}
-            />
+            {/* 1.1 SUB MENU: PENGOLAHAN LAHAN */}
+            {executiveSubTab === 'pengolahan_lahan' && (
+              <div className="space-y-8">
+                {/* Kartu Stok Pengolahan (Stok Bongkar & Stok Bajak Kompak di Kiri, Stok Siap Tanam Besar di Kanan) */}
+                <KpiCards
+                  data={summaryData}
+                  selectedYear={stokYear}
+                  selectedMonth={stokMonth}
+                  onSelectStokFilter={(yr, m) => {
+                    setStokYear(yr);
+                    setStokMonth(m);
+                  }}
+                  selectedPeriod={selectedPeriod}
+                  onSelectPeriod={(p) => setSelectedPeriod(p)}
+                  chartsData={chartsData}
+                  onSelectLand={(loc) => setSelectedLandId(loc)}
+                  selectedWilayah={selectedWilayah}
+                  setSelectedWilayah={setSelectedWilayah}
+                  availableWilayahs={summaryData?.availableWilayahs || []}
+                  activeSubTab="pengolahan_lahan"
+                />
+
+                {/* Grafik Rencana vs Realisasi (Dipindahkan ke sini) */}
+                <RencanaRealisasiSection
+                  chartsData={chartsData}
+                  onSelectLand={(loc) => setSelectedLandId(loc)}
+                />
+
+                {/* Grafik Rerata Bero dan Tanam (Dipindahkan ke sini) */}
+                <RerataBeroSection refreshTrigger={refreshLandTrigger} />
+              </div>
+            )}
+
+            {/* 1.2 SUB MENU: TANAM */}
+            {executiveSubTab === 'tanam' && (
+              <div className="space-y-8">
+                {/* Kartu Realisasi Tanam, Real Tanam Bulanan, dan Card Proses Tanam */}
+                <KpiCards
+                  data={summaryData}
+                  selectedYear={stokYear}
+                  selectedMonth={stokMonth}
+                  onSelectStokFilter={(yr, m) => {
+                    setStokYear(yr);
+                    setStokMonth(m);
+                  }}
+                  selectedPeriod={selectedPeriod}
+                  onSelectPeriod={(p) => setSelectedPeriod(p)}
+                  chartsData={chartsData}
+                  onSelectLand={(loc) => setSelectedLandId(loc)}
+                  selectedWilayah={selectedWilayah}
+                  setSelectedWilayah={setSelectedWilayah}
+                  availableWilayahs={summaryData?.availableWilayahs || []}
+                  activeSubTab="tanam"
+                />
+              </div>
+            )}
           </div>
         )}
 
-        {/* 2. MENU: PENGOLAHAN LAHAN BIBIT TANAM (Dengan 4 Sub-Menu) */}
+        {/* 2. MENU: PENGOLAHAN LAHAN BIBIT TANAM (Dengan 2 Sub-Menu: List Stok Lahan & Data Lahan) */}
         <div className={activeTab === 'pengolahan_lahan_bibit_tanam' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
-          {/* 2.1 SUB MENU: RENCANA VS REALISASI */}
-          {pengolahanSubTab === 'rencana_realisasi' && (
-            <RencanaRealisasiSection
-              chartsData={chartsData}
-              onSelectLand={(loc) => setSelectedLandId(loc)}
-            />
-          )}
-
-          {/* 2.2 SUB MENU: RERATA BERO DAN TANAM */}
-          {pengolahanSubTab === 'rerata_bero_tanam' && (
-            <RerataBeroSection refreshTrigger={refreshLandTrigger} />
-          )}
-
-          {/* 2.3 SUB MENU: LIST STOK LAHAN */}
+          {/* 2.1 SUB MENU: LIST STOK LAHAN */}
           {pengolahanSubTab === 'list_stok_lahan' && (
             <ListStokLahanView
               onSelectLand={(id) => setSelectedLandId(id)}
               selectedWilayah={selectedWilayah}
               refreshTrigger={refreshLandTrigger}
+              chartsData={chartsData}
             />
           )}
 
-          {/* 2.4 SUB MENU: DATA LAHAN (Keep-Alive agar pencarian tidak reset saat buka menu/sub-menu lain) */}
+          {/* 2.2 SUB MENU: DATA LAHAN (Keep-Alive agar pencarian tidak reset saat buka menu/sub-menu lain) */}
           <div className={pengolahanSubTab === 'data_lahan' ? 'block' : 'hidden'}>
             <LandTable
               onEditLand={(id) => {

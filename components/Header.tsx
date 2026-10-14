@@ -23,9 +23,12 @@ export interface SubMenuItem {
   label: string;
 }
 
+export const EXECUTIVE_SUB_MENUS: SubMenuItem[] = [
+  { id: 'pengolahan_lahan', label: 'Pengolahan Lahan' },
+  { id: 'tanam', label: 'Tanam' },
+];
+
 export const PENGOLAHAN_SUB_MENUS: SubMenuItem[] = [
-  { id: 'rencana_realisasi', label: 'Rencana vs Realisasi' },
-  { id: 'rerata_bero_tanam', label: 'Rerata Bero dan Tanam' },
   { id: 'list_stok_lahan', label: 'List Stok Lahan' },
   { id: 'data_lahan', label: 'Data Lahan' },
 ];
@@ -89,6 +92,8 @@ interface HeaderProps {
   setSearchQuery?: (query: string) => void;
   onRefresh?: () => void;
   isLoading?: boolean;
+  executiveSubTab?: string;
+  setExecutiveSubTab?: (subTab: string) => void;
   pengolahanSubTab?: string;
   setPengolahanSubTab?: (subTab: string) => void;
   overviewSubTab?: string;
@@ -101,6 +106,8 @@ interface HeaderProps {
 export default function Header({
   activeTab,
   setActiveTab,
+  executiveSubTab,
+  setExecutiveSubTab,
   pengolahanSubTab,
   setPengolahanSubTab,
   overviewSubTab,
@@ -113,7 +120,7 @@ export default function Header({
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
-  const currentSubTab = pengolahanSubTab || overviewSubTab || 'rencana_realisasi';
+  const currentSubTab = pengolahanSubTab || overviewSubTab || 'list_stok_lahan';
   const handleSetSubTab = setPengolahanSubTab || setOverviewSubTab;
   const currentTheme = MENU_THEMES[activeTab] || MENU_THEMES.executive_summary;
 
@@ -162,7 +169,10 @@ export default function Header({
                 onClick={() => {
                   setActiveTab(item.id);
                   if (item.id === 'pengolahan_lahan_bibit_tanam' && handleSetSubTab && !currentSubTab) {
-                    handleSetSubTab('rencana_realisasi');
+                    handleSetSubTab('list_stok_lahan');
+                  }
+                  if (item.id === 'executive_summary' && setExecutiveSubTab && !executiveSubTab) {
+                    setExecutiveSubTab('pengolahan_lahan');
                   }
                 }}
                 className={`relative py-2 px-1 text-xs sm:text-[13px] tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
@@ -271,7 +281,37 @@ export default function Header({
         </div>
       </div>
 
-      {/* Row 2: Sub Menu untuk Pengolahan Lahan Bibit Tanam (Rencana vs Real, Rerata Bero & Tanam, List Stok Lahan, Data Lahan) */}
+      {/* Row 2: Sub Menu untuk Executive Summary (Pengolahan Lahan, Tanam) */}
+      {activeTab === 'executive_summary' && (
+        <div className="px-6 py-1.5 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
+          {EXECUTIVE_SUB_MENUS.map((item) => {
+            const isActive = (executiveSubTab || 'pengolahan_lahan') === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setExecutiveSubTab?.(item.id)}
+                className={`relative py-1 px-1 text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
+                  isActive
+                    ? `${currentTheme.subActiveText} font-semibold`
+                    : `text-slate-500 dark:text-slate-400 ${currentTheme.subHoverText} font-normal`
+                }`}
+              >
+                <span>{item.label}</span>
+
+                {/* Active Underline Indicator Sub Menu */}
+                {isActive ? (
+                  <span className={`absolute -bottom-1 left-0 right-0 h-[2px] ${currentTheme.subActiveLine} rounded-full`} />
+                ) : (
+                  <span className={`absolute -bottom-1 left-0 right-0 h-[1.5px] ${currentTheme.hoverLine} rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-150`} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Row 2: Sub Menu untuk Pengolahan Lahan Bibit Tanam (List Stok Lahan, Data Lahan) */}
       {activeTab === 'pengolahan_lahan_bibit_tanam' && (
         <div className="px-6 py-1.5 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
           {PENGOLAHAN_SUB_MENUS.map((item) => {

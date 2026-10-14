@@ -22,11 +22,14 @@ import {
   Loader2,
 } from 'lucide-react';
 
+import { PosisiLahanSection } from '@/components/ChartsSection';
+
 interface ListStokLahanViewProps {
-  onSelectLand: (landId: number) => void;
+  onSelectLand: (landId: number | string) => void;
   selectedWilayah?: string;
   initialCategory?: string;
   refreshTrigger?: number;
+  chartsData?: any;
 }
 
 // Inline Editable Cell Component
@@ -165,8 +168,31 @@ export default function ListStokLahanView({
   selectedWilayah = 'ALL',
   initialCategory = 'BK',
   refreshTrigger = 0,
+  chartsData,
 }: ListStokLahanViewProps) {
   const [activeCategory, setActiveCategory] = useState<string>(initialCategory);
+  const [chartStage, setChartStage] = useState<'BK' | 'BJK' | 'SN' | 'ALL'>('ALL');
+  const [internalChartsData, setInternalChartsData] = useState<any>(chartsData || null);
+
+  useEffect(() => {
+    if (chartsData) {
+      setInternalChartsData(chartsData);
+    } else {
+      fetch('/api/dashboard/charts')
+        .then((res) => res.json())
+        .then((res) => {
+          if (res.success) setInternalChartsData(res.data);
+        })
+        .catch(() => {});
+    }
+  }, [chartsData, refreshTrigger]);
+
+  useEffect(() => {
+    if (activeCategory === 'BK' || activeCategory === 'BJK' || activeCategory === 'SN') {
+      setChartStage(activeCategory as any);
+    }
+  }, [activeCategory]);
+
   const [selectedWilayahs, setSelectedWilayahs] = useState<string[]>(
     selectedWilayah && selectedWilayah !== 'ALL'
       ? selectedWilayah.split(',').map((w) => w.trim()).filter(Boolean)
@@ -567,6 +593,22 @@ export default function ListStokLahanView({
           );
         })}
       </div>
+
+      {/* Grafik Posisi Lahan per Wilayah (BK, BJK, SN) */}
+      {internalChartsData && (
+        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 glass-panel shadow-xs transition-colors animate-in fade-in slide-in-from-top-2 duration-200">
+          <PosisiLahanSection
+            chartsData={internalChartsData}
+            onSelectLand={(loc) => onSelectLand(Number(loc) || loc)}
+            selectedWilayah={selectedWilayahs.length === 1 ? selectedWilayahs[0] : 'ALL'}
+            availableWilayahs={availableWilayahs}
+            activeStage={chartStage}
+            onStageChange={(newStage) => setChartStage(newStage || 'ALL')}
+            showStageSwitcher={true}
+            periodLabel="Posisi Lahan 2026"
+          />
+        </div>
+      )}
 
       {/* Table Container with Grouped Header for PH (Bab 23 PRD) */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden glass-panel flex flex-col shadow-xs transition-colors">

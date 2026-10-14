@@ -17,7 +17,7 @@ import {
   getCurrentMonthName,
   StokLahanSummaryResult,
 } from '@/lib/stokLahanCalculator';
-import { PosisiLahanSection, ChartsDataProps } from './ChartsSection';
+import { ChartsDataProps } from './ChartsSection';
 
 interface KpiData {
   totalLands: number;
@@ -91,6 +91,7 @@ interface KpiCardsProps {
   selectedWilayah?: string;
   setSelectedWilayah?: (wilayah: string) => void;
   availableWilayahs?: string[];
+  activeSubTab?: 'pengolahan_lahan' | 'tanam';
 }
 
 export default function KpiCards({
@@ -105,6 +106,7 @@ export default function KpiCards({
   selectedWilayah,
   setSelectedWilayah,
   availableWilayahs,
+  activeSubTab = 'pengolahan_lahan',
 }: KpiCardsProps) {
   // Helper to parse month prop to array of month names
   // Catatan: Jika 'CURRENT' atau kosong, default adalah array KOSONG []
@@ -358,407 +360,452 @@ export default function KpiCards({
 
   return (
     <div className="space-y-4">
-      {/* 1. EXECUTIVE SUMMARY SECTION (Urutan 3 Card: Stok Bongkar, Stok Bajak, Stok SN) */}
-      <div className="relative overflow-visible rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200/90 dark:border-emerald-500/25 p-5 glass-panel shadow-xs transition-colors">
-        {/* Top Header of Executive Summary */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/70 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/15 dark:bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
-              <Boxes className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+      {/* 1. SUB MENU: PENGOLAHAN LAHAN (Urutan Opsi 1: Stok Bongkar & Stok Bajak Kompak di Kiri, Stok Siap Tanam Besar di Kanan) */}
+      {(activeSubTab === 'pengolahan_lahan' || !activeSubTab) && (
+        <div className="relative overflow-visible rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200/90 dark:border-emerald-500/25 p-5 glass-panel shadow-xs transition-colors">
+          {/* Top Header of Pengolahan Lahan with Year/Month Filter */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/70 dark:border-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/15 dark:bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                <Boxes className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div>
+                <span className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+                  PENGOLAHAN LAHAN • STOK LAHAN 2026
+                </span>
+              </div>
             </div>
-            <div>
-              <span className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
-                EXECUTIVE SUMMARY
-              </span>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-            {/* Filter Popover Dropdown - Styled exactly like MultiSelectDropdown in Data Lahan */}
-            <div ref={dropdownRef} className="relative inline-block">
-              {/* Trigger Button - Bersih & Elegan persis seperti filter di Menu Data Lahan */}
-              <button
-                type="button"
-                id="filter-tahun-trigger"
-                onClick={() => setIsOpen(!isOpen)}
-                className={`flex items-center justify-between gap-2 px-3 py-1.5 text-xs rounded-xl border transition-all cursor-pointer select-none font-medium shadow-2xs ${
-                  isFiltered
-                    ? 'bg-emerald-50/90 dark:bg-emerald-950/80 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-semibold ring-1 ring-emerald-500/25'
-                    : 'bg-slate-50 dark:bg-slate-950/80 border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 hover:border-slate-400'
-                }`}
-                title={`Filter Tahun: ${
-                  selectedMonths.length > 0
-                    ? `${selectedMonths.length} dipilih`
-                    : 'Klik untuk memilih'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="font-semibold text-xs text-left truncate">
-                    Tahun
-                  </span>
-                  {isFiltered && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                  )}
-                </div>
-
-                <ChevronDown
-                  className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-150 shrink-0 ${
-                    isOpen ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : ''
+            <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+              {/* Filter Popover Dropdown - Styled exactly like MultiSelectDropdown in Data Lahan */}
+              <div ref={dropdownRef} className="relative inline-block">
+                {/* Trigger Button */}
+                <button
+                  type="button"
+                  id="filter-tahun-trigger"
+                  onClick={() => setIsOpen(!isOpen)}
+                  className={`flex items-center justify-between gap-2 px-3 py-1.5 text-xs rounded-xl border transition-all cursor-pointer select-none font-medium shadow-2xs ${
+                    isFiltered
+                      ? 'bg-emerald-50/90 dark:bg-emerald-950/80 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-semibold ring-1 ring-emerald-500/25'
+                      : 'bg-slate-50 dark:bg-slate-950/80 border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 hover:border-slate-400'
                   }`}
-                />
-              </button>
-
-              {/* Popover Dropdown - Layout Grid Checklist persis seperti filter di Data Lahan */}
-              {isOpen && (
-                <div className="absolute top-full mt-1.5 right-0 z-50 w-[320px] sm:w-[480px] max-w-[94vw] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-3.5 text-xs animate-in fade-in zoom-in-95 duration-100 select-none ring-1 ring-black/5 dark:ring-white/10">
-                  {/* Year Quick Filter Tabs - Persis seperti tab Tahun di filter Data Lahan */}
-                  <div className="flex items-center gap-1.5 mb-2.5 pb-2 border-b border-slate-100 dark:border-slate-800 flex-wrap">
-                    <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 mr-1">Tahun:</span>
-                    {AVAILABLE_STOK_YEARS.map((yr) => (
-                      <button
-                        key={yr}
-                        type="button"
-                        onClick={() => handleSelectYear(yr)}
-                        className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-all cursor-pointer ${
-                          internalYear === yr
-                            ? 'bg-emerald-600 text-white shadow-2xs font-bold'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-                        }`}
-                      >
-                        {yr}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Quick Actions (Pilih Semua / Reset) */}
-                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-800 text-[11px]">
-                    <button
-                      type="button"
-                      onClick={handleSelectAll}
-                      className="text-emerald-600 dark:text-emerald-400 hover:underline font-semibold cursor-pointer"
-                    >
-                      Pilih Semua ({ALL_MONTH_NAMES.length})
-                    </button>
+                  title={`Filter Tahun: ${
+                    selectedMonths.length > 0
+                      ? `${selectedMonths.length} dipilih`
+                      : 'Klik untuk memilih'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="font-semibold text-xs text-left truncate">
+                      Tahun
+                    </span>
                     {isFiltered && (
-                      <button
-                        type="button"
-                        onClick={handleReset}
-                        className="text-rose-500 hover:text-rose-600 dark:text-rose-400 hover:underline font-semibold cursor-pointer transition-colors"
-                      >
-                        Reset
-                      </button>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                     )}
                   </div>
 
-                  {/* Options Grid Layout ("pilihannya menyamping dengan checklist") */}
-                  <div className="max-h-72 overflow-y-auto pr-1">
-                    {/* Grid 12 Bulan Checklist */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
-                      {ALL_MONTH_NAMES.map((m) => {
-                        const isChecked = selectedMonths.includes(m);
-                        return (
-                          <label
-                            key={m}
-                            onClick={() => handleToggleMonth(m)}
-                            className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 py-2 rounded-xl border text-xs cursor-pointer select-none transition-all ${
-                              isChecked
-                                ? 'bg-emerald-500/15 border-emerald-500 text-emerald-950 dark:text-emerald-200 font-bold shadow-2xs ring-1 ring-emerald-500/30'
-                                : 'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                            }`}
-                            title={`${m} ${internalYear}`}
-                          >
-                            <div
-                              className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all shrink-0 ${
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-150 shrink-0 ${
+                      isOpen ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : ''
+                    }`}
+                  />
+                </button>
+
+                {/* Popover Dropdown */}
+                {isOpen && (
+                  <div className="absolute top-full mt-1.5 right-0 z-50 w-[320px] sm:w-[480px] max-w-[94vw] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-3.5 text-xs animate-in fade-in zoom-in-95 duration-100 select-none ring-1 ring-black/5 dark:ring-white/10">
+                    {/* Year Quick Filter Tabs */}
+                    <div className="flex items-center gap-1.5 mb-2.5 pb-2 border-b border-slate-100 dark:border-slate-800 flex-wrap">
+                      <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 mr-1">Tahun:</span>
+                      {AVAILABLE_STOK_YEARS.map((yr) => (
+                        <button
+                          key={yr}
+                          type="button"
+                          onClick={() => handleSelectYear(yr)}
+                          className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-all cursor-pointer ${
+                            internalYear === yr
+                              ? 'bg-emerald-600 text-white shadow-2xs font-bold'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                          }`}
+                        >
+                          {yr}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Quick Actions (Pilih Semua / Reset) */}
+                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-800 text-[11px]">
+                      <button
+                        type="button"
+                        onClick={handleSelectAll}
+                        className="text-emerald-600 dark:text-emerald-400 hover:underline font-semibold cursor-pointer"
+                      >
+                        Pilih Semua ({ALL_MONTH_NAMES.length})
+                      </button>
+                      {isFiltered && (
+                        <button
+                          type="button"
+                          onClick={handleReset}
+                          className="text-rose-500 hover:text-rose-600 dark:text-rose-400 hover:underline font-semibold cursor-pointer transition-colors"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Options Grid Layout */}
+                    <div className="max-h-72 overflow-y-auto pr-1">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
+                        {ALL_MONTH_NAMES.map((m) => {
+                          const isChecked = selectedMonths.includes(m);
+                          return (
+                            <label
+                              key={m}
+                              onClick={() => handleToggleMonth(m)}
+                              className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 py-2 rounded-xl border text-xs cursor-pointer select-none transition-all ${
                                 isChecked
-                                  ? 'bg-emerald-600 border-emerald-600 text-white'
-                                  : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
+                                  ? 'bg-emerald-500/15 border-emerald-500 text-emerald-950 dark:text-emerald-200 font-bold shadow-2xs ring-1 ring-emerald-500/30'
+                                  : 'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                               }`}
+                              title={`${m} ${internalYear}`}
                             >
-                              {isChecked && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                            </div>
-                            <span className="flex-1 text-[11px] leading-snug whitespace-normal break-words text-left">
-                              {m}-{String(internalYear).slice(2)}
-                            </span>
-                          </label>
-                        );
-                      })}
+                              <div
+                                className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all shrink-0 ${
+                                  isChecked
+                                    ? 'bg-emerald-600 border-emerald-600 text-white'
+                                    : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
+                                }`}
+                              >
+                                {isChecked && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                              </div>
+                              <span className="flex-1 text-[11px] leading-snug whitespace-normal break-words text-left">
+                                {m}-{String(internalYear).slice(2)}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Footer Status */}
+                    <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 text-[11px]">
+                      <span className="text-slate-500 dark:text-slate-400">
+                        {selectedMonths.length > 0 ? (
+                          <span>
+                            <strong className="text-emerald-600 dark:text-emerald-400 font-bold">
+                              {selectedMonths.length}
+                            </strong>{' '}
+                            dari {ALL_MONTH_NAMES.length} dipilih
+                          </span>
+                        ) : (
+                          'Semua data ditampilkan'
+                        )}
+                      </span>
                     </div>
                   </div>
+                )}
+              </div>
+            </div>
+          </div>
 
-                  {/* Footer Status - Persis seperti filter di Menu Data Lahan */}
-                  <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 text-[11px]">
-                    <span className="text-slate-500 dark:text-slate-400">
-                      {selectedMonths.length > 0 ? (
-                        <span>
-                          <strong className="text-emerald-600 dark:text-emerald-400 font-bold">
-                            {selectedMonths.length}
-                          </strong>{' '}
-                          dari {ALL_MONTH_NAMES.length} dipilih
-                        </span>
-                      ) : (
-                        'Semua data ditampilkan'
-                      )}
+          {/* CARDS ROW (Opsi 1: Kiri 2 Card Kompak Bongkar & Bajak, Kanan Card Besar Siap Tanam SN) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-4">
+            {/* SISI KIRI (lg:col-span-6): 2 Card Kompak (Stok Bongkar & Stok Bajak) setara ukuran Real Tanam Bulanan & Proses Tanam */}
+            <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* CARD 1: STOK BONGKAR */}
+              <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-950/80 border border-amber-300/80 dark:border-amber-500/30 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
+                <div className="flex items-center justify-between gap-2 h-7 mb-3">
+                  <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider truncate flex items-center gap-1.5">
+                    <Boxes className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                    STOK BONGKAR
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 whitespace-nowrap shrink-0">
+                    {cardMonthBadge}
+                  </span>
+                </div>
+
+                <div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl lg:text-3xl font-black tracking-tight text-amber-600 dark:text-amber-400">
+                      {(stokSummary?.stokBongkar?.value ?? 0).toLocaleString('id-ID', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                    <span className="text-xs font-bold text-amber-600/80 dark:text-amber-400/80">Ha</span>
+                  </div>
+
+                  {/* Spacer bar agar tinggi dan margin kartu persis sejajar */}
+                  <div className="mt-2.5 h-1.5" />
+
+                  <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60 text-[11px]">
+                    <span className="text-slate-500 dark:text-slate-400">Tahap Awal</span>
+                    <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                      Bongkar
                     </span>
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
+              </div>
 
-        {/* 3 CARDS MENYAMPING (Stok Bongkar, Stok Bajak, Stok SN) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-          {/* CARD 1: STOK BONGKAR */}
-          {/* CARD 1: STOK BONGKAR */}
-          <div className="p-4 rounded-xl transition-all duration-200 flex flex-col justify-between shadow-2xs bg-white dark:bg-slate-950/80 border border-emerald-300/80 dark:border-emerald-500/30">
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Boxes className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                  STOK BONGKAR
-                </span>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                  {cardMonthBadge}
-                </span>
-              </div>
-              <div className="flex items-baseline gap-1 mt-2">
-                <span className="text-2xl lg:text-3xl font-black text-amber-600 dark:text-amber-400 tracking-tight">
-                  {(stokSummary?.stokBongkar?.value ?? 0).toLocaleString('id-ID', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
-                <span className="text-xs font-bold text-amber-600/80 dark:text-amber-400/80">Ha</span>
-              </div>
-            </div>
-          </div>
+              {/* CARD 2: STOK BAJAK */}
+              <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-950/80 border border-blue-200 dark:border-blue-500/30 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
+                <div className="flex items-center justify-between gap-2 h-7 mb-3">
+                  <span className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider truncate flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    STOK BAJAK
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 whitespace-nowrap shrink-0">
+                    {cardMonthBadge}
+                  </span>
+                </div>
 
-          {/* CARD 2: STOK BAJAK */}
-          <div className="p-4 rounded-xl transition-all duration-200 flex flex-col justify-between shadow-2xs bg-white dark:bg-slate-950/80 border border-blue-200 dark:border-blue-500/30">
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black text-blue-700 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                  STOK BAJAK
-                </span>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                  {cardMonthBadge}
-                </span>
-              </div>
-              <div className="flex items-baseline gap-1 mt-2">
-                <span className="text-2xl lg:text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tight">
-                  {(stokSummary?.stokBajak?.value ?? 0).toLocaleString('id-ID', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
-                <span className="text-xs font-bold text-blue-600/80 dark:text-blue-400/80">Ha</span>
+                <div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl lg:text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400">
+                      {(stokSummary?.stokBajak?.value ?? 0).toLocaleString('id-ID', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                    <span className="text-xs font-bold text-blue-600/80 dark:text-blue-400/80">Ha</span>
+                  </div>
+
+                  {/* Spacer bar agar tinggi dan margin kartu persis sejajar */}
+                  <div className="mt-2.5 h-1.5" />
+
+                  <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60 text-[11px]">
+                    <span className="text-slate-500 dark:text-slate-400">Pengolahan</span>
+                    <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
+                      Bajak
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* CARD 3: STOK SN (SIAP TANAM) */}
-          <div className="p-4 rounded-xl transition-all duration-200 flex flex-col justify-between shadow-2xs bg-white dark:bg-slate-950/80 border border-emerald-200 dark:border-emerald-500/30">
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            {/* SISI KANAN (lg:col-span-6): Card Besar Stok Siap Tanam (SN) setara ukuran Card Realisasi Tanam */}
+            <div className="lg:col-span-6 relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-emerald-300/80 dark:border-emerald-500/30 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
+              <div className="flex items-center justify-between gap-2 h-7 mb-3">
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider truncate flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   STOK SIAP TANAM (SN)
                 </span>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 whitespace-nowrap shrink-0">
                   {cardMonthBadge}
                 </span>
               </div>
-              <div className="flex items-baseline gap-1 mt-2">
-                <span className="text-2xl lg:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
-                  {(stokSummary?.stokSN?.value ?? 0).toLocaleString('id-ID', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
-                <span className="text-xs font-bold text-emerald-600/80 dark:text-emerald-400/80">Ha</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* 2. OPERATIONAL REALIZATION ROW (Realisasi Tanam Ukuran Semula & Kolom Kanan Dibagi 2) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* CARD 1: REALISASI TANAM TAHUNAN (Kiri - Ukuran Asli 50% / lg:col-span-6) */}
-        <div className="lg:col-span-6 relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-cyan-200 dark:border-cyan-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
-          <div className="flex items-center justify-between gap-2 h-7 mb-3">
-            <span className="text-xs font-bold text-cyan-700 dark:text-cyan-400 uppercase tracking-wider truncate block">
-              REALISASI TANAM
-            </span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-50 dark:bg-cyan-950/80 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 whitespace-nowrap shrink-0">
-              {data.realisasiTanamSummary?.periodLabel || 'Jan - Sep 2026'}
-            </span>
-          </div>
+              <div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl lg:text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
+                    {(stokSummary?.stokSN?.value ?? 0).toLocaleString('id-ID', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                  <span className="text-xs font-bold text-emerald-600/80 dark:text-emerald-400/80">Ha</span>
+                </div>
 
-          <div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl lg:text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
-                {(
-                  data.realisasiTanamSummary?.nilaiHa ??
-                  data.totalRealisasiHa
-                ).toLocaleString('id-ID', {
-                  minimumFractionDigits: 1,
-                  maximumFractionDigits: 2,
-                })}
-              </span>
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Ha</span>
-            </div>
+                {/* Progress bar mini */}
+                <div className="mt-2.5">
+                  <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          Math.max(
+                            10,
+                            ((stokSummary?.stokSN?.value ?? 0) /
+                              Math.max(1, stokSummary?.totalStok?.value || 1)) *
+                              100
+                          )
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
 
-            {/* Progress bar mini */}
-            {data.realisasiTanamSummary && (
-              <div className="mt-2.5">
-                <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 rounded-full transition-all duration-500"
-                    style={{
-                      width: `${Math.min(100, data.realisasiTanamSummary.pencapaianPct)}%`,
-                    }}
-                  />
+                <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Total Stok:{' '}
+                    <strong className="font-semibold text-slate-700 dark:text-slate-300">
+                      {(stokSummary?.totalStok?.value ?? 0).toLocaleString('id-ID', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}{' '}
+                      Ha
+                    </strong>
+                  </span>
+                  <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                    Siap Tanam (SN)
+                  </span>
                 </div>
               </div>
-            )}
-
-            <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60">
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                Target 2026:{' '}
-                <strong className="font-semibold text-slate-700 dark:text-slate-300">
-                  {(data.realisasiTanamSummary?.targetFullYearHa ?? 1399.5).toLocaleString('id-ID', {
-                    minimumFractionDigits: 1,
-                    maximumFractionDigits: 1,
-                  })}{' '}
-                  Ha
-                </strong>
-              </span>
-              <span className="text-[10px] font-semibold text-cyan-700 dark:text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full">
-                Pencapaian: {data.realisasiTanamSummary?.pencapaianPct ?? 74.9}%
-              </span>
             </div>
           </div>
-        </div>
-
-        {/* KOLOM KANAN: KOTAK PROSES TANAM DIBAGI 2 DENGAN REAL TANAM BULANAN & PROSES TANAM (lg:col-span-6) */}
-        <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* SUB-KARTU 1: REAL TANAM BULANAN */}
-          <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
-            <div className="flex items-center justify-between gap-2 h-7 mb-3">
-              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider truncate block">
-                REAL TANAM BULANAN
-              </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 whitespace-nowrap shrink-0">
-                {data.realisasiTanamMtdSummary?.periodLabel || '1 - 6 Okt 2026'}
-              </span>
-            </div>
-
-            <div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl lg:text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
-                  {(data.realisasiTanamMtdSummary?.nilaiHa ?? 23.14).toLocaleString('id-ID', {
-                    minimumFractionDigits: 1,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Ha</span>
-              </div>
-
-              {/* Progress bar mini MTD terhadap target bulan */}
-              <div className="mt-2.5">
-                <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
-                    style={{
-                      width: `${Math.min(100, data.realisasiTanamMtdSummary?.pencapaianPct ?? 17.8)}%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60">
-                <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Target Okt:{' '}
-                  <strong className="font-semibold text-slate-700 dark:text-slate-300">
-                    {(data.realisasiTanamMtdSummary?.targetBulanHa ?? 130.0).toLocaleString('id-ID', {
-                      minimumFractionDigits: 1,
-                      maximumFractionDigits: 1,
-                    })}{' '}
-                    Ha
-                  </strong>
-                </span>
-                <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                  Pencapaian: {data.realisasiTanamMtdSummary?.pencapaianPct ?? 6.3}%
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* SUB-KARTU 2: PROSES TANAM */}
-          <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
-            <div className="flex items-center justify-between gap-2 h-7 mb-3">
-              <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider truncate block">
-                PROSES TANAM
-              </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 whitespace-nowrap shrink-0">
-                {data.prosesTanamSummary?.prosesCount ?? data.stockStageCounts?.proses ?? 15} Lokasi
-              </span>
-            </div>
-
-            <div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl lg:text-3xl font-black tracking-tight text-amber-600 dark:text-amber-400">
-                  {(data.prosesTanamSummary?.prosesHa ?? 103.04).toLocaleString('id-ID', {
-                    minimumFractionDigits: 1,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Ha</span>
-              </div>
-
-              {/* Spacer bar agar tinggi dan margin kartu persis sejajar */}
-              <div className="mt-2.5 h-1.5" />
-
-              <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60">
-                <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Selesai:{' '}
-                  <strong className="font-semibold text-slate-700 dark:text-slate-300">
-                    {(data.prosesTanamSummary?.selesaiHa ?? 8746.79).toLocaleString('id-ID', {
-                      minimumFractionDigits: 1,
-                      maximumFractionDigits: 1,
-                    })}{' '}
-                    Ha
-                  </strong>
-                </span>
-                <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                  {data.prosesTanamSummary?.selesaiCount ?? data.stockStageCounts?.selesai ?? 1329} Selesai
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. POSISI LAHAN PER WILAYAH CHART (Bongkar, Bajak, Siap Tanam) - Ditampilkan persis di bawah card Realisasi Tanam */}
-      {chartsData && (
-        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 glass-panel shadow-xs transition-colors animate-in fade-in slide-in-from-top-2 duration-200">
-          <PosisiLahanSection
-            chartsData={chartsData}
-            onSelectLand={onSelectLand}
-            selectedWilayah={posisiLahanWilayah}
-            setSelectedWilayah={setPosisiLahanWilayah}
-            availableWilayahs={availableWilayahs}
-            activeStage={activeStageChart}
-            onStageChange={(newStage) => setActiveStageChart(newStage || 'ALL')}
-            showStageSwitcher={true}
-            periodLabel={posisiLahanPeriodLabel}
-          />
         </div>
       )}
 
-      {/* MODAL REKAP 12 BULAN REMOVED PER USER REQUEST */}
+      {/* 2. SUB MENU: TANAM (Card Realisasi Tanam, Real Tanam Bulanan, dan Card Proses Tanam) */}
+      {activeSubTab === 'tanam' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* CARD 1: REALISASI TANAM TAHUNAN (Kiri - Ukuran Asli 50% / lg:col-span-6) */}
+          <div className="lg:col-span-6 relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-cyan-200 dark:border-cyan-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
+            <div className="flex items-center justify-between gap-2 h-7 mb-3">
+              <span className="text-xs font-bold text-cyan-700 dark:text-cyan-400 uppercase tracking-wider truncate block">
+                REALISASI TANAM
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-50 dark:bg-cyan-950/80 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 whitespace-nowrap shrink-0">
+                {data.realisasiTanamSummary?.periodLabel || 'Jan - Sep 2026'}
+              </span>
+            </div>
+
+            <div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl lg:text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
+                  {(
+                    data.realisasiTanamSummary?.nilaiHa ??
+                    data.totalRealisasiHa
+                  ).toLocaleString('id-ID', {
+                    minimumFractionDigits: 1,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Ha</span>
+              </div>
+
+              {/* Progress bar mini */}
+              {data.realisasiTanamSummary && (
+                <div className="mt-2.5">
+                  <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${Math.min(100, data.realisasiTanamSummary.pencapaianPct)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Target 2026:{' '}
+                  <strong className="font-semibold text-slate-700 dark:text-slate-300">
+                    {(data.realisasiTanamSummary?.targetFullYearHa ?? 1399.5).toLocaleString('id-ID', {
+                      minimumFractionDigits: 1,
+                      maximumFractionDigits: 1,
+                    })}{' '}
+                    Ha
+                  </strong>
+                </span>
+                <span className="text-[10px] font-semibold text-cyan-700 dark:text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full">
+                  Pencapaian: {data.realisasiTanamSummary?.pencapaianPct ?? 74.9}%
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* KOLOM KANAN: REAL TANAM BULANAN & PROSES TANAM (lg:col-span-6) */}
+          <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* SUB-KARTU 1: REAL TANAM BULANAN */}
+            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
+              <div className="flex items-center justify-between gap-2 h-7 mb-3">
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider truncate block">
+                  REAL TANAM BULANAN
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 whitespace-nowrap shrink-0">
+                  {data.realisasiTanamMtdSummary?.periodLabel || '1 - 6 Okt 2026'}
+                </span>
+              </div>
+
+              <div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl lg:text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
+                    {(data.realisasiTanamMtdSummary?.nilaiHa ?? 23.14).toLocaleString('id-ID', {
+                      minimumFractionDigits: 1,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Ha</span>
+                </div>
+
+                {/* Progress bar mini MTD terhadap target bulan */}
+                <div className="mt-2.5">
+                  <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${Math.min(100, data.realisasiTanamMtdSummary?.pencapaianPct ?? 17.8)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Target Okt:{' '}
+                    <strong className="font-semibold text-slate-700 dark:text-slate-300">
+                      {(data.realisasiTanamMtdSummary?.targetBulanHa ?? 130.0).toLocaleString('id-ID', {
+                        minimumFractionDigits: 1,
+                        maximumFractionDigits: 1,
+                      })}{' '}
+                      Ha
+                    </strong>
+                  </span>
+                  <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                    Pencapaian: {data.realisasiTanamMtdSummary?.pencapaianPct ?? 6.3}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* SUB-KARTU 2: PROSES TANAM */}
+            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
+              <div className="flex items-center justify-between gap-2 h-7 mb-3">
+                <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider truncate block">
+                  PROSES TANAM
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 whitespace-nowrap shrink-0">
+                  {data.prosesTanamSummary?.prosesCount ?? data.stockStageCounts?.proses ?? 15} Lokasi
+                </span>
+              </div>
+
+              <div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl lg:text-3xl font-black tracking-tight text-amber-600 dark:text-amber-400">
+                    {(data.prosesTanamSummary?.prosesHa ?? 103.04).toLocaleString('id-ID', {
+                      minimumFractionDigits: 1,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Ha</span>
+                </div>
+
+                {/* Spacer bar agar tinggi dan margin kartu persis sejajar */}
+                <div className="mt-2.5 h-1.5" />
+
+                <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Selesai:{' '}
+                    <strong className="font-semibold text-slate-700 dark:text-slate-300">
+                      {(data.prosesTanamSummary?.selesaiHa ?? 8746.79).toLocaleString('id-ID', {
+                        minimumFractionDigits: 1,
+                        maximumFractionDigits: 1,
+                      })}{' '}
+                      Ha
+                    </strong>
+                  </span>
+                  <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                    {data.prosesTanamSummary?.selesaiCount ?? data.stockStageCounts?.selesai ?? 1329} Selesai
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
