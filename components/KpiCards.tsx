@@ -121,8 +121,10 @@ export default function KpiCards({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // State untuk menampilkan grafik Posisi Lahan saat salah satu card diklik
-  const [activeStageChart, setActiveStageChart] = useState<'BK' | 'BJK' | 'SN' | 'ALL' | null>(null);
+  // State untuk tab aktif grafik Posisi Lahan (default: 'ALL' / Semua)
+  const [activeStageChart, setActiveStageChart] = useState<'BK' | 'BJK' | 'SN' | 'ALL'>('ALL');
+  // State filter wilayah independen khusus untuk grafik Posisi Lahan
+  const [posisiLahanWilayah, setPosisiLahanWilayah] = useState<string>('ALL');
 
   // Sync with prop changes
   useEffect(() => {
@@ -497,23 +499,8 @@ export default function KpiCards({
         {/* 3 CARDS MENYAMPING (Stok Bongkar, Stok Bajak, Stok SN) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
           {/* CARD 1: STOK BONGKAR */}
-          <div
-            onClick={() => setActiveStageChart((prev) => (prev === 'BK' ? null : 'BK'))}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                setActiveStageChart((prev) => (prev === 'BK' ? null : 'BK'));
-              }
-            }}
-            className={`group p-4 rounded-xl transition-all duration-200 cursor-pointer select-none flex flex-col justify-between shadow-2xs ${
-              activeStageChart === 'BK'
-                ? 'bg-amber-500/10 dark:bg-amber-950/30 border-2 border-amber-500 ring-2 ring-amber-500/30 shadow-md'
-                : 'bg-white dark:bg-slate-950/80 border border-emerald-300/80 dark:border-emerald-500/30 hover:border-amber-400 dark:hover:border-amber-500/60 hover:shadow-xs'
-            }`}
-            title="Klik untuk menampilkan grafik Posisi Lahan BK per Wilayah"
-          >
+          {/* CARD 1: STOK BONGKAR */}
+          <div className="p-4 rounded-xl transition-all duration-200 flex flex-col justify-between shadow-2xs bg-white dark:bg-slate-950/80 border border-emerald-300/80 dark:border-emerald-500/30">
             <div>
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -534,43 +521,10 @@ export default function KpiCards({
                 <span className="text-xs font-bold text-amber-600/80 dark:text-amber-400/80">Ha</span>
               </div>
             </div>
-
-            {/* Hint & Status Badge */}
-            <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px]">
-              <span className="font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                <BarChart3 className="w-3 h-3 text-amber-500" />
-                Grafik Wilayah BK
-              </span>
-              <span
-                className={`font-bold px-2 py-0.5 rounded-md text-[9px] transition-colors ${
-                  activeStageChart === 'BK'
-                    ? 'bg-amber-500 text-white shadow-2xs'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 group-hover:bg-amber-100 dark:group-hover:bg-amber-950 group-hover:text-amber-800 dark:group-hover:text-amber-300'
-                }`}
-              >
-                {activeStageChart === 'BK' ? 'Tutup Grafik ▲' : 'Buka Grafik ▼'}
-              </span>
-            </div>
           </div>
 
           {/* CARD 2: STOK BAJAK */}
-          <div
-            onClick={() => setActiveStageChart((prev) => (prev === 'BJK' ? null : 'BJK'))}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                setActiveStageChart((prev) => (prev === 'BJK' ? null : 'BJK'));
-              }
-            }}
-            className={`group p-4 rounded-xl transition-all duration-200 cursor-pointer select-none flex flex-col justify-between shadow-2xs ${
-              activeStageChart === 'BJK'
-                ? 'bg-blue-500/10 dark:bg-blue-950/30 border-2 border-blue-500 ring-2 ring-blue-500/30 shadow-md'
-                : 'bg-white dark:bg-slate-950/80 border border-blue-200 dark:border-blue-500/30 hover:border-blue-400 dark:hover:border-blue-500/60 hover:shadow-xs'
-            }`}
-            title="Klik untuk menampilkan grafik Posisi Lahan BJK per Wilayah"
-          >
+          <div className="p-4 rounded-xl transition-all duration-200 flex flex-col justify-between shadow-2xs bg-white dark:bg-slate-950/80 border border-blue-200 dark:border-blue-500/30">
             <div>
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black text-blue-700 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -591,43 +545,10 @@ export default function KpiCards({
                 <span className="text-xs font-bold text-blue-600/80 dark:text-blue-400/80">Ha</span>
               </div>
             </div>
-
-            {/* Hint & Status Badge */}
-            <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px]">
-              <span className="font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                <BarChart3 className="w-3 h-3 text-blue-500" />
-                Grafik Wilayah BJK
-              </span>
-              <span
-                className={`font-bold px-2 py-0.5 rounded-md text-[9px] transition-colors ${
-                  activeStageChart === 'BJK'
-                    ? 'bg-blue-600 text-white shadow-2xs'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-950 group-hover:text-blue-800 dark:group-hover:text-blue-300'
-                }`}
-              >
-                {activeStageChart === 'BJK' ? 'Tutup Grafik ▲' : 'Buka Grafik ▼'}
-              </span>
-            </div>
           </div>
 
           {/* CARD 3: STOK SN (SIAP TANAM) */}
-          <div
-            onClick={() => setActiveStageChart((prev) => (prev === 'SN' ? null : 'SN'))}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                setActiveStageChart((prev) => (prev === 'SN' ? null : 'SN'));
-              }
-            }}
-            className={`group p-4 rounded-xl transition-all duration-200 cursor-pointer select-none flex flex-col justify-between shadow-2xs ${
-              activeStageChart === 'SN'
-                ? 'bg-emerald-500/10 dark:bg-emerald-950/30 border-2 border-emerald-500 ring-2 ring-emerald-500/30 shadow-md'
-                : 'bg-white dark:bg-slate-950/80 border border-emerald-200 dark:border-emerald-500/30 hover:border-emerald-400 dark:hover:border-emerald-500/60 hover:shadow-xs'
-            }`}
-            title="Klik untuk menampilkan grafik Posisi Lahan SN per Wilayah"
-          >
+          <div className="p-4 rounded-xl transition-all duration-200 flex flex-col justify-between shadow-2xs bg-white dark:bg-slate-950/80 border border-emerald-200 dark:border-emerald-500/30">
             <div>
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -647,23 +568,6 @@ export default function KpiCards({
                 </span>
                 <span className="text-xs font-bold text-emerald-600/80 dark:text-emerald-400/80">Ha</span>
               </div>
-            </div>
-
-            {/* Hint & Status Badge */}
-            <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px]">
-              <span className="font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                <BarChart3 className="w-3 h-3 text-emerald-500" />
-                Grafik Wilayah SN
-              </span>
-              <span
-                className={`font-bold px-2 py-0.5 rounded-md text-[9px] transition-colors ${
-                  activeStageChart === 'SN'
-                    ? 'bg-emerald-600 text-white shadow-2xs'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-950 group-hover:text-emerald-800 dark:group-hover:text-emerald-300'
-                }`}
-              >
-                {activeStageChart === 'SN' ? 'Tutup Grafik ▲' : 'Buka Grafik ▼'}
-              </span>
             </div>
           </div>
         </div>
@@ -828,17 +732,16 @@ export default function KpiCards({
       </div>
 
       {/* 3. POSISI LAHAN PER WILAYAH CHART (Bongkar, Bajak, Siap Tanam) - Ditampilkan persis di bawah card Realisasi Tanam */}
-      {activeStageChart && chartsData && (
+      {chartsData && (
         <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 glass-panel shadow-xs transition-colors animate-in fade-in slide-in-from-top-2 duration-200">
           <PosisiLahanSection
             chartsData={chartsData}
             onSelectLand={onSelectLand}
-            selectedWilayah={selectedWilayah}
-            setSelectedWilayah={setSelectedWilayah}
+            selectedWilayah={posisiLahanWilayah}
+            setSelectedWilayah={setPosisiLahanWilayah}
             availableWilayahs={availableWilayahs}
             activeStage={activeStageChart}
-            onStageChange={(newStage) => setActiveStageChart(newStage)}
-            onClose={() => setActiveStageChart(null)}
+            onStageChange={(newStage) => setActiveStageChart(newStage || 'ALL')}
             showStageSwitcher={true}
             periodLabel={cardMonthBadge}
           />

@@ -58,7 +58,7 @@ export default function Sidebar({
       id: 'planting',
       label: 'Planting',
       icon: CalendarCheck,
-      desc: 'Proses Tanam & Selesai Tanam',
+      desc: 'Real Tanam Nanas & Proses Tanam',
       colorTheme: 'green',
     },
   ];

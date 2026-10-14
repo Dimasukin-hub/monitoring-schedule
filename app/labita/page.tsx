@@ -12,19 +12,28 @@ import ListStokLahanView from '@/components/ListStokLahanView';
 import LandDetailModal from '@/components/LandDetailModal';
 import LandEditModal from '@/components/LandEditModal';
 import RerataBeroSection from '@/components/RerataBeroSection';
+import PlantingView from '@/components/PlantingView';
 import { useAuth } from '@/components/AuthProvider';
 
 export default function LabitaDashboardPage() {
   const { user, isAdmin, isUser } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('executive_summary');
   const [pengolahanSubTab, setPengolahanSubTab] = useState<string>('rencana_realisasi');
+  const [plantingSubTab, setPlantingSubTab] = useState<string>('real_tanam_nanas');
   const [selectedWilayah, setSelectedWilayah] = useState<string>('ALL');
+  const [prosesTanamWilayah, setProsesTanamWilayah] = useState<string>('ALL');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('LATEST');
   const [stokYear, setStokYear] = useState<number>(2026);
   const [stokMonth, setStokMonth] = useState<string>('CURRENT');
   const [searchQuery, setSearchQuery] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       return sessionStorage.getItem('labita_table_search') || '';
+    }
+    return '';
+  });
+  const [plantingSearchQuery, setPlantingSearchQuery] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('labita_planting_search') || '';
     }
     return '';
   });
@@ -119,8 +128,14 @@ export default function LabitaDashboardPage() {
         const sub = subTitles[pengolahanSubTab];
         return sub ? `Pengolahan Lahan Bibit Tanam • ${sub}` : 'Pengolahan Lahan Bibit Tanam';
       }
-      case 'planting':
-        return 'Planting • Proses Tanam & Selesai Tanam';
+      case 'planting': {
+        const subTitles: Record<string, string> = {
+          real_tanam_nanas: 'Real Tanam Nanas',
+          proses_selesai_tanam: 'Proses Tanam & Selesai Tanam',
+        };
+        const sub = subTitles[plantingSubTab];
+        return sub ? `Planting • ${sub}` : 'Planting';
+      }
       default:
         return 'LABITA - Monitor Schedule 2026';
     }
@@ -134,6 +149,8 @@ export default function LabitaDashboardPage() {
         setActiveTab={setActiveTab}
         pengolahanSubTab={pengolahanSubTab}
         setPengolahanSubTab={setPengolahanSubTab}
+        plantingSubTab={plantingSubTab}
+        setPlantingSubTab={setPlantingSubTab}
         activeTabTitle={getTabTitle()}
         selectedWilayah={selectedWilayah}
         setSelectedWilayah={setSelectedWilayah}
@@ -245,15 +262,39 @@ export default function LabitaDashboardPage() {
           </div>
         </div>
 
-        {/* 3. MENU: PLANTING (PROSES TANAM & SELESAI TANAM) */}
-        {activeTab === 'planting' && (
-          <div className="space-y-8 animate-in fade-in duration-200">
+        {/* 3. MENU: PLANTING (Dengan 2 Sub-Menu: Real Tanam Nanas & Proses Tanam/Selesai Tanam) */}
+        <div className={activeTab === 'planting' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
+          {/* 3.1 SUB MENU: REAL TANAM NANAS (Keep-Alive agar tabel dan filter tidak reset saat berpindah sub-menu) */}
+          <div className={plantingSubTab === 'real_tanam_nanas' ? 'block' : 'hidden'}>
+            <PlantingView
+              onOpenLand={(lokasi) => setSelectedLandId(lokasi)}
+              refreshTrigger={refreshLandTrigger}
+              isAdmin={isAdmin}
+              initialSearch={plantingSearchQuery}
+              onSearchChange={(q) => {
+                setPlantingSearchQuery(q);
+                if (typeof window !== 'undefined') {
+                  if (q) {
+                    sessionStorage.setItem('labita_planting_search', q);
+                  } else {
+                    sessionStorage.removeItem('labita_planting_search');
+                  }
+                }
+              }}
+            />
+          </div>
+
+          {/* 3.2 SUB MENU: PROSES TANAM & SELESAI TANAM (GRAFIK PER WILAYAH) */}
+          {plantingSubTab === 'proses_selesai_tanam' && (
             <ProsesTanamSection
               chartsData={chartsData}
               onSelectLand={(loc) => setSelectedLandId(loc)}
+              selectedWilayah={prosesTanamWilayah}
+              setSelectedWilayah={setProsesTanamWilayah}
+              availableWilayahs={summaryData?.availableWilayahs || []}
             />
-          </div>
-        )}
+          )}
+        </div>
       </main>
 
       {/* Modal Detail Lahan */}

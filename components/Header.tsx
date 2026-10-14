@@ -30,6 +30,11 @@ export const PENGOLAHAN_SUB_MENUS: SubMenuItem[] = [
   { id: 'data_lahan', label: 'Data Lahan' },
 ];
 
+export const PLANTING_SUB_MENUS: SubMenuItem[] = [
+  { id: 'real_tanam_nanas', label: 'Real Tanam Nanas' },
+  { id: 'proses_selesai_tanam', label: 'Proses Tanam & Selesai Tanam' },
+];
+
 // Fallback alias
 export const OVERVIEW_SUB_MENUS = PENGOLAHAN_SUB_MENUS;
 
@@ -88,6 +93,8 @@ interface HeaderProps {
   setPengolahanSubTab?: (subTab: string) => void;
   overviewSubTab?: string;
   setOverviewSubTab?: (subTab: string) => void;
+  plantingSubTab?: string;
+  setPlantingSubTab?: (subTab: string) => void;
   totalLands?: number;
 }
 
@@ -98,6 +105,8 @@ export default function Header({
   setPengolahanSubTab,
   overviewSubTab,
   setOverviewSubTab,
+  plantingSubTab,
+  setPlantingSubTab,
 }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const { user, isAdmin, logout, setUserDirectly } = useAuth();
@@ -272,6 +281,36 @@ export default function Header({
                 key={item.id}
                 type="button"
                 onClick={() => handleSetSubTab?.(item.id)}
+                className={`relative py-1 px-1 text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
+                  isActive
+                    ? `${currentTheme.subActiveText} font-semibold`
+                    : `text-slate-500 dark:text-slate-400 ${currentTheme.subHoverText} font-normal`
+                }`}
+              >
+                <span>{item.label}</span>
+
+                {/* Active Underline Indicator Sub Menu */}
+                {isActive ? (
+                  <span className={`absolute -bottom-1 left-0 right-0 h-[2px] ${currentTheme.subActiveLine} rounded-full`} />
+                ) : (
+                  <span className={`absolute -bottom-1 left-0 right-0 h-[1.5px] ${currentTheme.hoverLine} rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-150`} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Row 2: Sub Menu untuk Planting (Real Tanam Nanas, Proses Tanam & Selesai Tanam) */}
+      {activeTab === 'planting' && (
+        <div className="px-6 py-1.5 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
+          {PLANTING_SUB_MENUS.map((item) => {
+            const isActive = (plantingSubTab || 'real_tanam_nanas') === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setPlantingSubTab?.(item.id)}
                 className={`relative py-1 px-1 text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
                   isActive
                     ? `${currentTheme.subActiveText} font-semibold`

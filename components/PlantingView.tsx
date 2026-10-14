@@ -60,6 +60,8 @@ interface PlantingViewProps {
   onOpenLand?: (lokasi: string) => void;
   refreshTrigger?: number;
   isAdmin?: boolean;
+  initialSearch?: string;
+  onSearchChange?: (search: string) => void;
 }
 
 const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -102,7 +104,13 @@ function formatToRtnDate(d: Date): string {
   return `${day}-${m}-${y}`;
 }
 
-export default function PlantingView({ onOpenLand, refreshTrigger = 0, isAdmin = true }: PlantingViewProps) {
+export default function PlantingView({
+  onOpenLand,
+  refreshTrigger = 0,
+  isAdmin = true,
+  initialSearch = '',
+  onSearchChange,
+}: PlantingViewProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -122,12 +130,44 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0, isAdmin =
 
   // Filter & Pagination States
   const [loading, setLoading] = useState<boolean>(true);
-  const [search, setSearch] = useState<string>('');
+  const [search, setSearch] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('labita_planting_search');
+      if (saved !== null && saved !== undefined) return saved;
+    }
+    return initialSearch || '';
+  });
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    setPage(1);
+    if (typeof window !== 'undefined') {
+      if (val) {
+        sessionStorage.setItem('labita_planting_search', val);
+      } else {
+        sessionStorage.removeItem('labita_planting_search');
+      }
+    }
+    onSearchChange?.(val);
+  };
+
+  useEffect(() => {
+    if (initialSearch !== undefined && initialSearch !== search) {
+      if (typeof window !== 'undefined') {
+        const saved = sessionStorage.getItem('labita_planting_search');
+        if (saved !== null && saved !== undefined && saved !== search) {
+          setSearch(saved);
+          return;
+        }
+      }
+      setSearch(initialSearch);
+    }
+  }, [initialSearch]);
   const [selectedJenis, setSelectedJenis] = useState<string[]>([]);
   const [selectedKelas, setSelectedKelas] = useState<string[]>([]);
-  const [selectedStatus, setSelectedStatus] = useState<string[]>(['PROSES']);
+  const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<string>('leadtime');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(15);
   const [pagination, setPagination] = useState<{ total: number; totalPages: number }>({
@@ -249,19 +289,13 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0, isAdmin =
     fetchPlantingData();
   }, [page, limit, search, selectedJenis, selectedKelas, selectedStatus, sortBy, sortOrder, refreshTrigger]);
 
-  // Handle Sort Toggle (Siklus: kecil ke besar -> besar ke kecil -> kecil ke besar lagi)
+  // Handle Sort Toggle (Default: kecil ke besar (asc) -> besar ke kecil (desc))
   const handleSort = (field: string) => {
     if (sortBy === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
       setSortBy(field);
-      if (field === 'leadtime') {
-        // Leadtime defaultnya yang besar leadtimenya (desc)
-        setSortOrder('desc');
-      } else {
-        // Kolom lain (termasuk awalTanam yang oldest/terlama tanggalnya) defaultnya dari kecil ke besar (asc)
-        setSortOrder('asc');
-      }
+      setSortOrder('asc');
     }
     setPage(1);
   };
@@ -773,8 +807,7 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0, isAdmin =
             placeholder="Cari lokasi"
             value={search}
             onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
+              handleSearchChange(e.target.value);
             }}
             className="w-full pl-10 pr-10 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
           />
@@ -782,8 +815,7 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0, isAdmin =
             <button
               type="button"
               onClick={() => {
-                setSearch('');
-                setPage(1);
+                handleSearchChange('');
               }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-0.5 z-10 cursor-pointer"
               title="Hapus pencarian"
@@ -1034,14 +1066,14 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0, isAdmin =
       </div>
 
         {/* Active Filter Badges */}
-        {(selectedJenis.length > 0 || selectedKelas.length > 0 || selectedStatus.length > 0 || search) && (
+        {(selectedJenis.length > 0 || selectedKelas.length > 0 || selectedStatus.length > 0) && (
           <div className="pt-2.5 mt-1 border-t border-dashed border-slate-200 dark:border-slate-800/80 space-y-2 animate-in fade-in duration-150">
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 leading-none">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
                 <span>Data Difilter:</span>
                 <span className="text-[11px] font-normal text-slate-400 dark:text-slate-500">
-                  ({selectedJenis.length + selectedKelas.length + selectedStatus.length + (search ? 1 : 0)} filter aktif)
+                  ({selectedJenis.length + selectedKelas.length + selectedStatus.length} filter aktif)
                 </span>
               </div>
 
@@ -1051,7 +1083,6 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0, isAdmin =
                   setSelectedJenis([]);
                   setSelectedKelas([]);
                   setSelectedStatus([]);
-                  setSearch('');
                   setPage(1);
                 }}
                 className="text-xs font-semibold text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 underline underline-offset-2 cursor-pointer transition-colors leading-none inline-flex items-center"
@@ -1062,27 +1093,6 @@ export default function PlantingView({ onOpenLand, refreshTrigger = 0, isAdmin =
             </div>
 
             <div className="flex items-center flex-wrap gap-1.5">
-              {/* Lokasi / Search badge */}
-              {search && (
-                <span
-                  key={`search-${search}`}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 shadow-2xs transition-all hover:bg-slate-200 dark:hover:bg-slate-700/80"
-                >
-                  <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Lokasi:</span>
-                  <span className="font-semibold">&quot;{search}&quot;</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSearch('');
-                      setPage(1);
-                    }}
-                    className="p-0.5 rounded-full hover:bg-rose-500 hover:text-white text-slate-600 dark:text-slate-400 transition-colors cursor-pointer"
-                    title="Hapus pencarian lokasi"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </span>
-              )}
 
               {/* Jenis Bibit badges */}
               {selectedJenis.map((jb) => (
