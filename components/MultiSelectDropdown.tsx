@@ -72,51 +72,6 @@ export default function MultiSelectDropdown({
     setEffectiveAlign(align);
   }, [align]);
 
-  useEffect(() => {
-    if (isOpen && dropdownRef.current) {
-      const rect = dropdownRef.current.getBoundingClientRect();
-      const popoverWidth = isMonthFilter ? 480 : isGrouped ? 640 : filteredOptions.length <= 4 ? 420 : 540;
-      if (align === 'right') {
-        if (rect.right - popoverWidth < 16) {
-          setEffectiveAlign('left');
-        } else {
-          setEffectiveAlign('right');
-        }
-      } else {
-        if (rect.left + popoverWidth > window.innerWidth - 16) {
-          setEffectiveAlign('right');
-        } else {
-          setEffectiveAlign('left');
-        }
-      }
-    }
-  }, [isOpen, align, isMonthFilter, isGrouped]);
-
-  // Close when clicking outside or pressing Escape
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handlePointerDown = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsOpen(false);
-      }
-    };
-
-    window.addEventListener('mousedown', handlePointerDown);
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('mousedown', handlePointerDown);
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen]);
-
   // Sort and filter options for non-grouped
   const sortedOptions = useMemo(() => {
     if (isMonthFilter) {
@@ -159,6 +114,66 @@ export default function MultiSelectDropdown({
       return matchesSearch;
     });
   }, [sortedOptions, search, isMonthFilter, yearFilter]);
+
+  // Measure screen edges to prevent popover overflowing horizontally
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const updatePosition = () => {
+      if (!dropdownRef.current) return;
+      const rect = dropdownRef.current.getBoundingClientRect();
+      const popoverWidth = isMonthFilter ? 480 : isGrouped ? 640 : filteredOptions.length <= 4 ? 420 : 540;
+
+      // Horizontal alignment
+      if (align === 'right') {
+        if (rect.right - popoverWidth < 16) {
+          setEffectiveAlign('left');
+        } else {
+          setEffectiveAlign('right');
+        }
+      } else {
+        if (rect.left + popoverWidth > window.innerWidth - 16) {
+          setEffectiveAlign('right');
+        } else {
+          setEffectiveAlign('left');
+        }
+      }
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isOpen, align, isMonthFilter, isGrouped, filteredOptions.length]);
+
+  // Close when clicking outside or pressing Escape
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePointerDown = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener('mousedown', handlePointerDown);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('mousedown', handlePointerDown);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
 
   // Filtered groups when grouped mode is active
   const filteredGroups = useMemo(() => {
@@ -228,7 +243,7 @@ export default function MultiSelectDropdown({
   const hasSelection = selected.length > 0;
 
   return (
-    <div ref={dropdownRef} className={`relative inline-block ${className}`}>
+    <div ref={dropdownRef} className={`relative inline-block ${isOpen ? 'z-50' : 'z-10'} ${className}`}>
       {/* Trigger Button - Bersih & Elegan */}
       <button
         type="button"
@@ -256,7 +271,7 @@ export default function MultiSelectDropdown({
         />
       </button>
 
-      {/* Popover Dropdown - Opsi dibuat menyamping (Grid Horizontal) & Dropdown lebih lebar */}
+      {/* Popover Dropdown - Opsi dibuat menyamping (Grid Horizontal) & Selalu ke bawah */}
       {isOpen && (
         <div
           className={`absolute top-full mt-1.5 z-50 ${
@@ -269,21 +284,21 @@ export default function MultiSelectDropdown({
               : filteredOptions.length <= 4
               ? 'w-[320px] sm:w-[420px] max-w-[94vw]'
               : 'w-[340px] sm:w-[520px] md:w-[580px] max-w-[95vw]'
-          } bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-3.5 text-xs animate-in fade-in zoom-in-95 duration-100 select-none ring-1 ring-black/5 dark:ring-white/10`}
+          } max-h-[min(520px,calc(100vh-80px))] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-3 text-xs animate-in fade-in zoom-in-95 duration-100 select-none ring-1 ring-black/5 dark:ring-white/10`}
         >
           {/* Header Note for Bulan Tanam */}
           {isMonthFilter && label === 'Bulan Tanam' && (
-            <div className="mb-2.5 p-2 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 text-[10px] text-emerald-800 dark:text-emerald-300 leading-snug">
-              <span className="font-bold flex items-center gap-1 mb-0.5">
-                <Calendar className="w-3.5 h-3.5 text-emerald-600" /> Filter Bulan & Tahun Tanam:
+            <div className="shrink-0 mb-2 px-2.5 py-1.5 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 text-[10px] text-emerald-800 dark:text-emerald-300 leading-snug">
+              <span className="font-bold inline-flex items-center gap-1 mr-1">
+                <Calendar className="w-3.5 h-3.5 text-emerald-600 inline" /> Filter Bulan & Tahun Tanam:
               </span>
-              Menampilkan lokasi dengan Rencana atau Real <strong>Bongkar, Bajak, SN, dan Tanam</strong> di periode terpilih.
+              Rencana/Real <strong>Bongkar, Bajak, SN, dan Tanam</strong> di periode terpilih.
             </div>
           )}
           {isMonthFilter && label === 'Bulan Aktivitas' && (
-            <div className="mb-2.5 p-2 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 text-[10px] text-emerald-800 dark:text-emerald-300 leading-snug">
-              <span className="font-bold flex items-center gap-1 mb-0.5">
-                <Calendar className="w-3.5 h-3.5 text-emerald-600" /> Filter Bulan Aktivitas:
+            <div className="shrink-0 mb-2 px-2.5 py-1.5 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 text-[10px] text-emerald-800 dark:text-emerald-300 leading-snug">
+              <span className="font-bold inline-flex items-center gap-1 mr-1">
+                <Calendar className="w-3.5 h-3.5 text-emerald-600 inline" /> Filter Bulan Aktivitas:
               </span>
               Pilih bulan kalender aktivitas untuk melihat jadwal dan realisasi.
             </div>
@@ -291,7 +306,7 @@ export default function MultiSelectDropdown({
 
           {/* Search Box if more than 6 options or grouped */}
           {(options.length > 6 || isGrouped) && (
-            <div className="relative mb-2.5">
+            <div className="shrink-0 relative mb-2">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
@@ -314,12 +329,12 @@ export default function MultiSelectDropdown({
 
           {/* Year Quick Filter for Month Filter */}
           {isMonthFilter && availableYears.length > 1 && (
-            <div className="flex items-center gap-1.5 mb-2.5 pb-2 border-b border-slate-100 dark:border-slate-800 flex-wrap">
-              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 mr-1">Tahun:</span>
+            <div className="shrink-0 flex items-center gap-1 mb-2 pb-2 border-b border-slate-100 dark:border-slate-800 flex-wrap">
+              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 mr-0.5">Tahun:</span>
               <button
                 type="button"
                 onClick={() => setYearFilter('ALL')}
-                className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-all cursor-pointer ${
+                className={`px-1.5 py-0.5 rounded-md text-[10px] font-semibold transition-all cursor-pointer ${
                   yearFilter === 'ALL'
                     ? 'bg-emerald-600 text-white shadow-2xs'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
@@ -332,7 +347,7 @@ export default function MultiSelectDropdown({
                   key={yr}
                   type="button"
                   onClick={() => setYearFilter(yr)}
-                  className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-all cursor-pointer ${
+                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-semibold transition-all cursor-pointer ${
                     yearFilter === yr
                       ? 'bg-emerald-600 text-white shadow-2xs'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
@@ -345,7 +360,7 @@ export default function MultiSelectDropdown({
           )}
 
           {/* Quick Actions (Pilih Semua / Reset) */}
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-800 text-[11px]">
+          <div className="shrink-0 flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-800 text-[11px]">
             <button
               type="button"
               onClick={handleSelectAll}
@@ -365,7 +380,7 @@ export default function MultiSelectDropdown({
           </div>
 
           {/* Options Container (Grouped or Flat Grid Layout) */}
-          <div className="max-h-80 sm:max-h-96 overflow-y-auto pr-1">
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1">
             {isGrouped && filteredGroups ? (
               filteredGroups.length === 0 ? (
                 <div className="py-6 text-center text-slate-400 text-xs">
@@ -415,7 +430,7 @@ export default function MultiSelectDropdown({
                                 : 'text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/50'
                             }`}
                           >
-                            {isAllSelected ? 'Batal Semua' : 'Pilih Semua'}
+                            {isAllSelected ? 'Reset' : 'Pilih Semua'}
                           </button>
                         </div>
 
@@ -502,7 +517,7 @@ export default function MultiSelectDropdown({
           </div>
 
           {/* Footer Status */}
-          <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] flex items-center justify-between">
+          <div className="shrink-0 pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] flex items-center justify-between">
             <span className="text-slate-500 dark:text-slate-400">
               {selected.length > 0 ? (
                 <span>
@@ -515,15 +530,6 @@ export default function MultiSelectDropdown({
                 'Semua data ditampilkan'
               )}
             </span>
-            {selected.length > 0 && (
-              <button
-                type="button"
-                onClick={() => handleClear()}
-                className="text-rose-500 hover:text-rose-600 dark:text-rose-400 hover:underline font-semibold cursor-pointer"
-              >
-                Reset Semua
-              </button>
-            )}
           </div>
         </div>
       )}

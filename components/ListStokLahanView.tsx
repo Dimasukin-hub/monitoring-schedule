@@ -187,11 +187,6 @@ export default function ListStokLahanView({
     }
   }, [chartsData, refreshTrigger]);
 
-  useEffect(() => {
-    if (activeCategory === 'BK' || activeCategory === 'BJK' || activeCategory === 'SN') {
-      setChartStage(activeCategory as any);
-    }
-  }, [activeCategory]);
 
   const [selectedWilayahs, setSelectedWilayahs] = useState<string[]>(
     selectedWilayah && selectedWilayah !== 'ALL'
@@ -596,7 +591,7 @@ export default function ListStokLahanView({
 
       {/* Grafik Posisi Lahan per Wilayah (BK, BJK, SN) */}
       {internalChartsData && (
-        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 glass-panel shadow-xs transition-colors animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="relative overflow-visible rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 glass-panel shadow-xs transition-colors animate-in fade-in slide-in-from-top-2 duration-200">
           <PosisiLahanSection
             chartsData={internalChartsData}
             onSelectLand={(loc) => onSelectLand(Number(loc) || loc)}

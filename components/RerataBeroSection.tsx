@@ -51,6 +51,18 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
   const [loading, setLoading] = useState(true);
   const [selectedYears, setSelectedYears] = useState<string[]>([]);
 
+  // Filter visibilitas Grafik Tanam: 'both' (kedua data) | 'real' (hanya real tanam) | 'target' (hanya target)
+  const [tanamVisibility, setTanamVisibility] = useState<'both' | 'real' | 'target'>('both');
+  const handleTanamToggle = (type: 'real' | 'target') => {
+    setTanamVisibility((prev) => (prev === type ? 'both' : type));
+  };
+
+  // Filter visibilitas Grafik Bero: 'all' (semua data) | 'realisasi' | 'rencana' | 'rfc'
+  const [beroVisibility, setBeroVisibility] = useState<'all' | 'realisasi' | 'rencana' | 'rfc'>('all');
+  const handleBeroToggle = (type: 'realisasi' | 'rencana' | 'rfc') => {
+    setBeroVisibility((prev) => (prev === type ? 'all' : type));
+  };
+
   useEffect(() => {
     setLoading(true);
     fetch('/api/dashboard/bero')
@@ -164,8 +176,10 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
                         if (active && payload && payload.length) {
                           const targetVal = payload.find((p) => p.dataKey === 'target')?.value;
                           const realVal = payload.find((p) => p.dataKey === 'real')?.value;
+                          const showTarget = (tanamVisibility === 'both' || tanamVisibility === 'target') && targetVal !== null && targetVal !== undefined;
+                          const showReal = (tanamVisibility === 'both' || tanamVisibility === 'real') && realVal !== null && realVal !== undefined;
                           const deviasiVal =
-                            realVal !== null && realVal !== undefined && targetVal !== null && targetVal !== undefined
+                            showReal && showTarget
                               ? Number((Number(realVal) - Number(targetVal)).toFixed(2))
                               : null;
 
@@ -174,18 +188,22 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
                               <p className="font-bold text-slate-900 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800 pb-1 font-mono">
                                 Tanam: {label}
                               </p>
-                              <div className="flex justify-between items-center text-sky-600 dark:text-cyan-400">
-                                <span>Target:</span>
-                                <span className="font-bold font-mono">
-                                  {targetVal !== null && targetVal !== undefined ? `${Number(targetVal).toFixed(1)} Ha` : '-'}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400">
-                                <span>Real Tanam:</span>
-                                <span className="font-bold font-mono">
-                                  {realVal !== null && realVal !== undefined ? `${Number(realVal).toFixed(2)} Ha` : '-'}
-                                </span>
-                              </div>
+                              {showTarget && (
+                                <div className="flex justify-between items-center text-sky-600 dark:text-cyan-400">
+                                  <span>Target:</span>
+                                  <span className="font-bold font-mono">
+                                    {Number(targetVal).toFixed(1)} Ha
+                                  </span>
+                                </div>
+                              )}
+                              {showReal && (
+                                <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400">
+                                  <span>Real Tanam:</span>
+                                  <span className="font-bold font-mono">
+                                    {Number(realVal).toFixed(2)} Ha
+                                  </span>
+                                </div>
+                              )}
                               {deviasiVal !== null && (
                                 <div
                                   className={`flex justify-between items-center font-bold font-mono pt-1 border-t border-slate-100 dark:border-slate-800/80 ${
@@ -202,28 +220,78 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
                         return null;
                       }}
                     />
+                    {/* Interaktif Legend: Klik untuk memilih grafik yang muncul (tombol lain dihide saat salah satu aktif) */}
                     <Legend
                       verticalAlign="bottom"
-                      wrapperStyle={{ fontSize: '11px', paddingTop: '16px' }}
-                      formatter={(val) => <span className="text-slate-700 dark:text-slate-300 font-bold text-xs">{val}</span>}
+                      content={() => {
+                        return (
+                          <div className="flex flex-wrap items-center justify-center gap-3 pt-4 select-none">
+                            {(tanamVisibility === 'both' || tanamVisibility === 'real') && (
+                              <button
+                                type="button"
+                                onClick={() => handleTanamToggle('real')}
+                                className="flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all cursor-pointer shadow-2xs active:scale-95 bg-[#10b981]/10 hover:bg-[#10b981]/20 text-[#059669] dark:text-[#34d399] border-[#10b981]/30"
+                                title={
+                                  tanamVisibility === 'real'
+                                    ? 'Klik untuk menampilkan kembali Target'
+                                    : 'Klik untuk hanya menampilkan Real Tanam'
+                                }
+                              >
+                                <span className="w-3 h-3 rounded-xs bg-[#10b981] shrink-0" />
+                                <span>Real Tanam</span>
+                              </button>
+                            )}
+
+                            {(tanamVisibility === 'both' || tanamVisibility === 'target') && (
+                              <button
+                                type="button"
+                                onClick={() => handleTanamToggle('target')}
+                                className="flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all cursor-pointer shadow-2xs active:scale-95 bg-[#0284c7]/10 hover:bg-[#0284c7]/20 text-[#0284c7] dark:text-[#38bdf8] border-[#0284c7]/30"
+                                title={
+                                  tanamVisibility === 'target'
+                                    ? 'Klik untuk menampilkan kembali Real Tanam'
+                                    : 'Klik untuk hanya menampilkan Target'
+                                }
+                              >
+                                <span className="w-3.5 h-0.5 bg-[#0284c7] shrink-0 relative flex items-center justify-center">
+                                  <span className="w-2 h-2 rounded-full bg-[#0284c7] border border-white dark:border-slate-900" />
+                                </span>
+                                <span>Target</span>
+                              </button>
+                            )}
+                          </div>
+                        );
+                      }}
                     />
-                    {/* Real Tanam as Bar */}
-                    <Bar
-                      dataKey="real"
-                      name="Real Tanam"
-                      fill="#10b981"
-                      radius={[4, 4, 0, 0]}
-                    />
-                    {/* Target Tanam as Line */}
-                    <Line
-                      type="linear"
-                      dataKey="target"
-                      name="Target"
-                      stroke="#0284c7"
-                      strokeWidth={2.5}
-                      dot={{ r: 4, strokeWidth: 1, fill: '#0284c7' }}
-                      activeDot={{ r: 6 }}
-                    />
+
+                    {/* Real Tanam as Bar (Bisa diklik untuk filter) */}
+                    {(tanamVisibility === 'both' || tanamVisibility === 'real') && (
+                      <Bar
+                        dataKey="real"
+                        name="Real Tanam"
+                        fill="#10b981"
+                        radius={[4, 4, 0, 0]}
+                        cursor="pointer"
+                        className="cursor-pointer transition-opacity duration-150 hover:opacity-80"
+                        onClick={() => handleTanamToggle('real')}
+                      />
+                    )}
+
+                    {/* Target Tanam as Line (Bisa diklik untuk filter) */}
+                    {(tanamVisibility === 'both' || tanamVisibility === 'target') && (
+                      <Line
+                        type="linear"
+                        dataKey="target"
+                        name="Target"
+                        stroke="#0284c7"
+                        strokeWidth={2.5}
+                        dot={{ r: 4, strokeWidth: 1, fill: '#0284c7', cursor: 'pointer', onClick: () => handleTanamToggle('target') }}
+                        activeDot={{ r: 6, cursor: 'pointer', onClick: () => handleTanamToggle('target') }}
+                        cursor="pointer"
+                        className="cursor-pointer transition-opacity duration-150 hover:opacity-80"
+                        onClick={() => handleTanamToggle('target')}
+                      />
+                    )}
                   </ComposedChart>
                 </ResponsiveContainer>
               ) : (
@@ -282,66 +350,151 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
                           const rfcVal = payload.find((p) => p.dataKey === 'rfc')?.value;
                           const rencVal = payload.find((p) => p.dataKey === 'rencana')?.value;
                           const realVal = payload.find((p) => p.dataKey === 'realisasi')?.value;
+
+                          const showRfc = (beroVisibility === 'all' || beroVisibility === 'rfc') && rfcVal !== null && rfcVal !== undefined;
+                          const showRenc = (beroVisibility === 'all' || beroVisibility === 'rencana') && rencVal !== null && rencVal !== undefined;
+                          const showReal = (beroVisibility === 'all' || beroVisibility === 'realisasi') && realVal !== null && realVal !== undefined;
+
                           return (
                             <div className="p-3 bg-white dark:bg-slate-950/95 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl text-xs space-y-1.5 min-w-[170px]">
                               <p className="font-bold text-slate-900 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800 pb-1 font-mono">
                                 Bero: {label}
                               </p>
-                              <div className="flex justify-between items-center text-sky-600 dark:text-cyan-400">
-                                <span>Target RFC:</span>
-                                <span className="font-bold font-mono">
-                                  {rfcVal !== null && rfcVal !== undefined ? `${rfcVal} Hari` : '-'}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center text-amber-600 dark:text-amber-300">
-                                <span>Rencana:</span>
-                                <span className="font-bold font-mono">
-                                  {rencVal !== null && rencVal !== undefined ? `${rencVal} Hari` : '-'}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400">
-                                <span>Realisasi:</span>
-                                <span className="font-bold font-mono">
-                                  {realVal !== null && realVal !== undefined ? `${realVal} Hari` : '-'}
-                                </span>
-                              </div>
+                              {showRfc && (
+                                <div className="flex justify-between items-center text-sky-600 dark:text-cyan-400">
+                                  <span>Target RFC:</span>
+                                  <span className="font-bold font-mono">
+                                    {`${rfcVal} Hari`}
+                                  </span>
+                                </div>
+                              )}
+                              {showRenc && (
+                                <div className="flex justify-between items-center text-amber-600 dark:text-amber-300">
+                                  <span>Rencana:</span>
+                                  <span className="font-bold font-mono">
+                                    {`${rencVal} Hari`}
+                                  </span>
+                                </div>
+                              )}
+                              {showReal && (
+                                <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400">
+                                  <span>Realisasi:</span>
+                                  <span className="font-bold font-mono">
+                                    {`${realVal} Hari`}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           );
                         }
                         return null;
                       }}
                     />
+                    {/* Interaktif Legend: Klik untuk memilih grafik yang muncul (tombol lain dihide saat salah satu aktif) */}
                     <Legend
                       verticalAlign="bottom"
-                      wrapperStyle={{ fontSize: '11px', paddingTop: '16px' }}
-                      formatter={(val) => <span className="text-slate-700 dark:text-slate-300 font-bold text-xs">{val}</span>}
+                      content={() => {
+                        return (
+                          <div className="flex flex-wrap items-center justify-center gap-3 pt-4 select-none">
+                            {(beroVisibility === 'all' || beroVisibility === 'realisasi') && (
+                              <button
+                                type="button"
+                                onClick={() => handleBeroToggle('realisasi')}
+                                className="flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all cursor-pointer shadow-2xs active:scale-95 bg-[#10b981]/10 hover:bg-[#10b981]/20 text-[#059669] dark:text-[#34d399] border-[#10b981]/30"
+                                title={
+                                  beroVisibility === 'realisasi'
+                                    ? 'Klik untuk menampilkan kembali semua data'
+                                    : 'Klik untuk hanya menampilkan bar Realisasi'
+                                }
+                              >
+                                <span className="w-3 h-3 rounded-xs bg-[#10b981] shrink-0" />
+                                <span>Realisasi</span>
+                              </button>
+                            )}
+
+                            {(beroVisibility === 'all' || beroVisibility === 'rencana') && (
+                              <button
+                                type="button"
+                                onClick={() => handleBeroToggle('rencana')}
+                                className="flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all cursor-pointer shadow-2xs active:scale-95 bg-[#f59e0b]/10 hover:bg-[#f59e0b]/20 text-[#d97706] dark:text-[#fbbf24] border-[#f59e0b]/30"
+                                title={
+                                  beroVisibility === 'rencana'
+                                    ? 'Klik untuk menampilkan kembali semua data'
+                                    : 'Klik untuk hanya menampilkan garis Rencana'
+                                }
+                              >
+                                <span className="w-3.5 h-0.5 border-t-2 border-dashed border-[#f59e0b] shrink-0" />
+                                <span>Rencana</span>
+                              </button>
+                            )}
+
+                            {(beroVisibility === 'all' || beroVisibility === 'rfc') && (
+                              <button
+                                type="button"
+                                onClick={() => handleBeroToggle('rfc')}
+                                className="flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all cursor-pointer shadow-2xs active:scale-95 bg-[#0284c7]/10 hover:bg-[#0284c7]/20 text-[#0284c7] dark:text-[#38bdf8] border-[#0284c7]/30"
+                                title={
+                                  beroVisibility === 'rfc'
+                                    ? 'Klik untuk menampilkan kembali semua data'
+                                    : 'Klik untuk hanya menampilkan garis Target RFC'
+                                }
+                              >
+                                <span className="w-3.5 h-0.5 bg-[#0284c7] shrink-0 relative flex items-center justify-center">
+                                  <span className="w-2 h-2 rounded-full bg-[#0284c7] border border-white dark:border-slate-900" />
+                                </span>
+                                <span>Target RFC</span>
+                              </button>
+                            )}
+                          </div>
+                        );
+                      }}
                     />
-                    {/* Realisasi Rerata as Bar */}
-                    <Bar
-                      dataKey="realisasi"
-                      name="Realisasi"
-                      fill="#10b981"
-                      radius={[4, 4, 0, 0]}
-                    />
-                    {/* Target RFC as Solid Line */}
-                    <Line
-                      type="linear"
-                      dataKey="rfc"
-                      name="Target RFC"
-                      stroke="#0284c7"
-                      strokeWidth={2}
-                      dot={{ r: 3 }}
-                    />
-                    {/* Rencana Rerata as Dashed Line */}
-                    <Line
-                      type="linear"
-                      dataKey="rencana"
-                      name="Rencana"
-                      stroke="#f59e0b"
-                      strokeWidth={2}
-                      strokeDasharray="4 4"
-                      dot={false}
-                    />
+
+                    {/* Realisasi Rerata as Bar (Bisa diklik untuk filter) */}
+                    {(beroVisibility === 'all' || beroVisibility === 'realisasi') && (
+                      <Bar
+                        dataKey="realisasi"
+                        name="Realisasi"
+                        fill="#10b981"
+                        radius={[4, 4, 0, 0]}
+                        cursor="pointer"
+                        className="cursor-pointer transition-opacity duration-150 hover:opacity-80"
+                        onClick={() => handleBeroToggle('realisasi')}
+                      />
+                    )}
+
+                    {/* Target RFC as Solid Line (Bisa diklik untuk filter) */}
+                    {(beroVisibility === 'all' || beroVisibility === 'rfc') && (
+                      <Line
+                        type="linear"
+                        dataKey="rfc"
+                        name="Target RFC"
+                        stroke="#0284c7"
+                        strokeWidth={2}
+                        dot={{ r: 3.5, cursor: 'pointer', onClick: () => handleBeroToggle('rfc') }}
+                        activeDot={{ r: 6, cursor: 'pointer', onClick: () => handleBeroToggle('rfc') }}
+                        cursor="pointer"
+                        className="cursor-pointer transition-opacity duration-150 hover:opacity-80"
+                        onClick={() => handleBeroToggle('rfc')}
+                      />
+                    )}
+
+                    {/* Rencana Rerata as Dashed Line (Bisa diklik untuk filter) */}
+                    {(beroVisibility === 'all' || beroVisibility === 'rencana') && (
+                      <Line
+                        type="linear"
+                        dataKey="rencana"
+                        name="Rencana"
+                        stroke="#f59e0b"
+                        strokeWidth={2}
+                        strokeDasharray="4 4"
+                        dot={{ r: 3, fill: '#f59e0b', cursor: 'pointer', onClick: () => handleBeroToggle('rencana') }}
+                        activeDot={{ r: 6, cursor: 'pointer', onClick: () => handleBeroToggle('rencana') }}
+                        cursor="pointer"
+                        className="cursor-pointer transition-opacity duration-150 hover:opacity-80"
+                        onClick={() => handleBeroToggle('rencana')}
+                      />
+                    )}
                   </ComposedChart>
                 </ResponsiveContainer>
               ) : (

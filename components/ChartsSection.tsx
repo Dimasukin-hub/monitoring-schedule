@@ -33,6 +33,7 @@ import {
 import { useTheme } from './ThemeProvider';
 import WilayahFilterDropdown from './WilayahFilterDropdown';
 import MonthMultiFilterDropdown from './MonthMultiFilterDropdown';
+import { getCurrentMonthName } from '@/lib/stokLahanCalculator';
 
 export interface ChartsDataProps {
   monthlyBongkar?: Array<{
@@ -239,7 +240,7 @@ export function PosisiLahanSection({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  // State multi-filter bulan lokal untuk Posisi Lahan (default: kosong yang berarti semua bulan Jan - Des 26)
+  // State multi-filter bulan lokal untuk Posisi Lahan (default: kosong yang berarti default bulan sekarang tanpa dicentang)
   const [internalSelectedMonths, setInternalSelectedMonths] = useState<string[]>([]);
   const effectiveSelectedMonths = propSelectedMonths !== undefined ? propSelectedMonths : internalSelectedMonths;
   const setEffectiveSelectedMonths = propSetSelectedMonths || setInternalSelectedMonths;
@@ -282,9 +283,11 @@ export function PosisiLahanSection({
 
     const ALL_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     const activeMonths =
-      effectiveSelectedMonths.length > 0 && effectiveSelectedMonths.length < 12
-        ? effectiveSelectedMonths
-        : ALL_MONTHS;
+      effectiveSelectedMonths.length === 0
+        ? [getCurrentMonthName()]
+        : effectiveSelectedMonths.length === 12
+        ? ALL_MONTHS
+        : effectiveSelectedMonths;
 
     if (chartsData.monthlyWilayahPositions) {
       for (const m of activeMonths) {
@@ -483,7 +486,10 @@ export function PosisiLahanSection({
   const totalLuasSN = useMemo(() => Math.round(displaySN.reduce((acc, curr) => acc + curr.luas, 0) * 100) / 100, [displaySN]);
 
   const activePeriodLabel = useMemo(() => {
-    if (effectiveSelectedMonths.length === 0 || effectiveSelectedMonths.length === 12) {
+    if (effectiveSelectedMonths.length === 0) {
+      return `${getCurrentMonthName()} 2026`;
+    }
+    if (effectiveSelectedMonths.length === 12) {
       return 'Jan - Des 2026';
     }
     if (effectiveSelectedMonths.length === 1) {
@@ -580,18 +586,6 @@ export function PosisiLahanSection({
               maxBarSize={36}
               isAnimationActive={false}
             >
-              <LabelList
-                dataKey="luas"
-                position="top"
-                formatter={(val: any) => (Number(val) > 0 ? Number(val).toFixed(1) : '')}
-                style={{
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  fontFamily: 'monospace',
-                  fill: isDark ? '#cbd5e1' : '#475569',
-                }}
-                offset={4}
-              />
               {displayBK.map((entry) => {
                 const colorInfo = getDynamicHeightColor(entry.luas, maxBK);
                 return (
@@ -663,18 +657,6 @@ export function PosisiLahanSection({
               maxBarSize={36}
               isAnimationActive={false}
             >
-              <LabelList
-                dataKey="luas"
-                position="top"
-                formatter={(val: any) => (Number(val) > 0 ? Number(val).toFixed(1) : '')}
-                style={{
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  fontFamily: 'monospace',
-                  fill: isDark ? '#cbd5e1' : '#475569',
-                }}
-                offset={4}
-              />
               {displayBJK.map((entry) => {
                 const colorInfo = getDynamicHeightColor(entry.luas, maxBJK);
                 return (
@@ -746,18 +728,6 @@ export function PosisiLahanSection({
               maxBarSize={36}
               isAnimationActive={false}
             >
-              <LabelList
-                dataKey="luas"
-                position="top"
-                formatter={(val: any) => (Number(val) > 0 ? Number(val).toFixed(1) : '')}
-                style={{
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  fontFamily: 'monospace',
-                  fill: isDark ? '#cbd5e1' : '#475569',
-                }}
-                offset={4}
-              />
               {displaySN.map((entry) => {
                 const colorInfo = getDynamicHeightColor(entry.luas, maxSN);
                 return (
@@ -774,99 +744,7 @@ export function PosisiLahanSection({
     </div>
   );
 
-  const renderWilayahBreakdownPanel = (
-    list: typeof sortedBK,
-    totalLuas: number,
-    stageTitle: string,
-    badgeClass: string
-  ) => {
-    // Urutan wilayah dibuat mulai dari W01 sampai W07 sesuai permintaan
-    const sortedByWilayah = [...list].sort((a, b) => a.wilayah.localeCompare(b.wilayah));
-    const barColor = stageTitle.includes('BK')
-      ? 'bg-amber-500'
-      : stageTitle.includes('BJK')
-      ? 'bg-blue-600'
-      : 'bg-emerald-500';
 
-    return (
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs flex flex-col justify-between">
-        <div>
-          <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-100 dark:border-slate-800">
-            <div>
-              <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                Rincian Wilayah {stageTitle} ({activePeriodLabel})
-              </h5>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                Rincian luas lahan per wilayah operasional (W01 - W07)
-              </span>
-            </div>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${badgeClass}`}>
-              Total: {totalLuas.toFixed(2)} Ha
-            </span>
-          </div>
-
-          <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-            {sortedByWilayah.map((item, idx) => {
-              const pct = totalLuas > 0 ? (item.luas / totalLuas) * 100 : 0;
-              return (
-                <div
-                  key={item.wilayah}
-                  className="p-2 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-slate-900 dark:text-slate-100">
-                      <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700 text-[10px] flex items-center justify-center font-sans font-bold text-slate-700 dark:text-slate-300">
-                        {idx + 1}
-                      </span>
-                      <span>Wilayah {item.wilayah}</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-xs font-black text-slate-900 dark:text-slate-100 font-mono">
-                        {item.luas.toFixed(2)}
-                      </span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1">Ha</span>
-                      <span className="text-[9px] text-slate-400 dark:text-slate-500 ml-1 font-mono">
-                        ({pct.toFixed(1)}%)
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Mini progress bar */}
-                  <div className="w-full h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${barColor} rounded-full`}
-                      style={{ width: `${Math.min(100, pct)}%` }}
-                    />
-                  </div>
-
-                  {item.locations.length > 0 && (
-                    <div className="mt-1.5 flex items-center gap-1 flex-wrap">
-                      <span className="text-[9px] text-slate-400 font-medium">Lokasi:</span>
-                      {item.locations.slice(0, 4).map((loc) => (
-                        <button
-                          key={loc}
-                          type="button"
-                          onClick={() => onSelectLand && onSelectLand(loc)}
-                          className="text-[9px] font-mono px-1 py-0.2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-emerald-600 hover:border-emerald-400 cursor-pointer"
-                        >
-                          {loc}
-                        </button>
-                      ))}
-                      {item.locations.length > 4 && (
-                        <span className="text-[9px] text-slate-400 font-mono">
-                          +{item.locations.length - 4} lagi
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="space-y-4">
@@ -952,23 +830,20 @@ export function PosisiLahanSection({
 
       {/* Render Chart Content based on selectedStage */}
       {selectedStage === 'BK' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 animate-in fade-in duration-200">
-          <div className="lg:col-span-8">{renderBKChart(true)}</div>
-          <div className="lg:col-span-4">{renderWilayahBreakdownPanel(displayBK, totalLuasBK, 'Bongkar (BK)', 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30')}</div>
+        <div className="w-full animate-in fade-in duration-200">
+          {renderBKChart(true)}
         </div>
       )}
 
       {selectedStage === 'BJK' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 animate-in fade-in duration-200">
-          <div className="lg:col-span-8">{renderBJKChart(true)}</div>
-          <div className="lg:col-span-4">{renderWilayahBreakdownPanel(displayBJK, totalLuasBJK, 'Bajak (BJK)', 'bg-blue-500/15 text-blue-800 dark:text-blue-300 border border-blue-500/30')}</div>
+        <div className="w-full animate-in fade-in duration-200">
+          {renderBJKChart(true)}
         </div>
       )}
 
       {selectedStage === 'SN' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 animate-in fade-in duration-200">
-          <div className="lg:col-span-8">{renderSNChart(true)}</div>
-          <div className="lg:col-span-4">{renderWilayahBreakdownPanel(displaySN, totalLuasSN, 'Siap Tanam (SN)', 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30')}</div>
+        <div className="w-full animate-in fade-in duration-200">
+          {renderSNChart(true)}
         </div>
       )}
 
@@ -994,7 +869,7 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
   const isDark = theme === 'dark';
   const [targetCategory, setTargetCategory] = useState<'BONGKAR' | 'BAJAK' | 'SIAP_TANAM'>('BONGKAR');
   const [periodMode, setPeriodMode] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
-  // Default weekly: 9 minggu realisasi terakhir (Mgg 32) s/d minggu saat ini (Mgg 40) + 3 minggu forecast (Mgg 43)
+  // Default weekly: 9 minggu realisasi terakhir (W32) s/d minggu saat ini (W40) + 3 minggu forecast (W43)
   const [weeklyRange, setWeeklyRange] = useState<[number, number]>([32, 43]);
   // Default monthly: 1 Tahun Penuh (Januari s/d Desember 2026)
   const [monthlyRange, setMonthlyRange] = useState<[number, number]>([1, 12]);
@@ -1202,7 +1077,7 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
       if (weekMap.has(w)) {
         rawDataList.push(weekMap.get(w));
       } else {
-        const key = `Mgg ${String(w).padStart(2, '0')}`;
+        const key = `W${w}`;
         rawDataList.push({
           periodKey: key,
           rawWeek: key,
@@ -1233,8 +1108,16 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
     const dev = real !== null ? Math.round((real - renc) * 100) / 100 : (item.deviasi ?? null);
     const pct = renc > 0 && real !== null ? Math.round((real / renc) * 1000) / 10 : null;
 
+    let periodKey = item.periodKey || item.month || item.year || '';
+    if (periodMode === 'weekly') {
+      const wNum = parseInt(String(periodKey).replace(/\D/g, ''), 10);
+      if (!isNaN(wNum)) {
+        periodKey = `W${wNum}`;
+      }
+    }
+
     return {
-      periodKey: item.periodKey || item.month || item.year || '',
+      periodKey,
       rencana: renc,
       realisasi: real,
       deviasi: dev,
@@ -1277,7 +1160,7 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
       case 'daily':
         return `Harian (${allDailyItems[dailyRange[0]]?.periodKey || ''} - ${allDailyItems[dailyRange[1]]?.periodKey || ''})`;
       case 'weekly':
-        return `Mingguan (Mgg ${String(weeklyRange[0]).padStart(2, '0')} - Mgg ${String(weeklyRange[1]).padStart(2, '0')})`;
+        return `Mingguan (W${weeklyRange[0]} - W${weeklyRange[1]})`;
       case 'monthly':
         return `Bulanan (${MONTH_NAMES_LIST[monthlyRange[0] - 1]} - ${MONTH_NAMES_LIST[monthlyRange[1] - 1]} 2026)`;
     }
@@ -1612,7 +1495,7 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                 style={{ left: `${((weeklyRange[0] - 1) / (52 - 1)) * 100}%` }}
               >
                 <span className="px-1.5 py-0.5 text-[9.5px] font-black font-mono rounded bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-md whitespace-nowrap">
-                  Mgg {weeklyRange[0]}
+                  W{weeklyRange[0]}
                 </span>
               </div>
 
@@ -1622,7 +1505,7 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                 style={{ left: `${((weeklyRange[1] - 1) / (52 - 1)) * 100}%` }}
               >
                 <span className="px-1.5 py-0.5 text-[9.5px] font-black font-mono rounded bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-md whitespace-nowrap">
-                  Mgg {weeklyRange[1]}
+                  W{weeklyRange[1]}
                 </span>
               </div>
 
