@@ -1,0 +1,1272 @@
+[
+  {
+    "wilayah": "W01",
+    "lokasi": "001B1",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Sedang",
+    "bibit": "Sucker (Sedang)",
+    "tanggalSelesai": "12-Apr-26",
+    "luasHa": 7.13,
+    "progress": 100
+  },
+  {
+    "wilayah": "W01",
+    "lokasi": "002C",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "22-Feb-26",
+    "luasHa": 6.75,
+    "progress": 100
+  },
+  {
+    "wilayah": "W01",
+    "lokasi": "003I",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "22-Feb-26",
+    "luasHa": 7.18,
+    "progress": 100
+  },
+  {
+    "wilayah": "W01",
+    "lokasi": "004B",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "22-Jul-26",
+    "luasHa": 6.53,
+    "progress": 100
+  },
+  {
+    "wilayah": "W01",
+    "lokasi": "004D",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "26-Jun-26",
+    "luasHa": 4.05,
+    "progress": 100
+  },
+  {
+    "wilayah": "W01",
+    "lokasi": "004E",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "17-Jul-26",
+    "luasHa": 7.97,
+    "progress": 100
+  },
+  {
+    "wilayah": "W01",
+    "lokasi": "004J",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "4-Aug-26",
+    "luasHa": 6.35,
+    "progress": 100
+  },
+  {
+    "wilayah": "W01",
+    "lokasi": "007E1",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "25-Apr-26",
+    "luasHa": 6.09,
+    "progress": 100
+  },
+  {
+    "wilayah": "W01",
+    "lokasi": "007F4",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "30-Jun-26",
+    "luasHa": 7.77,
+    "progress": 100
+  },
+  {
+    "wilayah": "W01",
+    "lokasi": "007F5",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Extra Kecil",
+    "bibit": "Crown (Extra Kecil)",
+    "tanggalSelesai": "30-Jun-26",
+    "luasHa": 5.24,
+    "progress": 100
+  },
+  {
+    "wilayah": "W01",
+    "lokasi": "008A",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "7-May-26",
+    "luasHa": 7.07,
+    "progress": 100
+  },
+  {
+    "wilayah": "W01",
+    "lokasi": "008F",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "16-Apr-26",
+    "luasHa": 10.24,
+    "progress": 100
+  },
+  {
+    "wilayah": "W01",
+    "lokasi": "009G1",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "3-Aug-26",
+    "luasHa": 4.67,
+    "progress": 100
+  },
+  {
+    "wilayah": "W01",
+    "lokasi": "010C1",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Extra Kecil",
+    "bibit": "Crown (Extra Kecil)",
+    "tanggalSelesai": "31-Aug-26",
+    "luasHa": 7.07,
+    "progress": 100
+  },
+  {
+    "wilayah": "W01",
+    "lokasi": "010C2",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "8-Aug-26",
+    "luasHa": 5.75,
+    "progress": 100
+  },
+  {
+    "wilayah": "W01",
+    "lokasi": "010F1",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "17-Sep-26",
+    "luasHa": 4.77,
+    "progress": 100
+  },
+  {
+    "wilayah": "W01",
+    "lokasi": "010F2",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "20-Sep-26",
+    "luasHa": 6.54,
+    "progress": 97
+  },
+  {
+    "wilayah": "W01",
+    "lokasi": "013D",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Extra Kecil",
+    "bibit": "Crown (Extra Kecil)",
+    "tanggalSelesai": "20-Sep-26",
+    "luasHa": 9.44,
+    "progress": 100
+  },
+  {
+    "wilayah": "W01",
+    "lokasi": "020B",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Extra Kecil",
+    "bibit": "Crown (Extra Kecil)",
+    "tanggalSelesai": "31-Aug-26",
+    "luasHa": 10.98,
+    "progress": 100
+  },
+  {
+    "wilayah": "W01",
+    "lokasi": "020C",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "26-Aug-26",
+    "luasHa": 3.19,
+    "progress": 100
+  },
+  {
+    "wilayah": "W01",
+    "lokasi": "020F1",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Sedang",
+    "bibit": "Sucker (Sedang)",
+    "tanggalSelesai": "26-Mar-26",
+    "luasHa": 3.38,
+    "progress": 100
+  },
+  {
+    "wilayah": "W01",
+    "lokasi": "020F2",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Sedang",
+    "bibit": "Sucker (Sedang)",
+    "tanggalSelesai": "26-Mar-26",
+    "luasHa": 2.48,
+    "progress": 100
+  },
+  {
+    "wilayah": "W02",
+    "lokasi": "013B",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "21-Jul-26",
+    "luasHa": 6.36,
+    "progress": 100
+  },
+  {
+    "wilayah": "W02",
+    "lokasi": "013B1",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "25-Aug-26",
+    "luasHa": 5.43,
+    "progress": 100
+  },
+  {
+    "wilayah": "W02",
+    "lokasi": "013G2",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "10-Aug-26",
+    "luasHa": 2.72,
+    "progress": 100
+  },
+  {
+    "wilayah": "W02",
+    "lokasi": "014D",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "24-Jul-26",
+    "luasHa": 8.35,
+    "progress": 100
+  },
+  {
+    "wilayah": "W02",
+    "lokasi": "017A",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Sedang",
+    "bibit": "Sucker (Sedang)",
+    "tanggalSelesai": "30-Jun-26",
+    "luasHa": 7.42,
+    "progress": 100
+  },
+  {
+    "wilayah": "W02",
+    "lokasi": "017B1",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "5-Jun-26",
+    "luasHa": 6.96,
+    "progress": 100
+  },
+  {
+    "wilayah": "W02",
+    "lokasi": "018A",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "7-Jun-26",
+    "luasHa": 2.02,
+    "progress": 100
+  },
+  {
+    "wilayah": "W02",
+    "lokasi": "018C",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "30-Aug-26",
+    "luasHa": 6.85,
+    "progress": 100
+  },
+  {
+    "wilayah": "W02",
+    "lokasi": "019E1",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "31-Aug-26",
+    "luasHa": 8.47,
+    "progress": 100
+  },
+  {
+    "wilayah": "W02",
+    "lokasi": "019E2",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "4-Sep-26",
+    "luasHa": 4.94,
+    "progress": 100
+  },
+  {
+    "wilayah": "W02",
+    "lokasi": "023B",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "22-Apr-26",
+    "luasHa": 5.85,
+    "progress": 100
+  },
+  {
+    "wilayah": "W02",
+    "lokasi": "023C",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "22-Apr-26",
+    "luasHa": 7.91,
+    "progress": 100
+  },
+  {
+    "wilayah": "W02",
+    "lokasi": "025A",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "7-Aug-26",
+    "luasHa": 9.02,
+    "progress": 100
+  },
+  {
+    "wilayah": "W02",
+    "lokasi": "025B",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "25-Aug-26",
+    "luasHa": 6.36,
+    "progress": 100
+  },
+  {
+    "wilayah": "W02",
+    "lokasi": "025C",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "21-Jul-26",
+    "luasHa": 8.25,
+    "progress": 100
+  },
+  {
+    "wilayah": "W02",
+    "lokasi": "030E",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "22-Apr-26",
+    "luasHa": 3.85,
+    "progress": 100
+  },
+  {
+    "wilayah": "W02",
+    "lokasi": "030H",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "16-Apr-26",
+    "luasHa": 4.59,
+    "progress": 100
+  },
+  {
+    "wilayah": "W02",
+    "lokasi": "034C",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Sedang",
+    "bibit": "Sucker (Sedang)",
+    "tanggalSelesai": "7-Jun-26",
+    "luasHa": 8.11,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "046P1",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Kecil",
+    "bibit": "Sucker (Kecil)",
+    "tanggalSelesai": "30-Jun-26",
+    "luasHa": 0.31,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "047F1",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "7-Sep-26",
+    "luasHa": 11.18,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "048D",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "12-Aug-26",
+    "luasHa": 9.3,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "048K",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "16-Apr-26",
+    "luasHa": 6.54,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "049E",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "5-Jun-26",
+    "luasHa": 8.5,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "054A",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "30-Jun-26",
+    "luasHa": 4.89,
+    "progress": 21.7
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "054B1",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "10-Jul-26",
+    "luasHa": 7.73,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "054E",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Sedang",
+    "bibit": "Sucker (Sedang)",
+    "tanggalSelesai": "31-Jul-26",
+    "luasHa": 9.62,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "055Ks",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Besar",
+    "bibit": "Sucker (Besar)",
+    "tanggalSelesai": "5-Aug-26",
+    "luasHa": 1.34,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "056A",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Sedang",
+    "bibit": "Sucker (Sedang)",
+    "tanggalSelesai": "19-Aug-26",
+    "luasHa": 3.86,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "056B",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Sedang",
+    "bibit": "Sucker (Sedang)",
+    "tanggalSelesai": "19-Aug-26",
+    "luasHa": 7.32,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "056G2",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Sedang",
+    "bibit": "Sucker (Sedang)",
+    "tanggalSelesai": "10-Sep-26",
+    "luasHa": 6.12,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "057C",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Extra Kecil",
+    "bibit": "Crown (Extra Kecil)",
+    "tanggalSelesai": "10-Sep-26",
+    "luasHa": 4.1,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "061C3",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Besar",
+    "bibit": "Sucker (Besar)",
+    "tanggalSelesai": "17-Apr-26",
+    "luasHa": 2.37,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "061C4",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Sedang",
+    "bibit": "Sucker (Sedang)",
+    "tanggalSelesai": "17-Apr-26",
+    "luasHa": 5.87,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "061C5",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Sedang",
+    "bibit": "Sucker (Sedang)",
+    "tanggalSelesai": "16-Apr-26",
+    "luasHa": 3.11,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "063G2",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "2-Sep-26",
+    "luasHa": 7.91,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "063G3",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "8-Sep-26",
+    "luasHa": 8.77,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "064C",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Extra Kecil",
+    "bibit": "Crown (Extra Kecil)",
+    "tanggalSelesai": "14-Aug-26",
+    "luasHa": 6.95,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "065A3",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Besar",
+    "bibit": "Sucker (Besar)",
+    "tanggalSelesai": "26-Jun-26",
+    "luasHa": 1.44,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "065A4",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Kecil",
+    "bibit": "Sucker (Kecil)",
+    "tanggalSelesai": "30-Jun-26",
+    "luasHa": 2,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "065A5",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Sedang",
+    "bibit": "Sucker (Sedang)",
+    "tanggalSelesai": "26-Jun-26",
+    "luasHa": 3.41,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "065B4",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Sedang",
+    "bibit": "Sucker (Sedang)",
+    "tanggalSelesai": "28-Apr-26",
+    "luasHa": 5.69,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "065B5",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Sedang",
+    "bibit": "Sucker (Sedang)",
+    "tanggalSelesai": "16-Jul-26",
+    "luasHa": 7.19,
+    "progress": 100
+  },
+  {
+    "wilayah": "W03",
+    "lokasi": "065D2",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Sedang",
+    "bibit": "Sucker (Sedang)",
+    "tanggalSelesai": "20-May-26",
+    "luasHa": 8.37,
+    "progress": 100
+  },
+  {
+    "wilayah": "W04",
+    "lokasi": "028A",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "23-Jul-26",
+    "luasHa": 4.12,
+    "progress": 100
+  },
+  {
+    "wilayah": "W04",
+    "lokasi": "029A2",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "15-Jul-26",
+    "luasHa": 5.07,
+    "progress": 100
+  },
+  {
+    "wilayah": "W04",
+    "lokasi": "029A3",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "20-Jul-26",
+    "luasHa": 8.46,
+    "progress": 100
+  },
+  {
+    "wilayah": "W04",
+    "lokasi": "038F",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "12-Sep-26",
+    "luasHa": 6.18,
+    "progress": 100
+  },
+  {
+    "wilayah": "W04",
+    "lokasi": "042B2",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "11-Sep-26",
+    "luasHa": 5.37,
+    "progress": 100
+  },
+  {
+    "wilayah": "W04",
+    "lokasi": "042B3",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Extra Kecil",
+    "bibit": "Crown (Extra Kecil)",
+    "tanggalSelesai": "10-Sep-26",
+    "luasHa": 8.96,
+    "progress": 100
+  },
+  {
+    "wilayah": "W04",
+    "lokasi": "042D2",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "6-Mar-26",
+    "luasHa": 6.15,
+    "progress": 100
+  },
+  {
+    "wilayah": "W04",
+    "lokasi": "042F1",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Extra Kecil",
+    "bibit": "Crown (Extra Kecil)",
+    "tanggalSelesai": "30-Jun-26",
+    "luasHa": 9.42,
+    "progress": 100
+  },
+  {
+    "wilayah": "W04",
+    "lokasi": "042F3",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Sedang",
+    "bibit": "Sucker (Sedang)",
+    "tanggalSelesai": "29-Jun-26",
+    "luasHa": 8,
+    "progress": 98.8
+  },
+  {
+    "wilayah": "W04",
+    "lokasi": "043G2",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "25-Jul-26",
+    "luasHa": 7.48,
+    "progress": 100
+  },
+  {
+    "wilayah": "W04",
+    "lokasi": "043G3",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "18-Aug-26",
+    "luasHa": 5.64,
+    "progress": 100
+  },
+  {
+    "wilayah": "W04",
+    "lokasi": "044A2",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Sedang",
+    "bibit": "Sucker (Sedang)",
+    "tanggalSelesai": "29-May-26",
+    "luasHa": 8.65,
+    "progress": 100
+  },
+  {
+    "wilayah": "W04",
+    "lokasi": "044A3",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "30-Jun-26",
+    "luasHa": 7.27,
+    "progress": 100
+  },
+  {
+    "wilayah": "W04",
+    "lokasi": "048F",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "23-Apr-26",
+    "luasHa": 9.4,
+    "progress": 100
+  },
+  {
+    "wilayah": "W04",
+    "lokasi": "048I",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "23-Apr-26",
+    "luasHa": 7.05,
+    "progress": 100
+  },
+  {
+    "wilayah": "W04",
+    "lokasi": "049F",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "4-May-26",
+    "luasHa": 7.93,
+    "progress": 100
+  },
+  {
+    "wilayah": "W04",
+    "lokasi": "050B2B",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "30-Jun-26",
+    "luasHa": 6.45,
+    "progress": 100
+  },
+  {
+    "wilayah": "W05",
+    "lokasi": "067B",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Extra Kecil",
+    "bibit": "Crown (Extra Kecil)",
+    "tanggalSelesai": "3-Aug-26",
+    "luasHa": 8.75,
+    "progress": 100
+  },
+  {
+    "wilayah": "W05",
+    "lokasi": "069A",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Sedang",
+    "bibit": "Sucker (Sedang)",
+    "tanggalSelesai": "30-Jun-26",
+    "luasHa": 9.94,
+    "progress": 100
+  },
+  {
+    "wilayah": "W05",
+    "lokasi": "069C6",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "26-Aug-26",
+    "luasHa": 11.3,
+    "progress": 100
+  },
+  {
+    "wilayah": "W05",
+    "lokasi": "072B1",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Extra Kecil",
+    "bibit": "Crown (Extra Kecil)",
+    "tanggalSelesai": "7-Sep-26",
+    "luasHa": 5.46,
+    "progress": 100
+  },
+  {
+    "wilayah": "W05",
+    "lokasi": "072B2",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "27-Aug-26",
+    "luasHa": 9.67,
+    "progress": 100
+  },
+  {
+    "wilayah": "W05",
+    "lokasi": "072C",
+    "jenisBibit": "Crown",
+    "kelasBibit": "",
+    "bibit": "Crown",
+    "tanggalSelesai": "-",
+    "luasHa": 8.84,
+    "progress": 100
+  },
+  {
+    "wilayah": "W05",
+    "lokasi": "072D1",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "27-Aug-26",
+    "luasHa": 6.25,
+    "progress": 100
+  },
+  {
+    "wilayah": "W05",
+    "lokasi": "072D2",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Extra Kecil",
+    "bibit": "Crown (Extra Kecil)",
+    "tanggalSelesai": "24-Aug-26",
+    "luasHa": 8.03,
+    "progress": 100
+  },
+  {
+    "wilayah": "W05",
+    "lokasi": "082C",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Sedang",
+    "bibit": "Sucker (Sedang)",
+    "tanggalSelesai": "8-Jul-26",
+    "luasHa": 6.84,
+    "progress": 100
+  },
+  {
+    "wilayah": "W05",
+    "lokasi": "082G",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Sedang",
+    "bibit": "Sucker (Sedang)",
+    "tanggalSelesai": "9-Jul-26",
+    "luasHa": 8.68,
+    "progress": 100
+  },
+  {
+    "wilayah": "W05",
+    "lokasi": "082J4",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "22-Jun-26",
+    "luasHa": 5.7,
+    "progress": 100
+  },
+  {
+    "wilayah": "W05",
+    "lokasi": "082J5",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Extra Kecil",
+    "bibit": "Crown (Extra Kecil)",
+    "tanggalSelesai": "22-Jun-26",
+    "luasHa": 7.53,
+    "progress": 100
+  },
+  {
+    "wilayah": "W06",
+    "lokasi": "075F",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "12-May-26",
+    "luasHa": 9.89,
+    "progress": 100
+  },
+  {
+    "wilayah": "W06",
+    "lokasi": "076J",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "3-Apr-26",
+    "luasHa": 8.33,
+    "progress": 100
+  },
+  {
+    "wilayah": "W06",
+    "lokasi": "078A",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "16-Sep-26",
+    "luasHa": 4.86,
+    "progress": 88.3
+  },
+  {
+    "wilayah": "W06",
+    "lokasi": "078B",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "20-Sep-26",
+    "luasHa": 8.67,
+    "progress": 100
+  },
+  {
+    "wilayah": "W06",
+    "lokasi": "078J",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Extra Kecil",
+    "bibit": "Crown (Extra Kecil)",
+    "tanggalSelesai": "23-Sep-26",
+    "luasHa": 6.8,
+    "progress": 90
+  },
+  {
+    "wilayah": "W06",
+    "lokasi": "078L",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "8-Aug-26",
+    "luasHa": 5.96,
+    "progress": 100
+  },
+  {
+    "wilayah": "W06",
+    "lokasi": "078M",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "31-Jul-26",
+    "luasHa": 4.07,
+    "progress": 100
+  },
+  {
+    "wilayah": "W06",
+    "lokasi": "088D2",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "10-Apr-26",
+    "luasHa": 6.74,
+    "progress": 100
+  },
+  {
+    "wilayah": "W06",
+    "lokasi": "088D3",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "5-Apr-26",
+    "luasHa": 6.29,
+    "progress": 100
+  },
+  {
+    "wilayah": "W06",
+    "lokasi": "089A",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "23-Jul-26",
+    "luasHa": 3.25,
+    "progress": 100
+  },
+  {
+    "wilayah": "W06",
+    "lokasi": "089C",
+    "jenisBibit": "Crown",
+    "kelasBibit": "",
+    "bibit": "Crown",
+    "tanggalSelesai": "-",
+    "luasHa": 14.06,
+    "progress": 100
+  },
+  {
+    "wilayah": "W06",
+    "lokasi": "089D1",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "26-Aug-26",
+    "luasHa": 5.44,
+    "progress": 100
+  },
+  {
+    "wilayah": "W06",
+    "lokasi": "092D",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "26-Aug-26",
+    "luasHa": 12.37,
+    "progress": 100
+  },
+  {
+    "wilayah": "W06",
+    "lokasi": "092H",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "14-Aug-26",
+    "luasHa": 6.14,
+    "progress": 100
+  },
+  {
+    "wilayah": "W06",
+    "lokasi": "092I",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "8-Aug-26",
+    "luasHa": 8.4,
+    "progress": 100
+  },
+  {
+    "wilayah": "W07",
+    "lokasi": "079I",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Extra Kecil",
+    "bibit": "Crown (Extra Kecil)",
+    "tanggalSelesai": "21-May-26",
+    "luasHa": 10.7,
+    "progress": 100
+  },
+  {
+    "wilayah": "W07",
+    "lokasi": "079J",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "31-Jul-26",
+    "luasHa": 5.15,
+    "progress": 100
+  },
+  {
+    "wilayah": "W07",
+    "lokasi": "080A1",
+    "jenisBibit": "Sucker",
+    "kelasBibit": "Sedang",
+    "bibit": "Sucker (Sedang)",
+    "tanggalSelesai": "15-Jun-26",
+    "luasHa": 3.83,
+    "progress": 100
+  },
+  {
+    "wilayah": "W07",
+    "lokasi": "083A",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "10-Feb-26",
+    "luasHa": 10.83,
+    "progress": 100
+  },
+  {
+    "wilayah": "W07",
+    "lokasi": "083D",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "26-Feb-26",
+    "luasHa": 10.03,
+    "progress": 100
+  },
+  {
+    "wilayah": "W07",
+    "lokasi": "083H",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Extra Kecil",
+    "bibit": "Crown (Extra Kecil)",
+    "tanggalSelesai": "8-Sep-26",
+    "luasHa": 9.91,
+    "progress": 100
+  },
+  {
+    "wilayah": "W07",
+    "lokasi": "084A",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Extra Kecil",
+    "bibit": "Crown (Extra Kecil)",
+    "tanggalSelesai": "17-Sep-26",
+    "luasHa": 3.85,
+    "progress": 100
+  },
+  {
+    "wilayah": "W07",
+    "lokasi": "084C1",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "17-Sep-26",
+    "luasHa": 8.72,
+    "progress": 100
+  },
+  {
+    "wilayah": "W07",
+    "lokasi": "084H",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "25-Jun-26",
+    "luasHa": 6.56,
+    "progress": 100
+  },
+  {
+    "wilayah": "W07",
+    "lokasi": "085C",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Extra Kecil",
+    "bibit": "Crown (Extra Kecil)",
+    "tanggalSelesai": "20-Sep-26",
+    "luasHa": 12.6,
+    "progress": 100
+  },
+  {
+    "wilayah": "W07",
+    "lokasi": "085E",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "28-Jul-26",
+    "luasHa": 8.72,
+    "progress": 100
+  },
+  {
+    "wilayah": "W07",
+    "lokasi": "086D",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "31-Jul-26",
+    "luasHa": 8.94,
+    "progress": 100
+  },
+  {
+    "wilayah": "W07",
+    "lokasi": "096G5",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "12-May-26",
+    "luasHa": 5.49,
+    "progress": 100
+  },
+  {
+    "wilayah": "W07",
+    "lokasi": "097B",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "25-Jun-26",
+    "luasHa": 9.69,
+    "progress": 100
+  },
+  {
+    "wilayah": "W07",
+    "lokasi": "097H",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "31-Jul-26",
+    "luasHa": 7.97,
+    "progress": 100
+  },
+  {
+    "wilayah": "W07",
+    "lokasi": "098A1",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "14-Jul-26",
+    "luasHa": 9.55,
+    "progress": 100
+  },
+  {
+    "wilayah": "W07",
+    "lokasi": "098C",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Kecil",
+    "bibit": "Crown (Kecil)",
+    "tanggalSelesai": "27-Jul-26",
+    "luasHa": 7.22,
+    "progress": 100
+  },
+  {
+    "wilayah": "W07",
+    "lokasi": "100C",
+    "jenisBibit": "Crown",
+    "kelasBibit": "Extra Kecil",
+    "bibit": "Crown (Extra Kecil)",
+    "tanggalSelesai": "9-Jun-26",
+    "luasHa": 11.51,
+    "progress": 100
+  }
+]

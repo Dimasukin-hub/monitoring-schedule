@@ -199,6 +199,26 @@ export interface ChartsDataProps {
       snLocations: string[];
     }>
   >;
+  tanamBenchmark?: {
+    dataUpdate: string;
+    unit: string;
+    months: string[];
+    series: Array<{
+      month: string;
+      budget: number;
+      rencana: number;
+      rf: number;
+      target: number;
+      real: number | null;
+    }>;
+    totals: {
+      budget: number;
+      rencana: number;
+      rf: number;
+      target: number;
+      real: number;
+    };
+  };
 }
 
 export interface CommonChartProps {

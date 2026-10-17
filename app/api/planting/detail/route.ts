@@ -250,24 +250,24 @@ export async function GET(request: Request) {
         fieldTitle = 'Detail Perhitungan Sisa Luas (Calculated)';
         formulaDesc =
           'Nilai Sisa dihitung secara dinamis oleh sistem berdasarkan selisih antara akumulasi Real Tanam dengan Luas Target master.';
-        formulaMath = 'Sisa (Ha) = Real Tanam (Ha) - Luas Target (Ha)';
+        formulaMath = 'Sisa (Ha) = Luas Target (Ha) - Real Tanam (Ha)';
         sourceMasterInfo = {
           file: 'Monitor Schedule - 2026.xlsx',
           sheet: 'RTN',
-          column: 'Kolom G (Sisa) [Formula: =H-E]',
+          column: 'Kolom G (Sisa)',
           value: `${sisaMaster.toFixed(2)} Ha`,
         };
         calculationDetails = {
           luasTarget,
           realTanam: realTanamMaster,
           sisa: sisaMaster,
-          formulaDisplay: `${realTanamMaster.toFixed(2)} Ha (Real) - ${luasTarget.toFixed(2)} Ha (Target) = ${sisaMaster.toFixed(2)} Ha`,
+          formulaDisplay: `${luasTarget.toFixed(2)} Ha (Target) - ${realTanamMaster.toFixed(2)} Ha (Real) = ${sisaMaster.toFixed(2)} Ha`,
           statusKeterangan:
             sisaMaster === 0
-              ? 'Tepat sesuai target (0 Ha)'
+              ? 'Tepat sesuai target / Selesai (0 Ha)'
               : sisaMaster > 0
-              ? `Surplus realisasi sebesar +${sisaMaster.toFixed(2)} Ha`
-              : `Kurang dari target sebesar ${sisaMaster.toFixed(2)} Ha`,
+              ? `Sisa lahan belum tertanam: ${sisaMaster.toFixed(2)} Ha`
+              : `Realisasi tuntas (${sisaMaster.toFixed(2)} Ha)`,
         };
         break;
 
@@ -557,7 +557,6 @@ export async function PUT(request: Request) {
     let updatedMaster: any = null;
     if (plantingMaster) {
       const targetLuas = plantingMaster.luas || 0;
-      const newSisa = Number((newRealTanam - targetLuas).toFixed(2));
       const newProgress =
         targetLuas > 0 ? Number(((newRealTanam / targetLuas) * 100).toFixed(1)) : 0;
       let newStatus = 'BELUM TANAM';
@@ -566,6 +565,7 @@ export async function PUT(request: Request) {
       } else if (newRealTanam > 0) {
         newStatus = 'PROSES';
       }
+      const newSisa = newStatus === 'SELESAI' ? 0 : Number(Math.max(0, targetLuas - newRealTanam).toFixed(2));
 
       updatedMaster = await prisma.planting.update({
         where: { id: plantingMaster.id },
@@ -582,7 +582,6 @@ export async function PUT(request: Request) {
       });
       if (landMaster) {
         const targetLuas = landMaster.luasNetto || landMaster.luasBruto || 0;
-        const newSisa = Number((newRealTanam - targetLuas).toFixed(2));
         const newProgress =
           targetLuas > 0 ? Number(((newRealTanam / targetLuas) * 100).toFixed(1)) : 0;
         let newStatus = 'BELUM TANAM';
@@ -591,6 +590,7 @@ export async function PUT(request: Request) {
         } else if (newRealTanam > 0) {
           newStatus = 'PROSES';
         }
+        const newSisa = newStatus === 'SELESAI' ? 0 : Number(Math.max(0, targetLuas - newRealTanam).toFixed(2));
 
         updatedMaster = await prisma.planting.create({
           data: {

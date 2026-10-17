@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
@@ -19,7 +19,7 @@ import {
   Building2,
 } from 'lucide-react';
 
-export default function LoginPage() {
+function LoginContent() {
   const searchParams = useSearchParams();
   const initialMode = searchParams.get('mode') === 'register' ? 'register' : 'login';
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
@@ -375,3 +375,12 @@ export default function LoginPage() {
     </div>
   );
 }
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-900 text-slate-400">Memuat...</div>}>
+      <LoginContent />
+    </Suspense>
+  );
+}
+

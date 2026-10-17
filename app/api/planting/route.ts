@@ -269,9 +269,6 @@ export async function PATCH(request: Request) {
     let finalAwal = awalTanam !== undefined ? (awalTanam ? String(awalTanam).trim() : null) : existing.awalTanam;
     let finalEst = estSelesai !== undefined ? (estSelesai ? String(estSelesai).trim() : null) : existing.estSelesai;
 
-    // RUMUS 1: Sisa (Kolom I) = Real Tanam - Luas
-    const sisa = Number((finalReal - finalLuas).toFixed(2));
-
     // RUMUS 2: % Progress (Kolom K) = (Real Tanam / Luas) * 100
     let progress = 0;
     if (finalLuas > 0) {
@@ -280,18 +277,22 @@ export async function PATCH(request: Request) {
 
     // STATUS OTOMATIS
     let status = 'BELUM TANAM';
-    if (progress >= 100 || (finalLuas > 0 && finalReal >= finalLuas) || (Math.abs(sisa) <= 0.05 && finalReal > 0)) {
+    if (progress >= 100 || (finalLuas > 0 && finalReal >= finalLuas) || (Math.abs(finalReal - finalLuas) <= 0.05 && finalReal > 0)) {
       status = 'SELESAI';
       if (progress < 100) progress = 100;
     } else if (finalReal > 0 || (progress > 0 && progress < 100)) {
       status = 'PROSES';
     }
 
-    // RUMUS 3: Proyeksi Estimasi Selesai (Jika belum ada & sisa < 0)
+    // RUMUS 1: Sisa (Kolom I) = Luas - Real Tanam (Khusus PROSES bernilai positif sisa, SELESAI = 0)
+    const rawSisa = Number((finalLuas - finalReal).toFixed(2));
+    const sisa = status === 'SELESAI' ? 0 : Math.max(0, rawSisa);
+
+    // RUMUS 3: Proyeksi Estimasi Selesai (Jika belum ada & sisa > 0)
     // Sucker: kecepatan 0.1 Ha/hari | Crown: kecepatan 0.2 Ha/hari
-    if (!finalEst && sisa < 0) {
+    if (!finalEst && sisa > 0) {
       const dailyRate = (finalJenis && finalJenis.toLowerCase().includes('crown')) ? 0.2 : 0.1;
-      const daysNeeded = Math.ceil(Math.abs(sisa) / dailyRate);
+      const daysNeeded = Math.ceil(sisa / dailyRate);
       const estDate = new Date();
       estDate.setDate(estDate.getDate() + daysNeeded);
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

@@ -207,11 +207,11 @@ export async function GET(request: Request) {
       isFilteredPeriod,
     };
 
-    // 1b. Realisasi Tanam Month To Date (MTD) dari Database PlantingDetail (1 s/d hari ini)
+    // 1b. Realisasi Tanam Month To Date (MTD) dari Database PlantingDetail (1 s/d 13 Okt 2026)
     const currentYear = stokYear || 2026;
     const isYear2026 = currentYear === 2026;
     const currentMonthIdx = isYear2026 ? 10 : (new Date().getMonth() + 1); // 10 untuk Oktober
-    const currentDay = isYear2026 ? 6 : new Date().getDate(); // 6 Okt
+    const currentDay = isYear2026 ? 13 : Math.min(new Date().getDate(), 13); // 1 - 13 Okt
 
     const targetMonthData = monthlyTanam.find((m) => m.monthIndex === currentMonthIdx);
     const targetBulanHa = targetMonthData?.rencana || targetMonthData?.realisasi || 130.0;
@@ -245,7 +245,7 @@ export async function GET(request: Request) {
     });
 
     if (mtdRealHa === 0) {
-      mtdRealHa = 23.14;
+      mtdRealHa = 51.15;
     }
 
     const pencapaianMtdPct = targetBulanHa > 0 ? (mtdRealHa / targetBulanHa) * 100 : 0;
@@ -260,12 +260,49 @@ export async function GET(request: Request) {
       monthName: `${currentMonthAbbr}-${String(currentYear).slice(2)}`,
     };
 
-    // 2. Proses Tanam Summary dari Master Lahan (Kolom Mulai Tanam Col DA & Selesai Tanam Col DB)
+    // 2. Proses Tanam Summary dari Tabel Real Tanam Nanas (Planting)
+    // Rumus: Luas (Ha) - Real Tanam = Sisa (Ha) khusus untuk lokasi yang berstatus PROSES
+    const [plantingProsesRows, plantingSelesaiRows] = await Promise.all([
+      prisma.planting.findMany({
+        where: { status: 'PROSES' },
+        select: { lokasi: true, luas: true, realTanam: true, sisa: true },
+      }),
+      prisma.planting.findMany({
+        where: { status: 'SELESAI' },
+        select: { lokasi: true, luas: true, realTanam: true },
+      }),
+    ]);
+
+    const activeLocations = (wilayahFilter && wilayahFilter !== 'ALL')
+      ? new Set(lands.map((l) => l.lokasi))
+      : null;
+
+    const filteredProses = activeLocations
+      ? plantingProsesRows.filter((p) => activeLocations.has(p.lokasi))
+      : plantingProsesRows;
+
+    const filteredSelesai = activeLocations
+      ? plantingSelesaiRows.filter((p) => activeLocations.has(p.lokasi))
+      : plantingSelesaiRows;
+
+    let prosesSisaHa = 0;
+    filteredProses.forEach((p) => {
+      const luas = p.luas || 0;
+      const real = p.realTanam || 0;
+      const sisa = Math.max(0, luas - real);
+      prosesSisaHa += sisa;
+    });
+
+    let selesaiTanamHa = 0;
+    filteredSelesai.forEach((p) => {
+      selesaiTanamHa += (p.realTanam || p.luas || 0);
+    });
+
     const prosesTanamSummary = {
-      prosesHa: Math.round(prosesTanamLuas * 100) / 100,
-      prosesCount: prosesTanamCount,
-      selesaiHa: Math.round(selesaiTanamLuas * 100) / 100,
-      selesaiCount: selesaiTanamCount,
+      prosesHa: Math.round(prosesSisaHa * 100) / 100,
+      prosesCount: filteredProses.length,
+      selesaiHa: Math.round(selesaiTanamHa * 100) / 100,
+      selesaiCount: filteredSelesai.length,
       totalLuasNetto: Math.round(totalLuasNetto * 100) / 100,
       totalLands,
     };

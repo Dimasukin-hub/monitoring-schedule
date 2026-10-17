@@ -62,6 +62,7 @@ interface PlantingViewProps {
   isAdmin?: boolean;
   initialSearch?: string;
   onSearchChange?: (search: string) => void;
+  onDataChanged?: () => void;
 }
 
 const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -110,6 +111,7 @@ export default function PlantingView({
   isAdmin = true,
   initialSearch = '',
   onSearchChange,
+  onDataChanged,
 }: PlantingViewProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -374,16 +376,18 @@ export default function PlantingView({
     if (field === 'awalTanam') newAwal = newValue || null;
     if (field === 'estSelesai') newEst = newValue || null;
 
-    // Rumus Sisa: Real Tanam - Luas
-    const sisa = Number((newReal - newLuas).toFixed(2));
     // Rumus Progress: (Real Tanam / Luas) * 100
     const progress = newLuas > 0 ? Number(((newReal / newLuas) * 100).toFixed(1)) : 0;
     let status = 'BELUM TANAM';
-    if (progress >= 100 || (newLuas > 0 && newReal >= newLuas) || (Math.abs(sisa) <= 0.05 && newReal > 0)) {
+    if (progress >= 100 || (newLuas > 0 && newReal >= newLuas) || (Math.abs(newReal - newLuas) <= 0.05 && newReal > 0)) {
       status = 'SELESAI';
     } else if (newReal > 0 || (progress > 0 && progress < 100)) {
       status = 'PROSES';
     }
+
+    // Rumus Sisa: Luas - Real Tanam (Khusus PROSES bernilai positif sisa, SELESAI = 0)
+    const rawSisa = Number((newLuas - newReal).toFixed(2));
+    const sisa = status === 'SELESAI' ? 0 : Math.max(0, rawSisa);
 
     // Optimistic Update
     setData((prev) =>
@@ -432,6 +436,7 @@ export default function PlantingView({
         setTimeout(() => setToastMessage(null), 3000);
 
         fetchPlantingData();
+        onDataChanged?.();
       } else {
         alert(json.error || 'Gagal menyimpan perubahan.');
         fetchPlantingData();
@@ -1316,7 +1321,7 @@ export default function PlantingView({
                 <th
                   onClick={() => handleSort('sisa')}
                   className="py-3 px-4 text-center cursor-pointer hover:text-emerald-600 transition-colors whitespace-nowrap bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800"
-                  title="Urutkan Sisa (Rumus: Real Tanam - Luas)"
+                  title="Urutkan Sisa (Rumus: Luas - Real Tanam)"
                 >
                   <div className="inline-flex items-center justify-center gap-1">
                     <span>Sisa (Ha)</span>
@@ -1628,11 +1633,9 @@ export default function PlantingView({
                         {item.sisa !== null ? (
                           <span
                             className={`font-bold font-mono ${
-                              item.sisa < 0
+                              item.sisa > 0
                                 ? 'text-amber-600 dark:text-amber-400'
-                                : item.sisa === 0
-                                ? 'text-slate-500 dark:text-slate-400'
-                                : 'text-blue-600 dark:text-blue-400'
+                                : 'text-slate-500 dark:text-slate-400'
                             }`}
                           >
                             {item.sisa.toFixed(2)}
@@ -1832,7 +1835,10 @@ export default function PlantingView({
         isOpen={!!selectedItem}
         onClose={() => setSelectedItem(null)}
         lokasi={selectedItem?.lokasi || null}
-        onTransactionSaved={fetchPlantingData}
+        onTransactionSaved={() => {
+          fetchPlantingData();
+          onDataChanged?.();
+        }}
       />
     </div>
   );

@@ -154,7 +154,7 @@ function CardStockPopupTable({
       </div>
 
       {/* Tabel Pop-up: Header & Isi Kolom Ditengah */}
-      <div className="max-h-[220px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 rounded-lg border border-slate-200/70 dark:border-slate-800">
+      <div className="max-h-[220px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 rounded-none border border-slate-200/70 dark:border-slate-800">
         <table className="w-full text-xs border-collapse">
           <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800 text-[10px] uppercase font-bold text-slate-700 dark:text-slate-300 shadow-2xs">
             <tr>
@@ -1066,14 +1066,14 @@ export default function KpiCards({
                   REAL TANAM BULANAN
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 whitespace-nowrap shrink-0">
-                  {data.realisasiTanamMtdSummary?.periodLabel || '1 - 6 Okt 2026'}
+                  {data.realisasiTanamMtdSummary?.periodLabel || '1 - 13 Okt 2026'}
                 </span>
               </div>
 
               <div>
                 <div className="flex items-baseline gap-1">
                   <span className="text-2xl lg:text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
-                    {(data.realisasiTanamMtdSummary?.nilaiHa ?? 23.14).toLocaleString('id-ID', {
+                    {(data.realisasiTanamMtdSummary?.nilaiHa ?? 51.15).toLocaleString('id-ID', {
                       minimumFractionDigits: 1,
                       maximumFractionDigits: 2,
                     })}
@@ -1087,7 +1087,7 @@ export default function KpiCards({
                     <div
                       className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
                       style={{
-                        width: `${Math.min(100, data.realisasiTanamMtdSummary?.pencapaianPct ?? 17.8)}%`,
+                        width: `${Math.min(100, data.realisasiTanamMtdSummary?.pencapaianPct ?? 39.3)}%`,
                       }}
                     />
                   </div>
@@ -1105,7 +1105,7 @@ export default function KpiCards({
                     </strong>
                   </span>
                   <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                    Pencapaian: {data.realisasiTanamMtdSummary?.pencapaianPct ?? 6.3}%
+                    Pencapaian: {data.realisasiTanamMtdSummary?.pencapaianPct ?? 39.3}%
                   </span>
                 </div>
               </div>
@@ -1118,14 +1118,14 @@ export default function KpiCards({
                   PROSES TANAM
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 whitespace-nowrap shrink-0">
-                  {data.prosesTanamSummary?.prosesCount ?? data.stockStageCounts?.proses ?? 15} Lokasi
+                  {data.prosesTanamSummary?.prosesCount ?? 10} Lokasi
                 </span>
               </div>
 
               <div>
                 <div className="flex items-baseline gap-1">
                   <span className="text-2xl lg:text-3xl font-black tracking-tight text-amber-600 dark:text-amber-400">
-                    {(data.prosesTanamSummary?.prosesHa ?? 103.04).toLocaleString('id-ID', {
+                    {(data.prosesTanamSummary?.prosesHa ?? 22.24).toLocaleString('id-ID', {
                       minimumFractionDigits: 1,
                       maximumFractionDigits: 2,
                     })}
@@ -1140,7 +1140,7 @@ export default function KpiCards({
                   <span className="text-[11px] text-slate-500 dark:text-slate-400">
                     Selesai:{' '}
                     <strong className="font-semibold text-slate-700 dark:text-slate-300">
-                      {(data.prosesTanamSummary?.selesaiHa ?? 8746.79).toLocaleString('id-ID', {
+                      {(data.prosesTanamSummary?.selesaiHa ?? 2524.28).toLocaleString('id-ID', {
                         minimumFractionDigits: 1,
                         maximumFractionDigits: 1,
                       })}{' '}
@@ -1148,7 +1148,7 @@ export default function KpiCards({
                     </strong>
                   </span>
                   <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                    {data.prosesTanamSummary?.selesaiCount ?? data.stockStageCounts?.selesai ?? 1329} Selesai
+                    {data.prosesTanamSummary?.selesaiCount ?? 353} Selesai
                   </span>
                 </div>
               </div>

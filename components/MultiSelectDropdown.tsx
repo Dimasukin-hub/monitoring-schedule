@@ -22,6 +22,8 @@ export interface MultiSelectDropdownProps {
   className?: string;
   align?: 'left' | 'right';
   preserveOrder?: boolean;
+  neutralTrigger?: boolean;
+  hideHeaderNote?: boolean;
 }
 
 const MONTH_ORDER = [
@@ -59,6 +61,8 @@ export default function MultiSelectDropdown({
   className = '',
   align = 'left',
   preserveOrder = false,
+  neutralTrigger = false,
+  hideHeaderNote = false,
 }: MultiSelectDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -250,7 +254,9 @@ export default function MultiSelectDropdown({
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center justify-between gap-2 px-3 py-1.5 text-xs rounded-xl border transition-all cursor-pointer select-none font-medium shadow-2xs ${
           hasSelection
-            ? 'bg-emerald-50/90 dark:bg-emerald-950/80 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-semibold ring-1 ring-emerald-500/25'
+            ? neutralTrigger
+              ? 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 font-semibold'
+              : 'bg-emerald-50/90 dark:bg-emerald-950/80 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-semibold ring-1 ring-emerald-500/25'
             : 'bg-slate-50 dark:bg-slate-950/80 border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 hover:border-slate-400'
         }`}
         title={`Filter ${label}: ${hasSelection ? `${selected.length} dipilih` : 'Klik untuk memilih'}`}
@@ -259,14 +265,18 @@ export default function MultiSelectDropdown({
           <span className="font-semibold text-xs text-left truncate">
             {label}
           </span>
-          {hasSelection && (
+          {hasSelection && !neutralTrigger && (
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
           )}
         </div>
 
         <ChevronDown
           className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-150 shrink-0 ${
-            isOpen ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : ''
+            isOpen
+              ? neutralTrigger
+                ? 'rotate-180 text-slate-600 dark:text-slate-300'
+                : 'rotate-180 text-emerald-600 dark:text-emerald-400'
+              : ''
           }`}
         />
       </button>
@@ -281,21 +291,14 @@ export default function MultiSelectDropdown({
               ? 'w-[320px] sm:w-[480px] max-w-[94vw]'
               : isGrouped
               ? 'w-[340px] sm:w-[580px] md:w-[650px] max-w-[96vw]'
-              : filteredOptions.length <= 4
+              : label === 'Wilayah' || filteredOptions.length <= 8
+              ? 'w-[280px] sm:w-[320px] max-w-[92vw]'
+              : filteredOptions.length <= 12
               ? 'w-[320px] sm:w-[420px] max-w-[94vw]'
               : 'w-[340px] sm:w-[520px] md:w-[580px] max-w-[95vw]'
           } max-h-[min(520px,calc(100vh-80px))] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-3 text-xs animate-in fade-in zoom-in-95 duration-100 select-none ring-1 ring-black/5 dark:ring-white/10`}
         >
-          {/* Header Note for Bulan Tanam */}
-          {isMonthFilter && label === 'Bulan Tanam' && (
-            <div className="shrink-0 mb-2 px-2.5 py-1.5 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 text-[10px] text-emerald-800 dark:text-emerald-300 leading-snug">
-              <span className="font-bold inline-flex items-center gap-1 mr-1">
-                <Calendar className="w-3.5 h-3.5 text-emerald-600 inline" /> Filter Bulan & Tahun Tanam:
-              </span>
-              Rencana/Real <strong>Bongkar, Bajak, SN, dan Tanam</strong> di periode terpilih.
-            </div>
-          )}
-          {isMonthFilter && label === 'Bulan Aktivitas' && (
+          {isMonthFilter && label === 'Bulan Aktivitas' && !hideHeaderNote && (
             <div className="shrink-0 mb-2 px-2.5 py-1.5 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 text-[10px] text-emerald-800 dark:text-emerald-300 leading-snug">
               <span className="font-bold inline-flex items-center gap-1 mr-1">
                 <Calendar className="w-3.5 h-3.5 text-emerald-600 inline" /> Filter Bulan Aktivitas:
@@ -328,7 +331,7 @@ export default function MultiSelectDropdown({
           )}
 
           {/* Year Quick Filter for Month Filter */}
-          {isMonthFilter && availableYears.length > 1 && (
+          {isMonthFilter && availableYears.length >= 1 && (
             <div className="shrink-0 flex items-center gap-1 mb-2 pb-2 border-b border-slate-100 dark:border-slate-800 flex-wrap">
               <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 mr-0.5">Tahun:</span>
               <button
@@ -336,7 +339,9 @@ export default function MultiSelectDropdown({
                 onClick={() => setYearFilter('ALL')}
                 className={`px-1.5 py-0.5 rounded-md text-[10px] font-semibold transition-all cursor-pointer ${
                   yearFilter === 'ALL'
-                    ? 'bg-emerald-600 text-white shadow-2xs'
+                    ? neutralTrigger
+                      ? 'bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 shadow-2xs'
+                      : 'bg-emerald-600 text-white shadow-2xs'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
                 }`}
               >
@@ -349,7 +354,9 @@ export default function MultiSelectDropdown({
                   onClick={() => setYearFilter(yr)}
                   className={`px-1.5 py-0.5 rounded-md text-[10px] font-semibold transition-all cursor-pointer ${
                     yearFilter === yr
-                      ? 'bg-emerald-600 text-white shadow-2xs'
+                      ? neutralTrigger
+                        ? 'bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 shadow-2xs'
+                        : 'bg-emerald-600 text-white shadow-2xs'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
                   }`}
                 >
@@ -364,7 +371,11 @@ export default function MultiSelectDropdown({
             <button
               type="button"
               onClick={handleSelectAll}
-              className="text-emerald-600 dark:text-emerald-400 hover:underline font-semibold cursor-pointer"
+              className={`hover:underline font-semibold cursor-pointer ${
+                neutralTrigger
+                  ? 'text-slate-700 dark:text-slate-300'
+                  : 'text-emerald-600 dark:text-emerald-400'
+              }`}
             >
               Pilih Semua ({totalFilteredCount})
             </button>

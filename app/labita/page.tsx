@@ -13,6 +13,12 @@ import LandDetailModal from '@/components/LandDetailModal';
 import LandEditModal from '@/components/LandEditModal';
 import RerataBeroSection from '@/components/RerataBeroSection';
 import PlantingView from '@/components/PlantingView';
+import TanamBenchmarkChart from '@/components/TanamBenchmarkChart';
+import RealTanamKemarinTable from '@/components/RealTanamKemarinTable';
+import RealTanamBibitDonutChart from '@/components/RealTanamBibitDonutChart';
+import SebaranBibitBulanChart from '@/components/SebaranBibitBulanChart';
+import ListLokasiSelesaiTanamTable from '@/components/ListLokasiSelesaiTanamTable';
+import ListLokasiProsesTanamTable from '@/components/ListLokasiProsesTanamTable';
 import { useAuth } from '@/components/AuthProvider';
 
 export default function LabitaDashboardPage() {
@@ -253,6 +259,36 @@ export default function LabitaDashboardPage() {
                   availableWilayahs={summaryData?.availableWilayahs || []}
                   activeSubTab="tanam"
                 />
+
+                {/* Grid Berdampingan: Monitoring Tanam & Tabel Real Tanam Kemarin */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+                  <div className="lg:col-span-7">
+                    <TanamBenchmarkChart data={chartsData?.tanamBenchmark} />
+                  </div>
+                  <div className="lg:col-span-5">
+                    <RealTanamKemarinTable data={chartsData?.realTanamKemarin} />
+                  </div>
+                </div>
+
+                {/* Grid Berdampingan: Donat Real Tanam Bibit & Grafik Batang Sebaran Bibit / Bulan */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+                  <div className="lg:col-span-5">
+                    <RealTanamBibitDonutChart data={chartsData?.realTanamBibitDonut} />
+                  </div>
+                  <div className="lg:col-span-7">
+                    <SebaranBibitBulanChart data={chartsData?.sebaranBibitBulan} />
+                  </div>
+                </div>
+
+                {/* Grid Berdampingan: Tabel List Lokasi Selesai Tanam & Tabel List Lokasi Proses Tanam */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
+                  <ListLokasiSelesaiTanamTable
+                    data={chartsData?.listLokasiSelesaiTanam}
+                  />
+                  <ListLokasiProsesTanamTable
+                    data={chartsData?.listLokasiProsesTanam}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -306,6 +342,7 @@ export default function LabitaDashboardPage() {
               refreshTrigger={refreshLandTrigger}
               isAdmin={isAdmin}
               initialSearch={plantingSearchQuery}
+              onDataChanged={handleSilentDataChanged}
               onSearchChange={(q) => {
                 setPlantingSearchQuery(q);
                 if (typeof window !== 'undefined') {

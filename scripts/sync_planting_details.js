@@ -68,8 +68,8 @@ async function main() {
     if (!lokasi || lokasi === 'Lokasi' || lokasi === '-' || lokasi === '0') continue;
 
     const tglInfo = parseExcelDate(row[0]);
-    const awalInfo = parseExcelDate(row[11]);
-    const slsInfo = parseExcelDate(row[12]);
+    const awalInfo = parseExcelDate(row[12]);
+    const slsInfo = parseExcelDate(row[13]);
 
     records.push({
       lokasi,
@@ -82,13 +82,13 @@ async function main() {
       sedang: parseNum(row[6]),
       kecil: parseNum(row[7]),
       total: parseNum(row[8]),
-      jenisBibit: row[9] ? String(row[9]).trim() : null,
-      wilayah: row[10] ? String(row[10]).trim() : null,
+      jenisBibit: row[10] ? String(row[10]).trim() : null,
+      wilayah: row[11] ? String(row[11]).trim() : null,
       awalTanam: awalInfo.str,
       selesaiTanam: slsInfo.str,
-      akumTanam: parseNum(row[13]),
-      persenTanam: parseNum(row[14]),
-      petikKe: row[15] !== undefined && row[15] !== null ? String(row[15]).trim() : null,
+      akumTanam: parseNum(row[14]),
+      persenTanam: parseNum(row[15]),
+      petikKe: row[16] !== undefined && row[16] !== null ? String(row[16]).trim() : null,
       sourceFile: 'Monitor Siap Nanas Update.xlsx',
       sourceSheet: sheetName,
     });

@@ -2,9 +2,9 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function testMtd() {
-  // Start of current month (1 Okt 2026) to today (6 Okt 2026)
+  // Start of current month (1 Okt 2026) to today (13 Okt 2026)
   const startOfMonth = new Date(Date.UTC(2026, 9, 1, 0, 0, 0)); // 2026-10-01
-  const endOfToday = new Date(Date.UTC(2026, 9, 6, 23, 59, 59));  // 2026-10-06
+  const endOfToday = new Date(Date.UTC(2026, 9, 13, 23, 59, 59));  // 2026-10-13
 
   const tanamDetails = await prisma.plantingDetail.findMany({
     where: {
@@ -16,9 +16,9 @@ async function testMtd() {
     },
   });
 
-  console.log('Total planting detail records in Oct 1-6:', tanamDetails.length);
+  console.log('Total planting detail records in Oct 1-13:', tanamDetails.length);
   const totalMtdHa = tanamDetails.reduce((sum, item) => sum + (item.total || 0), 0);
-  console.log('Total MTD Ha from PlantingDetail (Oct 1-6):', Math.round(totalMtdHa * 100) / 100);
+  console.log('Total MTD Ha from PlantingDetail (Oct 1-13):', Math.round(totalMtdHa * 100) / 100);
 
   // Group by date
   const byDate = {};

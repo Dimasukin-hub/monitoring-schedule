@@ -5,6 +5,12 @@ import masterScheduleBaselinesJson from '@/lib/masterScheduleBaselines.json';
 import lands2026BaselinesJson from '@/lib/lands2026Baselines.json';
 import { parseDateVal, getEffectiveMonthYear } from '@/lib/stageStockCalculator';
 import { getCurrentMonthName } from '@/lib/stokLahanCalculator';
+import tanamBenchmarkJson from '@/lib/tanamBenchmark.json';
+import realTanamKemarinJson from '@/lib/realTanamKemarin.json';
+import realTanamBibitDonutJson from '@/lib/realTanamBibitDonut.json';
+import sebaranBibitBulanJson from '@/lib/sebaranBibitBulan.json';
+import listLokasiSelesaiTanamJson from '@/lib/listLokasiSelesaiTanam.json';
+import listLokasiProsesTanamJson from '@/lib/listLokasiProsesTanam.json';
 
 export async function GET(request: Request) {
   try {
@@ -825,6 +831,12 @@ export async function GET(request: Request) {
           realisasi: s.realisasi || 0,
           deviasi: s.deviasi || 0,
         })),
+        tanamBenchmark: tanamBenchmarkJson,
+        realTanamKemarin: realTanamKemarinJson,
+        realTanamBibitDonut: realTanamBibitDonutJson,
+        sebaranBibitBulan: sebaranBibitBulanJson,
+        listLokasiSelesaiTanam: listLokasiSelesaiTanamJson,
+        listLokasiProsesTanam: listLokasiProsesTanamJson,
       },
     });
   } catch (error: any) {

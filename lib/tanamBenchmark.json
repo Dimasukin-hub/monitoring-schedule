@@ -1,0 +1,123 @@
+{
+  "dataUpdate": "21/09/2026",
+  "unit": "Ha",
+  "months": [
+    "Jan-26",
+    "Feb-26",
+    "Mar-26",
+    "Apr-26",
+    "May-26",
+    "Jun-26",
+    "Jul-26",
+    "Aug-26",
+    "Sep-26",
+    "Oct-26",
+    "Nov-26",
+    "Dec-26"
+  ],
+  "series": [
+    {
+      "month": "Jan-26",
+      "budget": 114.7,
+      "rencana": 0,
+      "rf": 105.39,
+      "target": 110,
+      "real": 105.39
+    },
+    {
+      "month": "Feb-26",
+      "budget": 113.79,
+      "rencana": 74.7,
+      "rf": 33.74,
+      "target": 70,
+      "real": 33.74
+    },
+    {
+      "month": "Mar-26",
+      "budget": 83.55,
+      "rencana": 12.01,
+      "rf": 92.26,
+      "target": 80,
+      "real": 92.26
+    },
+    {
+      "month": "Apr-26",
+      "budget": 139.82,
+      "rencana": 107.05,
+      "rf": 91.23,
+      "target": 140,
+      "real": 91.23
+    },
+    {
+      "month": "May-26",
+      "budget": 129.74,
+      "rencana": 0,
+      "rf": 120.9,
+      "target": 150,
+      "real": 120.9
+    },
+    {
+      "month": "Jun-26",
+      "budget": 130.85,
+      "rencana": 147.97,
+      "rf": 170.35,
+      "target": 150,
+      "real": 170.35
+    },
+    {
+      "month": "Jul-26",
+      "budget": 123.74,
+      "rencana": 188.63,
+      "rf": 175.22,
+      "target": 150,
+      "real": 175.22
+    },
+    {
+      "month": "Aug-26",
+      "budget": 118.55,
+      "rencana": 214.81,
+      "rf": 140.7,
+      "target": 141,
+      "real": 140.2
+    },
+    {
+      "month": "Sep-26",
+      "budget": 100.05,
+      "rencana": 138.32,
+      "rf": 120,
+      "target": 120,
+      "real": 77.4
+    },
+    {
+      "month": "Oct-26",
+      "budget": 98.15,
+      "rencana": 144.46,
+      "rf": 130,
+      "target": 130,
+      "real": null
+    },
+    {
+      "month": "Nov-26",
+      "budget": 100.29,
+      "rencana": 240.55,
+      "rf": 120,
+      "target": 120,
+      "real": null
+    },
+    {
+      "month": "Dec-26",
+      "budget": 106.77,
+      "rencana": 91.07,
+      "rf": 101,
+      "target": 101,
+      "real": null
+    }
+  ],
+  "totals": {
+    "budget": 1360.0,
+    "rencana": 1359.6,
+    "rf": 1400.79,
+    "target": 1462.0,
+    "real": 1006.7
+  }
+}
