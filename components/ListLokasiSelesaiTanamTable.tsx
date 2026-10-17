@@ -11,7 +11,6 @@ import {
   XCircle,
 } from 'lucide-react';
 import MultiSelectDropdown from './MultiSelectDropdown';
-import listLokasiSelesaiTanamDefault from '@/lib/listLokasiSelesaiTanam.json';
 
 export interface SelesaiTanamItem {
   wilayah: string;
@@ -50,7 +49,7 @@ function extractMonthKey(dateStr: string | null | undefined): string | null {
 }
 
 export default function ListLokasiSelesaiTanamTable({
-  data = listLokasiSelesaiTanamDefault as SelesaiTanamItem[],
+  data = [],
   onSelectLand,
 }: ListLokasiSelesaiTanamTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -236,9 +235,15 @@ export default function ListLokasiSelesaiTanamTable({
               </th>
               <th
                 scope="col"
-                className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 px-3 py-2.5 text-center border-b border-r border-t first:border-l border-slate-300 dark:border-slate-700 shadow-2xs"
+                className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 px-3 py-2.5 text-center border-b border-r border-t first:border-l border-slate-300 dark:border-slate-700 shadow-2xs min-w-[170px]"
               >
                 Bibit
+              </th>
+              <th
+                scope="col"
+                className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 px-3 py-2.5 text-center border-b border-r border-t first:border-l border-slate-300 dark:border-slate-700 shadow-2xs w-24"
+              >
+                Luas (Ha)
               </th>
               <th
                 scope="col"
@@ -252,7 +257,7 @@ export default function ListLokasiSelesaiTanamTable({
             {paginatedData.length === 0 ? (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="px-3 py-8 text-center text-slate-400 border-b border-r first:border-l border-slate-300 dark:border-slate-700 italic bg-white dark:bg-slate-900"
                 >
                   Tidak ada data lokasi selesai tanam yang sesuai.
@@ -287,18 +292,25 @@ export default function ListLokasiSelesaiTanamTable({
                       </span>
                     </td>
 
-                    {/* Bibit (Bentuk dan Ukuran Kotak Disamakan) */}
+                    {/* Bibit (Bentuk dan Ukuran Kotak Disamakan, Lebih Lebar agar Teks Tidak Terpotong) */}
                     <td className="px-3 py-2 text-center border-b border-r first:border-l border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
                       <span
-                        className={`w-[125px] inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border ${
+                        className={`w-[160px] inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold border whitespace-nowrap shadow-2xs ${
                           isCrown
                             ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30'
                             : 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-500/30'
                         }`}
                       >
                         <Sprout className="w-3.5 h-3.5 shrink-0" />
-                        <span className="truncate">{row.bibit || '-'}</span>
+                        <span className="whitespace-nowrap">{row.bibit || '-'}</span>
                       </span>
+                    </td>
+
+                    {/* Luas (Ha) - Dari Data Lahan yang lokasinya sudah selesai tanam */}
+                    <td className="px-3 py-2 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400 border-b border-r first:border-l border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+                      {typeof row.luasHa === 'number'
+                        ? row.luasHa.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                        : (row.luasHa || '-')}
                     </td>
 
                     {/* Tanggal Selesai (Bentuk dan Ukuran Kotak Disamakan) */}

@@ -137,7 +137,7 @@ export default function LabitaDashboardPage() {
           data_lahan: 'Data Lahan',
         };
         const sub = subTitles[pengolahanSubTab];
-        return sub ? `Pengolahan Lahan Bibit Tanam • ${sub}` : 'Pengolahan Lahan Bibit Tanam';
+        return sub ? `Pengolahan Lahan • ${sub}` : 'Pengolahan Lahan';
       }
       case 'planting': {
         const subTitles: Record<string, string> = {

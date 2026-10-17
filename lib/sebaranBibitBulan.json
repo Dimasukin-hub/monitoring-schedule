@@ -3,16 +3,16 @@
     "monthKey": "Jan-26",
     "monthLabel": "Jan",
     "monthName": "Januari 2026",
-    "totalHa": 0,
-    "crownTotal": 0,
-    "suckerTotal": 0,
+    "totalHa": 105.41,
+    "crownTotal": 74.05,
+    "suckerTotal": 31.36,
     "crown_B": 0,
     "crown_S": 0,
-    "crown_K": 0,
+    "crown_K": 74.05,
     "crown_M": 0,
     "sucker_B": 0,
-    "sucker_S": 0,
-    "sucker_K": 0,
+    "sucker_S": 27.14,
+    "sucker_K": 4.22,
     "sucker_M": 0,
     "classes": {
       "crown_B": {
@@ -28,10 +28,99 @@
         "locationsCount": 0
       },
       "crown_K": {
-        "luasHa": 0,
-        "pct": 0,
-        "locations": [],
-        "locationsCount": 0
+        "luasHa": 74.05,
+        "pct": 70.2,
+        "locations": [
+          {
+            "lokasi": "083A",
+            "luasHa": 9.4
+          },
+          {
+            "lokasi": "003H",
+            "luasHa": 9.15
+          },
+          {
+            "lokasi": "012C",
+            "luasHa": 8.96
+          },
+          {
+            "lokasi": "092E2",
+            "luasHa": 7.37
+          },
+          {
+            "lokasi": "037D",
+            "luasHa": 6.95
+          },
+          {
+            "lokasi": "045F2",
+            "luasHa": 6.43
+          },
+          {
+            "lokasi": "092F",
+            "luasHa": 5.15
+          },
+          {
+            "lokasi": "023D",
+            "luasHa": 4.52
+          },
+          {
+            "lokasi": "024K",
+            "luasHa": 4.05
+          },
+          {
+            "lokasi": "007E1",
+            "luasHa": 3.94
+          },
+          {
+            "lokasi": "003I",
+            "luasHa": 3.63
+          },
+          {
+            "lokasi": "084E",
+            "luasHa": 1.52
+          },
+          {
+            "lokasi": "083D",
+            "luasHa": 1.48
+          },
+          {
+            "lokasi": "044A4",
+            "luasHa": 0.57
+          },
+          {
+            "lokasi": "057B1",
+            "luasHa": 0.35
+          },
+          {
+            "lokasi": "048B",
+            "luasHa": 0.14
+          },
+          {
+            "lokasi": "046B2",
+            "luasHa": 0.13
+          },
+          {
+            "lokasi": "045C3",
+            "luasHa": 0.08
+          },
+          {
+            "lokasi": "001D",
+            "luasHa": 0.08
+          },
+          {
+            "lokasi": "003C",
+            "luasHa": 0.06
+          },
+          {
+            "lokasi": "003B",
+            "luasHa": 0.05
+          },
+          {
+            "lokasi": "045C4",
+            "luasHa": 0.04
+          }
+        ],
+        "locationsCount": 22
       },
       "crown_M": {
         "luasHa": 0,
@@ -46,16 +135,66 @@
         "locationsCount": 0
       },
       "sucker_S": {
-        "luasHa": 0,
-        "pct": 0,
-        "locations": [],
-        "locationsCount": 0
+        "luasHa": 27.14,
+        "pct": 25.7,
+        "locations": [
+          {
+            "lokasi": "082B3",
+            "luasHa": 8.05
+          },
+          {
+            "lokasi": "001A",
+            "luasHa": 6.01
+          },
+          {
+            "lokasi": "038F1",
+            "luasHa": 3.83
+          },
+          {
+            "lokasi": "083A1",
+            "luasHa": 3.57
+          },
+          {
+            "lokasi": "002A1",
+            "luasHa": 2.47
+          },
+          {
+            "lokasi": "082B2",
+            "luasHa": 2.18
+          },
+          {
+            "lokasi": "083A",
+            "luasHa": 0.69
+          },
+          {
+            "lokasi": "097F",
+            "luasHa": 0.29
+          },
+          {
+            "lokasi": "007A2",
+            "luasHa": 0.05
+          }
+        ],
+        "locationsCount": 9
       },
       "sucker_K": {
-        "luasHa": 0,
-        "pct": 0,
-        "locations": [],
-        "locationsCount": 0
+        "luasHa": 4.22,
+        "pct": 4,
+        "locations": [
+          {
+            "lokasi": "037D",
+            "luasHa": 2.56
+          },
+          {
+            "lokasi": "007E1",
+            "luasHa": 1.18
+          },
+          {
+            "lokasi": "092F",
+            "luasHa": 0.48
+          }
+        ],
+        "locationsCount": 3
       },
       "sucker_M": {
         "luasHa": 0,
@@ -64,23 +203,174 @@
         "locationsCount": 0
       }
     },
-    "locations": [],
-    "locationsCount": 0
+    "locations": [
+      {
+        "lokasi": "083A",
+        "luasHa": 10.09,
+        "bibit": "Crown & Sucker"
+      },
+      {
+        "lokasi": "037D",
+        "luasHa": 9.51,
+        "bibit": "Sucker & Crown"
+      },
+      {
+        "lokasi": "003H",
+        "luasHa": 9.15,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "012C",
+        "luasHa": 8.96,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "082B3",
+        "luasHa": 8.05,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "092E2",
+        "luasHa": 7.37,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "045F2",
+        "luasHa": 6.43,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "001A",
+        "luasHa": 6.01,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "092F",
+        "luasHa": 5.63,
+        "bibit": "Crown & Sucker"
+      },
+      {
+        "lokasi": "007E1",
+        "luasHa": 5.12,
+        "bibit": "Crown & Sucker"
+      },
+      {
+        "lokasi": "023D",
+        "luasHa": 4.52,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "024K",
+        "luasHa": 4.05,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "038F1",
+        "luasHa": 3.83,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "003I",
+        "luasHa": 3.63,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "083A1",
+        "luasHa": 3.57,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "002A1",
+        "luasHa": 2.47,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "082B2",
+        "luasHa": 2.18,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "084E",
+        "luasHa": 1.52,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "083D",
+        "luasHa": 1.48,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "044A4",
+        "luasHa": 0.57,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "057B1",
+        "luasHa": 0.35,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "097F",
+        "luasHa": 0.29,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "048B",
+        "luasHa": 0.14,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "046B2",
+        "luasHa": 0.13,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "045C3",
+        "luasHa": 0.08,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "001D",
+        "luasHa": 0.08,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "003C",
+        "luasHa": 0.06,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "007A2",
+        "luasHa": 0.05,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "003B",
+        "luasHa": 0.05,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "045C4",
+        "luasHa": 0.04,
+        "bibit": "Crown"
+      }
+    ],
+    "locationsCount": 30
   },
   {
     "monthKey": "Feb-26",
     "monthLabel": "Feb",
     "monthName": "Februari 2026",
-    "totalHa": 0,
-    "crownTotal": 0,
-    "suckerTotal": 0,
+    "totalHa": 33.74,
+    "crownTotal": 27.92,
+    "suckerTotal": 5.82,
     "crown_B": 0,
     "crown_S": 0,
-    "crown_K": 0,
+    "crown_K": 27.92,
     "crown_M": 0,
     "sucker_B": 0,
-    "sucker_S": 0,
-    "sucker_K": 0,
+    "sucker_S": 5.71,
+    "sucker_K": 0.11,
     "sucker_M": 0,
     "classes": {
       "crown_B": {
@@ -96,10 +386,55 @@
         "locationsCount": 0
       },
       "crown_K": {
-        "luasHa": 0,
-        "pct": 0,
-        "locations": [],
-        "locationsCount": 0
+        "luasHa": 27.92,
+        "pct": 82.8,
+        "locations": [
+          {
+            "lokasi": "083D",
+            "luasHa": 7.04
+          },
+          {
+            "lokasi": "002C",
+            "luasHa": 6.75
+          },
+          {
+            "lokasi": "042D2",
+            "luasHa": 6.15
+          },
+          {
+            "lokasi": "003I",
+            "luasHa": 3.55
+          },
+          {
+            "lokasi": "048K",
+            "luasHa": 3.44
+          },
+          {
+            "lokasi": "083A",
+            "luasHa": 0.36
+          },
+          {
+            "lokasi": "007E1",
+            "luasHa": 0.24
+          },
+          {
+            "lokasi": "024K",
+            "luasHa": 0.23
+          },
+          {
+            "lokasi": "003H",
+            "luasHa": 0.07
+          },
+          {
+            "lokasi": "092E2",
+            "luasHa": 0.06
+          },
+          {
+            "lokasi": "012C",
+            "luasHa": 0.03
+          }
+        ],
+        "locationsCount": 11
       },
       "crown_M": {
         "luasHa": 0,
@@ -114,16 +449,50 @@
         "locationsCount": 0
       },
       "sucker_S": {
-        "luasHa": 0,
-        "pct": 0,
-        "locations": [],
-        "locationsCount": 0
+        "luasHa": 5.71,
+        "pct": 16.9,
+        "locations": [
+          {
+            "lokasi": "020F2",
+            "luasHa": 1.77
+          },
+          {
+            "lokasi": "083D",
+            "luasHa": 1.51
+          },
+          {
+            "lokasi": "020F1",
+            "luasHa": 1.5
+          },
+          {
+            "lokasi": "001B1",
+            "luasHa": 0.4
+          },
+          {
+            "lokasi": "083A",
+            "luasHa": 0.38
+          },
+          {
+            "lokasi": "001A",
+            "luasHa": 0.11
+          },
+          {
+            "lokasi": "038F1",
+            "luasHa": 0.04
+          }
+        ],
+        "locationsCount": 7
       },
       "sucker_K": {
-        "luasHa": 0,
-        "pct": 0,
-        "locations": [],
-        "locationsCount": 0
+        "luasHa": 0.11,
+        "pct": 0.3,
+        "locations": [
+          {
+            "lokasi": "007E1",
+            "luasHa": 0.11
+          }
+        ],
+        "locationsCount": 1
       },
       "sucker_M": {
         "luasHa": 0,
@@ -132,22 +501,103 @@
         "locationsCount": 0
       }
     },
-    "locations": [],
-    "locationsCount": 0
+    "locations": [
+      {
+        "lokasi": "083D",
+        "luasHa": 8.55,
+        "bibit": "Crown & Sucker"
+      },
+      {
+        "lokasi": "002C",
+        "luasHa": 6.75,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "042D2",
+        "luasHa": 6.15,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "003I",
+        "luasHa": 3.55,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "048K",
+        "luasHa": 3.44,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "020F2",
+        "luasHa": 1.77,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "020F1",
+        "luasHa": 1.5,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "083A",
+        "luasHa": 0.74,
+        "bibit": "Crown & Sucker"
+      },
+      {
+        "lokasi": "001B1",
+        "luasHa": 0.4,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "007E1",
+        "luasHa": 0.35,
+        "bibit": "Crown & Sucker"
+      },
+      {
+        "lokasi": "024K",
+        "luasHa": 0.23,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "001A",
+        "luasHa": 0.11,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "003H",
+        "luasHa": 0.07,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "092E2",
+        "luasHa": 0.06,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "038F1",
+        "luasHa": 0.04,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "012C",
+        "luasHa": 0.03,
+        "bibit": "Crown"
+      }
+    ],
+    "locationsCount": 16
   },
   {
     "monthKey": "Mar-26",
     "monthLabel": "Mar",
     "monthName": "Maret 2026",
-    "totalHa": 0,
-    "crownTotal": 0,
-    "suckerTotal": 0,
+    "totalHa": 92.26,
+    "crownTotal": 66.27,
+    "suckerTotal": 25.99,
     "crown_B": 0,
     "crown_S": 0,
-    "crown_K": 0,
-    "crown_M": 0,
-    "sucker_B": 0,
-    "sucker_S": 0,
+    "crown_K": 54.27,
+    "crown_M": 12.01,
+    "sucker_B": 7.24,
+    "sucker_S": 18.75,
     "sucker_K": 0,
     "sucker_M": 0,
     "classes": {
@@ -164,28 +614,120 @@
         "locationsCount": 0
       },
       "crown_K": {
-        "luasHa": 0,
-        "pct": 0,
-        "locations": [],
-        "locationsCount": 0
+        "luasHa": 54.27,
+        "pct": 58.8,
+        "locations": [
+          {
+            "lokasi": "048F",
+            "luasHa": 8.87
+          },
+          {
+            "lokasi": "076J",
+            "luasHa": 8.28
+          },
+          {
+            "lokasi": "008F",
+            "luasHa": 8.13
+          },
+          {
+            "lokasi": "088D2",
+            "luasHa": 6.6
+          },
+          {
+            "lokasi": "088D3",
+            "luasHa": 6.25
+          },
+          {
+            "lokasi": "030H",
+            "luasHa": 4.24
+          },
+          {
+            "lokasi": "030E",
+            "luasHa": 3.47
+          },
+          {
+            "lokasi": "048K",
+            "luasHa": 3.03
+          },
+          {
+            "lokasi": "023B",
+            "luasHa": 2.88
+          },
+          {
+            "lokasi": "049F",
+            "luasHa": 2.42
+          },
+          {
+            "lokasi": "023C",
+            "luasHa": 0.09
+          }
+        ],
+        "locationsCount": 11
       },
       "crown_M": {
-        "luasHa": 0,
-        "pct": 0,
-        "locations": [],
-        "locationsCount": 0
+        "luasHa": 12.01,
+        "pct": 13,
+        "locations": [
+          {
+            "lokasi": "023C",
+            "luasHa": 7.13
+          },
+          {
+            "lokasi": "048I",
+            "luasHa": 4.88
+          }
+        ],
+        "locationsCount": 2
       },
       "sucker_B": {
-        "luasHa": 0,
-        "pct": 0,
-        "locations": [],
-        "locationsCount": 0
+        "luasHa": 7.24,
+        "pct": 7.8,
+        "locations": [
+          {
+            "lokasi": "042F3",
+            "luasHa": 5.34
+          },
+          {
+            "lokasi": "061C3",
+            "luasHa": 1.9
+          }
+        ],
+        "locationsCount": 2
       },
       "sucker_S": {
-        "luasHa": 0,
-        "pct": 0,
-        "locations": [],
-        "locationsCount": 0
+        "luasHa": 18.75,
+        "pct": 20.3,
+        "locations": [
+          {
+            "lokasi": "001B1",
+            "luasHa": 6.07
+          },
+          {
+            "lokasi": "061C4",
+            "luasHa": 4.78
+          },
+          {
+            "lokasi": "061C5",
+            "luasHa": 2.79
+          },
+          {
+            "lokasi": "008F",
+            "luasHa": 1.97
+          },
+          {
+            "lokasi": "020F1",
+            "luasHa": 1.88
+          },
+          {
+            "lokasi": "020F2",
+            "luasHa": 0.71
+          },
+          {
+            "lokasi": "042F3",
+            "luasHa": 0.55
+          }
+        ],
+        "locationsCount": 7
       },
       "sucker_K": {
         "luasHa": 0,
@@ -200,23 +742,119 @@
         "locationsCount": 0
       }
     },
-    "locations": [],
-    "locationsCount": 0
+    "locations": [
+      {
+        "lokasi": "008F",
+        "luasHa": 10.1,
+        "bibit": "Crown & Sucker"
+      },
+      {
+        "lokasi": "048F",
+        "luasHa": 8.87,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "076J",
+        "luasHa": 8.28,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "023C",
+        "luasHa": 7.22,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "088D2",
+        "luasHa": 6.6,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "088D3",
+        "luasHa": 6.25,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "001B1",
+        "luasHa": 6.07,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "042F3",
+        "luasHa": 5.89,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "048I",
+        "luasHa": 4.88,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "061C4",
+        "luasHa": 4.78,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "030H",
+        "luasHa": 4.24,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "030E",
+        "luasHa": 3.47,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "048K",
+        "luasHa": 3.03,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "023B",
+        "luasHa": 2.88,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "061C5",
+        "luasHa": 2.79,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "049F",
+        "luasHa": 2.42,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "061C3",
+        "luasHa": 1.9,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "020F1",
+        "luasHa": 1.88,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "020F2",
+        "luasHa": 0.71,
+        "bibit": "Sucker"
+      }
+    ],
+    "locationsCount": 19
   },
   {
     "monthKey": "Apr-26",
     "monthLabel": "Apr",
     "monthName": "April 2026",
-    "totalHa": 0,
-    "crownTotal": 0,
-    "suckerTotal": 0,
+    "totalHa": 91.24,
+    "crownTotal": 50.28,
+    "suckerTotal": 40.95,
     "crown_B": 0,
     "crown_S": 0,
-    "crown_K": 0,
-    "crown_M": 0,
-    "sucker_B": 0,
-    "sucker_S": 0,
-    "sucker_K": 0,
+    "crown_K": 35.22,
+    "crown_M": 15.06,
+    "sucker_B": 10.9,
+    "sucker_S": 27.65,
+    "sucker_K": 2.4,
     "sucker_M": 0,
     "classes": {
       "crown_B": {
@@ -232,34 +870,203 @@
         "locationsCount": 0
       },
       "crown_K": {
-        "luasHa": 0,
-        "pct": 0,
-        "locations": [],
-        "locationsCount": 0
+        "luasHa": 35.22,
+        "pct": 38.6,
+        "locations": [
+          {
+            "lokasi": "075F",
+            "luasHa": 9.45
+          },
+          {
+            "lokasi": "049F",
+            "luasHa": 5.5
+          },
+          {
+            "lokasi": "017B1",
+            "luasHa": 5.12
+          },
+          {
+            "lokasi": "096G5",
+            "luasHa": 4.89
+          },
+          {
+            "lokasi": "008A",
+            "luasHa": 4.49
+          },
+          {
+            "lokasi": "082J4",
+            "luasHa": 2.97
+          },
+          {
+            "lokasi": "023C",
+            "luasHa": 0.67
+          },
+          {
+            "lokasi": "079I",
+            "luasHa": 0.57
+          },
+          {
+            "lokasi": "048F",
+            "luasHa": 0.53
+          },
+          {
+            "lokasi": "030E",
+            "luasHa": 0.38
+          },
+          {
+            "lokasi": "030H",
+            "luasHa": 0.35
+          },
+          {
+            "lokasi": "088D2",
+            "luasHa": 0.14
+          },
+          {
+            "lokasi": "048K",
+            "luasHa": 0.07
+          },
+          {
+            "lokasi": "076J",
+            "luasHa": 0.05
+          },
+          {
+            "lokasi": "088D3",
+            "luasHa": 0.04
+          }
+        ],
+        "locationsCount": 15
       },
       "crown_M": {
-        "luasHa": 0,
-        "pct": 0,
-        "locations": [],
-        "locationsCount": 0
+        "luasHa": 15.06,
+        "pct": 16.5,
+        "locations": [
+          {
+            "lokasi": "079I",
+            "luasHa": 8.67
+          },
+          {
+            "lokasi": "082J5",
+            "luasHa": 2.8
+          },
+          {
+            "lokasi": "048I",
+            "luasHa": 2.17
+          },
+          {
+            "lokasi": "100C",
+            "luasHa": 1.4
+          },
+          {
+            "lokasi": "023C",
+            "luasHa": 0.02
+          }
+        ],
+        "locationsCount": 5
       },
       "sucker_B": {
-        "luasHa": 0,
-        "pct": 0,
-        "locations": [],
-        "locationsCount": 0
+        "luasHa": 10.9,
+        "pct": 11.9,
+        "locations": [
+          {
+            "lokasi": "065B4",
+            "luasHa": 5.69
+          },
+          {
+            "lokasi": "044A2",
+            "luasHa": 1.89
+          },
+          {
+            "lokasi": "042F3",
+            "luasHa": 1.43
+          },
+          {
+            "lokasi": "065A3",
+            "luasHa": 0.86
+          },
+          {
+            "lokasi": "061C3",
+            "luasHa": 0.47
+          },
+          {
+            "lokasi": "069A",
+            "luasHa": 0.27
+          },
+          {
+            "lokasi": "001B1",
+            "luasHa": 0.17
+          },
+          {
+            "lokasi": "082C",
+            "luasHa": 0.12
+          }
+        ],
+        "locationsCount": 8
       },
       "sucker_S": {
-        "luasHa": 0,
-        "pct": 0,
-        "locations": [],
-        "locationsCount": 0
+        "luasHa": 27.65,
+        "pct": 30.3,
+        "locations": [
+          {
+            "lokasi": "065D2",
+            "luasHa": 8.19
+          },
+          {
+            "lokasi": "044A2",
+            "luasHa": 6.74
+          },
+          {
+            "lokasi": "023B",
+            "luasHa": 2.97
+          },
+          {
+            "lokasi": "065A5",
+            "luasHa": 2.88
+          },
+          {
+            "lokasi": "082C",
+            "luasHa": 2.86
+          },
+          {
+            "lokasi": "061C4",
+            "luasHa": 1.09
+          },
+          {
+            "lokasi": "082J4",
+            "luasHa": 0.77
+          },
+          {
+            "lokasi": "007E1",
+            "luasHa": 0.62
+          },
+          {
+            "lokasi": "017B1",
+            "luasHa": 0.59
+          },
+          {
+            "lokasi": "001B1",
+            "luasHa": 0.49
+          },
+          {
+            "lokasi": "061C5",
+            "luasHa": 0.32
+          },
+          {
+            "lokasi": "008F",
+            "luasHa": 0.13
+          }
+        ],
+        "locationsCount": 12
       },
       "sucker_K": {
-        "luasHa": 0,
-        "pct": 0,
-        "locations": [],
-        "locationsCount": 0
+        "luasHa": 2.4,
+        "pct": 2.6,
+        "locations": [
+          {
+            "lokasi": "008A",
+            "luasHa": 2.4
+          }
+        ],
+        "locationsCount": 1
       },
       "sucker_M": {
         "luasHa": 0,
@@ -268,23 +1075,189 @@
         "locationsCount": 0
       }
     },
-    "locations": [],
-    "locationsCount": 0
+    "locations": [
+      {
+        "lokasi": "075F",
+        "luasHa": 9.45,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "079I",
+        "luasHa": 9.24,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "044A2",
+        "luasHa": 8.63,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "065D2",
+        "luasHa": 8.19,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "008A",
+        "luasHa": 6.89,
+        "bibit": "Crown & Sucker"
+      },
+      {
+        "lokasi": "017B1",
+        "luasHa": 5.71,
+        "bibit": "Crown & Sucker"
+      },
+      {
+        "lokasi": "065B4",
+        "luasHa": 5.69,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "049F",
+        "luasHa": 5.5,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "096G5",
+        "luasHa": 4.89,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "082J4",
+        "luasHa": 3.74,
+        "bibit": "Crown & Sucker"
+      },
+      {
+        "lokasi": "082C",
+        "luasHa": 2.98,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "023B",
+        "luasHa": 2.97,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "065A5",
+        "luasHa": 2.88,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "082J5",
+        "luasHa": 2.8,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "048I",
+        "luasHa": 2.17,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "042F3",
+        "luasHa": 1.43,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "100C",
+        "luasHa": 1.4,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "061C4",
+        "luasHa": 1.09,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "065A3",
+        "luasHa": 0.86,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "023C",
+        "luasHa": 0.69,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "001B1",
+        "luasHa": 0.66,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "007E1",
+        "luasHa": 0.62,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "048F",
+        "luasHa": 0.53,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "061C3",
+        "luasHa": 0.47,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "030E",
+        "luasHa": 0.38,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "030H",
+        "luasHa": 0.35,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "061C5",
+        "luasHa": 0.32,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "069A",
+        "luasHa": 0.27,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "088D2",
+        "luasHa": 0.14,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "008F",
+        "luasHa": 0.13,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "048K",
+        "luasHa": 0.07,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "076J",
+        "luasHa": 0.05,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "088D3",
+        "luasHa": 0.04,
+        "bibit": "Crown"
+      }
+    ],
+    "locationsCount": 33
   },
   {
     "monthKey": "Mei-26",
     "monthLabel": "Mei",
     "monthName": "Mei 2026",
-    "totalHa": 0,
-    "crownTotal": 0,
-    "suckerTotal": 0,
+    "totalHa": 120.9,
+    "crownTotal": 80.33,
+    "suckerTotal": 40.57,
     "crown_B": 0,
     "crown_S": 0,
-    "crown_K": 0,
-    "crown_M": 0,
-    "sucker_B": 0,
-    "sucker_S": 0,
-    "sucker_K": 0,
+    "crown_K": 56.27,
+    "crown_M": 24.06,
+    "sucker_B": 7.28,
+    "sucker_S": 28.45,
+    "sucker_K": 4.84,
     "sucker_M": 0,
     "classes": {
       "crown_B": {
@@ -300,34 +1273,207 @@
         "locationsCount": 0
       },
       "crown_K": {
-        "luasHa": 0,
-        "pct": 0,
-        "locations": [],
-        "locationsCount": 0
+        "luasHa": 56.27,
+        "pct": 46.5,
+        "locations": [
+          {
+            "lokasi": "097B",
+            "luasHa": 8.75
+          },
+          {
+            "lokasi": "049E",
+            "luasHa": 8.47
+          },
+          {
+            "lokasi": "007F4",
+            "luasHa": 6.78
+          },
+          {
+            "lokasi": "044A3",
+            "luasHa": 6.02
+          },
+          {
+            "lokasi": "084H",
+            "luasHa": 4.9
+          },
+          {
+            "lokasi": "004E",
+            "luasHa": 4.31
+          },
+          {
+            "lokasi": "089C",
+            "luasHa": 4.29
+          },
+          {
+            "lokasi": "004D",
+            "luasHa": 4.01
+          },
+          {
+            "lokasi": "072C",
+            "luasHa": 2.37
+          },
+          {
+            "lokasi": "018A",
+            "luasHa": 2
+          },
+          {
+            "lokasi": "050B2B",
+            "luasHa": 1.92
+          },
+          {
+            "lokasi": "017B1",
+            "luasHa": 0.78
+          },
+          {
+            "lokasi": "082J4",
+            "luasHa": 0.62
+          },
+          {
+            "lokasi": "096G5",
+            "luasHa": 0.6
+          },
+          {
+            "lokasi": "075F",
+            "luasHa": 0.44
+          },
+          {
+            "lokasi": "049F",
+            "luasHa": 0.01
+          }
+        ],
+        "locationsCount": 16
       },
       "crown_M": {
-        "luasHa": 0,
-        "pct": 0,
-        "locations": [],
-        "locationsCount": 0
+        "luasHa": 24.06,
+        "pct": 19.9,
+        "locations": [
+          {
+            "lokasi": "042F1",
+            "luasHa": 9.09
+          },
+          {
+            "lokasi": "100C",
+            "luasHa": 5.41
+          },
+          {
+            "lokasi": "007F5",
+            "luasHa": 4.4
+          },
+          {
+            "lokasi": "082J5",
+            "luasHa": 3.7
+          },
+          {
+            "lokasi": "079I",
+            "luasHa": 1.46
+          }
+        ],
+        "locationsCount": 5
       },
       "sucker_B": {
-        "luasHa": 0,
-        "pct": 0,
-        "locations": [],
-        "locationsCount": 0
+        "luasHa": 7.28,
+        "pct": 6,
+        "locations": [
+          {
+            "lokasi": "069A",
+            "luasHa": 2.56
+          },
+          {
+            "lokasi": "017A",
+            "luasHa": 1.02
+          },
+          {
+            "lokasi": "034C",
+            "luasHa": 0.89
+          },
+          {
+            "lokasi": "080A1",
+            "luasHa": 0.71
+          },
+          {
+            "lokasi": "082C",
+            "luasHa": 0.68
+          },
+          {
+            "lokasi": "042F3",
+            "luasHa": 0.58
+          },
+          {
+            "lokasi": "065A3",
+            "luasHa": 0.56
+          },
+          {
+            "lokasi": "082G",
+            "luasHa": 0.26
+          },
+          {
+            "lokasi": "044A2",
+            "luasHa": 0.02
+          }
+        ],
+        "locationsCount": 9
       },
       "sucker_S": {
-        "luasHa": 0,
-        "pct": 0,
-        "locations": [],
-        "locationsCount": 0
+        "luasHa": 28.45,
+        "pct": 23.5,
+        "locations": [
+          {
+            "lokasi": "034C",
+            "luasHa": 7.18
+          },
+          {
+            "lokasi": "069A",
+            "luasHa": 7.01
+          },
+          {
+            "lokasi": "017A",
+            "luasHa": 4.8
+          },
+          {
+            "lokasi": "080A1",
+            "luasHa": 2.99
+          },
+          {
+            "lokasi": "082G",
+            "luasHa": 2.67
+          },
+          {
+            "lokasi": "082C",
+            "luasHa": 2.1
+          },
+          {
+            "lokasi": "082J4",
+            "luasHa": 0.57
+          },
+          {
+            "lokasi": "065A5",
+            "luasHa": 0.51
+          },
+          {
+            "lokasi": "017B1",
+            "luasHa": 0.44
+          },
+          {
+            "lokasi": "065D2",
+            "luasHa": 0.18
+          }
+        ],
+        "locationsCount": 10
       },
       "sucker_K": {
-        "luasHa": 0,
-        "pct": 0,
-        "locations": [],
-        "locationsCount": 0
+        "luasHa": 4.84,
+        "pct": 4,
+        "locations": [
+          {
+            "lokasi": "100C",
+            "luasHa": 4.66
+          },
+          {
+            "lokasi": "008A",
+            "luasHa": 0.18
+          }
+        ],
+        "locationsCount": 2
       },
       "sucker_M": {
         "luasHa": 0,
@@ -336,23 +1482,189 @@
         "locationsCount": 0
       }
     },
-    "locations": [],
-    "locationsCount": 0
+    "locations": [
+      {
+        "lokasi": "100C",
+        "luasHa": 10.07,
+        "bibit": "Crown & Sucker"
+      },
+      {
+        "lokasi": "069A",
+        "luasHa": 9.57,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "042F1",
+        "luasHa": 9.09,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "097B",
+        "luasHa": 8.75,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "049E",
+        "luasHa": 8.47,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "034C",
+        "luasHa": 8.07,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "007F4",
+        "luasHa": 6.78,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "044A3",
+        "luasHa": 6.02,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "017A",
+        "luasHa": 5.82,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "084H",
+        "luasHa": 4.9,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "007F5",
+        "luasHa": 4.4,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "004E",
+        "luasHa": 4.31,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "089C",
+        "luasHa": 4.29,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "004D",
+        "luasHa": 4.01,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "082J5",
+        "luasHa": 3.7,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "080A1",
+        "luasHa": 3.7,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "082G",
+        "luasHa": 2.93,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "082C",
+        "luasHa": 2.78,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "072C",
+        "luasHa": 2.37,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "018A",
+        "luasHa": 2,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "050B2B",
+        "luasHa": 1.92,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "079I",
+        "luasHa": 1.46,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "017B1",
+        "luasHa": 1.22,
+        "bibit": "Crown & Sucker"
+      },
+      {
+        "lokasi": "082J4",
+        "luasHa": 1.19,
+        "bibit": "Crown & Sucker"
+      },
+      {
+        "lokasi": "096G5",
+        "luasHa": 0.6,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "042F3",
+        "luasHa": 0.58,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "065A3",
+        "luasHa": 0.56,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "065A5",
+        "luasHa": 0.51,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "075F",
+        "luasHa": 0.44,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "065D2",
+        "luasHa": 0.18,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "008A",
+        "luasHa": 0.18,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "044A2",
+        "luasHa": 0.02,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "049F",
+        "luasHa": 0.01,
+        "bibit": "Crown"
+      }
+    ],
+    "locationsCount": 33
   },
   {
     "monthKey": "Jun-26",
     "monthLabel": "Jun",
     "monthName": "Juni 2026",
-    "totalHa": 108.75,
-    "crownTotal": 96.28,
-    "suckerTotal": 12.47,
+    "totalHa": 170.35,
+    "crownTotal": 144.44,
+    "suckerTotal": 25.91,
     "crown_B": 0,
-    "crown_S": 0.06,
-    "crown_K": 96.22,
-    "crown_M": 0,
-    "sucker_B": 1.76,
-    "sucker_S": 9.38,
-    "sucker_K": 1.33,
+    "crown_S": 0,
+    "crown_K": 134.73,
+    "crown_M": 9.71,
+    "sucker_B": 1.32,
+    "sucker_S": 17.91,
+    "sucker_K": 6.68,
     "sucker_M": 0,
     "classes": {
       "crown_B": {
@@ -362,20 +1674,23 @@
         "locationsCount": 0
       },
       "crown_S": {
-        "luasHa": 0.06,
-        "pct": 0.1,
-        "locations": [
-          {
-            "lokasi": "082C",
-            "luasHa": 0.06
-          }
-        ],
-        "locationsCount": 1
+        "luasHa": 0,
+        "pct": 0,
+        "locations": [],
+        "locationsCount": 0
       },
       "crown_K": {
-        "luasHa": 96.22,
-        "pct": 88.5,
+        "luasHa": 134.73,
+        "pct": 79.1,
         "locations": [
+          {
+            "lokasi": "089C",
+            "luasHa": 9.71
+          },
+          {
+            "lokasi": "086D",
+            "luasHa": 7.76
+          },
           {
             "lokasi": "025A",
             "luasHa": 7.53
@@ -385,36 +1700,52 @@
             "luasHa": 7.5
           },
           {
+            "lokasi": "098A1",
+            "luasHa": 7.44
+          },
+          {
             "lokasi": "085E",
             "luasHa": 7.35
+          },
+          {
+            "lokasi": "054B1",
+            "luasHa": 7.32
           },
           {
             "lokasi": "025C",
             "luasHa": 7.29
           },
           {
-            "lokasi": "069C6",
-            "luasHa": 7.28
-          },
-          {
             "lokasi": "029A3",
             "luasHa": 7.24
           },
           {
-            "lokasi": "054B1",
-            "luasHa": 7.2
+            "lokasi": "097H",
+            "luasHa": 7.08
+          },
+          {
+            "lokasi": "069C6",
+            "luasHa": 7.05
           },
           {
             "lokasi": "098C",
             "luasHa": 6.57
           },
           {
-            "lokasi": "097H",
-            "luasHa": 5.57
+            "lokasi": "072C",
+            "luasHa": 5.37
           },
           {
             "lokasi": "078L",
             "luasHa": 4.94
+          },
+          {
+            "lokasi": "054A",
+            "luasHa": 4.89
+          },
+          {
+            "lokasi": "050B2B",
+            "luasHa": 4.53
           },
           {
             "lokasi": "029A2",
@@ -438,95 +1769,92 @@
           },
           {
             "lokasi": "089A",
-            "luasHa": 1.24
+            "luasHa": 2.49
+          },
+          {
+            "lokasi": "044A3",
+            "luasHa": 1.25
           },
           {
             "lokasi": "014D",
             "luasHa": 1.16
           },
           {
-            "lokasi": "089C",
-            "luasHa": 1.11
+            "lokasi": "007F4",
+            "luasHa": 0.99
+          },
+          {
+            "lokasi": "097B",
+            "luasHa": 0.94
+          },
+          {
+            "lokasi": "004E",
+            "luasHa": 0.29
+          },
+          {
+            "lokasi": "084H",
+            "luasHa": 0.05
+          },
+          {
+            "lokasi": "004D",
+            "luasHa": 0.04
+          },
+          {
+            "lokasi": "049E",
+            "luasHa": 0.03
+          },
+          {
+            "lokasi": "018A",
+            "luasHa": 0.02
+          }
+        ],
+        "locationsCount": 31
+      },
+      "crown_M": {
+        "luasHa": 9.71,
+        "pct": 5.7,
+        "locations": [
+          {
+            "lokasi": "067B",
+            "luasHa": 7.51
           },
           {
             "lokasi": "082J5",
             "luasHa": 1.03
           },
           {
-            "lokasi": "054A",
-            "luasHa": 0.98
-          },
-          {
-            "lokasi": "086D",
-            "luasHa": 0.86
-          },
-          {
-            "lokasi": "050B2B",
+            "lokasi": "007F5",
             "luasHa": 0.84
           },
           {
-            "lokasi": "067B",
-            "luasHa": 0.61
-          },
-          {
-            "lokasi": "072C",
-            "luasHa": 0.57
-          },
-          {
-            "lokasi": "007F5",
-            "luasHa": 0.38
-          },
-          {
-            "lokasi": "044A3",
-            "luasHa": 0.31
-          },
-          {
-            "lokasi": "007F4",
-            "luasHa": 0.28
-          },
-          {
-            "lokasi": "082J4",
-            "luasHa": 0.24
-          },
-          {
-            "lokasi": "098A1",
-            "luasHa": 0.2
-          },
-          {
-            "lokasi": "004D",
-            "luasHa": 0.04
+            "lokasi": "042F1",
+            "luasHa": 0.33
           }
         ],
-        "locationsCount": 30
-      },
-      "crown_M": {
-        "luasHa": 0,
-        "pct": 0,
-        "locations": [],
-        "locationsCount": 0
+        "locationsCount": 4
       },
       "sucker_B": {
-        "luasHa": 1.76,
-        "pct": 1.6,
+        "luasHa": 1.32,
+        "pct": 0.8,
         "locations": [
           {
-            "lokasi": "065B5",
-            "luasHa": 0.87
-          },
-          {
             "lokasi": "082G",
-            "luasHa": 0.61
+            "luasHa": 0.68
           },
           {
             "lokasi": "017A",
-            "luasHa": 0.15
+            "luasHa": 0.38
+          },
+          {
+            "lokasi": "080A1",
+            "luasHa": 0.13
           },
           {
             "lokasi": "042F3",
             "luasHa": 0.05
           },
           {
-            "lokasi": "080A1",
+            "lokasi": "034C",
             "luasHa": 0.04
           },
           {
@@ -541,90 +1869,78 @@
         "locationsCount": 7
       },
       "sucker_S": {
-        "luasHa": 9.38,
-        "pct": 8.6,
+        "luasHa": 17.91,
+        "pct": 10.5,
         "locations": [
           {
             "lokasi": "065B5",
-            "luasHa": 3.13
-          },
-          {
-            "lokasi": "069C6",
-            "luasHa": 2.78
+            "luasHa": 7.06
           },
           {
             "lokasi": "082G",
-            "luasHa": 1.05
+            "luasHa": 4.92
           },
           {
-            "lokasi": "004E",
-            "luasHa": 0.98
+            "lokasi": "069C6",
+            "luasHa": 3.01
           },
           {
-            "lokasi": "082J4",
-            "luasHa": 0.53
-          },
-          {
-            "lokasi": "046P1",
-            "luasHa": 0.31
+            "lokasi": "017A",
+            "luasHa": 1.22
           },
           {
             "lokasi": "082C",
-            "luasHa": 0.24
+            "luasHa": 0.78
           },
           {
-            "lokasi": "089C",
-            "luasHa": 0.16
+            "lokasi": "082J4",
+            "luasHa": 0.77
           },
           {
             "lokasi": "069A",
             "luasHa": 0.1
           },
           {
-            "lokasi": "054A",
-            "luasHa": 0.08
+            "lokasi": "017B1",
+            "luasHa": 0.03
           },
           {
             "lokasi": "065A5",
             "luasHa": 0.02
           }
         ],
-        "locationsCount": 11
+        "locationsCount": 9
       },
       "sucker_K": {
-        "luasHa": 1.33,
-        "pct": 1.2,
+        "luasHa": 6.68,
+        "pct": 3.9,
         "locations": [
           {
-            "lokasi": "065A4",
-            "luasHa": 0.65
+            "lokasi": "004E",
+            "luasHa": 2.6
           },
           {
-            "lokasi": "004E",
-            "luasHa": 0.19
+            "lokasi": "065A4",
+            "luasHa": 2
           },
           {
             "lokasi": "084H",
-            "luasHa": 0.18
+            "luasHa": 1.61
+          },
+          {
+            "lokasi": "046P1",
+            "luasHa": 0.31
           },
           {
             "lokasi": "076B2",
             "luasHa": 0.12
           },
           {
-            "lokasi": "067B",
-            "luasHa": 0.09
-          },
-          {
-            "lokasi": "042F1",
-            "luasHa": 0.06
-          },
-          {
-            "lokasi": "098A1",
+            "lokasi": "100C",
             "luasHa": 0.04
           }
         ],
-        "locationsCount": 7
+        "locationsCount": 6
       },
       "sucker_M": {
         "luasHa": 0,
@@ -637,7 +1953,17 @@
       {
         "lokasi": "069C6",
         "luasHa": 10.06,
-        "bibit": "Crown & Sucker"
+        "bibit": "Sucker & Crown"
+      },
+      {
+        "lokasi": "089C",
+        "luasHa": 9.71,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "086D",
+        "luasHa": 7.76,
+        "bibit": "Crown"
       },
       {
         "lokasi": "076B2",
@@ -650,8 +1976,23 @@
         "bibit": "Crown"
       },
       {
+        "lokasi": "067B",
+        "luasHa": 7.51,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "098A1",
+        "luasHa": 7.44,
+        "bibit": "Crown"
+      },
+      {
         "lokasi": "085E",
         "luasHa": 7.35,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "054B1",
+        "luasHa": 7.32,
         "bibit": "Crown"
       },
       {
@@ -665,9 +2006,14 @@
         "bibit": "Crown"
       },
       {
-        "lokasi": "054B1",
-        "luasHa": 7.2,
+        "lokasi": "097H",
+        "luasHa": 7.08,
         "bibit": "Crown"
+      },
+      {
+        "lokasi": "065B5",
+        "luasHa": 7.06,
+        "bibit": "Sucker"
       },
       {
         "lokasi": "098C",
@@ -675,13 +2021,28 @@
         "bibit": "Crown"
       },
       {
-        "lokasi": "097H",
-        "luasHa": 5.57,
+        "lokasi": "082G",
+        "luasHa": 5.6,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "072C",
+        "luasHa": 5.37,
         "bibit": "Crown"
       },
       {
         "lokasi": "078L",
         "luasHa": 4.94,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "054A",
+        "luasHa": 4.89,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "050B2B",
+        "luasHa": 4.53,
         "bibit": "Crown"
       },
       {
@@ -695,11 +2056,6 @@
         "bibit": "Crown"
       },
       {
-        "lokasi": "065B5",
-        "luasHa": 4,
-        "bibit": "Sucker"
-      },
-      {
         "lokasi": "013B",
         "luasHa": 3.7,
         "bibit": "Crown"
@@ -710,29 +2066,39 @@
         "bibit": "Crown"
       },
       {
+        "lokasi": "004E",
+        "luasHa": 2.89,
+        "bibit": "Sucker & Crown"
+      },
+      {
         "lokasi": "028A",
         "luasHa": 2.62,
         "bibit": "Crown"
       },
       {
-        "lokasi": "082G",
-        "luasHa": 1.66,
-        "bibit": "Sucker"
-      },
-      {
-        "lokasi": "089C",
-        "luasHa": 1.27,
-        "bibit": "Crown & Sucker"
-      },
-      {
         "lokasi": "089A",
-        "luasHa": 1.24,
+        "luasHa": 2.49,
         "bibit": "Crown"
       },
       {
-        "lokasi": "004E",
-        "luasHa": 1.17,
+        "lokasi": "065A4",
+        "luasHa": 2,
         "bibit": "Sucker"
+      },
+      {
+        "lokasi": "084H",
+        "luasHa": 1.66,
+        "bibit": "Sucker & Crown"
+      },
+      {
+        "lokasi": "017A",
+        "luasHa": 1.6,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "044A3",
+        "luasHa": 1.25,
+        "bibit": "Crown"
       },
       {
         "lokasi": "014D",
@@ -740,58 +2106,38 @@
         "bibit": "Crown"
       },
       {
-        "lokasi": "054A",
-        "luasHa": 1.06,
-        "bibit": "Crown & Sucker"
-      },
-      {
         "lokasi": "082J5",
         "luasHa": 1.03,
         "bibit": "Crown"
       },
       {
-        "lokasi": "086D",
-        "luasHa": 0.86,
+        "lokasi": "007F4",
+        "luasHa": 0.99,
         "bibit": "Crown"
       },
       {
-        "lokasi": "050B2B",
-        "luasHa": 0.84,
-        "bibit": "Crown"
-      },
-      {
-        "lokasi": "082J4",
-        "luasHa": 0.77,
-        "bibit": "Sucker & Crown"
-      },
-      {
-        "lokasi": "067B",
-        "luasHa": 0.7,
-        "bibit": "Crown & Sucker"
-      },
-      {
-        "lokasi": "065A4",
-        "luasHa": 0.65,
-        "bibit": "Sucker"
-      },
-      {
-        "lokasi": "072C",
-        "luasHa": 0.57,
+        "lokasi": "097B",
+        "luasHa": 0.94,
         "bibit": "Crown"
       },
       {
         "lokasi": "007F5",
-        "luasHa": 0.38,
+        "luasHa": 0.84,
         "bibit": "Crown"
       },
       {
         "lokasi": "082C",
-        "luasHa": 0.32,
-        "bibit": "Sucker & Crown"
+        "luasHa": 0.8,
+        "bibit": "Sucker"
       },
       {
-        "lokasi": "044A3",
-        "luasHa": 0.31,
+        "lokasi": "082J4",
+        "luasHa": 0.77,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "042F1",
+        "luasHa": 0.33,
         "bibit": "Crown"
       },
       {
@@ -800,23 +2146,8 @@
         "bibit": "Sucker"
       },
       {
-        "lokasi": "007F4",
-        "luasHa": 0.28,
-        "bibit": "Crown"
-      },
-      {
-        "lokasi": "098A1",
-        "luasHa": 0.24,
-        "bibit": "Crown & Sucker"
-      },
-      {
-        "lokasi": "084H",
-        "luasHa": 0.18,
-        "bibit": "Sucker"
-      },
-      {
-        "lokasi": "017A",
-        "luasHa": 0.15,
+        "lokasi": "080A1",
+        "luasHa": 0.13,
         "bibit": "Sucker"
       },
       {
@@ -825,23 +2156,38 @@
         "bibit": "Sucker"
       },
       {
-        "lokasi": "042F1",
-        "luasHa": 0.06,
-        "bibit": "Sucker"
-      },
-      {
         "lokasi": "042F3",
         "luasHa": 0.05,
         "bibit": "Sucker"
       },
       {
-        "lokasi": "080A1",
+        "lokasi": "034C",
+        "luasHa": 0.04,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "100C",
         "luasHa": 0.04,
         "bibit": "Sucker"
       },
       {
         "lokasi": "004D",
         "luasHa": 0.04,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "049E",
+        "luasHa": 0.03,
+        "bibit": "Crown"
+      },
+      {
+        "lokasi": "017B1",
+        "luasHa": 0.03,
+        "bibit": "Sucker"
+      },
+      {
+        "lokasi": "018A",
+        "luasHa": 0.02,
         "bibit": "Crown"
       },
       {
@@ -855,7 +2201,7 @@
         "bibit": "Sucker"
       }
     ],
-    "locationsCount": 44
+    "locationsCount": 50
   },
   {
     "monthKey": "Jul-26",

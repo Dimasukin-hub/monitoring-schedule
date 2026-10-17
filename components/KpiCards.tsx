@@ -138,13 +138,21 @@ function CardStockPopupTable({
     return displayItems.reduce((acc, it) => acc + (it.luasNetto || 0), 0);
   }, [displayItems]);
 
+  const fmt = (val: number | null | undefined) => {
+    if (val === null || val === undefined) return '-';
+    return val.toLocaleString('id-ID', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
   return (
     <div
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       className={`absolute top-full mt-2 ${
         align === 'right' ? 'right-0' : 'left-0'
-      } z-50 w-[360px] sm:w-[380px] max-w-[calc(100vw-24px)] rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 shadow-2xl p-3.5 animate-in fade-in-0 zoom-in-95 duration-150 select-none ring-1 ring-black/5 dark:ring-white/10`}
+      } z-50 w-[420px] sm:w-[450px] max-w-[calc(100vw-24px)] rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 shadow-2xl p-3.5 animate-in fade-in-0 zoom-in-95 duration-150 select-none ring-1 ring-black/5 dark:ring-white/10`}
     >
       {/* Judul Pop-up Ditengah (Tanpa keterangan jumlah lokasi) */}
       <div className="text-center pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
@@ -158,13 +166,16 @@ function CardStockPopupTable({
         <table className="w-full text-xs border-collapse">
           <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800 text-[10px] uppercase font-bold text-slate-700 dark:text-slate-300 shadow-2xs">
             <tr>
-              <th className="py-1.5 px-2 text-center border-b border-slate-200 dark:border-slate-700/80 w-[28%]">
+              <th className="py-1.5 px-2 text-center border-b border-slate-200 dark:border-slate-700/80 w-[18%]">
                 WILAYAH
               </th>
-              <th className="py-1.5 px-2 text-center border-b border-slate-200 dark:border-slate-700/80 w-[32%]">
+              <th className="py-1.5 px-2 text-center border-b border-slate-200 dark:border-slate-700/80 w-[24%]">
                 LOKASI
               </th>
-              <th className="py-1.5 px-2 text-center border-b border-slate-200 dark:border-slate-700/80 w-[40%]">
+              <th className="py-1.5 px-2 text-center border-b border-slate-200 dark:border-slate-700/80 w-[28%]">
+                LUAS NETTO (HA)
+              </th>
+              <th className="py-1.5 px-2 text-center border-b border-slate-200 dark:border-slate-700/80 w-[30%]">
                 {dateColumnHeader}
               </th>
             </tr>
@@ -179,8 +190,11 @@ function CardStockPopupTable({
                   <td className="py-1.5 px-2 text-center font-medium text-slate-700 dark:text-slate-300">
                     {item.wilayah || '-'}
                   </td>
-                  <td className="py-1.5 px-2 text-center font-bold text-slate-900 dark:text-slate-100">
+                  <td className="py-1.5 px-2 text-center font-bold font-mono text-slate-900 dark:text-slate-100">
                     {item.lokasi || '-'}
+                  </td>
+                  <td className="py-1.5 px-2 text-center font-semibold font-mono text-emerald-600 dark:text-emerald-400">
+                    {fmt(item.luasNetto)}
                   </td>
                   <td className="py-1.5 px-2 text-center font-medium text-slate-600 dark:text-slate-400">
                     {item.realDate || '-'}
@@ -189,7 +203,7 @@ function CardStockPopupTable({
               ))
             ) : (
               <tr>
-                <td colSpan={3} className="py-4 text-center text-slate-400 text-xs italic">
+                <td colSpan={4} className="py-4 text-center text-slate-400 text-xs italic">
                   Tidak ada data lokasi
                 </td>
               </tr>
@@ -250,7 +264,7 @@ export default function KpiCards({
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [data]);
 
   const handleCardMouseEnter = (cat: 'BK' | 'BJK' | 'SN') => {
     if (hoverCloseTimerRef.current) {
@@ -520,6 +534,29 @@ export default function KpiCards({
 
   const isAllMonthsSelected =
     kpiFilterMonthNames.length === ALL_MONTH_NAMES.length;
+
+  // Perhitungan Proporsi Stok terhadap Total Stok (Cara 1: Rekomendasi)
+  const stockProportions = useMemo(() => {
+    const valBK = stokSummary?.stokBongkar?.value ?? 0;
+    const valBJK = stokSummary?.stokBajak?.value ?? 0;
+    const valSN = stokSummary?.stokSN?.value ?? 0;
+    const sumStok = valBK + valBJK + valSN;
+    const total = sumStok > 0 ? sumStok : (stokSummary?.totalStok?.value ?? 0);
+
+    const pctBK = total > 0 ? Math.round((valBK / total) * 1000) / 10 : 0;
+    const pctBJK = total > 0 ? Math.round((valBJK / total) * 1000) / 10 : 0;
+    const pctSN = total > 0 ? Math.round((valSN / total) * 1000) / 10 : 0;
+
+    return {
+      valBK,
+      valBJK,
+      valSN,
+      totalStok: total,
+      pctBK,
+      pctBJK,
+      pctSN,
+    };
+  }, [stokSummary]);
 
   // 1. KPI Bongkar: Target Rencana & Pencapaian
   const bongkarKpi = useMemo(() => {
@@ -801,13 +838,13 @@ export default function KpiCards({
                     <span className="text-xs font-bold text-amber-600/80 dark:text-amber-400/80">Ha</span>
                   </div>
 
-                  {/* Progress bar mini */}
+                  {/* Progress bar mini mengikuti jumlah stok (Cara 1) */}
                   <div className="mt-2.5">
                     <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full transition-all duration-500"
                         style={{
-                          width: `${Math.min(100, Math.max(0, bongkarKpi.pct))}%`,
+                          width: `${Math.min(100, Math.max(0, stockProportions.pctBK))}%`,
                         }}
                       />
                     </div>
@@ -815,9 +852,9 @@ export default function KpiCards({
 
                   <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60 text-[11px]">
                     <span className="text-slate-500 dark:text-slate-400">
-                      Target:{' '}
+                      Total Stok:{' '}
                       <strong className="font-semibold text-slate-700 dark:text-slate-300">
-                        {bongkarKpi.target.toLocaleString('id-ID', {
+                        {stockProportions.totalStok.toLocaleString('id-ID', {
                           minimumFractionDigits: 1,
                           maximumFractionDigits: 1,
                         })}{' '}
@@ -825,7 +862,7 @@ export default function KpiCards({
                       </strong>
                     </span>
                     <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                      Pencapaian: {bongkarKpi.pct}%
+                      Porsi Stok: {stockProportions.pctBK}%
                     </span>
                   </div>
                 </div>
@@ -875,13 +912,13 @@ export default function KpiCards({
                     <span className="text-xs font-bold text-blue-600/80 dark:text-blue-400/80">Ha</span>
                   </div>
 
-                  {/* Progress bar mini */}
+                  {/* Progress bar mini mengikuti jumlah stok (Cara 1) */}
                   <div className="mt-2.5">
                     <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-blue-500 to-sky-400 rounded-full transition-all duration-500"
                         style={{
-                          width: `${Math.min(100, Math.max(0, bajakKpi.pct))}%`,
+                          width: `${Math.min(100, Math.max(0, stockProportions.pctBJK))}%`,
                         }}
                       />
                     </div>
@@ -889,9 +926,9 @@ export default function KpiCards({
 
                   <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60 text-[11px]">
                     <span className="text-slate-500 dark:text-slate-400">
-                      Target:{' '}
+                      Total Stok:{' '}
                       <strong className="font-semibold text-slate-700 dark:text-slate-300">
-                        {bajakKpi.target.toLocaleString('id-ID', {
+                        {stockProportions.totalStok.toLocaleString('id-ID', {
                           minimumFractionDigits: 1,
                           maximumFractionDigits: 1,
                         })}{' '}
@@ -899,7 +936,7 @@ export default function KpiCards({
                       </strong>
                     </span>
                     <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
-                      Pencapaian: {bajakKpi.pct}%
+                      Porsi Stok: {stockProportions.pctBJK}%
                     </span>
                   </div>
                 </div>
@@ -950,13 +987,13 @@ export default function KpiCards({
                   <span className="text-xs font-bold text-emerald-600/80 dark:text-emerald-400/80">Ha</span>
                 </div>
 
-                {/* Progress bar mini */}
+                {/* Progress bar mini mengikuti jumlah stok (Cara 1) */}
                 <div className="mt-2.5">
                   <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full transition-all duration-500"
                       style={{
-                        width: `${Math.min(100, Math.max(0, snKpi.pct))}%`,
+                        width: `${Math.min(100, Math.max(0, stockProportions.pctSN))}%`,
                       }}
                     />
                   </div>
@@ -964,9 +1001,9 @@ export default function KpiCards({
 
                 <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60">
                   <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Target:{' '}
+                    Total Stok:{' '}
                     <strong className="font-semibold text-slate-700 dark:text-slate-300">
-                      {snKpi.target.toLocaleString('id-ID', {
+                      {stockProportions.totalStok.toLocaleString('id-ID', {
                         minimumFractionDigits: 1,
                         maximumFractionDigits: 1,
                       })}{' '}
@@ -974,7 +1011,7 @@ export default function KpiCards({
                     </strong>
                   </span>
                   <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                    Pencapaian: {snKpi.pct}%
+                    Porsi Stok: {stockProportions.pctSN}%
                   </span>
                 </div>
               </div>

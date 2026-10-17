@@ -351,9 +351,24 @@ async function main() {
     const rencMulaiTanam = parseDateString(getCell(r, 47));
     const rencSelesaiTanam = parseDateString(getCell(r, 48));
     const hariWaktu = parseNumber(getCell(r, 49)) ? Math.round(parseNumber(getCell(r, 49))) : null;
+    const realMulaiTanam = parseDateString(getCell(r, 104));
+    const realSelesaiTanam = parseDateString(getCell(r, 105));
+
     let rawBulanTanam = parseMonthYearString(getCell(r, 53) || getCell(r, 125));
-    if (rawBulanTanam && (rawBulanTanam.endsWith('-14') || rawBulanTanam.includes('2014') || rawBulanTanam.includes('1900'))) {
+    if (rawBulanTanam === 'Jun-19') {
+      rawBulanTanam = 'Jun-21';
+    } else if (rawBulanTanam && (rawBulanTanam.endsWith('-14') || rawBulanTanam.includes('2014') || rawBulanTanam.includes('1900'))) {
       rawBulanTanam = null;
+    }
+    if (!rawBulanTanam && realMulaiTanam) {
+      const parts = realMulaiTanam.split('/');
+      if (parts.length === 3) {
+        const mIdx = parseInt(parts[1], 10) - 1;
+        const yy = parts[2].slice(-2);
+        if (mIdx >= 0 && mIdx < 12) {
+          rawBulanTanam = `${MONTH_NAMES[mIdx]}-${yy}`;
+        }
+      }
     }
     const bulanTanam = rawBulanTanam;
     const bulanPanen = parseMonthYearString(getCell(r, 105) || getCell(r, 104));
@@ -361,9 +376,6 @@ async function main() {
     const bibitInfo = parseBibit(getCell(r, 51));
     const jenisBibit = bibitInfo.jenis;
     const kelasBibit = bibitInfo.kelas;
-
-    const realMulaiTanam = parseDateString(getCell(r, 104));
-    const realSelesaiTanam = parseDateString(getCell(r, 105));
     const statusProduksi = parseString(getCell(r, 111));
     const stdPanen = parseMonthYearString(getCell(r, 120));
     const deviasiMonth = parseNumber(getCell(r, 121)) ? Math.round(parseNumber(getCell(r, 121))) : null;

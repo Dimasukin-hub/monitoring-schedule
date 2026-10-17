@@ -564,6 +564,10 @@ export default function ListStokLahanView({
               onClick={() => {
                 setActiveCategory(cat.id);
                 setPage(1);
+                // Jika card BK, BJK, atau SN diklik, grafik posisi lahan otomatis mengikuti
+                if (cat.id === 'BK' || cat.id === 'BJK' || cat.id === 'SN') {
+                  setChartStage(cat.id);
+                }
               }}
               className={`p-4 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between cursor-pointer ${
                 isActive
@@ -598,9 +602,16 @@ export default function ListStokLahanView({
             selectedWilayah={selectedWilayahs.length === 1 ? selectedWilayahs[0] : 'ALL'}
             availableWilayahs={availableWilayahs}
             activeStage={chartStage}
-            onStageChange={(newStage) => setChartStage(newStage || 'ALL')}
+            onStageChange={(newStage) => {
+              const st = newStage || 'ALL';
+              setChartStage(st);
+              if (st === 'BK' || st === 'BJK' || st === 'SN') {
+                setActiveCategory(st);
+                setPage(1);
+              }
+            }}
             showStageSwitcher={true}
-            periodLabel="Posisi Lahan 2026"
+            periodLabel="Posisi Stok 2026"
           />
         </div>
       )}

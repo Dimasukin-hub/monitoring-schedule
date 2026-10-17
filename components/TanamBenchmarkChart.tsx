@@ -48,11 +48,19 @@ export default function TanamBenchmarkChart({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  // State seri aktif: 'all' atau satu seri spesifik ('real' | 'budget' | 'target')
-  const [activeSeries, setActiveSeries] = useState<SeriesKey>('all');
+  // State seri yang disembunyikan (hidden): Set<'real' | 'budget' | 'target'>
+  const [hiddenSeries, setHiddenSeries] = useState<Set<'real' | 'budget' | 'target'>>(new Set());
 
-  const handleSelect = (key: 'real' | 'budget' | 'target') => {
-    setActiveSeries((prev) => (prev === key ? 'all' : key));
+  const handleToggleSeries = (key: 'real' | 'budget' | 'target') => {
+    setHiddenSeries((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
   };
 
   const chartData = data?.series || [];
@@ -65,9 +73,9 @@ export default function TanamBenchmarkChart({
     });
   };
 
-  const showReal = activeSeries === 'all' || activeSeries === 'real';
-  const showBudget = activeSeries === 'all' || activeSeries === 'budget';
-  const showTarget = activeSeries === 'all' || activeSeries === 'target';
+  const showReal = !hiddenSeries.has('real');
+  const showBudget = !hiddenSeries.has('budget');
+  const showTarget = !hiddenSeries.has('target');
 
   return (
     <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 glass-panel shadow-sm space-y-4 h-full flex flex-col justify-between">
@@ -102,6 +110,7 @@ export default function TanamBenchmarkChart({
               fontWeight={600}
               tickLine={false}
               axisLine={{ stroke: isDark ? '#334155' : '#cbd5e1' }}
+              includeHidden={true}
             />
             <YAxis
               domain={[0, 200]}
@@ -111,18 +120,32 @@ export default function TanamBenchmarkChart({
               tickLine={false}
               axisLine={{ stroke: isDark ? '#334155' : '#cbd5e1' }}
               tickFormatter={(v) => `${v}`}
+              includeHidden={true}
+            />
+            {/* Anchor transparan agar Recharts selalu mendeteksi seri aktif pada sumbu Y, sehingga angka 0-200, garis vertikal, dan garis putus-putus CartesianGrid selalu tampil utuh walaupun ketiga seri Real/Budget/Target disembunyikan */}
+            <Line
+              type="linear"
+              dataKey="budget"
+              stroke="transparent"
+              strokeWidth={0}
+              dot={false}
+              activeDot={false}
+              isAnimationActive={false}
+              legendType="none"
+              tooltipType="none"
+              className="pointer-events-none opacity-0 select-none"
             />
             <Tooltip
               content={({ active, payload, label }) => {
-                if (!active || !payload || !payload.length) return null;
+                if (!active || !payload || !payload.length || (!showReal && !showBudget && !showTarget)) return null;
                 const item = payload[0]?.payload;
                 return (
                   <div className="rounded-xl bg-slate-900/95 dark:bg-slate-950/95 border border-slate-700 p-3.5 text-white shadow-2xl backdrop-blur-md text-xs min-w-[200px] space-y-2 animate-in fade-in duration-150">
                     <div className="font-extrabold text-sm text-emerald-400 pb-1.5 border-b border-slate-800 flex items-center justify-between">
                       <span>Bulan: {label}</span>
-                      {activeSeries !== 'all' && (
-                        <span className="text-[10px] font-normal text-slate-400 capitalize">
-                          ({activeSeries})
+                      {hiddenSeries.size > 0 && (
+                        <span className="text-[10px] font-normal text-slate-400">
+                          ({3 - hiddenSeries.size} seri aktif)
                         </span>
                       )}
                     </div>
@@ -130,9 +153,9 @@ export default function TanamBenchmarkChart({
                     <div className="space-y-1.5">
                       {showReal && item.real !== null && item.real !== undefined && (
                         <div
-                          onClick={() => handleSelect('real')}
+                          onClick={() => handleToggleSeries('real')}
                           className="flex items-center justify-between gap-4 cursor-pointer hover:bg-slate-800/60 p-1 rounded transition-colors"
-                          title="Klik untuk memilih grafik Real"
+                          title="Klik untuk menyembunyikan grafik Real"
                         >
                           <span className="flex items-center gap-1.5 text-amber-400 font-semibold">
                             <span className="w-2.5 h-2.5 rounded-xs bg-amber-400" />
@@ -146,9 +169,9 @@ export default function TanamBenchmarkChart({
 
                       {showBudget && (
                         <div
-                          onClick={() => handleSelect('budget')}
+                          onClick={() => handleToggleSeries('budget')}
                           className="flex items-center justify-between gap-4 cursor-pointer hover:bg-slate-800/60 p-1 rounded transition-colors"
-                          title="Klik untuk memilih grafik Budget"
+                          title="Klik untuk menyembunyikan grafik Budget"
                         >
                           <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
                             <span className="w-2.5 h-1 rounded-full bg-emerald-400" />
@@ -162,9 +185,9 @@ export default function TanamBenchmarkChart({
 
                       {showTarget && (
                         <div
-                          onClick={() => handleSelect('target')}
+                          onClick={() => handleToggleSeries('target')}
                           className="flex items-center justify-between gap-4 cursor-pointer hover:bg-slate-800/60 p-1 rounded transition-colors"
-                          title="Klik untuk memilih grafik Target"
+                          title="Klik untuk menyembunyikan grafik Target"
                         >
                           <span className="flex items-center gap-1.5 text-blue-400 font-medium">
                             <span className="w-2.5 h-1 rounded-full bg-blue-400" />
@@ -181,105 +204,116 @@ export default function TanamBenchmarkChart({
               }}
             />
 
-            {/* 1. Bar: Real (Kuning / Oranye Emas) - Tanpa angka label di atas bar, bisa diklik untuk memilih grafik */}
-            {showReal && (
-              <Bar
-                dataKey="real"
-                name="Real (Ha)"
-                fill="#F59E0B"
-                radius={[4, 4, 0, 0]}
-                maxBarSize={showReal && !showBudget && !showTarget ? 48 : 36}
-                cursor="pointer"
-                style={{ cursor: 'pointer' }}
-                onClick={() => handleSelect('real')}
-                className="cursor-pointer transition-opacity duration-150 hover:opacity-85"
-              />
-            )}
+            {/* 1. Bar: Real (Kuning / Oranye Emas) - Selalu ter-mount dengan hide prop agar skala & grid tetap utuh */}
+            <Bar
+              dataKey="real"
+              name="Real (Ha)"
+              fill="#F59E0B"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={showReal && !showBudget && !showTarget ? 48 : 36}
+              cursor="pointer"
+              style={{ cursor: 'pointer' }}
+              onClick={() => handleToggleSeries('real')}
+              className="cursor-pointer transition-opacity duration-150 hover:opacity-85"
+              hide={!showReal}
+            />
 
-            {/* 2. Line: Budget (Hijau) - Garis dan titik bisa diklik untuk memilih grafik */}
-            {showBudget && (
-              <Line
-                type="linear"
-                dataKey="budget"
-                name="Budget (Ha)"
-                stroke="#16A34A"
-                strokeWidth={activeSeries === 'budget' ? 3.5 : 3}
-                cursor="pointer"
-                style={{ cursor: 'pointer' }}
-                onClick={() => handleSelect('budget')}
-                dot={{
-                  r: activeSeries === 'budget' ? 5 : 4.5,
-                  fill: '#16A34A',
-                  strokeWidth: 2,
-                  stroke: isDark ? '#0f172a' : '#ffffff',
-                  cursor: 'pointer',
-                  onClick: () => handleSelect('budget'),
-                }}
-                activeDot={{
-                  r: 7,
-                  fill: '#16A34A',
-                  cursor: 'pointer',
-                  onClick: () => handleSelect('budget'),
-                }}
-                className="cursor-pointer"
-              />
-            )}
+            {/* 2. Line: Budget (Hijau) - Selalu ter-mount dengan hide prop */}
+            <Line
+              type="linear"
+              dataKey="budget"
+              name="Budget (Ha)"
+              stroke="#16A34A"
+              strokeWidth={3}
+              cursor="pointer"
+              style={{ cursor: 'pointer' }}
+              onClick={() => handleToggleSeries('budget')}
+              dot={
+                showBudget
+                  ? {
+                      r: 4.5,
+                      fill: '#16A34A',
+                      strokeWidth: 2,
+                      stroke: isDark ? '#0f172a' : '#ffffff',
+                      cursor: 'pointer',
+                      onClick: () => handleToggleSeries('budget'),
+                    }
+                  : false
+              }
+              activeDot={
+                showBudget
+                  ? {
+                      r: 7,
+                      fill: '#16A34A',
+                      cursor: 'pointer',
+                      onClick: () => handleToggleSeries('budget'),
+                    }
+                  : false
+              }
+              className="cursor-pointer"
+              hide={!showBudget}
+            />
 
-            {/* 3. Line: Target (Biru) - Garis dan titik bisa diklik untuk memilih grafik */}
-            {showTarget && (
-              <Line
-                type="linear"
-                dataKey="target"
-                name="Target (Ha)"
-                stroke="#2563EB"
-                strokeWidth={activeSeries === 'target' ? 3.5 : 3}
-                cursor="pointer"
-                style={{ cursor: 'pointer' }}
-                onClick={() => handleSelect('target')}
-                dot={{
-                  r: activeSeries === 'target' ? 5 : 4.5,
-                  fill: '#2563EB',
-                  strokeWidth: 2,
-                  stroke: isDark ? '#0f172a' : '#ffffff',
-                  cursor: 'pointer',
-                  onClick: () => handleSelect('target'),
-                }}
-                activeDot={{
-                  r: 7,
-                  fill: '#2563EB',
-                  cursor: 'pointer',
-                  onClick: () => handleSelect('target'),
-                }}
-                className="cursor-pointer"
-              />
-            )}
+            {/* 3. Line: Target (Biru) - Selalu ter-mount dengan hide prop */}
+            <Line
+              type="linear"
+              dataKey="target"
+              name="Target (Ha)"
+              stroke="#2563EB"
+              strokeWidth={3}
+              cursor="pointer"
+              style={{ cursor: 'pointer' }}
+              onClick={() => handleToggleSeries('target')}
+              dot={
+                showTarget
+                  ? {
+                      r: 4.5,
+                      fill: '#2563EB',
+                      strokeWidth: 2,
+                      stroke: isDark ? '#0f172a' : '#ffffff',
+                      cursor: 'pointer',
+                      onClick: () => handleToggleSeries('target'),
+                    }
+                  : false
+              }
+              activeDot={
+                showTarget
+                  ? {
+                      r: 7,
+                      fill: '#2563EB',
+                      cursor: 'pointer',
+                      onClick: () => handleToggleSeries('target'),
+                    }
+                  : false
+              }
+              className="cursor-pointer"
+              hide={!showTarget}
+            />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
 
       {/* 3. Tombol Legenda di Bagian Bawah Grafik (Real, Budget, Target) */}
-      {/* Ketika salah satu diklik, hanya grafik tersebut yang muncul dan yang lain di-hide */}
+      {/* Semua tombol selalu tampil. Yang diklik akan ter-hide dari grafik, yang lain tetap muncul */}
       <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
         {/* 1. Real */}
         <button
           type="button"
-          onClick={() => handleSelect('real')}
+          onClick={() => handleToggleSeries('real')}
           className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-2xs active:scale-95 ${
-            activeSeries === 'real'
-              ? 'bg-amber-500 text-white border-amber-600 shadow-amber-500/25 ring-2 ring-amber-400/40'
-              : activeSeries === 'all'
-              ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30'
-              : 'opacity-35 grayscale hover:opacity-75 hover:grayscale-0 bg-slate-100 dark:bg-slate-800/60 text-slate-500 border-slate-200 dark:border-slate-700'
+            hiddenSeries.has('real')
+              ? 'opacity-40 grayscale hover:opacity-75 bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700'
+              : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30 ring-1 ring-amber-500/20'
           }`}
           title={
-            activeSeries === 'real'
-              ? 'Klik untuk menampilkan semua grafik'
-              : 'Klik untuk hanya menampilkan grafik Real (yang lain di-hide)'
+            hiddenSeries.has('real')
+              ? 'Klik untuk menampilkan grafik Real'
+              : 'Klik untuk menyembunyikan grafik Real'
           }
         >
           <span
             className={`w-3 h-3 rounded-xs shrink-0 ${
-              activeSeries === 'real' ? 'bg-white' : 'bg-[#F59E0B]'
+              hiddenSeries.has('real') ? 'bg-slate-400 dark:bg-slate-500' : 'bg-[#F59E0B]'
             }`}
           />
           <span>Real</span>
@@ -288,23 +322,21 @@ export default function TanamBenchmarkChart({
         {/* 2. Budget */}
         <button
           type="button"
-          onClick={() => handleSelect('budget')}
+          onClick={() => handleToggleSeries('budget')}
           className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-2xs active:scale-95 ${
-            activeSeries === 'budget'
-              ? 'bg-emerald-600 text-white border-emerald-700 shadow-emerald-600/25 ring-2 ring-emerald-400/40'
-              : activeSeries === 'all'
-              ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
-              : 'opacity-35 grayscale hover:opacity-75 hover:grayscale-0 bg-slate-100 dark:bg-slate-800/60 text-slate-500 border-slate-200 dark:border-slate-700'
+            hiddenSeries.has('budget')
+              ? 'opacity-40 grayscale hover:opacity-75 bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700'
+              : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 ring-1 ring-emerald-500/20'
           }`}
           title={
-            activeSeries === 'budget'
-              ? 'Klik untuk menampilkan semua grafik'
-              : 'Klik untuk hanya menampilkan grafik Budget (yang lain di-hide)'
+            hiddenSeries.has('budget')
+              ? 'Klik untuk menampilkan grafik Budget'
+              : 'Klik untuk menyembunyikan grafik Budget'
           }
         >
           <span
             className={`w-3.5 h-1 rounded-full shrink-0 ${
-              activeSeries === 'budget' ? 'bg-white' : 'bg-[#16A34A]'
+              hiddenSeries.has('budget') ? 'bg-slate-400 dark:bg-slate-500' : 'bg-[#16A34A]'
             }`}
           />
           <span>Budget</span>
@@ -313,23 +345,21 @@ export default function TanamBenchmarkChart({
         {/* 3. Target */}
         <button
           type="button"
-          onClick={() => handleSelect('target')}
+          onClick={() => handleToggleSeries('target')}
           className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-2xs active:scale-95 ${
-            activeSeries === 'target'
-              ? 'bg-blue-600 text-white border-blue-700 shadow-blue-600/25 ring-2 ring-blue-400/40'
-              : activeSeries === 'all'
-              ? 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30'
-              : 'opacity-35 grayscale hover:opacity-75 hover:grayscale-0 bg-slate-100 dark:bg-slate-800/60 text-slate-500 border-slate-200 dark:border-slate-700'
+            hiddenSeries.has('target')
+              ? 'opacity-40 grayscale hover:opacity-75 bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700'
+              : 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30 ring-1 ring-blue-500/20'
           }`}
           title={
-            activeSeries === 'target'
-              ? 'Klik untuk menampilkan semua grafik'
-              : 'Klik untuk hanya menampilkan grafik Target (yang lain di-hide)'
+            hiddenSeries.has('target')
+              ? 'Klik untuk menampilkan grafik Target'
+              : 'Klik untuk menyembunyikan grafik Target'
           }
         >
           <span
             className={`w-3.5 h-1 rounded-full shrink-0 ${
-              activeSeries === 'target' ? 'bg-white' : 'bg-[#2563EB]'
+              hiddenSeries.has('target') ? 'bg-slate-400 dark:bg-slate-500' : 'bg-[#2563EB]'
             }`}
           />
           <span>Target</span>

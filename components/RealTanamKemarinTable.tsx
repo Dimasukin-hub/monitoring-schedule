@@ -8,6 +8,7 @@ export interface RealTanamKemarinItem {
   no: number;
   lokasi: string;
   bibit: string;
+  kelas?: string;
   luas: number;
   luasNetto?: number | null;
 }
@@ -63,7 +64,7 @@ export default function RealTanamKemarinTable({
           </div>
         </div>
 
-        {/* 2. Tabel Real Tanam Kemarin (No, Lokasi, Bibit, Luas) dengan Full Grid Border dan Sudut Kotak */}
+        {/* 2. Tabel Real Tanam Kemarin (No, Lokasi, Bibit, Kelas, Luas) dengan Full Grid Border dan Sudut Kotak */}
         <div className="mt-3 flex-1 min-h-[280px] max-h-[360px] overflow-y-auto overflow-x-auto rounded-none border border-slate-300 dark:border-slate-700 shadow-2xs custom-scrollbar">
           <table className="w-full text-xs text-center border-separate border-spacing-0">
             <thead>
@@ -90,6 +91,12 @@ export default function RealTanamKemarinTable({
                   scope="col"
                   className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 px-3 py-2.5 text-center border-b border-r border-t first:border-l border-slate-300 dark:border-slate-700 shadow-2xs"
                 >
+                  Kelas
+                </th>
+                <th
+                  scope="col"
+                  className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 px-3 py-2.5 text-center border-b border-r border-t first:border-l border-slate-300 dark:border-slate-700 shadow-2xs"
+                >
                   Luas (Ha)
                 </th>
               </tr>
@@ -98,7 +105,7 @@ export default function RealTanamKemarinTable({
               {items.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="px-3 py-6 text-center text-slate-400 border-b border-r first:border-l border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
                   >
                     Tidak ada data tanam pada tanggal ini.
@@ -120,14 +127,31 @@ export default function RealTanamKemarinTable({
                       </td>
                       <td className="px-3 py-2 text-center border-b border-r first:border-l border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold border ${
+                          className={`w-[88px] inline-flex items-center justify-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold border shadow-2xs ${
                             isCrown
                               ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30'
                               : 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-500/30'
                           }`}
                         >
-                          <Sprout className="w-3 h-3" />
+                          <Sprout className="w-3 h-3 shrink-0" />
                           <span>{row.bibit}</span>
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-center border-b border-r first:border-l border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+                        <span
+                          className={`w-20 inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-semibold border shadow-2xs ${
+                            row.kelas?.toLowerCase().includes('besar')
+                              ? 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30'
+                              : row.kelas?.toLowerCase().includes('sedang')
+                              ? 'bg-teal-500/10 text-teal-700 dark:text-teal-400 border-teal-500/30'
+                              : row.kelas?.toLowerCase().includes('extra')
+                              ? 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/30'
+                              : row.kelas?.toLowerCase().includes('kecil')
+                              ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/30'
+                              : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                          }`}
+                        >
+                          {row.kelas || '-'}
                         </span>
                       </td>
                       <td className="px-3 py-2 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400 border-b border-r first:border-l border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
@@ -143,7 +167,7 @@ export default function RealTanamKemarinTable({
               <tfoot>
                 <tr className="font-bold text-slate-800 dark:text-slate-100">
                   <td
-                    colSpan={3}
+                    colSpan={4}
                     className="sticky bottom-0 z-20 bg-slate-100 dark:bg-slate-800 px-4 py-2.5 text-left uppercase text-[11px] tracking-wider border-b border-r border-t first:border-l border-slate-300 dark:border-slate-700 shadow-2xs"
                   >
                     Total Real Tanam

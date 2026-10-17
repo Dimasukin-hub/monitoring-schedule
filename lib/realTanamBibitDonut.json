@@ -1,10 +1,10 @@
 {
-  "2026-06": {
-    "totalHa": 108.75,
+  "2026-01": {
+    "totalHa": 105.41,
     "crown": {
       "jenis": "Crown",
-      "totalHa": 96.28,
-      "pct": 88.5,
+      "totalHa": 74.05,
+      "pct": 70.2,
       "classes": {
         "B": {
           "name": "Besar",
@@ -17,22 +17,1082 @@
         "S": {
           "name": "Sedang",
           "code": "S",
-          "luasHa": 0.06,
-          "pct": 0.1,
-          "locations": [
-            {
-              "lokasi": "082C",
-              "luasHa": 0.06
-            }
-          ],
-          "locationsCount": 1
+          "luasHa": 0,
+          "pct": 0,
+          "locations": [],
+          "locationsCount": 0
         },
         "K": {
           "name": "Kecil",
           "code": "K",
-          "luasHa": 96.22,
-          "pct": 99.9,
+          "luasHa": 74.05,
+          "pct": 100,
           "locations": [
+            {
+              "lokasi": "083A",
+              "luasHa": 9.4
+            },
+            {
+              "lokasi": "003H",
+              "luasHa": 9.15
+            },
+            {
+              "lokasi": "012C",
+              "luasHa": 8.96
+            },
+            {
+              "lokasi": "092E2",
+              "luasHa": 7.37
+            },
+            {
+              "lokasi": "037D",
+              "luasHa": 6.95
+            },
+            {
+              "lokasi": "045F2",
+              "luasHa": 6.43
+            },
+            {
+              "lokasi": "092F",
+              "luasHa": 5.15
+            },
+            {
+              "lokasi": "023D",
+              "luasHa": 4.52
+            },
+            {
+              "lokasi": "024K",
+              "luasHa": 4.05
+            },
+            {
+              "lokasi": "007E1",
+              "luasHa": 3.94
+            },
+            {
+              "lokasi": "003I",
+              "luasHa": 3.63
+            },
+            {
+              "lokasi": "084E",
+              "luasHa": 1.52
+            },
+            {
+              "lokasi": "083D",
+              "luasHa": 1.48
+            },
+            {
+              "lokasi": "044A4",
+              "luasHa": 0.57
+            },
+            {
+              "lokasi": "057B1",
+              "luasHa": 0.35
+            },
+            {
+              "lokasi": "048B",
+              "luasHa": 0.14
+            },
+            {
+              "lokasi": "046B2",
+              "luasHa": 0.13
+            },
+            {
+              "lokasi": "045C3",
+              "luasHa": 0.08
+            },
+            {
+              "lokasi": "001D",
+              "luasHa": 0.08
+            },
+            {
+              "lokasi": "003C",
+              "luasHa": 0.06
+            },
+            {
+              "lokasi": "003B",
+              "luasHa": 0.05
+            },
+            {
+              "lokasi": "045C4",
+              "luasHa": 0.04
+            }
+          ],
+          "locationsCount": 22
+        },
+        "M": {
+          "name": "Extra Kecil",
+          "code": "M",
+          "luasHa": 0,
+          "pct": 0,
+          "locations": [],
+          "locationsCount": 0
+        }
+      }
+    },
+    "sucker": {
+      "jenis": "Sucker",
+      "totalHa": 31.36,
+      "pct": 29.8,
+      "classes": {
+        "B": {
+          "name": "Besar",
+          "code": "B",
+          "luasHa": 0,
+          "pct": 0,
+          "locations": [],
+          "locationsCount": 0
+        },
+        "S": {
+          "name": "Sedang",
+          "code": "S",
+          "luasHa": 27.14,
+          "pct": 86.5,
+          "locations": [
+            {
+              "lokasi": "082B3",
+              "luasHa": 8.05
+            },
+            {
+              "lokasi": "001A",
+              "luasHa": 6.01
+            },
+            {
+              "lokasi": "038F1",
+              "luasHa": 3.83
+            },
+            {
+              "lokasi": "083A1",
+              "luasHa": 3.57
+            },
+            {
+              "lokasi": "002A1",
+              "luasHa": 2.47
+            },
+            {
+              "lokasi": "082B2",
+              "luasHa": 2.18
+            },
+            {
+              "lokasi": "083A",
+              "luasHa": 0.69
+            },
+            {
+              "lokasi": "097F",
+              "luasHa": 0.29
+            },
+            {
+              "lokasi": "007A2",
+              "luasHa": 0.05
+            }
+          ],
+          "locationsCount": 9
+        },
+        "K": {
+          "name": "Kecil",
+          "code": "K",
+          "luasHa": 4.22,
+          "pct": 13.5,
+          "locations": [
+            {
+              "lokasi": "037D",
+              "luasHa": 2.56
+            },
+            {
+              "lokasi": "007E1",
+              "luasHa": 1.18
+            },
+            {
+              "lokasi": "092F",
+              "luasHa": 0.48
+            }
+          ],
+          "locationsCount": 3
+        },
+        "M": {
+          "name": "Extra Kecil",
+          "code": "M",
+          "luasHa": 0,
+          "pct": 0,
+          "locations": [],
+          "locationsCount": 0
+        }
+      }
+    }
+  },
+  "2026-02": {
+    "totalHa": 33.74,
+    "crown": {
+      "jenis": "Crown",
+      "totalHa": 27.92,
+      "pct": 82.8,
+      "classes": {
+        "B": {
+          "name": "Besar",
+          "code": "B",
+          "luasHa": 0,
+          "pct": 0,
+          "locations": [],
+          "locationsCount": 0
+        },
+        "S": {
+          "name": "Sedang",
+          "code": "S",
+          "luasHa": 0,
+          "pct": 0,
+          "locations": [],
+          "locationsCount": 0
+        },
+        "K": {
+          "name": "Kecil",
+          "code": "K",
+          "luasHa": 27.92,
+          "pct": 100,
+          "locations": [
+            {
+              "lokasi": "083D",
+              "luasHa": 7.04
+            },
+            {
+              "lokasi": "002C",
+              "luasHa": 6.75
+            },
+            {
+              "lokasi": "042D2",
+              "luasHa": 6.15
+            },
+            {
+              "lokasi": "003I",
+              "luasHa": 3.55
+            },
+            {
+              "lokasi": "048K",
+              "luasHa": 3.44
+            },
+            {
+              "lokasi": "083A",
+              "luasHa": 0.36
+            },
+            {
+              "lokasi": "007E1",
+              "luasHa": 0.24
+            },
+            {
+              "lokasi": "024K",
+              "luasHa": 0.23
+            },
+            {
+              "lokasi": "003H",
+              "luasHa": 0.07
+            },
+            {
+              "lokasi": "092E2",
+              "luasHa": 0.06
+            },
+            {
+              "lokasi": "012C",
+              "luasHa": 0.03
+            }
+          ],
+          "locationsCount": 11
+        },
+        "M": {
+          "name": "Extra Kecil",
+          "code": "M",
+          "luasHa": 0,
+          "pct": 0,
+          "locations": [],
+          "locationsCount": 0
+        }
+      }
+    },
+    "sucker": {
+      "jenis": "Sucker",
+      "totalHa": 5.82,
+      "pct": 17.2,
+      "classes": {
+        "B": {
+          "name": "Besar",
+          "code": "B",
+          "luasHa": 0,
+          "pct": 0,
+          "locations": [],
+          "locationsCount": 0
+        },
+        "S": {
+          "name": "Sedang",
+          "code": "S",
+          "luasHa": 5.71,
+          "pct": 98.1,
+          "locations": [
+            {
+              "lokasi": "020F2",
+              "luasHa": 1.77
+            },
+            {
+              "lokasi": "083D",
+              "luasHa": 1.51
+            },
+            {
+              "lokasi": "020F1",
+              "luasHa": 1.5
+            },
+            {
+              "lokasi": "001B1",
+              "luasHa": 0.4
+            },
+            {
+              "lokasi": "083A",
+              "luasHa": 0.38
+            },
+            {
+              "lokasi": "001A",
+              "luasHa": 0.11
+            },
+            {
+              "lokasi": "038F1",
+              "luasHa": 0.04
+            }
+          ],
+          "locationsCount": 7
+        },
+        "K": {
+          "name": "Kecil",
+          "code": "K",
+          "luasHa": 0.11,
+          "pct": 1.9,
+          "locations": [
+            {
+              "lokasi": "007E1",
+              "luasHa": 0.11
+            }
+          ],
+          "locationsCount": 1
+        },
+        "M": {
+          "name": "Extra Kecil",
+          "code": "M",
+          "luasHa": 0,
+          "pct": 0,
+          "locations": [],
+          "locationsCount": 0
+        }
+      }
+    }
+  },
+  "2026-03": {
+    "totalHa": 92.26,
+    "crown": {
+      "jenis": "Crown",
+      "totalHa": 66.27,
+      "pct": 71.8,
+      "classes": {
+        "B": {
+          "name": "Besar",
+          "code": "B",
+          "luasHa": 0,
+          "pct": 0,
+          "locations": [],
+          "locationsCount": 0
+        },
+        "S": {
+          "name": "Sedang",
+          "code": "S",
+          "luasHa": 0,
+          "pct": 0,
+          "locations": [],
+          "locationsCount": 0
+        },
+        "K": {
+          "name": "Kecil",
+          "code": "K",
+          "luasHa": 54.27,
+          "pct": 81.9,
+          "locations": [
+            {
+              "lokasi": "048F",
+              "luasHa": 8.87
+            },
+            {
+              "lokasi": "076J",
+              "luasHa": 8.28
+            },
+            {
+              "lokasi": "008F",
+              "luasHa": 8.13
+            },
+            {
+              "lokasi": "088D2",
+              "luasHa": 6.6
+            },
+            {
+              "lokasi": "088D3",
+              "luasHa": 6.25
+            },
+            {
+              "lokasi": "030H",
+              "luasHa": 4.24
+            },
+            {
+              "lokasi": "030E",
+              "luasHa": 3.47
+            },
+            {
+              "lokasi": "048K",
+              "luasHa": 3.03
+            },
+            {
+              "lokasi": "023B",
+              "luasHa": 2.88
+            },
+            {
+              "lokasi": "049F",
+              "luasHa": 2.42
+            },
+            {
+              "lokasi": "023C",
+              "luasHa": 0.09
+            }
+          ],
+          "locationsCount": 11
+        },
+        "M": {
+          "name": "Extra Kecil",
+          "code": "M",
+          "luasHa": 12.01,
+          "pct": 18.1,
+          "locations": [
+            {
+              "lokasi": "023C",
+              "luasHa": 7.13
+            },
+            {
+              "lokasi": "048I",
+              "luasHa": 4.88
+            }
+          ],
+          "locationsCount": 2
+        }
+      }
+    },
+    "sucker": {
+      "jenis": "Sucker",
+      "totalHa": 25.99,
+      "pct": 28.2,
+      "classes": {
+        "B": {
+          "name": "Besar",
+          "code": "B",
+          "luasHa": 7.24,
+          "pct": 27.9,
+          "locations": [
+            {
+              "lokasi": "042F3",
+              "luasHa": 5.34
+            },
+            {
+              "lokasi": "061C3",
+              "luasHa": 1.9
+            }
+          ],
+          "locationsCount": 2
+        },
+        "S": {
+          "name": "Sedang",
+          "code": "S",
+          "luasHa": 18.75,
+          "pct": 72.1,
+          "locations": [
+            {
+              "lokasi": "001B1",
+              "luasHa": 6.07
+            },
+            {
+              "lokasi": "061C4",
+              "luasHa": 4.78
+            },
+            {
+              "lokasi": "061C5",
+              "luasHa": 2.79
+            },
+            {
+              "lokasi": "008F",
+              "luasHa": 1.97
+            },
+            {
+              "lokasi": "020F1",
+              "luasHa": 1.88
+            },
+            {
+              "lokasi": "020F2",
+              "luasHa": 0.71
+            },
+            {
+              "lokasi": "042F3",
+              "luasHa": 0.55
+            }
+          ],
+          "locationsCount": 7
+        },
+        "K": {
+          "name": "Kecil",
+          "code": "K",
+          "luasHa": 0,
+          "pct": 0,
+          "locations": [],
+          "locationsCount": 0
+        },
+        "M": {
+          "name": "Extra Kecil",
+          "code": "M",
+          "luasHa": 0,
+          "pct": 0,
+          "locations": [],
+          "locationsCount": 0
+        }
+      }
+    }
+  },
+  "2026-04": {
+    "totalHa": 91.23,
+    "crown": {
+      "jenis": "Crown",
+      "totalHa": 50.28,
+      "pct": 55.1,
+      "classes": {
+        "B": {
+          "name": "Besar",
+          "code": "B",
+          "luasHa": 0,
+          "pct": 0,
+          "locations": [],
+          "locationsCount": 0
+        },
+        "S": {
+          "name": "Sedang",
+          "code": "S",
+          "luasHa": 0,
+          "pct": 0,
+          "locations": [],
+          "locationsCount": 0
+        },
+        "K": {
+          "name": "Kecil",
+          "code": "K",
+          "luasHa": 35.22,
+          "pct": 70,
+          "locations": [
+            {
+              "lokasi": "075F",
+              "luasHa": 9.45
+            },
+            {
+              "lokasi": "049F",
+              "luasHa": 5.5
+            },
+            {
+              "lokasi": "017B1",
+              "luasHa": 5.12
+            },
+            {
+              "lokasi": "096G5",
+              "luasHa": 4.89
+            },
+            {
+              "lokasi": "008A",
+              "luasHa": 4.49
+            },
+            {
+              "lokasi": "082J4",
+              "luasHa": 2.97
+            },
+            {
+              "lokasi": "023C",
+              "luasHa": 0.67
+            },
+            {
+              "lokasi": "079I",
+              "luasHa": 0.57
+            },
+            {
+              "lokasi": "048F",
+              "luasHa": 0.53
+            },
+            {
+              "lokasi": "030E",
+              "luasHa": 0.38
+            },
+            {
+              "lokasi": "030H",
+              "luasHa": 0.35
+            },
+            {
+              "lokasi": "088D2",
+              "luasHa": 0.14
+            },
+            {
+              "lokasi": "048K",
+              "luasHa": 0.07
+            },
+            {
+              "lokasi": "076J",
+              "luasHa": 0.05
+            },
+            {
+              "lokasi": "088D3",
+              "luasHa": 0.04
+            }
+          ],
+          "locationsCount": 15
+        },
+        "M": {
+          "name": "Extra Kecil",
+          "code": "M",
+          "luasHa": 15.06,
+          "pct": 30,
+          "locations": [
+            {
+              "lokasi": "079I",
+              "luasHa": 8.67
+            },
+            {
+              "lokasi": "082J5",
+              "luasHa": 2.8
+            },
+            {
+              "lokasi": "048I",
+              "luasHa": 2.17
+            },
+            {
+              "lokasi": "100C",
+              "luasHa": 1.4
+            },
+            {
+              "lokasi": "023C",
+              "luasHa": 0.02
+            }
+          ],
+          "locationsCount": 5
+        }
+      }
+    },
+    "sucker": {
+      "jenis": "Sucker",
+      "totalHa": 40.95,
+      "pct": 44.9,
+      "classes": {
+        "B": {
+          "name": "Besar",
+          "code": "B",
+          "luasHa": 10.9,
+          "pct": 26.6,
+          "locations": [
+            {
+              "lokasi": "065B4",
+              "luasHa": 5.69
+            },
+            {
+              "lokasi": "044A2",
+              "luasHa": 1.89
+            },
+            {
+              "lokasi": "042F3",
+              "luasHa": 1.43
+            },
+            {
+              "lokasi": "065A3",
+              "luasHa": 0.86
+            },
+            {
+              "lokasi": "061C3",
+              "luasHa": 0.47
+            },
+            {
+              "lokasi": "069A",
+              "luasHa": 0.27
+            },
+            {
+              "lokasi": "001B1",
+              "luasHa": 0.17
+            },
+            {
+              "lokasi": "082C",
+              "luasHa": 0.12
+            }
+          ],
+          "locationsCount": 8
+        },
+        "S": {
+          "name": "Sedang",
+          "code": "S",
+          "luasHa": 27.65,
+          "pct": 67.5,
+          "locations": [
+            {
+              "lokasi": "065D2",
+              "luasHa": 8.19
+            },
+            {
+              "lokasi": "044A2",
+              "luasHa": 6.74
+            },
+            {
+              "lokasi": "023B",
+              "luasHa": 2.97
+            },
+            {
+              "lokasi": "065A5",
+              "luasHa": 2.88
+            },
+            {
+              "lokasi": "082C",
+              "luasHa": 2.86
+            },
+            {
+              "lokasi": "061C4",
+              "luasHa": 1.09
+            },
+            {
+              "lokasi": "082J4",
+              "luasHa": 0.77
+            },
+            {
+              "lokasi": "007E1",
+              "luasHa": 0.62
+            },
+            {
+              "lokasi": "017B1",
+              "luasHa": 0.59
+            },
+            {
+              "lokasi": "001B1",
+              "luasHa": 0.49
+            },
+            {
+              "lokasi": "061C5",
+              "luasHa": 0.32
+            },
+            {
+              "lokasi": "008F",
+              "luasHa": 0.13
+            }
+          ],
+          "locationsCount": 12
+        },
+        "K": {
+          "name": "Kecil",
+          "code": "K",
+          "luasHa": 2.4,
+          "pct": 5.9,
+          "locations": [
+            {
+              "lokasi": "008A",
+              "luasHa": 2.4
+            }
+          ],
+          "locationsCount": 1
+        },
+        "M": {
+          "name": "Extra Kecil",
+          "code": "M",
+          "luasHa": 0,
+          "pct": 0,
+          "locations": [],
+          "locationsCount": 0
+        }
+      }
+    }
+  },
+  "2026-05": {
+    "totalHa": 120.9,
+    "crown": {
+      "jenis": "Crown",
+      "totalHa": 80.33,
+      "pct": 66.4,
+      "classes": {
+        "B": {
+          "name": "Besar",
+          "code": "B",
+          "luasHa": 0,
+          "pct": 0,
+          "locations": [],
+          "locationsCount": 0
+        },
+        "S": {
+          "name": "Sedang",
+          "code": "S",
+          "luasHa": 0,
+          "pct": 0,
+          "locations": [],
+          "locationsCount": 0
+        },
+        "K": {
+          "name": "Kecil",
+          "code": "K",
+          "luasHa": 56.27,
+          "pct": 70,
+          "locations": [
+            {
+              "lokasi": "097B",
+              "luasHa": 8.75
+            },
+            {
+              "lokasi": "049E",
+              "luasHa": 8.47
+            },
+            {
+              "lokasi": "007F4",
+              "luasHa": 6.78
+            },
+            {
+              "lokasi": "044A3",
+              "luasHa": 6.02
+            },
+            {
+              "lokasi": "084H",
+              "luasHa": 4.9
+            },
+            {
+              "lokasi": "004E",
+              "luasHa": 4.31
+            },
+            {
+              "lokasi": "089C",
+              "luasHa": 4.29
+            },
+            {
+              "lokasi": "004D",
+              "luasHa": 4.01
+            },
+            {
+              "lokasi": "072C",
+              "luasHa": 2.37
+            },
+            {
+              "lokasi": "018A",
+              "luasHa": 2
+            },
+            {
+              "lokasi": "050B2B",
+              "luasHa": 1.92
+            },
+            {
+              "lokasi": "017B1",
+              "luasHa": 0.78
+            },
+            {
+              "lokasi": "082J4",
+              "luasHa": 0.62
+            },
+            {
+              "lokasi": "096G5",
+              "luasHa": 0.6
+            },
+            {
+              "lokasi": "075F",
+              "luasHa": 0.44
+            },
+            {
+              "lokasi": "049F",
+              "luasHa": 0.01
+            }
+          ],
+          "locationsCount": 16
+        },
+        "M": {
+          "name": "Extra Kecil",
+          "code": "M",
+          "luasHa": 24.06,
+          "pct": 30,
+          "locations": [
+            {
+              "lokasi": "042F1",
+              "luasHa": 9.09
+            },
+            {
+              "lokasi": "100C",
+              "luasHa": 5.41
+            },
+            {
+              "lokasi": "007F5",
+              "luasHa": 4.4
+            },
+            {
+              "lokasi": "082J5",
+              "luasHa": 3.7
+            },
+            {
+              "lokasi": "079I",
+              "luasHa": 1.46
+            }
+          ],
+          "locationsCount": 5
+        }
+      }
+    },
+    "sucker": {
+      "jenis": "Sucker",
+      "totalHa": 40.57,
+      "pct": 33.6,
+      "classes": {
+        "B": {
+          "name": "Besar",
+          "code": "B",
+          "luasHa": 7.28,
+          "pct": 17.9,
+          "locations": [
+            {
+              "lokasi": "069A",
+              "luasHa": 2.56
+            },
+            {
+              "lokasi": "017A",
+              "luasHa": 1.02
+            },
+            {
+              "lokasi": "034C",
+              "luasHa": 0.89
+            },
+            {
+              "lokasi": "080A1",
+              "luasHa": 0.71
+            },
+            {
+              "lokasi": "082C",
+              "luasHa": 0.68
+            },
+            {
+              "lokasi": "042F3",
+              "luasHa": 0.58
+            },
+            {
+              "lokasi": "065A3",
+              "luasHa": 0.56
+            },
+            {
+              "lokasi": "082G",
+              "luasHa": 0.26
+            },
+            {
+              "lokasi": "044A2",
+              "luasHa": 0.02
+            }
+          ],
+          "locationsCount": 9
+        },
+        "S": {
+          "name": "Sedang",
+          "code": "S",
+          "luasHa": 28.45,
+          "pct": 70.1,
+          "locations": [
+            {
+              "lokasi": "034C",
+              "luasHa": 7.18
+            },
+            {
+              "lokasi": "069A",
+              "luasHa": 7.01
+            },
+            {
+              "lokasi": "017A",
+              "luasHa": 4.8
+            },
+            {
+              "lokasi": "080A1",
+              "luasHa": 2.99
+            },
+            {
+              "lokasi": "082G",
+              "luasHa": 2.67
+            },
+            {
+              "lokasi": "082C",
+              "luasHa": 2.1
+            },
+            {
+              "lokasi": "082J4",
+              "luasHa": 0.57
+            },
+            {
+              "lokasi": "065A5",
+              "luasHa": 0.51
+            },
+            {
+              "lokasi": "017B1",
+              "luasHa": 0.44
+            },
+            {
+              "lokasi": "065D2",
+              "luasHa": 0.18
+            }
+          ],
+          "locationsCount": 10
+        },
+        "K": {
+          "name": "Kecil",
+          "code": "K",
+          "luasHa": 4.84,
+          "pct": 11.9,
+          "locations": [
+            {
+              "lokasi": "100C",
+              "luasHa": 4.66
+            },
+            {
+              "lokasi": "008A",
+              "luasHa": 0.18
+            }
+          ],
+          "locationsCount": 2
+        },
+        "M": {
+          "name": "Extra Kecil",
+          "code": "M",
+          "luasHa": 0,
+          "pct": 0,
+          "locations": [],
+          "locationsCount": 0
+        }
+      }
+    }
+  },
+  "2026-06": {
+    "totalHa": 170.35,
+    "crown": {
+      "jenis": "Crown",
+      "totalHa": 144.44,
+      "pct": 84.8,
+      "classes": {
+        "B": {
+          "name": "Besar",
+          "code": "B",
+          "luasHa": 0,
+          "pct": 0,
+          "locations": [],
+          "locationsCount": 0
+        },
+        "S": {
+          "name": "Sedang",
+          "code": "S",
+          "luasHa": 0,
+          "pct": 0,
+          "locations": [],
+          "locationsCount": 0
+        },
+        "K": {
+          "name": "Kecil",
+          "code": "K",
+          "luasHa": 134.73,
+          "pct": 93.3,
+          "locations": [
+            {
+              "lokasi": "089C",
+              "luasHa": 9.71
+            },
+            {
+              "lokasi": "086D",
+              "luasHa": 7.76
+            },
             {
               "lokasi": "025A",
               "luasHa": 7.53
@@ -42,36 +1102,52 @@
               "luasHa": 7.5
             },
             {
+              "lokasi": "098A1",
+              "luasHa": 7.44
+            },
+            {
               "lokasi": "085E",
               "luasHa": 7.35
+            },
+            {
+              "lokasi": "054B1",
+              "luasHa": 7.32
             },
             {
               "lokasi": "025C",
               "luasHa": 7.29
             },
             {
-              "lokasi": "069C6",
-              "luasHa": 7.28
-            },
-            {
               "lokasi": "029A3",
               "luasHa": 7.24
             },
             {
-              "lokasi": "054B1",
-              "luasHa": 7.2
+              "lokasi": "097H",
+              "luasHa": 7.08
+            },
+            {
+              "lokasi": "069C6",
+              "luasHa": 7.05
             },
             {
               "lokasi": "098C",
               "luasHa": 6.57
             },
             {
-              "lokasi": "097H",
-              "luasHa": 5.57
+              "lokasi": "072C",
+              "luasHa": 5.37
             },
             {
               "lokasi": "078L",
               "luasHa": 4.94
+            },
+            {
+              "lokasi": "054A",
+              "luasHa": 4.89
+            },
+            {
+              "lokasi": "050B2B",
+              "luasHa": 4.53
             },
             {
               "lokasi": "029A2",
@@ -95,106 +1171,103 @@
             },
             {
               "lokasi": "089A",
-              "luasHa": 1.24
+              "luasHa": 2.49
+            },
+            {
+              "lokasi": "044A3",
+              "luasHa": 1.25
             },
             {
               "lokasi": "014D",
               "luasHa": 1.16
             },
             {
-              "lokasi": "089C",
-              "luasHa": 1.11
+              "lokasi": "007F4",
+              "luasHa": 0.99
+            },
+            {
+              "lokasi": "097B",
+              "luasHa": 0.94
+            },
+            {
+              "lokasi": "004E",
+              "luasHa": 0.29
+            },
+            {
+              "lokasi": "084H",
+              "luasHa": 0.05
+            },
+            {
+              "lokasi": "004D",
+              "luasHa": 0.04
+            },
+            {
+              "lokasi": "049E",
+              "luasHa": 0.03
+            },
+            {
+              "lokasi": "018A",
+              "luasHa": 0.02
+            }
+          ],
+          "locationsCount": 31
+        },
+        "M": {
+          "name": "Extra Kecil",
+          "code": "M",
+          "luasHa": 9.71,
+          "pct": 6.7,
+          "locations": [
+            {
+              "lokasi": "067B",
+              "luasHa": 7.51
             },
             {
               "lokasi": "082J5",
               "luasHa": 1.03
             },
             {
-              "lokasi": "054A",
-              "luasHa": 0.98
-            },
-            {
-              "lokasi": "086D",
-              "luasHa": 0.86
-            },
-            {
-              "lokasi": "050B2B",
+              "lokasi": "007F5",
               "luasHa": 0.84
             },
             {
-              "lokasi": "067B",
-              "luasHa": 0.61
-            },
-            {
-              "lokasi": "072C",
-              "luasHa": 0.57
-            },
-            {
-              "lokasi": "007F5",
-              "luasHa": 0.38
-            },
-            {
-              "lokasi": "044A3",
-              "luasHa": 0.31
-            },
-            {
-              "lokasi": "007F4",
-              "luasHa": 0.28
-            },
-            {
-              "lokasi": "082J4",
-              "luasHa": 0.24
-            },
-            {
-              "lokasi": "098A1",
-              "luasHa": 0.2
-            },
-            {
-              "lokasi": "004D",
-              "luasHa": 0.04
+              "lokasi": "042F1",
+              "luasHa": 0.33
             }
           ],
-          "locationsCount": 30
-        },
-        "M": {
-          "name": "Extra Kecil",
-          "code": "M",
-          "luasHa": 0,
-          "pct": 0,
-          "locations": [],
-          "locationsCount": 0
+          "locationsCount": 4
         }
       }
     },
     "sucker": {
       "jenis": "Sucker",
-      "totalHa": 12.47,
-      "pct": 11.5,
+      "totalHa": 25.91,
+      "pct": 15.2,
       "classes": {
         "B": {
           "name": "Besar",
           "code": "B",
-          "luasHa": 1.76,
-          "pct": 14.1,
+          "luasHa": 1.32,
+          "pct": 5.1,
           "locations": [
             {
-              "lokasi": "065B5",
-              "luasHa": 0.87
-            },
-            {
               "lokasi": "082G",
-              "luasHa": 0.61
+              "luasHa": 0.68
             },
             {
               "lokasi": "017A",
-              "luasHa": 0.15
+              "luasHa": 0.38
+            },
+            {
+              "lokasi": "080A1",
+              "luasHa": 0.13
             },
             {
               "lokasi": "042F3",
               "luasHa": 0.05
             },
             {
-              "lokasi": "080A1",
+              "lokasi": "034C",
               "luasHa": 0.04
             },
             {
@@ -211,92 +1284,80 @@
         "S": {
           "name": "Sedang",
           "code": "S",
-          "luasHa": 9.38,
-          "pct": 75.2,
+          "luasHa": 17.91,
+          "pct": 69.1,
           "locations": [
             {
               "lokasi": "065B5",
-              "luasHa": 3.13
-            },
-            {
-              "lokasi": "069C6",
-              "luasHa": 2.78
+              "luasHa": 7.06
             },
             {
               "lokasi": "082G",
-              "luasHa": 1.05
+              "luasHa": 4.92
             },
             {
-              "lokasi": "004E",
-              "luasHa": 0.98
+              "lokasi": "069C6",
+              "luasHa": 3.01
             },
             {
-              "lokasi": "082J4",
-              "luasHa": 0.53
-            },
-            {
-              "lokasi": "046P1",
-              "luasHa": 0.31
+              "lokasi": "017A",
+              "luasHa": 1.22
             },
             {
               "lokasi": "082C",
-              "luasHa": 0.24
+              "luasHa": 0.78
             },
             {
-              "lokasi": "089C",
-              "luasHa": 0.16
+              "lokasi": "082J4",
+              "luasHa": 0.77
             },
             {
               "lokasi": "069A",
               "luasHa": 0.1
             },
             {
-              "lokasi": "054A",
-              "luasHa": 0.08
+              "lokasi": "017B1",
+              "luasHa": 0.03
             },
             {
               "lokasi": "065A5",
               "luasHa": 0.02
             }
           ],
-          "locationsCount": 11
+          "locationsCount": 9
         },
         "K": {
           "name": "Kecil",
           "code": "K",
-          "luasHa": 1.33,
-          "pct": 10.7,
+          "luasHa": 6.68,
+          "pct": 25.8,
           "locations": [
             {
-              "lokasi": "065A4",
-              "luasHa": 0.65
+              "lokasi": "004E",
+              "luasHa": 2.6
             },
             {
-              "lokasi": "004E",
-              "luasHa": 0.19
+              "lokasi": "065A4",
+              "luasHa": 2
             },
             {
               "lokasi": "084H",
-              "luasHa": 0.18
+              "luasHa": 1.61
+            },
+            {
+              "lokasi": "046P1",
+              "luasHa": 0.31
             },
             {
               "lokasi": "076B2",
               "luasHa": 0.12
             },
             {
-              "lokasi": "067B",
-              "luasHa": 0.09
-            },
-            {
-              "lokasi": "042F1",
-              "luasHa": 0.06
-            },
-            {
-              "lokasi": "098A1",
+              "lokasi": "100C",
               "luasHa": 0.04
             }
           ],
-          "locationsCount": 7
+          "locationsCount": 6
         },
         "M": {
           "name": "Extra Kecil",
@@ -1413,11 +2474,11 @@
     }
   },
   "all": {
-    "totalHa": 581.82,
+    "totalHa": 1086.96,
     "crown": {
       "jenis": "Crown",
-      "totalHa": 474.67,
-      "pct": 81.6,
+      "totalHa": 821.68,
+      "pct": 75.6,
       "classes": {
         "B": {
           "name": "Besar",
@@ -1430,8 +2491,8 @@
         "S": {
           "name": "Sedang",
           "code": "S",
-          "luasHa": 1.12,
-          "pct": 0.2,
+          "luasHa": 1.06,
+          "pct": 0.1,
           "locations": [
             {
               "lokasi": "056B",
@@ -1444,20 +2505,20 @@
             {
               "lokasi": "084C1",
               "luasHa": 0.12
-            },
-            {
-              "lokasi": "082C",
-              "luasHa": 0.06
             }
           ],
-          "locationsCount": 4
+          "locationsCount": 3
         },
         "K": {
           "name": "Kecil",
           "code": "K",
-          "luasHa": 473.55,
-          "pct": 99.8,
+          "luasHa": 759.79,
+          "pct": 92.5,
           "locations": [
+            {
+              "lokasi": "089C",
+              "luasHa": 14.06
+            },
             {
               "lokasi": "085C",
               "luasHa": 12.6
@@ -1475,16 +2536,60 @@
               "luasHa": 10.52
             },
             {
+              "lokasi": "075F",
+              "luasHa": 9.89
+            },
+            {
+              "lokasi": "083A",
+              "luasHa": 9.76
+            },
+            {
+              "lokasi": "097B",
+              "luasHa": 9.69
+            },
+            {
               "lokasi": "072B2",
               "luasHa": 9.67
+            },
+            {
+              "lokasi": "098A1",
+              "luasHa": 9.55
+            },
+            {
+              "lokasi": "048F",
+              "luasHa": 9.4
+            },
+            {
+              "lokasi": "003H",
+              "luasHa": 9.22
             },
             {
               "lokasi": "025A",
               "luasHa": 9.02
             },
             {
+              "lokasi": "012C",
+              "luasHa": 8.99
+            },
+            {
+              "lokasi": "086D",
+              "luasHa": 8.94
+            },
+            {
+              "lokasi": "072C",
+              "luasHa": 8.84
+            },
+            {
               "lokasi": "085E",
               "luasHa": 8.72
+            },
+            {
+              "lokasi": "083D",
+              "luasHa": 8.52
+            },
+            {
+              "lokasi": "049E",
+              "luasHa": 8.5
             },
             {
               "lokasi": "019E1",
@@ -1499,12 +2604,28 @@
               "luasHa": 8.35
             },
             {
+              "lokasi": "076J",
+              "luasHa": 8.33
+            },
+            {
               "lokasi": "076B2",
               "luasHa": 8.26
             },
             {
               "lokasi": "025C",
               "luasHa": 8.25
+            },
+            {
+              "lokasi": "008F",
+              "luasHa": 8.13
+            },
+            {
+              "lokasi": "097H",
+              "luasHa": 7.97
+            },
+            {
+              "lokasi": "049F",
+              "luasHa": 7.93
             },
             {
               "lokasi": "092I",
@@ -1515,16 +2636,16 @@
               "luasHa": 7.78
             },
             {
+              "lokasi": "007F4",
+              "luasHa": 7.77
+            },
+            {
               "lokasi": "054B1",
-              "luasHa": 7.61
+              "luasHa": 7.73
             },
             {
               "lokasi": "048D",
               "luasHa": 7.59
-            },
-            {
-              "lokasi": "069C6",
-              "luasHa": 7.48
             },
             {
               "lokasi": "043G2",
@@ -1535,8 +2656,20 @@
               "luasHa": 7.44
             },
             {
+              "lokasi": "092E2",
+              "luasHa": 7.43
+            },
+            {
               "lokasi": "063G2",
               "luasHa": 7.41
+            },
+            {
+              "lokasi": "044A3",
+              "luasHa": 7.27
+            },
+            {
+              "lokasi": "069C6",
+              "luasHa": 7.25
             },
             {
               "lokasi": "098C",
@@ -1545,6 +2678,10 @@
             {
               "lokasi": "078J",
               "luasHa": 7.22
+            },
+            {
+              "lokasi": "003I",
+              "luasHa": 7.18
             },
             {
               "lokasi": "063G3",
@@ -1559,6 +2696,10 @@
               "luasHa": 7.01
             },
             {
+              "lokasi": "037D",
+              "luasHa": 6.95
+            },
+            {
               "lokasi": "064C",
               "luasHa": 6.95
             },
@@ -1571,6 +2712,18 @@
               "luasHa": 6.79
             },
             {
+              "lokasi": "002C",
+              "luasHa": 6.75
+            },
+            {
+              "lokasi": "088D2",
+              "luasHa": 6.74
+            },
+            {
+              "lokasi": "048K",
+              "luasHa": 6.54
+            },
+            {
               "lokasi": "010F2",
               "luasHa": 6.54
             },
@@ -1579,12 +2732,16 @@
               "luasHa": 6.53
             },
             {
-              "lokasi": "097H",
-              "luasHa": 6.46
+              "lokasi": "050B2B",
+              "luasHa": 6.45
             },
             {
               "lokasi": "063E",
               "luasHa": 6.45
+            },
+            {
+              "lokasi": "045F2",
+              "luasHa": 6.43
             },
             {
               "lokasi": "013B",
@@ -1599,15 +2756,23 @@
               "luasHa": 6.35
             },
             {
+              "lokasi": "088D3",
+              "luasHa": 6.29
+            },
+            {
               "lokasi": "072D1",
               "luasHa": 6.25
             },
             {
-              "lokasi": "038F",
-              "luasHa": 6.1
+              "lokasi": "042D2",
+              "luasHa": 6.15
             },
             {
               "lokasi": "072D2",
+              "luasHa": 6.1
+            },
+            {
+              "lokasi": "038F",
               "luasHa": 6.1
             },
             {
@@ -1621,6 +2786,10 @@
             {
               "lokasi": "042B3",
               "luasHa": 5.96
+            },
+            {
+              "lokasi": "017B1",
+              "luasHa": 5.9
             },
             {
               "lokasi": "092H",
@@ -1641,6 +2810,10 @@
             {
               "lokasi": "061G",
               "luasHa": 5.59
+            },
+            {
+              "lokasi": "096G5",
+              "luasHa": 5.49
             },
             {
               "lokasi": "089D1",
@@ -1675,6 +2848,10 @@
               "luasHa": 5.17
             },
             {
+              "lokasi": "092F",
+              "luasHa": 5.15
+            },
+            {
               "lokasi": "079J",
               "luasHa": 5.15
             },
@@ -1687,8 +2864,16 @@
               "luasHa": 5.05
             },
             {
+              "lokasi": "084H",
+              "luasHa": 4.95
+            },
+            {
               "lokasi": "019E2",
               "luasHa": 4.94
+            },
+            {
+              "lokasi": "054A",
+              "luasHa": 4.89
             },
             {
               "lokasi": "013D",
@@ -1699,8 +2884,32 @@
               "luasHa": 4.67
             },
             {
+              "lokasi": "004E",
+              "luasHa": 4.6
+            },
+            {
+              "lokasi": "030H",
+              "luasHa": 4.59
+            },
+            {
+              "lokasi": "023D",
+              "luasHa": 4.52
+            },
+            {
+              "lokasi": "008A",
+              "luasHa": 4.49
+            },
+            {
+              "lokasi": "024K",
+              "luasHa": 4.28
+            },
+            {
               "lokasi": "064B",
               "luasHa": 4.19
+            },
+            {
+              "lokasi": "007E1",
+              "luasHa": 4.18
             },
             {
               "lokasi": "028A",
@@ -1711,8 +2920,16 @@
               "luasHa": 4.07
             },
             {
+              "lokasi": "004D",
+              "luasHa": 4.05
+            },
+            {
               "lokasi": "077A",
               "luasHa": 3.94
+            },
+            {
+              "lokasi": "030E",
+              "luasHa": 3.85
             },
             {
               "lokasi": "061E1",
@@ -1727,8 +2944,20 @@
               "luasHa": 3.73
             },
             {
+              "lokasi": "082J4",
+              "luasHa": 3.59
+            },
+            {
+              "lokasi": "089A",
+              "luasHa": 3.25
+            },
+            {
               "lokasi": "020C",
               "luasHa": 3.19
+            },
+            {
+              "lokasi": "023B",
+              "luasHa": 2.88
             },
             {
               "lokasi": "001B2",
@@ -1739,124 +2968,169 @@
               "luasHa": 2.72
             },
             {
-              "lokasi": "098A1",
-              "luasHa": 2.31
-            },
-            {
-              "lokasi": "086D",
-              "luasHa": 2.04
-            },
-            {
               "lokasi": "024C",
               "luasHa": 2.03
             },
             {
-              "lokasi": "089A",
-              "luasHa": 2
+              "lokasi": "018A",
+              "luasHa": 2.02
             },
             {
               "lokasi": "084A",
               "luasHa": 1.92
             },
             {
-              "lokasi": "067B",
-              "luasHa": 1.85
-            },
-            {
-              "lokasi": "072C",
-              "luasHa": 1.67
+              "lokasi": "084E",
+              "luasHa": 1.52
             },
             {
               "lokasi": "002B2",
               "luasHa": 1.41
             },
             {
-              "lokasi": "089C",
-              "luasHa": 1.17
-            },
-            {
-              "lokasi": "082J5",
-              "luasHa": 1.03
-            },
-            {
-              "lokasi": "054A",
-              "luasHa": 0.98
-            },
-            {
-              "lokasi": "050B2B",
-              "luasHa": 0.84
+              "lokasi": "067B",
+              "luasHa": 1.24
             },
             {
               "lokasi": "078E2",
               "luasHa": 0.83
             },
             {
+              "lokasi": "023C",
+              "luasHa": 0.76
+            },
+            {
               "lokasi": "020D",
               "luasHa": 0.58
             },
             {
-              "lokasi": "007F5",
-              "luasHa": 0.38
+              "lokasi": "044A4",
+              "luasHa": 0.57
+            },
+            {
+              "lokasi": "079I",
+              "luasHa": 0.57
+            },
+            {
+              "lokasi": "057B1",
+              "luasHa": 0.35
             },
             {
               "lokasi": "054E",
               "luasHa": 0.34
             },
             {
-              "lokasi": "044A3",
-              "luasHa": 0.31
-            },
-            {
-              "lokasi": "007F4",
-              "luasHa": 0.28
-            },
-            {
               "lokasi": "002A2",
               "luasHa": 0.28
             },
             {
-              "lokasi": "082J4",
-              "luasHa": 0.24
+              "lokasi": "048B",
+              "luasHa": 0.14
+            },
+            {
+              "lokasi": "046B2",
+              "luasHa": 0.13
             },
             {
               "lokasi": "055KS",
               "luasHa": 0.1
             },
             {
+              "lokasi": "045C3",
+              "luasHa": 0.08
+            },
+            {
+              "lokasi": "001D",
+              "luasHa": 0.08
+            },
+            {
+              "lokasi": "003C",
+              "luasHa": 0.06
+            },
+            {
               "lokasi": "056G1",
               "luasHa": 0.06
             },
             {
-              "lokasi": "004D",
+              "lokasi": "003B",
+              "luasHa": 0.05
+            },
+            {
+              "lokasi": "045C4",
               "luasHa": 0.04
             }
           ],
-          "locationsCount": 93
+          "locationsCount": 136
         },
         "M": {
           "name": "Extra Kecil",
           "code": "M",
-          "luasHa": 0,
-          "pct": 0,
-          "locations": [],
-          "locationsCount": 0
+          "luasHa": 60.84,
+          "pct": 7.4,
+          "locations": [
+            {
+              "lokasi": "079I",
+              "luasHa": 10.13
+            },
+            {
+              "lokasi": "042F1",
+              "luasHa": 9.42
+            },
+            {
+              "lokasi": "082J5",
+              "luasHa": 7.53
+            },
+            {
+              "lokasi": "067B",
+              "luasHa": 7.51
+            },
+            {
+              "lokasi": "023C",
+              "luasHa": 7.15
+            },
+            {
+              "lokasi": "048I",
+              "luasHa": 7.05
+            },
+            {
+              "lokasi": "100C",
+              "luasHa": 6.81
+            },
+            {
+              "lokasi": "007F5",
+              "luasHa": 5.24
+            }
+          ],
+          "locationsCount": 8
         }
       }
     },
     "sucker": {
       "jenis": "Sucker",
-      "totalHa": 107.15,
-      "pct": 18.4,
+      "totalHa": 265.28,
+      "pct": 24.4,
       "classes": {
         "B": {
           "name": "Besar",
           "code": "B",
-          "luasHa": 13.61,
-          "pct": 12.7,
+          "luasHa": 38.59,
+          "pct": 14.5,
           "locations": [
+            {
+              "lokasi": "042F3",
+              "luasHa": 7.4
+            },
+            {
+              "lokasi": "065B4",
+              "luasHa": 5.69
+            },
             {
               "lokasi": "002A2",
               "luasHa": 4.28
+            },
+            {
+              "lokasi": "069A",
+              "luasHa": 2.83
             },
             {
               "lokasi": "002B2",
@@ -1867,20 +3141,44 @@
               "luasHa": 2.42
             },
             {
+              "lokasi": "061C3",
+              "luasHa": 2.37
+            },
+            {
+              "lokasi": "044A2",
+              "luasHa": 1.91
+            },
+            {
+              "lokasi": "065A3",
+              "luasHa": 1.44
+            },
+            {
+              "lokasi": "017A",
+              "luasHa": 1.4
+            },
+            {
               "lokasi": "056G2",
               "luasHa": 1.15
             },
             {
-              "lokasi": "065B5",
-              "luasHa": 0.87
+              "lokasi": "082G",
+              "luasHa": 0.94
+            },
+            {
+              "lokasi": "034C",
+              "luasHa": 0.93
+            },
+            {
+              "lokasi": "080A1",
+              "luasHa": 0.84
+            },
+            {
+              "lokasi": "082C",
+              "luasHa": 0.82
             },
             {
               "lokasi": "055KS",
               "luasHa": 0.73
-            },
-            {
-              "lokasi": "082G",
-              "luasHa": 0.61
             },
             {
               "lokasi": "055Ks",
@@ -1891,41 +3189,73 @@
               "luasHa": 0.26
             },
             {
-              "lokasi": "017A",
-              "luasHa": 0.15
-            },
-            {
-              "lokasi": "042F3",
-              "luasHa": 0.05
-            },
-            {
-              "lokasi": "080A1",
-              "luasHa": 0.04
-            },
-            {
-              "lokasi": "082C",
-              "luasHa": 0.02
-            },
-            {
-              "lokasi": "065A3",
-              "luasHa": 0.02
+              "lokasi": "001B1",
+              "luasHa": 0.17
             }
           ],
-          "locationsCount": 14
+          "locationsCount": 19
         },
         "S": {
           "name": "Sedang",
           "code": "S",
-          "luasHa": 66.94,
-          "pct": 62.5,
+          "luasHa": 183.17,
+          "pct": 69,
           "locations": [
             {
               "lokasi": "054E",
               "luasHa": 8.57
             },
             {
+              "lokasi": "065D2",
+              "luasHa": 8.37
+            },
+            {
+              "lokasi": "082B3",
+              "luasHa": 8.05
+            },
+            {
+              "lokasi": "082G",
+              "luasHa": 7.74
+            },
+            {
+              "lokasi": "065B5",
+              "luasHa": 7.19
+            },
+            {
+              "lokasi": "034C",
+              "luasHa": 7.18
+            },
+            {
+              "lokasi": "069A",
+              "luasHa": 7.11
+            },
+            {
+              "lokasi": "001B1",
+              "luasHa": 6.96
+            },
+            {
               "lokasi": "056B",
               "luasHa": 6.75
+            },
+            {
+              "lokasi": "044A2",
+              "luasHa": 6.74
+            },
+            {
+              "lokasi": "001A",
+              "luasHa": 6.12
+            },
+            {
+              "lokasi": "082C",
+              "luasHa": 6.02
+            },
+            {
+              "lokasi": "017A",
+              "luasHa": 6.02
+            },
+            {
+              "lokasi": "061C4",
+              "luasHa": 5.87
             },
             {
               "lokasi": "056G1",
@@ -1948,20 +3278,64 @@
               "luasHa": 4.17
             },
             {
+              "lokasi": "069C6",
+              "luasHa": 4.05
+            },
+            {
+              "lokasi": "038F1",
+              "luasHa": 3.87
+            },
+            {
               "lokasi": "056A",
               "luasHa": 3.86
             },
             {
-              "lokasi": "069C6",
-              "luasHa": 3.82
+              "lokasi": "083A1",
+              "luasHa": 3.57
             },
             {
-              "lokasi": "065B5",
-              "luasHa": 3.26
+              "lokasi": "065A5",
+              "luasHa": 3.41
+            },
+            {
+              "lokasi": "020F1",
+              "luasHa": 3.38
+            },
+            {
+              "lokasi": "061C5",
+              "luasHa": 3.11
+            },
+            {
+              "lokasi": "080A1",
+              "luasHa": 2.99
+            },
+            {
+              "lokasi": "023B",
+              "luasHa": 2.97
+            },
+            {
+              "lokasi": "020F2",
+              "luasHa": 2.48
+            },
+            {
+              "lokasi": "002A1",
+              "luasHa": 2.47
             },
             {
               "lokasi": "084C1",
               "luasHa": 2.33
+            },
+            {
+              "lokasi": "082B2",
+              "luasHa": 2.18
+            },
+            {
+              "lokasi": "082J4",
+              "luasHa": 2.11
+            },
+            {
+              "lokasi": "008F",
+              "luasHa": 2.1
             },
             {
               "lokasi": "024B",
@@ -1972,20 +3346,24 @@
               "luasHa": 1.93
             },
             {
-              "lokasi": "004E",
-              "luasHa": 1.75
-            },
-            {
               "lokasi": "048D",
               "luasHa": 1.71
+            },
+            {
+              "lokasi": "083D",
+              "luasHa": 1.51
             },
             {
               "lokasi": "002A2",
               "luasHa": 1.46
             },
             {
-              "lokasi": "082G",
-              "luasHa": 1.2
+              "lokasi": "083A",
+              "luasHa": 1.07
+            },
+            {
+              "lokasi": "017B1",
+              "luasHa": 1.06
             },
             {
               "lokasi": "024C",
@@ -1996,53 +3374,49 @@
               "luasHa": 0.95
             },
             {
-              "lokasi": "082J4",
-              "luasHa": 0.53
+              "lokasi": "004E",
+              "luasHa": 0.77
             },
             {
-              "lokasi": "082C",
-              "luasHa": 0.52
+              "lokasi": "007E1",
+              "luasHa": 0.62
+            },
+            {
+              "lokasi": "042F3",
+              "luasHa": 0.55
             },
             {
               "lokasi": "084A",
               "luasHa": 0.46
             },
             {
-              "lokasi": "046P1",
-              "luasHa": 0.31
-            },
-            {
               "lokasi": "078B",
               "luasHa": 0.31
             },
             {
-              "lokasi": "089C",
-              "luasHa": 0.16
+              "lokasi": "097F",
+              "luasHa": 0.29
             },
             {
-              "lokasi": "069A",
-              "luasHa": 0.1
-            },
-            {
-              "lokasi": "054A",
-              "luasHa": 0.08
-            },
-            {
-              "lokasi": "065A5",
-              "luasHa": 0.02
+              "lokasi": "007A2",
+              "luasHa": 0.05
             }
           ],
-          "locationsCount": 28
+          "locationsCount": 50
         },
         "K": {
           "name": "Kecil",
           "code": "K",
-          "luasHa": 26.6,
-          "pct": 24.8,
+          "luasHa": 43.52,
+          "pct": 16.4,
           "locations": [
             {
               "lokasi": "078E2",
               "luasHa": 8.68
+            },
+            {
+              "lokasi": "100C",
+              "luasHa": 4.7
             },
             {
               "lokasi": "083H",
@@ -2057,12 +3431,36 @@
               "luasHa": 3
             },
             {
+              "lokasi": "004E",
+              "luasHa": 2.6
+            },
+            {
+              "lokasi": "008A",
+              "luasHa": 2.58
+            },
+            {
+              "lokasi": "037D",
+              "luasHa": 2.56
+            },
+            {
+              "lokasi": "065A4",
+              "luasHa": 2
+            },
+            {
+              "lokasi": "084H",
+              "luasHa": 1.61
+            },
+            {
               "lokasi": "010C1",
               "luasHa": 1.46
             },
             {
               "lokasi": "077A",
               "luasHa": 1.4
+            },
+            {
+              "lokasi": "007E1",
+              "luasHa": 1.29
             },
             {
               "lokasi": "024C",
@@ -2073,10 +3471,6 @@
               "luasHa": 0.71
             },
             {
-              "lokasi": "065A4",
-              "luasHa": 0.65
-            },
-            {
               "lokasi": "084A",
               "luasHa": 0.61
             },
@@ -2085,39 +3479,27 @@
               "luasHa": 0.59
             },
             {
+              "lokasi": "092F",
+              "luasHa": 0.48
+            },
+            {
               "lokasi": "076B2",
               "luasHa": 0.34
+            },
+            {
+              "lokasi": "046P1",
+              "luasHa": 0.31
             },
             {
               "lokasi": "092H",
               "luasHa": 0.26
             },
             {
-              "lokasi": "004E",
-              "luasHa": 0.19
-            },
-            {
-              "lokasi": "084H",
-              "luasHa": 0.18
-            },
-            {
-              "lokasi": "067B",
-              "luasHa": 0.09
-            },
-            {
-              "lokasi": "042F1",
-              "luasHa": 0.06
-            },
-            {
-              "lokasi": "098A1",
-              "luasHa": 0.04
-            },
-            {
               "lokasi": "057C",
               "luasHa": 0.03
             }
           ],
-          "locationsCount": 19
+          "locationsCount": 22
         },
         "M": {
           "name": "Extra Kecil",

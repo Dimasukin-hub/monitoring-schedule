@@ -68,8 +68,8 @@ export default function SebaranBibitBulanChart({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  // State untuk isolasi Bibit Crown / Sucker (klik tombol legenda atau klik bar langsung)
-  const [isolatedBibit, setIsolatedBibit] = useState<'all' | 'Crown' | 'Sucker'>('all');
+  // State bibit yang disembunyikan (hidden): Set<'Crown' | 'Sucker'>
+  const [hiddenBibit, setHiddenBibit] = useState<Set<'Crown' | 'Sucker'>>(new Set());
   const [hoveredMonth, setHoveredMonth] = useState<MonthSeedItem | null>(null);
   const [isInsidePopup, setIsInsidePopup] = useState(false);
   const [pinnedMonth, setPinnedMonth] = useState<string | null>(null);
@@ -83,11 +83,22 @@ export default function SebaranBibitBulanChart({
     : hoveredMonth;
 
   const handleToggleBibit = (jenis: 'Crown' | 'Sucker') => {
-    setIsolatedBibit((prev) => (prev === jenis ? 'all' : jenis));
+    setHiddenBibit((prev) => {
+      const next = new Set(prev);
+      if (next.has(jenis)) {
+        next.delete(jenis);
+      } else {
+        next.add(jenis);
+      }
+      return next;
+    });
   };
 
+  const showCrown = !hiddenBibit.has('Crown');
+  const showSucker = !hiddenBibit.has('Sucker');
+
   const handleChartMouseMove = (state: any) => {
-    if (isInsidePopup || pinnedMonth) return;
+    if (isInsidePopup || pinnedMonth || (!showCrown && !showSucker)) return;
 
     if (state && state.activePayload && state.activePayload.length > 0) {
       const item = state.activePayload[0].payload as MonthSeedItem;
@@ -140,6 +151,7 @@ export default function SebaranBibitBulanChart({
   };
 
   const handleBarClick = (item: MonthSeedItem) => {
+    if (!showCrown && !showSucker) return;
     if (pinnedMonth === item.monthName) {
       setPinnedMonth(null);
     } else {
@@ -161,9 +173,14 @@ export default function SebaranBibitBulanChart({
   // - Jika batang berada di bagian bawah/tengah (ada data lain di atasnya) -> flat rata [0, 0, 0, 0] agar menyatu mulus tanpa celah
   const renderCustomBar = (props: any) => {
     if (!props.height || props.height <= 0) return null;
+    const isCrown = props.dataKey === 'crownTotal';
+    const isSucker = props.dataKey === 'suckerTotal';
+    if (isCrown && !showCrown) return null;
+    if (isSucker && !showSucker) return null;
+
     const totalVal =
-      (isolatedBibit === 'Sucker' ? 0 : props.payload?.crownTotal || 0) +
-      (isolatedBibit === 'Crown' ? 0 : props.payload?.suckerTotal || 0);
+      (!showCrown ? 0 : props.payload?.crownTotal || 0) +
+      (!showSucker ? 0 : props.payload?.suckerTotal || 0);
 
     let isTop = true;
     if (Array.isArray(props.value)) {
@@ -174,9 +191,6 @@ export default function SebaranBibitBulanChart({
     const radius = isTop ? [6, 6, 0, 0] : [0, 0, 0, 0];
     return <Rectangle {...props} radius={radius} />;
   };
-
-  const showCrown = isolatedBibit === 'all' || isolatedBibit === 'Crown';
-  const showSucker = isolatedBibit === 'all' || isolatedBibit === 'Sucker';
 
   return (
     <div className="relative overflow-visible rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 glass-panel shadow-sm flex flex-col justify-between h-full space-y-4">
@@ -216,14 +230,16 @@ export default function SebaranBibitBulanChart({
               tick={{ fill: isDark ? '#94a3b8' : '#64748b', fontSize: 11 }}
               axisLine={{ stroke: isDark ? '#475569' : '#cbd5e1' }}
               tickLine={false}
+              includeHidden={true}
             />
             <YAxis
               stroke={isDark ? '#94a3b8' : '#64748b'}
               tick={{ fill: isDark ? '#94a3b8' : '#64748b', fontSize: 11 }}
               unit=" Ha"
-              domain={[0, 'auto']}
+              domain={[0, !showCrown && !showSucker ? 180 : 'auto']}
               axisLine={{ stroke: isDark ? '#475569' : '#cbd5e1' }}
               tickLine={false}
+              includeHidden={true}
             />
 
             {/* Hover shading cursor saja, pop up aktual dirender mandiri agar stabil tidak melompat */}
@@ -232,7 +248,20 @@ export default function SebaranBibitBulanChart({
               content={() => null}
             />
 
-            {/* Stacked Bars: Bibit Crown & Bibit Sucker (Bisa diklik langsung pada grafik untuk memilih salah satu / pin pop up) */}
+            {/* Saat kedua seri ter-hide, render dummy bar transparan tanpa shape agar CartesianGrid dan angka sumbu vertikal tetap ada */}
+            {!showCrown && !showSucker && (
+              <Bar
+                dataKey="crownTotal"
+                fill="transparent"
+                isAnimationActive={false}
+                legendType="none"
+                tooltipType="none"
+                className="pointer-events-none opacity-0 select-none"
+                shape={() => null}
+              />
+            )}
+
+            {/* Stacked Bars: Bibit Crown & Bibit Sucker (Bisa diklik langsung pada grafik untuk menyembunyikan yang diklik) */}
             {showCrown && (
               <Bar
                 dataKey="crownTotal"
@@ -242,19 +271,21 @@ export default function SebaranBibitBulanChart({
                 shape={renderCustomBar}
                 cursor="pointer"
                 className="cursor-pointer transition-opacity duration-150 hover:opacity-90"
+                onClick={() => handleToggleBibit('Crown')}
               >
                 {data.map((entry, idx) => (
                   <Cell
                     key={`cell-crown-${entry.monthKey}`}
+                    cursor="pointer"
                     onMouseEnter={() => {
                       if (!isInsidePopup && !pinnedMonth) {
                         setHoveredMonth(entry);
                         setPopupPos({ x: 0, align: idx >= 6 ? 'right' : 'left' });
                       }
                     }}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e?.stopPropagation?.();
                       handleToggleBibit('Crown');
-                      handleBarClick(entry);
                     }}
                   />
                 ))}
@@ -270,19 +301,21 @@ export default function SebaranBibitBulanChart({
                 shape={renderCustomBar}
                 cursor="pointer"
                 className="cursor-pointer transition-opacity duration-150 hover:opacity-90"
+                onClick={() => handleToggleBibit('Sucker')}
               >
                 {data.map((entry, idx) => (
                   <Cell
                     key={`cell-sucker-${entry.monthKey}`}
+                    cursor="pointer"
                     onMouseEnter={() => {
                       if (!isInsidePopup && !pinnedMonth) {
                         setHoveredMonth(entry);
                         setPopupPos({ x: 0, align: idx >= 6 ? 'right' : 'left' });
                       }
                     }}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e?.stopPropagation?.();
                       handleToggleBibit('Sucker');
-                      handleBarClick(entry);
                     }}
                   />
                 ))}
@@ -292,7 +325,7 @@ export default function SebaranBibitBulanChart({
         </ResponsiveContainer>
 
         {/* Pop Up Detail Sebaran Bibit per Bulan (Terkunci & Tidak Berpindah Saat Mau Di-scroll, Solid Sesuai Tema) */}
-        {activeMonthData && (
+        {activeMonthData && (showCrown || showSucker) && (
           <div
             onMouseEnter={handlePopupMouseEnter}
             onMouseLeave={handlePopupMouseLeave}
@@ -308,7 +341,7 @@ export default function SebaranBibitBulanChart({
               left: popupPos?.align === 'right' ? 'auto' : `${Math.max(16, (popupPos?.x ?? 200) - 100)}px`,
               right: popupPos?.align === 'right' ? '16px' : 'auto',
             }}
-            className={`absolute z-30 rounded-2xl p-4 border text-xs min-w-[300px] max-w-[345px] space-y-3 pointer-events-auto select-text shadow-2xl transition-opacity duration-150 ${
+            className={`absolute z-30 rounded-2xl p-4 border text-xs min-w-[320px] max-w-[360px] space-y-3 pointer-events-auto select-text shadow-2xl transition-opacity duration-150 ${
               isDark
                 ? 'border-slate-700 text-white bg-slate-900'
                 : 'border-slate-300 text-slate-800 bg-white'
@@ -329,19 +362,23 @@ export default function SebaranBibitBulanChart({
                   {activeMonthData.monthName}
                 </span>
                 <span className="text-[10px] text-slate-400">
-                  {isolatedBibit === 'all'
-                    ? 'Realisasi Tanam Bibit'
-                    : `Realisasi Bibit ${isolatedBibit}`}
+                  {showCrown && !showSucker
+                    ? 'Realisasi Bibit Crown'
+                    : !showCrown && showSucker
+                    ? 'Realisasi Bibit Sucker'
+                    : 'Realisasi Tanam Bibit'}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-mono font-black text-sm text-emerald-500">
                   {fmt(
-                    isolatedBibit === 'Crown'
+                    showCrown && !showSucker
                       ? activeMonthData.crownTotal
-                      : isolatedBibit === 'Sucker'
+                      : !showCrown && showSucker
                       ? activeMonthData.suckerTotal
-                      : activeMonthData.totalHa
+                      : showCrown && showSucker
+                      ? activeMonthData.totalHa
+                      : 0
                   )}{' '}
                   Ha
                 </span>
@@ -386,15 +423,22 @@ export default function SebaranBibitBulanChart({
                           {fmt(activeMonthData.crownTotal)} Ha
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
-                        <div className="pl-3.5 text-left">
-                          Kecil: <strong className="text-slate-700 dark:text-slate-200">{fmt(activeMonthData.crown_K)}</strong>
+                      <div className="grid grid-cols-4 gap-1 pt-1.5 border-t border-amber-200/60 dark:border-slate-700/60 text-[10px]">
+                        <div className="text-left">
+                          <span className="text-[9.5px] text-slate-400 block leading-tight">Extra Kecil</span>
+                          <strong className="text-slate-700 dark:text-slate-200 font-mono">{fmt(activeMonthData.crown_M)}</strong>
                         </div>
-                        <div className="text-center px-1">
-                          Sedang: <strong className="text-slate-700 dark:text-slate-200">{fmt(activeMonthData.crown_S)}</strong>
+                        <div className="text-center">
+                          <span className="text-[9.5px] text-slate-400 block leading-tight">Kecil</span>
+                          <strong className="text-slate-700 dark:text-slate-200 font-mono">{fmt(activeMonthData.crown_K)}</strong>
+                        </div>
+                        <div className="text-center">
+                          <span className="text-[9.5px] text-slate-400 block leading-tight">Sedang</span>
+                          <strong className="text-slate-700 dark:text-slate-200 font-mono">{fmt(activeMonthData.crown_S)}</strong>
                         </div>
                         <div className="text-right">
-                          Besar: <strong className="text-slate-700 dark:text-slate-200">{fmt(activeMonthData.crown_B)}</strong>
+                          <span className="text-[9.5px] text-slate-400 block leading-tight">Besar</span>
+                          <strong className="text-slate-700 dark:text-slate-200 font-mono">{fmt(activeMonthData.crown_B)}</strong>
                         </div>
                       </div>
                     </div>
@@ -420,15 +464,22 @@ export default function SebaranBibitBulanChart({
                           {fmt(activeMonthData.suckerTotal)} Ha
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
-                        <div className="pl-3.5 text-left">
-                          Kecil: <strong className="text-slate-700 dark:text-slate-200">{fmt(activeMonthData.sucker_K)}</strong>
+                      <div className="grid grid-cols-4 gap-1 pt-1.5 border-t border-cyan-200/60 dark:border-slate-700/60 text-[10px]">
+                        <div className="text-left">
+                          <span className="text-[9.5px] text-slate-400 block leading-tight">Extra Kecil</span>
+                          <strong className="text-slate-700 dark:text-slate-200 font-mono">{fmt(activeMonthData.sucker_M)}</strong>
                         </div>
-                        <div className="text-center px-1">
-                          Sedang: <strong className="text-slate-700 dark:text-slate-200">{fmt(activeMonthData.sucker_S)}</strong>
+                        <div className="text-center">
+                          <span className="text-[9.5px] text-slate-400 block leading-tight">Kecil</span>
+                          <strong className="text-slate-700 dark:text-slate-200 font-mono">{fmt(activeMonthData.sucker_K)}</strong>
+                        </div>
+                        <div className="text-center">
+                          <span className="text-[9.5px] text-slate-400 block leading-tight">Sedang</span>
+                          <strong className="text-slate-700 dark:text-slate-200 font-mono">{fmt(activeMonthData.sucker_S)}</strong>
                         </div>
                         <div className="text-right">
-                          Besar: <strong className="text-slate-700 dark:text-slate-200">{fmt(activeMonthData.sucker_B)}</strong>
+                          <span className="text-[9.5px] text-slate-400 block leading-tight">Besar</span>
+                          <strong className="text-slate-700 dark:text-slate-200 font-mono">{fmt(activeMonthData.sucker_B)}</strong>
                         </div>
                       </div>
                     </div>
@@ -438,8 +489,9 @@ export default function SebaranBibitBulanChart({
                 {/* Rincian Lokasi Tanam dengan Grid 2 Kolom Sejajar Rapi */}
                 {(() => {
                   const activeLocations = (activeMonthData.locations || []).filter((loc) => {
-                    if (isolatedBibit === 'Crown') return !loc.bibit || loc.bibit.toLowerCase().includes('crown');
-                    if (isolatedBibit === 'Sucker') return !loc.bibit || loc.bibit.toLowerCase().includes('sucker');
+                    if (showCrown && !showSucker) return !loc.bibit || loc.bibit.toLowerCase().includes('crown');
+                    if (!showCrown && showSucker) return !loc.bibit || loc.bibit.toLowerCase().includes('sucker');
+                    if (!showCrown && !showSucker) return false;
                     return true;
                   });
 
@@ -478,49 +530,53 @@ export default function SebaranBibitBulanChart({
         )}
       </div>
 
-      {/* 3. Tombol Legenda Interaktif di Bagian Bawah (Tanpa Garis Pembatas Atas, Tanpa Total Realisasi, Diposisikan di Tengah) */}
+      {/* 3. Tombol Legenda Interaktif di Bagian Bawah (Semua tombol selalu tampil, yang diklik akan ter-hide dari grafik) */}
       <div className="flex flex-wrap items-center justify-center gap-3 pt-3 min-h-[44px] select-none">
-        {/* Tombol Legenda Bibit Crown - Disembunyikan sepenuhnya jika Sucker yang aktif */}
-        {showCrown && (
-          <button
-            type="button"
-            onClick={() => handleToggleBibit('Crown')}
-            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs ${
-              isolatedBibit === 'Crown'
-                ? 'border-amber-500 bg-amber-500/20 text-amber-900 dark:text-amber-200 ring-2 ring-amber-500/30'
-                : 'border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200 hover:bg-amber-500/20'
+        {/* Tombol Legenda Bibit Crown */}
+        <button
+          type="button"
+          onClick={() => handleToggleBibit('Crown')}
+          className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
+            hiddenBibit.has('Crown')
+              ? 'opacity-40 grayscale hover:opacity-75 bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700'
+              : 'border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200 hover:bg-amber-500/20 ring-1 ring-amber-500/20'
+          }`}
+          title={
+            hiddenBibit.has('Crown')
+              ? 'Klik untuk menampilkan Bibit Crown'
+              : 'Klik untuk menyembunyikan Bibit Crown'
+          }
+        >
+          <span
+            className={`w-3 h-3 rounded-full shrink-0 ${
+              hiddenBibit.has('Crown') ? 'bg-slate-400 dark:bg-slate-500' : 'bg-[#F59E0B]'
             }`}
-            title={
-              isolatedBibit === 'Crown'
-                ? 'Klik untuk membatalkan isolasi dan menampilkan semua'
-                : 'Klik untuk hanya menampilkan Bibit Crown'
-            }
-          >
-            <span className="w-3 h-3 rounded-full bg-[#F59E0B] shrink-0" />
-            <span>Bibit Crown</span>
-          </button>
-        )}
+          />
+          <span>Bibit Crown</span>
+        </button>
 
-        {/* Tombol Legenda Bibit Sucker - Disembunyikan sepenuhnya jika Crown yang aktif */}
-        {showSucker && (
-          <button
-            type="button"
-            onClick={() => handleToggleBibit('Sucker')}
-            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs ${
-              isolatedBibit === 'Sucker'
-                ? 'border-cyan-500 bg-cyan-500/20 text-cyan-900 dark:text-cyan-200 ring-2 ring-cyan-500/30'
-                : 'border-cyan-500/30 bg-cyan-500/10 text-cyan-800 dark:text-cyan-200 hover:bg-cyan-500/20'
+        {/* Tombol Legenda Bibit Sucker */}
+        <button
+          type="button"
+          onClick={() => handleToggleBibit('Sucker')}
+          className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
+            hiddenBibit.has('Sucker')
+              ? 'opacity-40 grayscale hover:opacity-75 bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700'
+              : 'border-cyan-500/30 bg-cyan-500/10 text-cyan-800 dark:text-cyan-200 hover:bg-cyan-500/20 ring-1 ring-cyan-500/20'
+          }`}
+          title={
+            hiddenBibit.has('Sucker')
+              ? 'Klik untuk menampilkan Bibit Sucker'
+              : 'Klik untuk menyembunyikan Bibit Sucker'
+          }
+        >
+          <span
+            className={`w-3 h-3 rounded-full shrink-0 ${
+              hiddenBibit.has('Sucker') ? 'bg-slate-400 dark:bg-slate-500' : 'bg-[#06B6D4]'
             }`}
-            title={
-              isolatedBibit === 'Sucker'
-                ? 'Klik untuk membatalkan isolasi dan menampilkan semua'
-                : 'Klik untuk hanya menampilkan Bibit Sucker'
-            }
-          >
-            <span className="w-3 h-3 rounded-full bg-[#06B6D4] shrink-0" />
-            <span>Bibit Sucker</span>
-          </button>
-        )}
+          />
+          <span>Bibit Sucker</span>
+        </button>
       </div>
     </div>
   );

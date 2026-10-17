@@ -567,48 +567,35 @@ export async function PUT(request: Request) {
       }
       const newSisa = newStatus === 'SELESAI' ? 0 : Number(Math.max(0, targetLuas - newRealTanam).toFixed(2));
 
+      // Auto-fallback jenisBibit & kelasBibit jika di master masih null
+      const updateData: any = {
+        realTanam: newRealTanam,
+        sisa: newSisa,
+        progress: newProgress,
+        status: newStatus,
+      };
+
+      if (!plantingMaster.jenisBibit) {
+        const bibitFromTx = tanamTxs.find((t) => t.jenisBibit)?.jenisBibit || null;
+        if (bibitFromTx) updateData.jenisBibit = bibitFromTx;
+      }
+      if (!plantingMaster.kelasBibit) {
+        let kelasFromTx: string | null = null;
+        if (tanamTxs.some((t) => (t.kecil || 0) > 0)) kelasFromTx = 'Kecil';
+        else if (tanamTxs.some((t) => (t.sedang || 0) > 0)) kelasFromTx = 'Sedang';
+        else if (tanamTxs.some((t) => (t.besar || 0) > 0)) kelasFromTx = 'Besar';
+        else if (tanamTxs.some((t) => (t.standar || 0) > 0)) kelasFromTx = 'Standar';
+        if (kelasFromTx) updateData.kelasBibit = kelasFromTx;
+      }
+
       updatedMaster = await prisma.planting.update({
         where: { id: plantingMaster.id },
-        data: {
-          realTanam: newRealTanam,
-          sisa: newSisa,
-          progress: newProgress,
-          status: newStatus,
-        },
+        data: updateData,
       });
-    } else {
-      const landMaster = await prisma.land.findFirst({
-        where: { lokasi: { equals: lokasi, mode: 'insensitive' } },
-      });
-      if (landMaster) {
-        const targetLuas = landMaster.luasNetto || landMaster.luasBruto || 0;
-        const newProgress =
-          targetLuas > 0 ? Number(((newRealTanam / targetLuas) * 100).toFixed(1)) : 0;
-        let newStatus = 'BELUM TANAM';
-        if (newProgress >= 100 || (targetLuas > 0 && newRealTanam >= targetLuas)) {
-          newStatus = 'SELESAI';
-        } else if (newRealTanam > 0) {
-          newStatus = 'PROSES';
-        }
-        const newSisa = newStatus === 'SELESAI' ? 0 : Number(Math.max(0, targetLuas - newRealTanam).toFixed(2));
-
-        updatedMaster = await prisma.planting.create({
-          data: {
-            lokasi: landMaster.lokasi,
-            luas: targetLuas,
-            jenisBibit: landMaster.jenisBibit,
-            kelasBibit: landMaster.kelasBibit,
-            realTanam: newRealTanam,
-            sisa: newSisa,
-            estSelesai: null,
-            progress: newProgress,
-            awalTanam: landMaster.realMulaiTanam || landMaster.rencMulaiTanam || null,
-            leadtime: landMaster.hariWaktu || null,
-            status: newStatus,
-          },
-        });
-      }
     }
+    // Note: Jika lokasi tidak terdaftar di master Planting (Sheet RTN), 
+    // sistem TIDAK membuat record master baru agar tabel Real Tanam Nanas 
+    // selalu 100% konsisten dengan sheet RTN resmi.
 
     return NextResponse.json({
       success: true,

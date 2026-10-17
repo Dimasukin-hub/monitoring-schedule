@@ -9,6 +9,7 @@
       "no": 1,
       "lokasi": "063A",
       "bibit": "Crown",
+      "kelas": "Kecil",
       "luas": 0.08,
       "luasNetto": 10.65
     },
@@ -16,6 +17,7 @@
       "no": 2,
       "lokasi": "002B2",
       "bibit": "Sucker",
+      "kelas": "Sedang",
       "luas": 0.21,
       "luasNetto": 10.01
     },
@@ -23,6 +25,7 @@
       "no": 3,
       "lokasi": "013C",
       "bibit": "Crown",
+      "kelas": "Kecil",
       "luas": 0.24,
       "luasNetto": 8.09
     },
@@ -30,6 +33,7 @@
       "no": 4,
       "lokasi": "013F",
       "bibit": "Crown",
+      "kelas": "Kecil",
       "luas": 1.65,
       "luasNetto": 7.64
     },
@@ -37,6 +41,7 @@
       "no": 5,
       "lokasi": "020D",
       "bibit": "Crown",
+      "kelas": "Kecil",
       "luas": 0.14,
       "luasNetto": 6.68
     },
@@ -44,6 +49,7 @@
       "no": 6,
       "lokasi": "078E2",
       "bibit": "Sucker",
+      "kelas": "Kecil",
       "luas": 0.43,
       "luasNetto": 12.75
     },
@@ -51,6 +57,7 @@
       "no": 7,
       "lokasi": "077A",
       "bibit": "Crown",
+      "kelas": "Kecil",
       "luas": 0.95,
       "luasNetto": 9.22
     }

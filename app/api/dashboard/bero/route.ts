@@ -1,9 +1,61 @@
 import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+
+function parseDate(dStr: string | null | undefined): Date | null {
+  if (!dStr) return null;
+  const parts = dStr.split('/');
+  if (parts.length === 3) {
+    const d = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const y = parseInt(parts[2], 10);
+    if (!isNaN(d) && !isNaN(m) && !isNaN(y)) {
+      return new Date(y, m, d);
+    }
+  }
+  return null;
+}
+
+const MONTH_NAMES_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function getRangeKey(diffDays: number): string {
+  if (diffDays < 80) return '< 80';
+  if (diffDays <= 90) return '80 - 90';
+  if (diffDays <= 120) return '90 - 120';
+  if (diffDays <= 150) return '120 - 150';
+  if (diffDays <= 180) return '150 - 180';
+  if (diffDays <= 210) return '180 - 210';
+  if (diffDays <= 240) return '210 - 240';
+  return '> 240';
+}
+
+// 18 Periode Standar Monitoring Bero (Oct-25 s/d Mar-27)
+const TARGET_18_PERIODS = [
+  // 2025 (3 bulan)
+  { periodKey: 'Oct-25', year: 2025, monthNum: 10, label: 'Oct-25' },
+  { periodKey: 'Nov-25', year: 2025, monthNum: 11, label: 'Nov-25' },
+  { periodKey: 'Dec-25', year: 2025, monthNum: 12, label: 'Dec-25' },
+  // 2026 (12 bulan)
+  { periodKey: 'Jan-26', year: 2026, monthNum: 1, label: 'Jan-26' },
+  { periodKey: 'Feb-26', year: 2026, monthNum: 2, label: 'Feb-26' },
+  { periodKey: 'Mar-26', year: 2026, monthNum: 3, label: 'Mar-26' },
+  { periodKey: 'Apr-26', year: 2026, monthNum: 4, label: 'Apr-26' },
+  { periodKey: 'May-26', year: 2026, monthNum: 5, label: 'May-26' },
+  { periodKey: 'Jun-26', year: 2026, monthNum: 6, label: 'Jun-26' },
+  { periodKey: 'Jul-26', year: 2026, monthNum: 7, label: 'Jul-26' },
+  { periodKey: 'Aug-26', year: 2026, monthNum: 8, label: 'Aug-26' },
+  { periodKey: 'Sep-26', year: 2026, monthNum: 9, label: 'Sep-26' },
+  { periodKey: 'Oct-26', year: 2026, monthNum: 10, label: 'Oct-26' },
+  { periodKey: 'Nov-26', year: 2026, monthNum: 11, label: 'Nov-26' },
+  { periodKey: 'Dec-26', year: 2026, monthNum: 12, label: 'Dec-26' },
+  // 2027 (3 bulan)
+  { periodKey: 'Jan-27', year: 2027, monthNum: 1, label: 'Jan-27' },
+  { periodKey: 'Feb-27', year: 2027, monthNum: 2, label: 'Feb-27' },
+  { periodKey: 'Mar-27', year: 2027, monthNum: 3, label: 'Mar-27' },
+];
 
 export async function GET() {
   try {
     // 1. DATA GRAFIK 1 (KANAN): RERATA BERO / BULAN (Oct-25 s/d Mar-27) - Satuan: Hari Bero
-    // Dikembalikan seperti semula 18 bulan penuh dari Oct-25 sampai Mar-27
     const beroChartData = [
       // 2025 (3 bulan)
       { periodKey: 'Oct-25', year: 2025, monthNum: 10, label: 'Oct-25', rfc: 57, rencana: 57, realisasi: 57, deviasi: 0 },
@@ -28,22 +80,83 @@ export async function GET() {
       { periodKey: 'Mar-27', year: 2027, monthNum: 3, label: 'Mar-27', rfc: 76, rencana: 73, realisasi: null, deviasi: null },
     ];
 
-    // 2. DATA GRAFIK 2 (KIRI): TANAM / BULAN (Jan-26 s/d Des-26) - Satuan: Hektar (Ha)
-    // Sesuai data Target & Real dari gambar PRD Schedule 2026 Update 09:
-    const tanamChartData = [
-      { periodKey: 'Jan-26', year: 2026, monthNum: 1, label: 'Jan-26', target: 110, real: 105.39, deviasi: Number((105.39 - 110).toFixed(2)) },
-      { periodKey: 'Feb-26', year: 2026, monthNum: 2, label: 'Feb-26', target: 70, real: 33.74, deviasi: Number((33.74 - 70).toFixed(2)) },
-      { periodKey: 'Mar-26', year: 2026, monthNum: 3, label: 'Mar-26', target: 80, real: 92.26, deviasi: Number((92.26 - 80).toFixed(2)) },
-      { periodKey: 'Apr-26', year: 2026, monthNum: 4, label: 'Apr-26', target: 140, real: 91.23, deviasi: Number((91.23 - 140).toFixed(2)) },
-      { periodKey: 'May-26', year: 2026, monthNum: 5, label: 'May-26', target: 150, real: 120.90, deviasi: Number((120.90 - 150).toFixed(2)) },
-      { periodKey: 'Jun-26', year: 2026, monthNum: 6, label: 'Jun-26', target: 150, real: 170.35, deviasi: Number((170.35 - 150).toFixed(2)) },
-      { periodKey: 'Jul-26', year: 2026, monthNum: 7, label: 'Jul-26', target: 150, real: 175.22, deviasi: Number((175.22 - 150).toFixed(2)) },
-      { periodKey: 'Aug-26', year: 2026, monthNum: 8, label: 'Aug-26', target: 141, real: 140.20, deviasi: Number((140.20 - 141).toFixed(2)) },
-      { periodKey: 'Sep-26', year: 2026, monthNum: 9, label: 'Sep-26', target: 120, real: 77.40, deviasi: Number((77.40 - 120).toFixed(2)) },
-      { periodKey: 'Oct-26', year: 2026, monthNum: 10, label: 'Oct-26', target: 130, real: null, deviasi: null },
-      { periodKey: 'Nov-26', year: 2026, monthNum: 11, label: 'Nov-26', target: 120, real: null, deviasi: null },
-      { periodKey: 'Dec-26', year: 2026, monthNum: 12, label: 'Dec-26', target: 101, real: null, deviasi: null },
-    ];
+    // 2. DATA GRAFIK 2 (KIRI): GRAFIK RANGE BERO (Oct-25 s/d Mar-27)
+    // Sesuai permintaan pengguna: Mengikuti timeline grafik bero/bulan (18 bulan: Oct-25 s/d Mar-27)
+    const rangeBeroChartData: Array<{
+      periodKey: string;
+      year: number;
+      monthNum: number;
+      label: string;
+      totalHa: number;
+      countLands: number;
+      '< 80': number;
+      '80 - 90': number;
+      '90 - 120': number;
+      '120 - 150': number;
+      '150 - 180': number;
+      '180 - 210': number;
+      '210 - 240': number;
+      '> 240': number;
+    }> = TARGET_18_PERIODS.map((p) => ({
+      ...p,
+      totalHa: 0,
+      countLands: 0,
+      '< 80': 0,
+      '80 - 90': 0,
+      '90 - 120': 0,
+      '120 - 150': 0,
+      '150 - 180': 0,
+      '180 - 210': 0,
+      '210 - 240': 0,
+      '> 240': 0,
+    }));
+
+    const itemMap = new Map<string, (typeof rangeBeroChartData)[0]>();
+    for (const item of rangeBeroChartData) {
+      itemMap.set(item.periodKey, item);
+    }
+
+    try {
+      const lands = await prisma.land.findMany({
+        where: {
+          year: { in: [2025, 2026, 2027] },
+        },
+        select: {
+          id: true,
+          lokasi: true,
+          year: true,
+          luasNetto: true,
+          bulanTanam: true,
+          rencMulaiTanam: true,
+          realMulaiTanam: true,
+          rencBkr: true,
+          realBkr: true,
+        },
+      });
+
+      for (const l of lands) {
+        const bkr = parseDate(l.realBkr || l.rencBkr);
+        const tanam = parseDate(l.realMulaiTanam || l.rencMulaiTanam);
+        if (!bkr || !tanam) continue;
+
+        const diffDays = Math.round((tanam.getTime() - bkr.getTime()) / (1000 * 60 * 60 * 24));
+        const range = getRangeKey(diffDays) as keyof (typeof rangeBeroChartData)[0];
+
+        // Format periodKey: e.g. "Oct-25", "Jan-26", "Mar-27"
+        const tanamMonth = tanam.getMonth();
+        const tanamYear = tanam.getFullYear();
+        const pKey = `${MONTH_NAMES_EN[tanamMonth]}-${String(tanamYear).slice(2)}`;
+
+        const targetItem = itemMap.get(pKey);
+        if (targetItem && range) {
+          (targetItem[range] as number) = Number(((targetItem[range] as number) + l.luasNetto).toFixed(2));
+          targetItem.totalHa = Number((targetItem.totalHa + l.luasNetto).toFixed(2));
+          targetItem.countLands++;
+        }
+      }
+    } catch (dbErr) {
+      console.error('Error querying land for rangeBeroChartData:', dbErr);
+    }
 
     const periods2025 = beroChartData.filter((d) => d.year === 2025);
     const periods2026 = beroChartData.filter((d) => d.year === 2026);
@@ -52,10 +165,10 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       data: {
-        title: 'Rerata Bero Lokasi SN & Monitoring Tanam',
-        subtitle: 'Grafik Monitoring Tanam Bulanan dan Rerata Hari Bero Lokasi SN',
+        title: 'Monitoring Bero & Distribusi Range Lahan',
+        subtitle: 'Grafik Range Bero Bulanan dan Rerata Hari Bero Lokasi SN',
         beroChartData,
-        tanamChartData,
+        rangeBeroChartData,
         chartData: beroChartData,
         periods2025,
         periods2026,

@@ -32,8 +32,6 @@ import {
 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import WilayahFilterDropdown from './WilayahFilterDropdown';
-import MonthMultiFilterDropdown from './MonthMultiFilterDropdown';
-import { getCurrentMonthName } from '@/lib/stokLahanCalculator';
 
 export interface ChartsDataProps {
   monthlyBongkar?: Array<{
@@ -235,8 +233,6 @@ export interface PosisiLahanProps extends CommonChartProps {
   onClose?: () => void;
   showStageSwitcher?: boolean;
   periodLabel?: string;
-  selectedMonths?: string[];
-  setSelectedMonths?: (months: string[]) => void;
 }
 
 // =========================================================================
@@ -253,17 +249,10 @@ export function PosisiLahanSection({
   onStageChange,
   onClose,
   showStageSwitcher = true,
-  periodLabel,
-  selectedMonths: propSelectedMonths,
-  setSelectedMonths: propSetSelectedMonths,
+  periodLabel = 'Posisi Stok 2026',
 }: PosisiLahanProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-
-  // State multi-filter bulan lokal untuk Posisi Lahan (default: kosong yang berarti default bulan sekarang tanpa dicentang)
-  const [internalSelectedMonths, setInternalSelectedMonths] = useState<string[]>([]);
-  const effectiveSelectedMonths = propSelectedMonths !== undefined ? propSelectedMonths : internalSelectedMonths;
-  const setEffectiveSelectedMonths = propSetSelectedMonths || setInternalSelectedMonths;
 
   if (!chartsData || !chartsData.wilayahPositions) {
     return (
@@ -291,7 +280,6 @@ export function PosisiLahanSection({
   };
 
   // Agregasi defensif agar hanya 7 wilayah resmi (W01 s/d W07) yang ditampilkan di sumbu X
-  // Menggunakan monthlyWilayahPositions jika tersedia untuk konsistensi penuh 12 bulan maupun multi-bulan
   const aggregateByWilayah = (
     stageKey: 'bkLuas' | 'bjkLuas' | 'snLuas',
     locKey: 'bkLocations' | 'bjkLocations' | 'snLocations'
@@ -301,37 +289,15 @@ export function PosisiLahanSection({
       map[w] = { wilayah: w, luas: 0, locations: [] };
     }
 
-    const ALL_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-    const activeMonths =
-      effectiveSelectedMonths.length === 0
-        ? [getCurrentMonthName()]
-        : effectiveSelectedMonths.length === 12
-        ? ALL_MONTHS
-        : effectiveSelectedMonths;
-
-    if (chartsData.monthlyWilayahPositions) {
-      for (const m of activeMonths) {
-        const mItems = chartsData.monthlyWilayahPositions[m] || [];
-        for (const item of mItems) {
-          const norm = normalizeW(item.wilayah);
-          if (!map[norm]) {
-            map[norm] = { wilayah: norm, luas: 0, locations: [] };
-          }
-          map[norm].luas += (item as any)[stageKey] || 0;
-          const locs = (item as any)[locKey] || [];
-          map[norm].locations.push(...locs);
-        }
+    // Default: gunakan seluruh posisi stok lahan 2026 langsung dari chartsData.wilayahPositions
+    for (const item of chartsData.wilayahPositions) {
+      const norm = normalizeW(item.wilayah);
+      if (!map[norm]) {
+        map[norm] = { wilayah: norm, luas: 0, locations: [] };
       }
-    } else {
-      for (const item of chartsData.wilayahPositions) {
-        const norm = normalizeW(item.wilayah);
-        if (!map[norm]) {
-          map[norm] = { wilayah: norm, luas: 0, locations: [] };
-        }
-        map[norm].luas += (item as any)[stageKey] || 0;
-        const locs = (item as any)[locKey] || [];
-        map[norm].locations.push(...locs);
-      }
+      map[norm].luas += (item as any)[stageKey] || 0;
+      const locs = (item as any)[locKey] || [];
+      map[norm].locations.push(...locs);
     }
 
     return officialWilayahs.map((w) => ({
@@ -341,15 +307,14 @@ export function PosisiLahanSection({
     }));
   };
 
-  const sortedBK = useMemo(() => aggregateByWilayah('bkLuas', 'bkLocations'), [chartsData, effectiveSelectedMonths]);
-  const sortedBJK = useMemo(() => aggregateByWilayah('bjkLuas', 'bjkLocations'), [chartsData, effectiveSelectedMonths]);
-  const sortedSN = useMemo(() => aggregateByWilayah('snLuas', 'snLocations'), [chartsData, effectiveSelectedMonths]);
+  const sortedBK = useMemo(() => aggregateByWilayah('bkLuas', 'bkLocations'), [chartsData]);
+  const sortedBJK = useMemo(() => aggregateByWilayah('bjkLuas', 'bjkLocations'), [chartsData]);
+  const sortedSN = useMemo(() => aggregateByWilayah('snLuas', 'snLocations'), [chartsData]);
 
   const filterKey = useMemo(() => {
-    const monthsPart = effectiveSelectedMonths.length === 0 ? 'ALL' : effectiveSelectedMonths.join('-');
     const wPart = selectedWilayah || 'ALL';
-    return `${monthsPart}_${wPart}`;
-  }, [effectiveSelectedMonths, selectedWilayah]);
+    return `posisi_stok_${wPart}`;
+  }, [selectedWilayah]);
 
   const selectedWilayahList = useMemo(() => {
     if (!selectedWilayah || selectedWilayah === 'ALL') return null;
@@ -505,24 +470,8 @@ export function PosisiLahanSection({
   const totalLuasBJK = useMemo(() => Math.round(displayBJK.reduce((acc, curr) => acc + curr.luas, 0) * 100) / 100, [displayBJK]);
   const totalLuasSN = useMemo(() => Math.round(displaySN.reduce((acc, curr) => acc + curr.luas, 0) * 100) / 100, [displaySN]);
 
-  const activePeriodLabel = useMemo(() => {
-    if (effectiveSelectedMonths.length === 0) {
-      return `${getCurrentMonthName()} 2026`;
-    }
-    if (effectiveSelectedMonths.length === 12) {
-      return 'Jan - Des 2026';
-    }
-    if (effectiveSelectedMonths.length === 1) {
-      return `${effectiveSelectedMonths[0]} 2026`;
-    }
-    if (effectiveSelectedMonths.length <= 3) {
-      return `${effectiveSelectedMonths.join(', ')} 2026`;
-    }
-    return `${effectiveSelectedMonths.length} Bulan (${effectiveSelectedMonths[0]}..${effectiveSelectedMonths[effectiveSelectedMonths.length - 1]})`;
-  }, [effectiveSelectedMonths]);
-
   const stageHeaderInfo = useMemo(() => {
-    const periodSuffix = ` • Periode: ${activePeriodLabel}`;
+    const periodSuffix = ` • ${periodLabel || 'Posisi Stok 2026'}`;
     switch (selectedStage) {
       case 'BK':
         return {
@@ -549,7 +498,7 @@ export function PosisiLahanSection({
           icon: <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />,
         };
     }
-  }, [selectedStage, activePeriodLabel, totalLuasBK, totalLuasBJK, totalLuasSN, highestBK, highestBJK, highestSN]);
+  }, [selectedStage, periodLabel, totalLuasBK, totalLuasBJK, totalLuasSN, highestBK, highestBJK, highestSN]);
 
   const renderBKChart = (isSingle: boolean = false) => (
     <div className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors ${isSingle ? 'h-full' : ''}`}>
@@ -830,11 +779,6 @@ export function PosisiLahanSection({
             </div>
           )}
 
-          {/* Multi-Filter Bulan (Jan - Des 26) */}
-          <MonthMultiFilterDropdown
-            selectedMonths={effectiveSelectedMonths}
-            setSelectedMonths={setEffectiveSelectedMonths}
-          />
 
           {setSelectedWilayah && (
             <div className="flex items-center gap-2">

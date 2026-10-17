@@ -49,7 +49,7 @@ export default function Sidebar({
     },
     {
       id: 'pengolahan_lahan_bibit_tanam',
-      label: 'Pengolahan Lahan Bibit Tanam',
+      label: 'Pengolahan Lahan',
       icon: Tractor,
       desc: 'Rencana vs Real, Bero, Stok, Lahan',
       colorTheme: 'leaf',

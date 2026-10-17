@@ -68,6 +68,11 @@ interface RealTanamBibitDonutChartProps {
 }
 
 const MONTH_KEY_MAP: Record<string, string> = {
+  'Jan-26': '2026-01',
+  'Feb-26': '2026-02',
+  'Mar-26': '2026-03',
+  'Apr-26': '2026-04',
+  'Mei-26': '2026-05',
   'Jun-26': '2026-06',
   'Jul-26': '2026-07',
   'Agu-26': '2026-08',
@@ -75,7 +80,18 @@ const MONTH_KEY_MAP: Record<string, string> = {
   'Okt-26': '2026-10',
 };
 
-const AVAILABLE_MONTH_OPTIONS = ['Jun-26', 'Jul-26', 'Agu-26', 'Sep-26', 'Okt-26'];
+const AVAILABLE_MONTH_OPTIONS = [
+  'Jan-26',
+  'Feb-26',
+  'Mar-26',
+  'Apr-26',
+  'Mei-26',
+  'Jun-26',
+  'Jul-26',
+  'Agu-26',
+  'Sep-26',
+  'Okt-26',
+];
 
 export default function RealTanamBibitDonutChart({
   data = realTanamBibitDonutDefault as RealTanamBibitDonutDataset,
@@ -86,8 +102,8 @@ export default function RealTanamBibitDonutChart({
   // Filter tunggal: multi-select bulan tanam tahun 2026 (default: data Oktober aktif, tanpa centang di checkbox)
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
 
-  // State untuk isolasi Bibit Crown / Sucker (klik legenda atau slice donut)
-  const [isolatedBibit, setIsolatedBibit] = useState<'all' | 'Crown' | 'Sucker'>('all');
+  // State bibit yang disembunyikan (hidden): Set<'Crown' | 'Sucker'>
+  const [hiddenBibit, setHiddenBibit] = useState<Set<'Crown' | 'Sucker'>>(new Set());
   const [hoveredSlice, setHoveredSlice] = useState<SliceData | null>(null);
   const [popupSide, setPopupSide] = useState<'left' | 'right'>('right');
   const [isInsidePopup, setIsInsidePopup] = useState(false);
@@ -97,8 +113,19 @@ export default function RealTanamBibitDonutChart({
   const leaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleToggleBibit = (jenis: 'Crown' | 'Sucker') => {
-    setIsolatedBibit((prev) => (prev === jenis ? 'all' : jenis));
+    setHiddenBibit((prev) => {
+      const next = new Set(prev);
+      if (next.has(jenis)) {
+        next.delete(jenis);
+      } else {
+        next.add(jenis);
+      }
+      return next;
+    });
   };
+
+  const showCrown = !hiddenBibit.has('Crown');
+  const showSucker = !hiddenBibit.has('Sucker');
 
   const handleSliceMouseEnter = (slice: SliceData, e: React.MouseEvent) => {
     if (leaveTimeoutRef.current) {
@@ -321,11 +348,17 @@ export default function RealTanamBibitDonutChart({
       M: '#A5F3FC', // Cyan 200 (Extra Kecil)
     });
 
-    if (isolatedBibit === 'all') {
-      return rawSlices;
+    if (!showCrown && !showSucker) {
+      return [];
     }
-    return rawSlices.filter((s) => s.jenis === isolatedBibit);
-  }, [crown, sucker, totalHa, isolatedBibit]);
+    if (!showCrown) {
+      return rawSlices.filter((s) => s.jenis === 'Sucker');
+    }
+    if (!showSucker) {
+      return rawSlices.filter((s) => s.jenis === 'Crown');
+    }
+    return rawSlices;
+  }, [crown, sucker, totalHa, showCrown, showSucker]);
 
   const fmt = (val: number | null | undefined, minDec = 2, maxDec = 2) => {
     if (val === null || val === undefined) return '0,00';
@@ -416,19 +449,21 @@ export default function RealTanamBibitDonutChart({
           {/* Label Tengah Donut - DIKECILKAN & DISESUAIKAN AGAR MUAT PAS DI TENGAH LINGKARAN */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10 select-none">
             <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 leading-tight">
-              {isolatedBibit === 'Crown'
+              {showCrown && !showSucker
                 ? 'Bibit Crown'
-                : isolatedBibit === 'Sucker'
+                : !showCrown && showSucker
                 ? 'Bibit Sucker'
                 : 'Total Real Tanam'}
             </span>
             <span className="text-base sm:text-lg font-black font-mono text-slate-900 dark:text-slate-100 my-0.5 leading-tight">
               {fmt(
-                isolatedBibit === 'Crown'
+                showCrown && !showSucker
                   ? crown?.totalHa
-                  : isolatedBibit === 'Sucker'
+                  : !showCrown && showSucker
                   ? sucker?.totalHa
-                  : totalHa
+                  : showCrown && showSucker
+                  ? totalHa
+                  : 0
               )}
             </span>
             <span className="text-[8px] font-semibold text-slate-500 leading-tight">Hektar (Ha)</span>
@@ -541,49 +576,53 @@ export default function RealTanamBibitDonutChart({
         )}
       </div>
 
-        {/* 3. Legenda Interaktif di Bawah Donut Chart - Tombol yang tidak aktif benar-benar disembunyikan (hide) */}
+        {/* 3. Legenda Interaktif di Bawah Donut Chart - Semua tombol selalu tampil. Yang diklik akan ter-hide dari grafik, yang lain tetap muncul */}
         <div className="flex flex-wrap items-center justify-center gap-3 pt-3 min-h-[44px]">
-          {/* Tombol Legenda Bibit Crown - Disembunyikan sepenuhnya jika Sucker yang aktif */}
-          {(isolatedBibit === 'all' || isolatedBibit === 'Crown') && (
-            <button
-              type="button"
-              onClick={() => handleToggleBibit('Crown')}
-              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs ${
-                isolatedBibit === 'Crown'
-                  ? 'border-amber-500 bg-amber-500/20 text-amber-900 dark:text-amber-200 ring-2 ring-amber-500/30'
-                  : 'border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200 hover:bg-amber-500/20'
+          {/* Tombol Legenda Bibit Crown */}
+          <button
+            type="button"
+            onClick={() => handleToggleBibit('Crown')}
+            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
+              hiddenBibit.has('Crown')
+                ? 'opacity-40 grayscale hover:opacity-75 bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700'
+                : 'border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200 hover:bg-amber-500/20 ring-1 ring-amber-500/20'
+            }`}
+            title={
+              hiddenBibit.has('Crown')
+                ? 'Klik untuk menampilkan Bibit Crown'
+                : 'Klik untuk menyembunyikan Bibit Crown'
+            }
+          >
+            <span
+              className={`w-3 h-3 rounded-full shrink-0 ${
+                hiddenBibit.has('Crown') ? 'bg-slate-400 dark:bg-slate-500' : 'bg-[#F59E0B]'
               }`}
-              title={
-                isolatedBibit === 'Crown'
-                  ? 'Klik untuk membatalkan isolasi dan menampilkan semua'
-                  : 'Klik untuk menampilkan hanya Bibit Crown'
-              }
-            >
-              <span className="w-3 h-3 rounded-full bg-[#F59E0B] shrink-0" />
-              <span>Bibit Crown</span>
-            </button>
-          )}
+            />
+            <span>Bibit Crown</span>
+          </button>
 
-          {/* Tombol Legenda Bibit Sucker - Disembunyikan sepenuhnya jika Crown yang aktif */}
-          {(isolatedBibit === 'all' || isolatedBibit === 'Sucker') && (
-            <button
-              type="button"
-              onClick={() => handleToggleBibit('Sucker')}
-              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs ${
-                isolatedBibit === 'Sucker'
-                  ? 'border-cyan-500 bg-cyan-500/20 text-cyan-900 dark:text-cyan-200 ring-2 ring-cyan-500/30'
-                  : 'border-cyan-500/30 bg-cyan-500/10 text-cyan-800 dark:text-cyan-200 hover:bg-cyan-500/20'
+          {/* Tombol Legenda Bibit Sucker */}
+          <button
+            type="button"
+            onClick={() => handleToggleBibit('Sucker')}
+            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
+              hiddenBibit.has('Sucker')
+                ? 'opacity-40 grayscale hover:opacity-75 bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700'
+                : 'border-cyan-500/30 bg-cyan-500/10 text-cyan-800 dark:text-cyan-200 hover:bg-cyan-500/20 ring-1 ring-cyan-500/20'
+            }`}
+            title={
+              hiddenBibit.has('Sucker')
+                ? 'Klik untuk menampilkan Bibit Sucker'
+                : 'Klik untuk menyembunyikan Bibit Sucker'
+            }
+          >
+            <span
+              className={`w-3 h-3 rounded-full shrink-0 ${
+                hiddenBibit.has('Sucker') ? 'bg-slate-400 dark:bg-slate-500' : 'bg-[#06B6D4]'
               }`}
-              title={
-                isolatedBibit === 'Sucker'
-                  ? 'Klik untuk membatalkan isolasi dan menampilkan semua'
-                  : 'Klik untuk menampilkan hanya Bibit Sucker'
-              }
-            >
-              <span className="w-3 h-3 rounded-full bg-[#06B6D4] shrink-0" />
-              <span>Bibit Sucker</span>
-            </button>
-          )}
+            />
+            <span>Bibit Sucker</span>
+          </button>
         </div>
       </div>
   );

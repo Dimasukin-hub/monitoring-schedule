@@ -14,7 +14,7 @@ export interface MainMenuItem {
 
 export const MAIN_MENU_ITEMS: MainMenuItem[] = [
   { id: 'executive_summary', label: 'Executive Summary' },
-  { id: 'pengolahan_lahan_bibit_tanam', label: 'Pengolahan Lahan Bibit Tanam' },
+  { id: 'pengolahan_lahan_bibit_tanam', label: 'Pengolahan Lahan' },
   { id: 'planting', label: 'Planting' },
 ];
 

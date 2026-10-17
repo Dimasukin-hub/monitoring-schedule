@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getLandStokCategory } from '@/lib/landClassification';
-import masterScheduleBaselinesJson from '@/lib/masterScheduleBaselines.json';
 import lands2026BaselinesJson from '@/lib/lands2026Baselines.json';
 import { parseDateVal, getEffectiveMonthYear } from '@/lib/stageStockCalculator';
 import { getCurrentMonthName } from '@/lib/stokLahanCalculator';
@@ -11,6 +10,23 @@ import realTanamBibitDonutJson from '@/lib/realTanamBibitDonut.json';
 import sebaranBibitBulanJson from '@/lib/sebaranBibitBulan.json';
 import listLokasiSelesaiTanamJson from '@/lib/listLokasiSelesaiTanam.json';
 import listLokasiProsesTanamJson from '@/lib/listLokasiProsesTanam.json';
+
+const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+const formatToDayMmmYy = (dateStr: string | null | undefined): string => {
+  if (!dateStr || dateStr === '-' || dateStr === '0') return '-';
+  const clean = String(dateStr).trim();
+  const slashParts = clean.split('/');
+  if (slashParts.length === 3) {
+    const d = slashParts[0].padStart(2, '0');
+    const mIdx = parseInt(slashParts[1], 10) - 1;
+    let y = slashParts[2];
+    if (y.length === 4) y = y.slice(-2);
+    const mName = MONTH_NAMES_SHORT[mIdx] || slashParts[1];
+    return `${d}-${mName}-${y}`;
+  }
+  return clean;
+};
 
 export async function GET(request: Request) {
   try {
@@ -61,7 +77,7 @@ export async function GET(request: Request) {
     });
 
     // 2. Yearly Aggregation for Toggle Mode Tahunan/Bulanan (Bab 10 PRD)
-    const aggregateYearly = (list: typeof monthlyBongkarRaw) => {
+    const aggregateYearly = (list: Array<{ year?: number | null; rfc?: number | null; rencana?: number | null; realisasi?: number | null; deviasi?: number | null }>) => {
       const yearlyMap: Record<number, { year: number; rfc: number; rencana: number; realisasi: number; deviasi: number }> = {};
       for (const m of list) {
         const yr = m.year || 2026;
@@ -84,9 +100,6 @@ export async function GET(request: Request) {
         }));
     };
 
-    const yearlyBongkar = aggregateYearly(monthlyBongkarRaw);
-    const yearlyBajak = aggregateYearly(monthlyBajakRaw);
-    const yearlySiapTanam = aggregateYearly(monthlySiapTanamRaw);
     const yearlyTanam = aggregateYearly(monthlyTanamRaw);
 
     // 3. Activity Stages Funnel (from LandActivity)
@@ -138,6 +151,8 @@ export async function GET(request: Request) {
         lokasi: true,
         wilayah: true,
         luasNetto: true,
+        jenisBibit: true,
+        kelasBibit: true,
         bulanTanam: true,
         progressTanam: true,
         aplikasiTerakhir: true,
@@ -208,6 +223,17 @@ export async function GET(request: Request) {
       };
     }
 
+    const dynamicSelesaiTanamList: Array<{
+      wilayah: string;
+      lokasi: string;
+      jenisBibit: string;
+      kelasBibit: string;
+      bibit: string;
+      tanggalSelesai: string;
+      luasHa: number;
+      progress: number;
+    }> = [];
+
     // Grouping by Month of Planting for Tanam distribution
     const monthPlantingMap: Record<string, { totalLahan: number; totalLuasNetto: number }> = {};
 
@@ -244,17 +270,46 @@ export async function GET(request: Request) {
         }
       }
 
-      const cat = getLandStokCategory(l);
+      // Cek kolom Selesai Tanam (Realisasi) dari Data Lahan tahun 2026
+      const act24 = l.activities.find((a) => a.code === '24.SLS_TANAM');
+      const details = (typeof l.aplikasiDetails === 'object' && l.aplikasiDetails !== null) ? (l.aplikasiDetails as any) : {};
+      const selesaiDate = act24?.realisasiDate || l.realSelesaiTanam || details.realSelesaiTanam || details.selesaiTanam || null;
+      const hasSelesai = Boolean(
+        selesaiDate &&
+        String(selesaiDate).trim() !== '' &&
+        String(selesaiDate).trim() !== '-' &&
+        String(selesaiDate).trim() !== '0'
+      );
+
       const luas = l.luasNetto || 0;
 
-      if (cat === 'SELESAI') {
+      if (hasSelesai) {
         posMap[w].selesaiLocations.push(l.lokasi);
         posMap[w].selesaiLuas += luas;
-      } else if (cat === 'PROSES') {
-        posMap[w].prosesLocations.push(l.lokasi);
-        posMap[w].prosesLuas += luas;
+        dynamicSelesaiTanamList.push({
+          wilayah: w,
+          lokasi: l.lokasi,
+          jenisBibit: l.jenisBibit || 'Crown',
+          kelasBibit: l.kelasBibit || '',
+          bibit: l.kelasBibit ? `${l.jenisBibit || 'Crown'} (${l.kelasBibit})` : (l.jenisBibit || 'Crown'),
+          tanggalSelesai: formatToDayMmmYy(String(selesaiDate)),
+          luasHa: Math.round(luas * 100) / 100,
+          progress: 100,
+        });
+      } else {
+        const cat = getLandStokCategory(l);
+        if (cat === 'PROSES') {
+          posMap[w].prosesLocations.push(l.lokasi);
+          posMap[w].prosesLuas += luas;
+        }
       }
     }
+
+    dynamicSelesaiTanamList.sort((a, b) => {
+      const wCmp = a.wilayah.localeCompare(b.wilayah, undefined, { numeric: true });
+      if (wCmp !== 0) return wCmp;
+      return a.lokasi.localeCompare(b.lokasi, undefined, { numeric: true });
+    });
 
     // 4b. Posisi Lahan BK, BJK, SN per Wilayah (Kasus A: Aktivitas Bulanan Terpilih per Wilayah)
     const MONTH_INDEX_MAP: Record<string, number> = {
@@ -290,78 +345,57 @@ export async function GET(request: Request) {
       posMap[stdW].snLuas = 0;
     }
 
-    const baselinesList = masterScheduleBaselinesJson as Array<{
-      lokasi: string;
-      wilayah: string;
-      netto: number;
-      ds: string;
-      dt: string;
-      du: string;
-    }>;
-
-    // Build lookup for targetYear cycle baseline per location
-    const baseCycleMap = new Map<string, { ds: string; dt: string; du: string }>();
-    for (const item of baselinesList) {
-      if (
-        item.ds.endsWith(String(targetYear)) ||
-        item.dt.endsWith(String(targetYear)) ||
-        item.du.endsWith(String(targetYear))
-      ) {
-        baseCycleMap.set(item.lokasi, { ds: item.ds, dt: item.dt, du: item.du });
+    // 4b. Posisi Lahan BK, BJK, SN per Wilayah dari data tabel StokLahanMaster (Schedule 2026 Update 09)
+    // Sesuai kriteria:
+    // - Bongkar (BK): Chopper s/d Kompos
+    // - Bajak (BJK): MB 5 BTR s/d Ridger
+    // - Siap Tanam (SN): Jalan & Sal s/d Siap Tanam
+    const extractMonthAndYear = (val: any): { month: number; year: number } | null => {
+      if (!val) return null;
+      if (val instanceof Date) {
+        if (isNaN(val.getTime())) return null;
+        return { month: val.getMonth() + 1, year: val.getFullYear() };
       }
+      const str = String(val).trim();
+      if (!str || str === '-' || str === '0') return null;
+      const slashParts = str.split('/');
+      if (slashParts.length === 3) {
+        const m = parseInt(slashParts[1], 10);
+        let y = parseInt(slashParts[2], 10);
+        if (y < 100) y += 2000;
+        if (m >= 1 && m <= 12) return { month: m, year: y };
+      }
+      const dashParts = str.split('-');
+      if (dashParts.length === 3 && dashParts[0].length === 4) {
+        const y = parseInt(dashParts[0], 10);
+        const m = parseInt(dashParts[1], 10);
+        if (m >= 1 && m <= 12) return { month: m, year: y };
+      }
+      const parsed = new Date(str);
+      if (!isNaN(parsed.getTime())) {
+        return { month: parsed.getMonth() + 1, year: parsed.getFullYear() };
+      }
+      return null;
+    };
+
+    // Ambil data stok lahan 2026 dari tabel StokLahanMaster
+    const stokLands = await prisma.stokLahanMaster.findMany({
+      orderBy: { lokasi: 'asc' },
+    });
+
+    let allStokItems = stokLands;
+    if (allStokItems.length === 0) {
+      allStokItems = lands.map((l) => ({
+        id: l.id,
+        lokasi: l.lokasi,
+        wilayah: l.wilayah,
+        luasNetto: l.luasNetto,
+        category: getLandStokCategory(l),
+        realBkr: l.realBkr,
+        realBajak: l.realBajak,
+        realSn: l.bulanSn,
+      })) as any;
     }
-
-    // Build live edits map from baseCycleMap and prisma.land
-    const movedDS = new Map<string, string>();
-    const movedDT = new Map<string, string>();
-    const movedDU = new Map<string, string>();
-    const liveWilayah = new Map<string, string>();
-
-    for (const l of lands) {
-      const base = baseCycleMap.get(l.lokasi);
-      if (!base) continue;
-
-      if (l.wilayah) {
-        liveWilayah.set(l.lokasi, normalizeWilayah(l.wilayah));
-      }
-
-      const details = (typeof l.aplikasiDetails === 'object' && l.aplikasiDetails !== null) ? (l.aplikasiDetails as any) : {};
-      const realBkrStr = l.realBkr || details.realChopper || details.realRh1 || null;
-      const rencBkrStr = l.rencBkr || details.chopper || null;
-      const dRencBkr = parseDateVal(rencBkrStr);
-      const dRealBkr = parseDateVal(realBkrStr);
-      let dDO: Date | null = null;
-      if (dRencBkr && dRealBkr) dDO = dRealBkr > dRencBkr ? dRealBkr : dRencBkr;
-      else dDO = dRealBkr || dRencBkr;
-      const mDO = getEffectiveMonthYear(dDO);
-      const curDS = mDO ? mDO.key : '';
-      if (curDS && curDS !== base.ds) {
-        movedDS.set(l.lokasi, curDS);
-      }
-
-      const realBjkStr = l.realBajak || details.realBajakAwalMb5Btr || details.realBajakAwalMb25 || null;
-      const rencBjkStr = l.rencBajak || details.rencAwalMb5Btr || details.bajakAwalMb5Btr || null;
-      const dRencBjk = parseDateVal(rencBjkStr);
-      const dRealBjk = parseDateVal(realBjkStr);
-      let dDP: Date | null = null;
-      if (dRencBjk && dRealBjk) dDP = dRealBjk > dRencBjk ? dRealBjk : dRencBjk;
-      else dDP = dRealBjk || dRencBjk;
-      const mDP = getEffectiveMonthYear(dDP);
-      const curDT = mDP ? mDP.key : '';
-      if (curDT && curDT !== base.dt) {
-        movedDT.set(l.lokasi, curDT);
-      }
-
-      const snDateStr = l.bulanSn || null;
-      const dDQ = parseDateVal(snDateStr);
-      const mDQ = getEffectiveMonthYear(dDQ);
-      const curDU = mDQ ? mDQ.key : base.du;
-      if (curDU && curDU !== base.du) {
-        movedDU.set(l.lokasi, curDU);
-      }
-    }
-
-    const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
     const monthlyWilayahPositionsMap: Record<
       string,
@@ -384,61 +418,54 @@ export async function GET(request: Request) {
       }
     }
 
-    for (const item of baselinesList) {
-      const w = liveWilayah.get(item.lokasi) || normalizeWilayah(item.wilayah);
+    for (const item of allStokItems) {
+      const w = normalizeWilayah(item.wilayah);
       if (!posMap[w]) continue;
 
-      const isCurrentCycle =
-        item.ds.endsWith(String(targetYear)) ||
-        item.dt.endsWith(String(targetYear)) ||
-        item.du.endsWith(String(targetYear));
+      const cat = (item.category || '').toUpperCase();
+      const netto = item.luasNetto || 0;
 
-      const effDS = (isCurrentCycle && movedDS.get(item.lokasi)) || item.ds;
-      const effDT = (isCurrentCycle && movedDT.get(item.lokasi)) || item.dt;
-      const effDU = (isCurrentCycle && movedDU.get(item.lokasi)) || item.du;
-      const effNetto = item.netto;
-
-      const isMatchDS = isAllMonths ? effDS.endsWith(String(targetYear)) : targetMonthKeys.has(effDS);
-      const isMatchDT = isAllMonths ? effDT.endsWith(String(targetYear)) : targetMonthKeys.has(effDT);
-      const isMatchDU = isAllMonths ? effDU.endsWith(String(targetYear)) : targetMonthKeys.has(effDU);
-
-      if (isMatchDS) {
-        posMap[w].bkLocations.push(item.lokasi);
-        posMap[w].bkLuas += effNetto;
-      }
-      if (isMatchDT) {
-        posMap[w].bjkLocations.push(item.lokasi);
-        posMap[w].bjkLuas += effNetto;
-      }
-      if (isMatchDU) {
-        posMap[w].snLocations.push(item.lokasi);
-        posMap[w].snLuas += effNetto;
-      }
-
-      // Populate monthlyWilayahPositionsMap for 2026 months
-      const mDS = effDS.endsWith(String(targetYear)) ? parseInt(effDS.replace(String(targetYear), ''), 10) : 0;
-      const mDT = effDT.endsWith(String(targetYear)) ? parseInt(effDT.replace(String(targetYear), ''), 10) : 0;
-      const mDU = effDU.endsWith(String(targetYear)) ? parseInt(effDU.replace(String(targetYear), ''), 10) : 0;
-
-      if (mDS >= 1 && mDS <= 12) {
-        const mName = MONTH_NAMES_SHORT[mDS - 1];
-        if (monthlyWilayahPositionsMap[mName]?.[w]) {
-          monthlyWilayahPositionsMap[mName][w].bkLocations.push(item.lokasi);
-          monthlyWilayahPositionsMap[mName][w].bkLuas += effNetto;
+      if (cat === 'BK') {
+        const dateInfo = extractMonthAndYear(item.realBkr);
+        const isMatch = isAllMonths || (dateInfo && targetMonthKeys.has(`${dateInfo.month}${dateInfo.year}`));
+        if (isMatch) {
+          posMap[w].bkLocations.push(item.lokasi);
+          posMap[w].bkLuas += netto;
         }
-      }
-      if (mDT >= 1 && mDT <= 12) {
-        const mName = MONTH_NAMES_SHORT[mDT - 1];
-        if (monthlyWilayahPositionsMap[mName]?.[w]) {
-          monthlyWilayahPositionsMap[mName][w].bjkLocations.push(item.lokasi);
-          monthlyWilayahPositionsMap[mName][w].bjkLuas += effNetto;
+        if (dateInfo && dateInfo.year === targetYear && dateInfo.month >= 1 && dateInfo.month <= 12) {
+          const mName = MONTH_NAMES_SHORT[dateInfo.month - 1];
+          if (monthlyWilayahPositionsMap[mName]?.[w]) {
+            monthlyWilayahPositionsMap[mName][w].bkLocations.push(item.lokasi);
+            monthlyWilayahPositionsMap[mName][w].bkLuas += netto;
+          }
         }
-      }
-      if (mDU >= 1 && mDU <= 12) {
-        const mName = MONTH_NAMES_SHORT[mDU - 1];
-        if (monthlyWilayahPositionsMap[mName]?.[w]) {
-          monthlyWilayahPositionsMap[mName][w].snLocations.push(item.lokasi);
-          monthlyWilayahPositionsMap[mName][w].snLuas += effNetto;
+      } else if (cat === 'BJK') {
+        const dateInfo = extractMonthAndYear(item.realBajak);
+        const isMatch = isAllMonths || (dateInfo && targetMonthKeys.has(`${dateInfo.month}${dateInfo.year}`));
+        if (isMatch) {
+          posMap[w].bjkLocations.push(item.lokasi);
+          posMap[w].bjkLuas += netto;
+        }
+        if (dateInfo && dateInfo.year === targetYear && dateInfo.month >= 1 && dateInfo.month <= 12) {
+          const mName = MONTH_NAMES_SHORT[dateInfo.month - 1];
+          if (monthlyWilayahPositionsMap[mName]?.[w]) {
+            monthlyWilayahPositionsMap[mName][w].bjkLocations.push(item.lokasi);
+            monthlyWilayahPositionsMap[mName][w].bjkLuas += netto;
+          }
+        }
+      } else if (cat === 'SN') {
+        const dateInfo = extractMonthAndYear(item.realSn);
+        const isMatch = isAllMonths || (dateInfo && targetMonthKeys.has(`${dateInfo.month}${dateInfo.year}`));
+        if (isMatch) {
+          posMap[w].snLocations.push(item.lokasi);
+          posMap[w].snLuas += netto;
+        }
+        if (dateInfo && dateInfo.year === targetYear && dateInfo.month >= 1 && dateInfo.month <= 12) {
+          const mName = MONTH_NAMES_SHORT[dateInfo.month - 1];
+          if (monthlyWilayahPositionsMap[mName]?.[w]) {
+            monthlyWilayahPositionsMap[mName][w].snLocations.push(item.lokasi);
+            monthlyWilayahPositionsMap[mName][w].snLuas += netto;
+          }
         }
       }
     }
@@ -737,6 +764,47 @@ export async function GET(request: Request) {
     const dailySiapTanam = mapToDailyList(dailySiapTanamMap);
     const weeklySiapTanam = mapToWeeklyList(weeklySiapTanamMap);
 
+    // Monthly Aggregation derived directly from Data Lahan Master (lands)
+    const buildMonthlyList = (dailyMap: Record<string, { rencana: number; realisasi: number }>) => {
+      let accum = 0;
+      return Array.from({ length: 12 }, (_, i) => {
+        const mIndex = i + 1;
+        const mStr = String(mIndex).padStart(2, '0');
+        const pfx = `${yearPrefix}-${mStr}`;
+        let r = 0;
+        let a = 0;
+        for (const [k, v] of Object.entries(dailyMap)) {
+          if (k.startsWith(pfx)) {
+            r += v.rencana;
+            a += v.realisasi;
+          }
+        }
+        const renc = Math.round(r * 100) / 100;
+        const real = Math.round(a * 100) / 100;
+        const dev = Math.round((real - renc) * 100) / 100;
+        accum = Math.round((accum + real) * 100) / 100;
+
+        return {
+          month: `${MONTH_NAMES_SHORT[i]}-${yearPrefix.slice(2)}`,
+          year: parseInt(yearPrefix, 10),
+          monthIndex: mIndex,
+          rfc: real,
+          rencana: renc,
+          realisasi: real,
+          deviasi: dev,
+          akumulasi: accum,
+        };
+      });
+    };
+
+    const monthlyBongkar = buildMonthlyList(dailyBongkarMap);
+    const monthlyBajak = buildMonthlyList(dailyBajakMap);
+    const monthlySiapTanam = buildMonthlyList(dailySiapTanamMap);
+
+    const yearlyBongkar = aggregateYearly(monthlyBongkar);
+    const yearlyBajak = aggregateYearly(monthlyBajak);
+    const yearlySiapTanam = aggregateYearly(monthlySiapTanam);
+
     // 6. Seed Summaries
     const seedSummaries = await prisma.seedSummary.findMany({
       orderBy: { id: 'asc' },
@@ -745,36 +813,9 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       data: {
-        monthlyBongkar: monthlyBongkarRaw.map((m) => ({
-          month: m.monthYear,
-          year: m.year,
-          monthIndex: m.monthIndex,
-          rfc: m.rfc || 0,
-          rencana: m.rencana || 0,
-          realisasi: m.realisasi || 0,
-          deviasi: m.deviasi || 0,
-          akumulasi: m.akumulasi || 0,
-        })),
-        monthlyBajak: monthlyBajakRaw.map((m) => ({
-          month: m.monthYear,
-          year: m.year,
-          monthIndex: m.monthIndex,
-          rfc: m.rfc || 0,
-          rencana: m.rencana || 0,
-          realisasi: m.realisasi || 0,
-          deviasi: m.deviasi || 0,
-          akumulasi: m.akumulasi || 0,
-        })),
-        monthlySiapTanam: monthlySiapTanamRaw.map((m) => ({
-          month: m.monthYear,
-          year: m.year,
-          monthIndex: m.monthIndex,
-          rfc: m.rfc || 0,
-          rencana: m.rencana || 0,
-          realisasi: m.realisasi || 0,
-          deviasi: m.deviasi || 0,
-          akumulasi: m.akumulasi || 0,
-        })),
+        monthlyBongkar,
+        monthlyBajak,
+        monthlySiapTanam,
         monthlyTanam: monthlyTanamRaw.map((m) => ({
           month: m.monthYear,
           year: m.year,
@@ -835,7 +876,7 @@ export async function GET(request: Request) {
         realTanamKemarin: realTanamKemarinJson,
         realTanamBibitDonut: realTanamBibitDonutJson,
         sebaranBibitBulan: sebaranBibitBulanJson,
-        listLokasiSelesaiTanam: listLokasiSelesaiTanamJson,
+        listLokasiSelesaiTanam: dynamicSelesaiTanamList,
         listLokasiProsesTanam: listLokasiProsesTanamJson,
       },
     });
