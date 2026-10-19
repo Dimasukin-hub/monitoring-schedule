@@ -555,6 +555,27 @@ export default function LandDetailModal({
                       className="w-full mt-1 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     />
                   </div>
+
+                  {/* Rencana Bero Bongkar (Excel Kolom BE) */}
+                  <div className="p-3 rounded-xl bg-amber-50/50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 shadow-2xs">
+                    <span className="text-[10px] text-amber-800 dark:text-amber-400 font-semibold block">Renc Bero Bongkar (Kolom BE)</span>
+                    <div className="mt-1 flex items-baseline gap-1.5">
+                      <span className="text-sm font-bold font-mono text-slate-900 dark:text-slate-100">
+                        {land.rencanaBeroBongkar !== null && land.rencanaBeroBongkar !== undefined ? `${land.rencanaBeroBongkar} hari` : '-'}
+                      </span>
+                      {land.kondisiBeroBongkar && (
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold ${
+                          land.kondisiBeroBongkar === 3
+                            ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                            : land.kondisiBeroBongkar === 2
+                            ? 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700'
+                        }`}>
+                          {land.kondisiBeroBongkar === 3 ? 'Real' : land.kondisiBeroBongkar === 2 ? 'Proses' : 'Rencana'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 

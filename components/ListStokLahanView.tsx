@@ -569,9 +569,9 @@ export default function ListStokLahanView({
                   setChartStage(cat.id);
                 }
               }}
-              className={`p-4 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between cursor-pointer ${
+              className={`p-4 rounded-2xl border text-left transition-all duration-200 active:scale-[0.98] relative overflow-hidden flex flex-col justify-between cursor-pointer ${
                 isActive
-                  ? `${cat.activeBorder} shadow-md`
+                  ? `${cat.activeBorder} shadow-md ring-2 ring-emerald-500/20`
                   : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900'
               }`}
             >
@@ -595,7 +595,10 @@ export default function ListStokLahanView({
 
       {/* Grafik Posisi Lahan per Wilayah (BK, BJK, SN) */}
       {internalChartsData && (
-        <div className="relative overflow-visible rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 glass-panel shadow-xs transition-colors animate-in fade-in slide-in-from-top-2 duration-200">
+        <div 
+          key={`chart-wrapper-${chartStage}`}
+          className="relative overflow-visible rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 glass-panel shadow-xs transition-all animate-in fade-in-50 zoom-in-98 duration-300"
+        >
           <PosisiLahanSection
             chartsData={internalChartsData}
             onSelectLand={(loc) => onSelectLand(Number(loc) || loc)}

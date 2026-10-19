@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import * as xlsx from 'xlsx';
-import { computeAktivitasTerakhir } from '@/lib/landActivityUtils';
+import { computeAktivitasTerakhir, computeRencanaBeroBongkar } from '@/lib/landActivityUtils';
 
 function parseParamArray(searchParams: URLSearchParams, key: string): string[] {
   const all = searchParams.getAll(key);
@@ -428,6 +428,7 @@ export async function GET(request: Request) {
         'Bibit': land.jenisBibit || '',
         'Kelas Bibit': land.kelasBibit || '',
         'Bulan Tanam': land.bulanTanam || '',
+        'Renc Bero Bongkar (Hari)': computeRencanaBeroBongkar(land).hari ?? '',
         'Aktivitas Terakhir': aktivitasTerakhir,
         // Chopper to Kompos
         'Chopper (Renc)': actDict['01.CHOPPER']?.rencana || '',

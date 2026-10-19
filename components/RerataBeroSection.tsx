@@ -125,6 +125,17 @@ export const BERO_RANGES = [
   },
 ] as const;
 
+export const RANGE_GRADIENT_MAP: Record<string, { id: string; from: string; to: string }> = {
+  '< 80': { id: 'grad-range-lt80', from: '#34d399', to: '#059669' },
+  '80 - 90': { id: 'grad-range-80-90', from: '#2dd4bf', to: '#0d9488' },
+  '90 - 120': { id: 'grad-range-90-120', from: '#38bdf8', to: '#0284c7' },
+  '120 - 150': { id: 'grad-range-120-150', from: '#818cf8', to: '#4f46e5' },
+  '150 - 180': { id: 'grad-range-150-180', from: '#fbbf24', to: '#d97706' },
+  '180 - 210': { id: 'grad-range-180-210', from: '#fb923c', to: '#ea580c' },
+  '210 - 240': { id: 'grad-range-210-240', from: '#fb7185', to: '#e11d48' },
+  '> 240': { id: 'grad-range-gt240', from: '#f87171', to: '#be123c' },
+};
+
 export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?: number }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -274,6 +285,14 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
                       margin={{ top: 12, right: 16, left: -16, bottom: 20 }}
                       barCategoryGap="22%"
                     >
+                      <defs>
+                        {Object.values(RANGE_GRADIENT_MAP).map((g) => (
+                          <linearGradient key={g.id} id={g.id} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor={g.from} stopOpacity={1} />
+                            <stop offset="100%" stopColor={g.to} stopOpacity={0.95} />
+                          </linearGradient>
+                        ))}
+                      </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} opacity={0.8} />
                       <XAxis
                         dataKey="periodKey"
@@ -300,7 +319,7 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
                             const total = item.totalHa || 0;
 
                             return (
-                              <div className="p-3 bg-white dark:bg-slate-950/95 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl text-xs space-y-2 min-w-[210px]">
+                              <div className="p-3 bg-white dark:bg-slate-950/95 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl text-xs space-y-2 min-w-[285px]">
                                 <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-1.5 font-mono">
                                   <span className="font-bold text-slate-900 dark:text-slate-200">Bulan: {label}</span>
                                   <span className="font-bold text-indigo-600 dark:text-indigo-400">{total.toFixed(2)} Ha</span>
@@ -316,15 +335,18 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
                                     return (
                                       <div
                                         key={rng.key}
-                                        className="flex justify-between items-center py-0.5 px-1 rounded transition-opacity font-medium"
+                                        className="flex items-center justify-between gap-3 py-0.5 px-1 rounded transition-opacity font-medium hover:bg-slate-50 dark:hover:bg-slate-900/50"
                                       >
-                                        <div className="flex items-center gap-1.5">
+                                        {/* Keterangan Range di kiri dengan lebar konsisten */}
+                                        <div className="flex items-center gap-2 min-w-[115px] shrink-0">
                                           <span className="w-2 h-2 rounded-xs shrink-0" style={{ backgroundColor: rng.color }} />
-                                          <span className="text-slate-700 dark:text-slate-300">{rng.label} Hari</span>
+                                          <span className="text-slate-700 dark:text-slate-300 whitespace-nowrap">{rng.label} Hari</span>
                                         </div>
-                                        <div className="font-mono text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                                          <span>{val.toFixed(2)} Ha</span>
-                                          <span className="text-[10px] text-slate-400">({pct}%)</span>
+
+                                        {/* Keterangan Hektar & Persentase di kanan, rata kanan & sejajar rapi */}
+                                        <div className="font-mono text-slate-900 dark:text-slate-100 flex items-center justify-end gap-2 text-right tabular-nums grow">
+                                          <span className="font-semibold">{val.toFixed(2)} Ha</span>
+                                          <span className="text-[10px] text-slate-400 dark:text-slate-500 w-12 text-right shrink-0">({pct}%)</span>
                                         </div>
                                       </div>
                                     );
@@ -336,8 +358,9 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
                                 </div>
 
                                 {item.countLands > 0 && (
-                                  <div className="pt-1 border-t border-slate-100 dark:border-slate-800/80 text-[10px]">
-                                    <span className="font-mono font-bold text-slate-600 dark:text-slate-300">
+                                  <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px]">
+                                    <span className="text-slate-500 dark:text-slate-400">Total Lokasi:</span>
+                                    <span className="font-mono font-bold text-slate-700 dark:text-slate-200">
                                       {item.countLands} Lokasi
                                     </span>
                                   </div>
@@ -351,13 +374,15 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
 
                       {/* Stacked Bars for the 8 Bero Ranges (Ukuran batang agak besar dengan maxBarSize={28}) */}
                       {BERO_RANGES.map((rng) => {
+                        const gradInfo = RANGE_GRADIENT_MAP[rng.key];
                         return (
                           <Bar
                             key={rng.key}
                             dataKey={rng.key}
                             name={rng.label}
                             stackId="rangeBero"
-                            fill={rng.color}
+                            fill={gradInfo ? `url(#${gradInfo.id})` : rng.color}
+                            radius={[3, 3, 0, 0]}
                             maxBarSize={28}
                             hide={hiddenRanges.has(rng.key)}
                             cursor="pointer"
@@ -436,6 +461,12 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
                       margin={{ top: 12, right: 16, left: -16, bottom: 20 }}
                       barCategoryGap="22%"
                     >
+                      <defs>
+                        <linearGradient id="grad-bero-realisasi" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#34d399" stopOpacity={1} />
+                          <stop offset="100%" stopColor="#059669" stopOpacity={0.95} />
+                        </linearGradient>
+                      </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} opacity={0.8} />
                       <XAxis
                         dataKey="periodKey"
@@ -506,7 +537,7 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
                       <Bar
                         dataKey="realisasi"
                         name="Realisasi"
-                        fill="#10b981"
+                        fill="url(#grad-bero-realisasi)"
                         radius={[4, 4, 0, 0]}
                         maxBarSize={28}
                         hide={hiddenBeroSeries.has('realisasi')}
@@ -576,7 +607,9 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
               >
                 <span
                   className={`w-3 h-3 rounded-xs shrink-0 ${
-                    hiddenBeroSeries.has('realisasi') ? 'bg-slate-400 dark:bg-slate-500' : 'bg-[#10b981]'
+                    hiddenBeroSeries.has('realisasi')
+                      ? 'bg-slate-400 dark:bg-slate-500'
+                      : 'bg-gradient-to-b from-[#34d399] to-[#059669]'
                   }`}
                 />
                 <span>Realisasi</span>

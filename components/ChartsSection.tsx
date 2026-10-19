@@ -520,11 +520,17 @@ export function PosisiLahanSection({
       <div className={`${isSingle ? 'h-64 sm:h-72' : 'h-60'} w-full outline-none focus:outline-none select-none`}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
-            key={`barchart-bk-${filterKey}`}
+            key={`barchart-bk-${selectedStage}-${filterKey}`}
             data={displayBK.map((item) => ({ ...item, rank: rankMapBK.get(item.wilayah) || 1 }))}
             margin={{ top: 16, right: 10, left: -20, bottom: 8 }}
             className="outline-none focus:outline-none"
           >
+            <defs>
+              <linearGradient id="grad-posisi-bk" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#fbbf24" stopOpacity={1} />
+                <stop offset="100%" stopColor="#d97706" stopOpacity={0.9} />
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
             <XAxis
               dataKey="wilayah"
@@ -548,23 +554,17 @@ export function PosisiLahanSection({
               }
             />
             <Bar
-              key={`bar-bk-${filterKey}`}
+              key={`bar-bk-${selectedStage}-${filterKey}`}
               dataKey="luas"
               name="Luas BK (Ha)"
-              radius={[4, 4, 0, 0]}
+              fill="url(#grad-posisi-bk)"
+              radius={[6, 6, 0, 0]}
               maxBarSize={36}
-              isAnimationActive={false}
-            >
-              {displayBK.map((entry) => {
-                const colorInfo = getDynamicHeightColor(entry.luas, maxBK);
-                return (
-                  <Cell
-                    key={`cell-bk-${filterKey}-${entry.wilayah}`}
-                    fill={colorInfo.fill}
-                  />
-                );
-              })}
-            </Bar>
+              isAnimationActive={true}
+              animationDuration={750}
+              animationEasing="ease-out"
+              animationBegin={50}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -591,11 +591,17 @@ export function PosisiLahanSection({
       <div className={`${isSingle ? 'h-64 sm:h-72' : 'h-60'} w-full outline-none focus:outline-none select-none`}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
-            key={`barchart-bjk-${filterKey}`}
+            key={`barchart-bjk-${selectedStage}-${filterKey}`}
             data={displayBJK.map((item) => ({ ...item, rank: rankMapBJK.get(item.wilayah) || 1 }))}
             margin={{ top: 16, right: 10, left: -20, bottom: 8 }}
             className="outline-none focus:outline-none"
           >
+            <defs>
+              <linearGradient id="grad-posisi-bjk" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#38bdf8" stopOpacity={1} />
+                <stop offset="100%" stopColor="#0284c7" stopOpacity={0.9} />
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
             <XAxis
               dataKey="wilayah"
@@ -619,23 +625,17 @@ export function PosisiLahanSection({
               }
             />
             <Bar
-              key={`bar-bjk-${filterKey}`}
+              key={`bar-bjk-${selectedStage}-${filterKey}`}
               dataKey="luas"
               name="Luas BJK (Ha)"
-              radius={[4, 4, 0, 0]}
+              fill="url(#grad-posisi-bjk)"
+              radius={[6, 6, 0, 0]}
               maxBarSize={36}
-              isAnimationActive={false}
-            >
-              {displayBJK.map((entry) => {
-                const colorInfo = getDynamicHeightColor(entry.luas, maxBJK);
-                return (
-                  <Cell
-                    key={`cell-bjk-${filterKey}-${entry.wilayah}`}
-                    fill={colorInfo.fill}
-                  />
-                );
-              })}
-            </Bar>
+              isAnimationActive={true}
+              animationDuration={750}
+              animationEasing="ease-out"
+              animationBegin={50}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -662,11 +662,17 @@ export function PosisiLahanSection({
       <div className={`${isSingle ? 'h-64 sm:h-72' : 'h-60'} w-full outline-none focus:outline-none select-none`}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
-            key={`barchart-sn-${filterKey}`}
+            key={`barchart-sn-${selectedStage}-${filterKey}`}
             data={displaySN.map((item) => ({ ...item, rank: rankMapSN.get(item.wilayah) || 1 }))}
             margin={{ top: 16, right: 10, left: -20, bottom: 8 }}
             className="outline-none focus:outline-none"
           >
+            <defs>
+              <linearGradient id="grad-posisi-sn" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#34d399" stopOpacity={1} />
+                <stop offset="100%" stopColor="#059669" stopOpacity={0.9} />
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
             <XAxis
               dataKey="wilayah"
@@ -690,23 +696,17 @@ export function PosisiLahanSection({
               }
             />
             <Bar
-              key={`bar-sn-${filterKey}`}
+              key={`bar-sn-${selectedStage}-${filterKey}`}
               dataKey="luas"
               name="Luas SN (Ha)"
-              radius={[4, 4, 0, 0]}
+              fill="url(#grad-posisi-sn)"
+              radius={[6, 6, 0, 0]}
               maxBarSize={36}
-              isAnimationActive={false}
-            >
-              {displaySN.map((entry) => {
-                const colorInfo = getDynamicHeightColor(entry.luas, maxSN);
-                return (
-                  <Cell
-                    key={`cell-sn-${filterKey}-${entry.wilayah}`}
-                    fill={colorInfo.fill}
-                  />
-                );
-              })}
-            </Bar>
+              isAnimationActive={true}
+              animationDuration={750}
+              animationEasing="ease-out"
+              animationBegin={50}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -792,27 +792,27 @@ export function PosisiLahanSection({
         </div>
       </div>
 
-      {/* Render Chart Content based on selectedStage */}
+      {/* Render Chart Content based on selectedStage with smooth entrance transitions */}
       {selectedStage === 'BK' && (
-        <div className="w-full animate-in fade-in duration-200">
+        <div key="container-bk" className="w-full animate-in fade-in-50 zoom-in-98 duration-300 ease-out">
           {renderBKChart(true)}
         </div>
       )}
 
       {selectedStage === 'BJK' && (
-        <div className="w-full animate-in fade-in duration-200">
+        <div key="container-bjk" className="w-full animate-in fade-in-50 zoom-in-98 duration-300 ease-out">
           {renderBJKChart(true)}
         </div>
       )}
 
       {selectedStage === 'SN' && (
-        <div className="w-full animate-in fade-in duration-200">
+        <div key="container-sn" className="w-full animate-in fade-in-50 zoom-in-98 duration-300 ease-out">
           {renderSNChart(true)}
         </div>
       )}
 
       {selectedStage === 'ALL' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in duration-200">
+        <div key="container-all" className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in-50 zoom-in-98 duration-300 ease-out">
           {renderBKChart(false)}
           {renderBJKChart(false)}
           {renderSNChart(false)}
@@ -839,12 +839,29 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
   const [monthlyRange, setMonthlyRange] = useState<[number, number]>([1, 12]);
   // Default daily: Range index yang disinkronkan ke bulan berjalan (Okt-26)
   const [dailyRange, setDailyRange] = useState<[number, number]>([0, 0]);
-  // Filter visibilitas bar: 'both' (kedua bar), 'rencana' (hanya rencana), 'realisasi' (hanya realisasi)
-  const [barVisibility, setBarVisibility] = useState<'both' | 'rencana' | 'realisasi'>('both');
+  // Filter visibilitas seri Rencana & Realisasi (mengikuti pola legenda Monitoring Tanam)
+  const [hiddenRencanaSeries, setHiddenRencanaSeries] = useState<Set<'rencana' | 'realisasi'>>(new Set());
 
-  const handleBarToggle = (type: 'rencana' | 'realisasi') => {
-    setBarVisibility((prev) => (prev === type ? 'both' : type));
+  const handleToggleRencanaSeries = (key: 'rencana' | 'realisasi') => {
+    setHiddenRencanaSeries((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        const other = key === 'rencana' ? 'realisasi' : 'rencana';
+        if (next.has(other)) {
+          next.delete(other);
+          next.add(key);
+        } else {
+          next.add(key);
+        }
+      }
+      return next;
+    });
   };
+
+  const showRencana = !hiddenRencanaSeries.has('rencana');
+  const showRealisasi = !hiddenRencanaSeries.has('realisasi');
 
   // Defer range values for heavy chart data mapping and SVG rendering so slider thumb drags smoothly without UI locks
   const deferredWeeklyRange = useDeferredValue(weeklyRange);
@@ -1633,6 +1650,16 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                 className="outline-none focus:outline-none"
                 style={{ outline: 'none' }}
               >
+                <defs>
+                  <linearGradient id="grad-rencana" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#38bdf8" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#0284c7" stopOpacity={0.95} />
+                  </linearGradient>
+                  <linearGradient id="grad-realisasi" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#34d399" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#059669" stopOpacity={0.95} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
                 <XAxis
                   dataKey="periodKey"
@@ -1662,92 +1689,108 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
                   verticalAlign="bottom"
                   content={() => {
                     return (
-                      <div className="flex flex-wrap items-center justify-center gap-4 pt-5 select-none">
-                        {(barVisibility === 'both' || barVisibility === 'rencana') && (
-                          <button
-                            type="button"
-                            onClick={() => handleBarToggle('rencana')}
-                            className="flex items-center gap-2 text-xs font-bold px-3.5 py-1.5 rounded-lg border transition-all cursor-pointer bg-[#009EE2]/10 hover:bg-[#009EE2]/20 text-[#007cb5] dark:text-[#38bdf8] border-[#009EE2]/30 shadow-2xs active:scale-95"
-                            title={
-                              barVisibility === 'rencana'
-                                ? 'Klik untuk menampilkan kembali kedua data'
-                                : 'Klik untuk hanya menampilkan bar Rencana'
-                            }
-                          >
-                            <span className="w-3 h-3 rounded-xs bg-[#009EE2] shrink-0" />
-                            <span>Rencana (Ha)</span>
-                          </button>
-                        )}
+                      <div className="flex flex-wrap items-center justify-center gap-3 pt-5 select-none">
+                        {/* 1. Rencana (Ha) */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleRencanaSeries('rencana')}
+                          className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-2xs active:scale-95 ${
+                            hiddenRencanaSeries.has('rencana')
+                              ? 'opacity-40 grayscale hover:opacity-75 bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700'
+                              : 'bg-sky-500/10 hover:bg-sky-500/20 text-[#007cb5] dark:text-[#38bdf8] border-[#009EE2]/30 ring-1 ring-sky-500/20'
+                          }`}
+                          title={
+                            hiddenRencanaSeries.has('rencana')
+                              ? 'Klik untuk menampilkan grafik Rencana'
+                              : 'Klik untuk menyembunyikan grafik Rencana'
+                          }
+                        >
+                          <span
+                            className={`w-3 h-3 rounded-xs shrink-0 ${
+                              hiddenRencanaSeries.has('rencana')
+                                ? 'bg-slate-400 dark:bg-slate-500'
+                                : 'bg-gradient-to-b from-[#38bdf8] to-[#0284c7]'
+                            }`}
+                          />
+                          <span>Rencana (Ha)</span>
+                        </button>
 
-                        {(barVisibility === 'both' || barVisibility === 'realisasi') && (
-                          <button
-                            type="button"
-                            onClick={() => handleBarToggle('realisasi')}
-                            className="flex items-center gap-2 text-xs font-bold px-3.5 py-1.5 rounded-lg border transition-all cursor-pointer bg-[#00873D]/10 hover:bg-[#00873D]/20 text-[#00873D] dark:text-[#4ade80] border-[#00873D]/30 shadow-2xs active:scale-95"
-                            title={
-                              barVisibility === 'realisasi'
-                                ? 'Klik untuk menampilkan kembali kedua data'
-                                : 'Klik untuk hanya menampilkan bar Realisasi'
-                            }
-                          >
-                            <span className="w-3 h-3 rounded-xs bg-[#00873D] shrink-0" />
-                            <span>Realisasi (Ha)</span>
-                          </button>
-                        )}
+                        {/* 2. Realisasi (Ha) */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleRencanaSeries('realisasi')}
+                          className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-2xs active:scale-95 ${
+                            hiddenRencanaSeries.has('realisasi')
+                              ? 'opacity-40 grayscale hover:opacity-75 bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700'
+                              : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-[#00873D] dark:text-[#4ade80] border-[#00873D]/30 ring-1 ring-emerald-500/20'
+                          }`}
+                          title={
+                            hiddenRencanaSeries.has('realisasi')
+                              ? 'Klik untuk menampilkan grafik Realisasi'
+                              : 'Klik untuk menyembunyikan grafik Realisasi'
+                          }
+                        >
+                          <span
+                            className={`w-3 h-3 rounded-xs shrink-0 ${
+                              hiddenRencanaSeries.has('realisasi')
+                                ? 'bg-slate-400 dark:bg-slate-500'
+                                : 'bg-gradient-to-b from-[#34d399] to-[#059669]'
+                            }`}
+                          />
+                          <span>Realisasi (Ha)</span>
+                        </button>
                       </div>
                     );
                   }}
                 />
-                {(barVisibility === 'both' || barVisibility === 'rencana') && (
-                  <Bar
-                    dataKey="rencana"
-                    name="Rencana (Ha)"
-                    fill="#009EE2"
-                    radius={[4, 4, 0, 0]}
-                    cursor="pointer"
-                    className="cursor-pointer transition-opacity duration-150 hover:opacity-80"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => handleBarToggle('rencana')}
-                    maxBarSize={
-                      barVisibility === 'rencana'
-                        ? 32
-                        : periodMode === 'daily'
-                        ? activeChartData.length > 25
-                          ? 16
-                          : 24
-                        : periodMode === 'weekly'
-                        ? activeChartData.length <= 16
-                          ? 28
-                          : 16
-                        : 28
-                    }
-                  />
-                )}
-                {(barVisibility === 'both' || barVisibility === 'realisasi') && (
-                  <Bar
-                    dataKey="realisasi"
-                    name="Realisasi (Ha)"
-                    fill="#00873D"
-                    radius={[4, 4, 0, 0]}
-                    cursor="pointer"
-                    className="cursor-pointer transition-opacity duration-150 hover:opacity-80"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => handleBarToggle('realisasi')}
-                    maxBarSize={
-                      barVisibility === 'realisasi'
-                        ? 32
-                        : periodMode === 'daily'
-                        ? activeChartData.length > 25
-                          ? 16
-                          : 24
-                        : periodMode === 'weekly'
-                        ? activeChartData.length <= 16
-                          ? 28
-                          : 16
-                        : 28
-                    }
-                  />
-                )}
+                <Bar
+                  dataKey="rencana"
+                  name="Rencana (Ha)"
+                  fill="url(#grad-rencana)"
+                  radius={[6, 6, 0, 0]}
+                  cursor="pointer"
+                  className="cursor-pointer transition-opacity duration-150 hover:opacity-80"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => handleToggleRencanaSeries('rencana')}
+                  maxBarSize={
+                    !showRealisasi
+                      ? 32
+                      : periodMode === 'daily'
+                      ? activeChartData.length > 25
+                        ? 16
+                        : 24
+                      : periodMode === 'weekly'
+                      ? activeChartData.length <= 16
+                        ? 28
+                        : 16
+                      : 28
+                  }
+                  hide={!showRencana}
+                />
+                <Bar
+                  dataKey="realisasi"
+                  name="Realisasi (Ha)"
+                  fill="url(#grad-realisasi)"
+                  radius={[6, 6, 0, 0]}
+                  cursor="pointer"
+                  className="cursor-pointer transition-opacity duration-150 hover:opacity-80"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => handleToggleRencanaSeries('realisasi')}
+                  maxBarSize={
+                    !showRencana
+                      ? 32
+                      : periodMode === 'daily'
+                      ? activeChartData.length > 25
+                        ? 16
+                        : 24
+                      : periodMode === 'weekly'
+                      ? activeChartData.length <= 16
+                        ? 28
+                        : 16
+                      : 28
+                  }
+                  hide={!showRealisasi}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -1850,6 +1893,32 @@ export function ProsesTanamSection({
       // Unhide both -> Kedua-duanya visible
       setHideProses(false);
       setHideSelesai(false);
+    }
+  };
+
+  const handleToggleProses = () => {
+    if (hideProses) {
+      setHideProses(false);
+    } else {
+      if (hideSelesai) {
+        setHideProses(true);
+        setHideSelesai(false);
+      } else {
+        setHideProses(true);
+      }
+    }
+  };
+
+  const handleToggleSelesai = () => {
+    if (hideSelesai) {
+      setHideSelesai(false);
+    } else {
+      if (hideProses) {
+        setHideSelesai(true);
+        setHideProses(false);
+      } else {
+        setHideSelesai(true);
+      }
     }
   };
 
@@ -2000,6 +2069,16 @@ export function ProsesTanamSection({
             margin={{ top: 10, right: 10, left: -20, bottom: 14 }}
             className="outline-none focus:outline-none"
           >
+            <defs>
+              <linearGradient id="grad-proses-tanam" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#fb923c" stopOpacity={1} />
+                <stop offset="100%" stopColor="#ea580c" stopOpacity={0.95} />
+              </linearGradient>
+              <linearGradient id="grad-selesai-tanam" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#34d399" stopOpacity={1} />
+                <stop offset="100%" stopColor="#059669" stopOpacity={0.95} />
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
             <XAxis
               dataKey="wilayah"
@@ -2051,64 +2130,62 @@ export function ProsesTanamSection({
             />
             <Tooltip content={<CustomPlantingTooltip />} />
 
-            {/* Interactive Legend - hanya menampilkan item aktif, menyembunyikan yang tidak dipilih */}
+            {/* Interactive Legend - gaya Monitoring Tanam (tombol selalu tampil, jika disembunyikan menjadi redup/grayscale) */}
             <Legend
               verticalAlign="bottom"
               height={52}
               content={() => {
                 return (
-                  <div className="flex flex-wrap items-center justify-center gap-4 pt-5 select-none">
-                    {!hideProses && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!hideSelesai) {
-                            // Kedua-duanya sedang tampil -> pilih hanya Proses Tanam
-                            setHideProses(false);
-                            setHideSelesai(true);
-                          } else {
-                            // Hanya Proses Tanam -> kembalikan ke kedua-duanya
-                            setHideProses(false);
-                            setHideSelesai(false);
-                          }
-                        }}
-                        className="flex items-center gap-2 text-xs font-bold px-3.5 py-1.5 rounded-lg border transition-all cursor-pointer bg-amber-500/15 text-amber-900 dark:text-amber-300 border-amber-500/30 shadow-xs hover:bg-amber-500/25 active:scale-95"
-                        title={
-                          hideSelesai
-                            ? 'Klik untuk menampilkan kembali kedua data'
-                            : 'Klik untuk hanya menampilkan Proses Tanam'
-                        }
-                      >
-                        <span className="w-3 h-3 rounded-xs bg-[#F58220]" />
-                        <span>Proses Tanam (Lokasi)</span>
-                      </button>
-                    )}
-
-                    {!hideSelesai && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!hideProses) {
-                            // Kedua-duanya sedang tampil -> pilih hanya Selesai Tanam
-                            setHideProses(true);
-                            setHideSelesai(false);
-                          } else {
-                            // Hanya Selesai Tanam -> kembalikan ke kedua-duanya
-                            setHideProses(false);
-                            setHideSelesai(false);
-                          }
-                        }}
-                        className="flex items-center gap-2 text-xs font-bold px-3.5 py-1.5 rounded-lg border transition-all cursor-pointer bg-emerald-500/15 text-emerald-900 dark:text-emerald-300 border-emerald-500/30 shadow-xs hover:bg-emerald-500/25 active:scale-95"
-                        title={
+                  <div className="flex flex-wrap items-center justify-center gap-3 pt-5 select-none">
+                    {/* 1. Proses Tanam (Lokasi) */}
+                    <button
+                      type="button"
+                      onClick={handleToggleProses}
+                      className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-2xs active:scale-95 ${
+                        hideProses
+                          ? 'opacity-40 grayscale hover:opacity-75 bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700'
+                          : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30 ring-1 ring-amber-500/20'
+                      }`}
+                      title={
+                        hideProses
+                          ? 'Klik untuk menampilkan grafik Proses Tanam'
+                          : 'Klik untuk menyembunyikan grafik Proses Tanam'
+                      }
+                    >
+                      <span
+                        className={`w-3 h-3 rounded-xs shrink-0 ${
                           hideProses
-                            ? 'Klik untuk menampilkan kembali kedua data'
-                            : 'Klik untuk hanya menampilkan Selesai Tanam'
-                        }
-                      >
-                        <span className="w-3 h-3 rounded-xs bg-[#00873D]" />
-                        <span>Selesai Tanam (Lokasi)</span>
-                      </button>
-                    )}
+                            ? 'bg-slate-400 dark:bg-slate-500'
+                            : 'bg-gradient-to-b from-[#fb923c] to-[#ea580c]'
+                        }`}
+                      />
+                      <span>Proses Tanam (Lokasi)</span>
+                    </button>
+
+                    {/* 2. Selesai Tanam (Lokasi) */}
+                    <button
+                      type="button"
+                      onClick={handleToggleSelesai}
+                      className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-2xs active:scale-95 ${
+                        hideSelesai
+                          ? 'opacity-40 grayscale hover:opacity-75 bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700'
+                          : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 ring-1 ring-emerald-500/20'
+                      }`}
+                      title={
+                        hideSelesai
+                          ? 'Klik untuk menampilkan grafik Selesai Tanam'
+                          : 'Klik untuk menyembunyikan grafik Selesai Tanam'
+                      }
+                    >
+                      <span
+                        className={`w-3 h-3 rounded-xs shrink-0 ${
+                          hideSelesai
+                            ? 'bg-slate-400 dark:bg-slate-500'
+                            : 'bg-gradient-to-b from-[#34d399] to-[#059669]'
+                        }`}
+                      />
+                      <span>Selesai Tanam (Lokasi)</span>
+                    </button>
                   </div>
                 );
               }}
@@ -2118,7 +2195,7 @@ export function ProsesTanamSection({
               <Bar
                 dataKey="prosesCount"
                 name="Proses Tanam (Lokasi)"
-                fill="#F58220"
+                fill="url(#grad-proses-tanam)"
                 stackId={!hideSelesai ? 'tanam' : undefined}
                 shape={renderCustomBar}
               />
@@ -2127,7 +2204,7 @@ export function ProsesTanamSection({
               <Bar
                 dataKey="selesaiCount"
                 name="Selesai Tanam (Lokasi)"
-                fill="#00873D"
+                fill="url(#grad-selesai-tanam)"
                 stackId={!hideProses ? 'tanam' : undefined}
                 shape={renderCustomBar}
               />

@@ -98,6 +98,12 @@ export default function TanamBenchmarkChart({
             data={chartData}
             margin={{ top: 15, right: 20, left: -10, bottom: 5 }}
           >
+            <defs>
+              <linearGradient id="grad-benchmark-real" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#fbbf24" stopOpacity={1} />
+                <stop offset="100%" stopColor="#d97706" stopOpacity={0.95} />
+              </linearGradient>
+            </defs>
             <CartesianGrid
               strokeDasharray="3 3"
               vertical={false}
@@ -158,7 +164,7 @@ export default function TanamBenchmarkChart({
                           title="Klik untuk menyembunyikan grafik Real"
                         >
                           <span className="flex items-center gap-1.5 text-amber-400 font-semibold">
-                            <span className="w-2.5 h-2.5 rounded-xs bg-amber-400" />
+                            <span className="w-2.5 h-2.5 rounded-xs bg-gradient-to-b from-[#fbbf24] to-[#d97706]" />
                             Real:
                           </span>
                           <strong className="text-amber-300 font-mono font-bold text-sm">
@@ -204,12 +210,12 @@ export default function TanamBenchmarkChart({
               }}
             />
 
-            {/* 1. Bar: Real (Kuning / Oranye Emas) - Selalu ter-mount dengan hide prop agar skala & grid tetap utuh */}
+            {/* 1. Bar: Real (Kuning / Oranye Emas Gradasi) - Selalu ter-mount dengan hide prop agar skala & grid tetap utuh */}
             <Bar
               dataKey="real"
               name="Real (Ha)"
-              fill="#F59E0B"
-              radius={[4, 4, 0, 0]}
+              fill="url(#grad-benchmark-real)"
+              radius={[5, 5, 0, 0]}
               maxBarSize={showReal && !showBudget && !showTarget ? 48 : 36}
               cursor="pointer"
               style={{ cursor: 'pointer' }}
@@ -313,7 +319,7 @@ export default function TanamBenchmarkChart({
         >
           <span
             className={`w-3 h-3 rounded-xs shrink-0 ${
-              hiddenSeries.has('real') ? 'bg-slate-400 dark:bg-slate-500' : 'bg-[#F59E0B]'
+              hiddenSeries.has('real') ? 'bg-slate-400 dark:bg-slate-500' : 'bg-gradient-to-b from-[#fbbf24] to-[#d97706]'
             }`}
           />
           <span>Real</span>

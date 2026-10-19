@@ -147,6 +147,20 @@ export default function BibitView({ seedSummaries = [] }: BibitViewProps) {
         <div className="h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={filtered} margin={{ top: 10, right: 10, left: -15, bottom: 20 }}>
+              <defs>
+                <linearGradient id="grad-bibit-kebutuhan" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.95} />
+                  <stop offset="100%" stopColor="#2563eb" stopOpacity={0.8} />
+                </linearGradient>
+                <linearGradient id="grad-bibit-potensi" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#34d399" stopOpacity={0.95} />
+                  <stop offset="100%" stopColor="#059669" stopOpacity={0.8} />
+                </linearGradient>
+                <linearGradient id="grad-bibit-realisasi" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.95} />
+                  <stop offset="100%" stopColor="#d97706" stopOpacity={0.8} />
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
               <XAxis
                 dataKey="kelas"
@@ -167,9 +181,9 @@ export default function BibitView({ seedSummaries = [] }: BibitViewProps) {
                 formatter={(val: any) => [`${Number(val).toFixed(2)} Ha`]}
               />
               <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-              <Bar dataKey="kebutuhan" name="Kebutuhan (Ha)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="potensi" name="Potensi Bibit (Ha)" fill="#10b981" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="realisasi" name="Realisasi (Ha)" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="kebutuhan" name="Kebutuhan (Ha)" fill="url(#grad-bibit-kebutuhan)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="potensi" name="Potensi Bibit (Ha)" fill="url(#grad-bibit-potensi)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="realisasi" name="Realisasi (Ha)" fill="url(#grad-bibit-realisasi)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

@@ -1126,7 +1126,7 @@ export default function LandTable({
   ]);
 
   const totalVisibleCols = useMemo(() => {
-    return 11 + bongkarVisibleCount + bajakVisibleCount + snVisibleCount + tanamVisibleCount;
+    return 12 + bongkarVisibleCount + bajakVisibleCount + snVisibleCount + tanamVisibleCount;
   }, [bongkarVisibleCount, bajakVisibleCount, snVisibleCount, tanamVisibleCount]);
 
   const isAnyBongkarSelected = useMemo(() => {
@@ -2250,6 +2250,22 @@ export default function LandTable({
                 </div>
               </th>
 
+              {/* Rencana Bero Bongkar (Excel Sheet Master Kolom BE) */}
+              <th
+                rowSpan={hasAnyTier3Subcolumn ? 3 : 2}
+                onClick={() => handleSort('rencanaBeroBongkar')}
+                className="w-[88px] min-w-[88px] max-w-[88px] overflow-hidden py-2 px-1 cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 border-r-2 border-b border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/70 text-amber-950 dark:text-amber-100 align-middle text-center font-bold text-[9.5px] transition-colors"
+                title="Rencana Bero Bongkar: Selisih hari dari Bongkar Awal s/d Siap Tanam (Excel Kolom BE)"
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <div className="flex flex-col items-center justify-center leading-tight text-center">
+                    <span className="whitespace-nowrap text-[8px] text-amber-700 dark:text-amber-400 font-semibold uppercase tracking-wider">Renc Bero</span>
+                    <span className="whitespace-nowrap font-bold">Bongkar</span>
+                  </div>
+                  {renderSortArrows('rencanaBeroBongkar')}
+                </div>
+              </th>
+
               {/* Tier 1 Group: BONGKAR (Chopper s/d Kompos) */}
               {bongkarVisibleCount > 0 && (
                 <th
@@ -2763,6 +2779,36 @@ export default function LandTable({
                         <span className="text-slate-400 dark:text-slate-500 text-[9.5px] italic">
                           -
                         </span>
+                      )}
+                    </td>
+
+                    {/* 11. Rencana Bero Bongkar (Excel Sheet Master Kolom BE) */}
+                    <td className="w-[88px] min-w-[88px] max-w-[88px] overflow-hidden py-1 px-1 border-r-2 border-b border-amber-200 dark:border-amber-900/60 text-center align-middle bg-amber-50/25 dark:bg-amber-950/20 group-hover:bg-amber-50/60 dark:group-hover:bg-amber-950/40 transition-colors">
+                      {land.rencanaBeroBongkar !== null && land.rencanaBeroBongkar !== undefined ? (
+                        <div
+                          className="inline-flex flex-col items-center justify-center leading-tight cursor-help"
+                          title={`Rencana Bero Bongkar: ${land.rencanaBeroBongkar} hari\nKondisi: ${land.keteranganBeroBongkar || '-'}\nTgl Bongkar Awal: ${land.tglAwalBkrBero || '-'}\nTgl Siap Tanam: ${land.tglSiapTanamBero || '-'}`}
+                        >
+                          <span className="font-mono font-bold text-slate-800 dark:text-slate-100 text-[10.5px]">
+                            {land.rencanaBeroBongkar}
+                            <span className="text-[8.5px] font-normal text-slate-500 ml-0.5">hr</span>
+                          </span>
+                          {land.kondisiBeroBongkar && (
+                            <span
+                              className={`text-[7.5px] px-1 py-0.2 rounded font-semibold tracking-wide ${
+                                land.kondisiBeroBongkar === 3
+                                  ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                                  : land.kondisiBeroBongkar === 2
+                                  ? 'bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800'
+                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700'
+                              }`}
+                            >
+                              {land.kondisiBeroBongkar === 3 ? 'Real' : land.kondisiBeroBongkar === 2 ? 'Proses' : 'Rencana'}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 dark:text-slate-500 text-[9.5px] italic">-</span>
                       )}
                     </td>
 

@@ -348,3 +348,174 @@ export function sortAktivitasTerakhirList(list: string[]): string[] {
     return a.localeCompare(b);
   });
 }
+
+export interface BeroBongkarResult {
+  hari: number | null;
+  kondisi: 1 | 2 | 3 | null;
+  keterangan: string | null;
+  tglAwalBkr: string | null;
+  tglSiapTanam: string | null;
+}
+
+export function parseDateDMY(dStr: any): Date | null {
+  if (!dStr) return null;
+  if (dStr instanceof Date) {
+    return isNaN(dStr.getTime()) ? null : dStr;
+  }
+  const clean = String(dStr).trim();
+  if (!clean || clean === '-' || clean === '0' || clean.toLowerCase() === 'null') return null;
+  const parts = clean.split('/');
+  if (parts.length === 3) {
+    const d = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    let y = parseInt(parts[2], 10);
+    if (y < 100) y += 2000;
+    if (!isNaN(d) && !isNaN(m) && !isNaN(y)) {
+      return new Date(y, m, d);
+    }
+  }
+  return null;
+}
+
+/**
+ * Menghitung Rencana Bero Bongkar (Excel Sheet Master Kolom BE)
+ * 1). Jika belum real: Tgl Rencana Siap Tanam - Tgl Rencana Bongkar Awal (Chopper s/d Kompos)
+ * 2). Kalau bongkar sudah real tapi masih proses: Tgl Rencana Siap Tanam - Tgl Real Bongkar Paling Awal (Chopper s/d Kompos)
+ * 3). Sudah sama-sama real: Tgl Siap Tanam Real - Tgl Real Bongkar Paling Awal (Chopper s/d Kompos)
+ */
+export function computeRencanaBeroBongkar(land: any): BeroBongkarResult {
+  const d = land.aplikasiDetails || {};
+  const acts = land.activities || [];
+
+  const getActDate = (code: string, jsonKey: string, field: 'rencana' | 'real'): string | null => {
+    const flat = land[jsonKey];
+    if (flat && typeof flat === 'object' && flat[field]) {
+      return flat[field];
+    }
+    const matchedAct = acts.find((a: any) => a.code === code);
+    if (matchedAct) {
+      const val = field === 'rencana' ? matchedAct.rencanaDate : matchedAct.realisasiDate;
+      if (val) return val;
+    }
+    if (field === 'real') {
+      const realKey = 'real' + jsonKey.charAt(0).toUpperCase() + jsonKey.slice(1);
+      return d[realKey] || null;
+    } else {
+      return d[jsonKey] || null;
+    }
+  };
+
+  // 10 Aktivitas Bongkar (Chopper s/d Kompos)
+  const BONGKAR_DEFS = [
+    { code: '01.CHOPPER', key: 'chopper' },
+    { code: '02.CHOPPER_LU', key: 'chopperLu' },
+    { code: '03.RH1', key: 'rh1' },
+    { code: '04.CUTTING_BANANA', key: 'cuttingBanana' },
+    { code: '05.DOLOMIT', key: 'dolomit' },
+    { code: '06.DP1', key: 'dp1' },
+    { code: '07.DP_CROSS', key: 'dpCross' },
+    { code: '08.DP2', key: 'dp2' },
+    { code: '09.BELERANG', key: 'belerang' },
+    { code: '10.KOMPOS', key: 'kompos' },
+  ];
+
+  // Kumpulkan tanggal rencana bongkar awal
+  const rencBkrList: { date: Date; raw: string }[] = [];
+  if (land.rencBkr) {
+    const p = parseDateDMY(land.rencBkr);
+    if (p) rencBkrList.push({ date: p, raw: land.rencBkr });
+  }
+  for (const b of BONGKAR_DEFS) {
+    const val = getActDate(b.code, b.key, 'rencana');
+    const p = parseDateDMY(val);
+    if (p) rencBkrList.push({ date: p, raw: val! });
+  }
+
+  // Kumpulkan tanggal real bongkar paling awal
+  const realBkrList: { date: Date; raw: string }[] = [];
+  if (land.realBkr) {
+    const p = parseDateDMY(land.realBkr);
+    if (p) realBkrList.push({ date: p, raw: land.realBkr });
+  }
+  for (const b of BONGKAR_DEFS) {
+    const val = getActDate(b.code, b.key, 'real');
+    const p = parseDateDMY(val);
+    if (p) realBkrList.push({ date: p, raw: val! });
+  }
+
+  let rencBkrAwal: { date: Date; raw: string } | null = null;
+  if (rencBkrList.length > 0) {
+    rencBkrList.sort((a, b) => a.date.getTime() - b.date.getTime());
+    rencBkrAwal = rencBkrList[0];
+  }
+
+  let realBkrAwal: { date: Date; raw: string } | null = null;
+  if (realBkrList.length > 0) {
+    realBkrList.sort((a, b) => a.date.getTime() - b.date.getTime());
+    realBkrAwal = realBkrList[0];
+  }
+
+  // Tanggal Rencana Siap Tanam
+  const rawRencSN =
+    (land.jalanSal && typeof land.jalanSal === 'object' ? land.jalanSal.rencana : null) ||
+    d.jalanSal ||
+    acts.find((a: any) => a.code === '22.JALAN_SAL')?.rencanaDate ||
+    land.rencMulaiTanam ||
+    null;
+  const rencSiapTanam = parseDateDMY(rawRencSN);
+
+  // Tanggal Real Siap Tanam
+  const rawRealSN =
+    (land.siapTanam && typeof land.siapTanam === 'object' ? land.siapTanam.real : land.siapTanam) ||
+    d.realSiapTanam ||
+    (land.jalanSal && typeof land.jalanSal === 'object' ? land.jalanSal.real : null) ||
+    d.realJalanSal ||
+    acts.find((a: any) => a.code === '22.SIAP_TANAM')?.realisasiDate ||
+    acts.find((a: any) => a.code === '22.JALAN_SAL')?.realisasiDate ||
+    null;
+  const realSiapTanam = parseDateDMY(rawRealSN);
+
+  // 3). Sudah sama-sama real
+  if (realBkrAwal && realSiapTanam) {
+    const diff = Math.round((realSiapTanam.getTime() - realBkrAwal.date.getTime()) / (1000 * 60 * 60 * 24));
+    return {
+      hari: diff,
+      kondisi: 3,
+      keterangan: 'Real SN - Real Bkr Awal',
+      tglAwalBkr: realBkrAwal.raw,
+      tglSiapTanam: rawRealSN,
+    };
+  }
+
+  // 2). Bongkar sudah real tapi masih proses
+  if (realBkrAwal && rencSiapTanam) {
+    const diff = Math.round((rencSiapTanam.getTime() - realBkrAwal.date.getTime()) / (1000 * 60 * 60 * 24));
+    return {
+      hari: diff,
+      kondisi: 2,
+      keterangan: 'Renc SN - Real Bkr Awal',
+      tglAwalBkr: realBkrAwal.raw,
+      tglSiapTanam: rawRencSN,
+    };
+  }
+
+  // 1). Belum real
+  if (rencBkrAwal && rencSiapTanam) {
+    const diff = Math.round((rencSiapTanam.getTime() - rencBkrAwal.date.getTime()) / (1000 * 60 * 60 * 24));
+    return {
+      hari: diff,
+      kondisi: 1,
+      keterangan: 'Renc SN - Renc Bkr Awal',
+      tglAwalBkr: rencBkrAwal.raw,
+      tglSiapTanam: rawRencSN,
+    };
+  }
+
+  return {
+    hari: null,
+    kondisi: null,
+    keterangan: null,
+    tglAwalBkr: null,
+    tglSiapTanam: null,
+  };
+}

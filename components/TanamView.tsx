@@ -212,6 +212,20 @@ export default function TanamView({
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={tanamMonthly} margin={{ top: 10, right: 10, left: -15, bottom: 20 }}>
+                <defs>
+                  <linearGradient id="grad-tanam-view-rencana" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#60a5fa" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#2563eb" stopOpacity={0.95} />
+                  </linearGradient>
+                  <linearGradient id="grad-tanam-view-realisasi" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#34d399" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#059669" stopOpacity={0.95} />
+                  </linearGradient>
+                  <linearGradient id="grad-tanam-view-rfc" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#cbd5e1" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#64748b" stopOpacity={0.95} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
                 <XAxis dataKey="month" stroke={isDark ? '#64748b' : '#94a3b8'} fontSize={10} tickLine={false} />
                 <YAxis stroke={isDark ? '#64748b' : '#94a3b8'} fontSize={10} tickLine={false} />
@@ -227,9 +241,9 @@ export default function TanamView({
                   formatter={(val: any) => [`${Number(val).toFixed(1)} Ha`]}
                 />
                 <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '4px' }} />
-                <Bar dataKey="rencana" name="Rencana (Ha)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="realisasi" name="Realisasi (Ha)" fill="#10b981" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="rfc" name="Target (Ha)" fill="#94a3b8" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="rencana" name="Rencana (Ha)" fill="url(#grad-tanam-view-rencana)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="realisasi" name="Realisasi (Ha)" fill="url(#grad-tanam-view-realisasi)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="rfc" name="Target (Ha)" fill="url(#grad-tanam-view-rfc)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -252,6 +266,12 @@ export default function TanamView({
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={plantingByMonth} margin={{ top: 10, right: 10, left: -15, bottom: 20 }}>
+                <defs>
+                  <linearGradient id="grad-distribusi-bulan" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#2dd4bf" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#0d9488" stopOpacity={0.95} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
                 <XAxis dataKey="bulan" stroke={isDark ? '#64748b' : '#94a3b8'} fontSize={10} tickLine={false} />
                 <YAxis stroke={isDark ? '#64748b' : '#94a3b8'} fontSize={10} tickLine={false} />
@@ -266,7 +286,7 @@ export default function TanamView({
                   }}
                   formatter={(val: any) => [`${Number(val).toLocaleString('id-ID')} Ha`]}
                 />
-                <Bar dataKey="totalLuasNetto" name="Luas Netto (Ha)" fill="#14b8a6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="totalLuasNetto" name="Luas Netto (Ha)" fill="url(#grad-distribusi-bulan)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

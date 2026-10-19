@@ -219,6 +219,16 @@ export default function SebaranBibitBulanChart({
             onMouseMove={handleChartMouseMove}
             onMouseLeave={handleChartMouseLeave}
           >
+            <defs>
+              <linearGradient id="grad-sebaran-crown" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#fbbf24" stopOpacity={1} />
+                <stop offset="100%" stopColor="#d97706" stopOpacity={0.95} />
+              </linearGradient>
+              <linearGradient id="grad-sebaran-sucker" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#22d3ee" stopOpacity={1} />
+                <stop offset="100%" stopColor="#0891b2" stopOpacity={0.95} />
+              </linearGradient>
+            </defs>
             <CartesianGrid
               strokeDasharray="3 3"
               vertical={false}
@@ -267,7 +277,7 @@ export default function SebaranBibitBulanChart({
                 dataKey="crownTotal"
                 name="Bibit Crown"
                 stackId={showSucker ? 'seed' : undefined}
-                fill="#F59E0B"
+                fill="url(#grad-sebaran-crown)"
                 shape={renderCustomBar}
                 cursor="pointer"
                 className="cursor-pointer transition-opacity duration-150 hover:opacity-90"
@@ -297,7 +307,7 @@ export default function SebaranBibitBulanChart({
                 dataKey="suckerTotal"
                 name="Bibit Sucker"
                 stackId={showCrown ? 'seed' : undefined}
-                fill="#06B6D4"
+                fill="url(#grad-sebaran-sucker)"
                 shape={renderCustomBar}
                 cursor="pointer"
                 className="cursor-pointer transition-opacity duration-150 hover:opacity-90"
@@ -549,7 +559,9 @@ export default function SebaranBibitBulanChart({
         >
           <span
             className={`w-3 h-3 rounded-full shrink-0 ${
-              hiddenBibit.has('Crown') ? 'bg-slate-400 dark:bg-slate-500' : 'bg-[#F59E0B]'
+              hiddenBibit.has('Crown')
+                ? 'bg-slate-400 dark:bg-slate-500'
+                : 'bg-gradient-to-b from-[#fbbf24] to-[#d97706]'
             }`}
           />
           <span>Bibit Crown</span>
@@ -572,7 +584,9 @@ export default function SebaranBibitBulanChart({
         >
           <span
             className={`w-3 h-3 rounded-full shrink-0 ${
-              hiddenBibit.has('Sucker') ? 'bg-slate-400 dark:bg-slate-500' : 'bg-[#06B6D4]'
+              hiddenBibit.has('Sucker')
+                ? 'bg-slate-400 dark:bg-slate-500'
+                : 'bg-gradient-to-b from-[#22d3ee] to-[#0891b2]'
             }`}
           />
           <span>Bibit Sucker</span>

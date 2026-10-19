@@ -59,6 +59,7 @@ export interface SliceData {
   value: number;
   pct: number;
   color: string;
+  gradientId: string;
   locations: LocationDetail[];
   locationsCount: number;
 }
@@ -325,6 +326,7 @@ export default function RealTanamBibitDonutChart({
             value: cls.luasHa,
             pct: totalHa > 0 ? Number(((cls.luasHa / totalHa) * 100).toFixed(1)) : 0,
             color: colorMap[code],
+            gradientId: `grad-donut-${jenis.toLowerCase()}-${code.toLowerCase()}`,
             locations: cls.locations || [],
             locationsCount: cls.locationsCount || (cls.locations || []).length,
           });
@@ -417,6 +419,43 @@ export default function RealTanamBibitDonutChart({
         <div className="w-[280px] h-[280px] relative shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
+              <defs>
+                {/* Gradasi Crown Classes (Amber Spectrum) */}
+                <linearGradient id="grad-donut-crown-b" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#f59e0b" />
+                  <stop offset="100%" stopColor="#b45309" />
+                </linearGradient>
+                <linearGradient id="grad-donut-crown-s" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#fbbf24" />
+                  <stop offset="100%" stopColor="#d97706" />
+                </linearGradient>
+                <linearGradient id="grad-donut-crown-k" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#fde68a" />
+                  <stop offset="100%" stopColor="#f59e0b" />
+                </linearGradient>
+                <linearGradient id="grad-donut-crown-m" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#fef3c7" />
+                  <stop offset="100%" stopColor="#fbbf24" />
+                </linearGradient>
+
+                {/* Gradasi Sucker Classes (Cyan/Teal Spectrum) */}
+                <linearGradient id="grad-donut-sucker-b" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#06b6d4" />
+                  <stop offset="100%" stopColor="#0e7490" />
+                </linearGradient>
+                <linearGradient id="grad-donut-sucker-s" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#22d3ee" />
+                  <stop offset="100%" stopColor="#0891b2" />
+                </linearGradient>
+                <linearGradient id="grad-donut-sucker-k" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#67e8f9" />
+                  <stop offset="100%" stopColor="#06b6d4" />
+                </linearGradient>
+                <linearGradient id="grad-donut-sucker-m" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#cffafe" />
+                  <stop offset="100%" stopColor="#22d3ee" />
+                </linearGradient>
+              </defs>
               <Pie
                 data={pieData}
                 cx="50%"
@@ -433,9 +472,9 @@ export default function RealTanamBibitDonutChart({
                 {pieData.map((entry) => (
                   <Cell
                     key={`cell-${entry.id}`}
-                    fill={entry.color}
-                    stroke={pinnedSliceId === entry.id ? '#ffffff' : 'none'}
-                    strokeWidth={pinnedSliceId === entry.id ? 2 : 0}
+                    fill={`url(#${entry.gradientId})`}
+                    stroke={pinnedSliceId === entry.id ? '#ffffff' : isDark ? '#0f172a' : '#ffffff'}
+                    strokeWidth={pinnedSliceId === entry.id ? 2 : 1}
                     className="cursor-pointer transition-opacity duration-150 hover:opacity-90"
                     onMouseEnter={(e) => handleSliceMouseEnter(entry, e)}
                     onMouseMove={(e) => handleSliceMouseMove(entry, e)}

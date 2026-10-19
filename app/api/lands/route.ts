@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { computeAktivitasTerakhir, sortAktivitasTerakhirList } from '@/lib/landActivityUtils';
+import { computeAktivitasTerakhir, sortAktivitasTerakhirList, computeRencanaBeroBongkar } from '@/lib/landActivityUtils';
 
 function parseParamArray(searchParams: URLSearchParams, key: string): string[] {
   const all = searchParams.getAll(key);
@@ -465,28 +465,58 @@ export async function GET(request: Request) {
     };
     const orderField = sortFieldMap[sortBy] || 'lokasi';
 
-    const lands = await prisma.land.findMany({
-      where,
-      skip: (page - 1) * limit,
-      take: limit,
-      orderBy: [
-        { [orderField]: sortOrder },
-        { id: 'asc' },
-      ],
-      include: {
-        activities: {
-          select: {
-            code: true,
-            name: true,
-            status: true,
-            rencanaDate: true,
-            realisasiDate: true,
-            stepOrder: true,
+    let lands: any[] = [];
+    if (sortBy === 'rencanaBeroBongkar') {
+      const allMatching = await prisma.land.findMany({
+        where,
+        include: {
+          activities: {
+            select: {
+              code: true,
+              name: true,
+              status: true,
+              rencanaDate: true,
+              realisasiDate: true,
+              stepOrder: true,
+            },
+            orderBy: { stepOrder: 'asc' },
           },
-          orderBy: { stepOrder: 'asc' },
         },
-      },
-    });
+      });
+
+      allMatching.sort((a, b) => {
+        const beroA = computeRencanaBeroBongkar(a).hari;
+        const beroB = computeRencanaBeroBongkar(b).hari;
+        const valA = beroA !== null ? beroA : (sortOrder === 'asc' ? 999999 : -999999);
+        const valB = beroB !== null ? beroB : (sortOrder === 'asc' ? 999999 : -999999);
+        return sortOrder === 'asc' ? valA - valB : valB - valA;
+      });
+
+      lands = allMatching.slice((page - 1) * limit, page * limit);
+    } else {
+      lands = await prisma.land.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: [
+          { [orderField]: sortOrder },
+          { id: 'asc' },
+        ],
+        include: {
+          activities: {
+            select: {
+              code: true,
+              name: true,
+              status: true,
+              rencanaDate: true,
+              realisasiDate: true,
+              stepOrder: true,
+            },
+            orderBy: { stepOrder: 'asc' },
+          },
+        },
+      });
+    }
 
     const emptyAct = { rencana: null, real: null, status: 'PENDING' };
 
@@ -508,6 +538,9 @@ export async function GET(request: Request) {
           ? computed
           : (land.aplikasiTerakhir && land.aplikasiTerakhir !== '-' ? land.aplikasiTerakhir : computed);
 
+      // Hitung Rencana Bero Bongkar (Excel Sheet Master Kolom BE)
+      const beroBongkar = computeRencanaBeroBongkar(land);
+
       return {
         id: land.id,
         lokasi: land.lokasi,
@@ -521,6 +554,11 @@ export async function GET(request: Request) {
         jenisBibit: land.jenisBibit,
         kelasBibit: land.kelasBibit,
         bulanTanam: land.bulanTanam,
+        rencanaBeroBongkar: beroBongkar.hari,
+        kondisiBeroBongkar: beroBongkar.kondisi,
+        keteranganBeroBongkar: beroBongkar.keterangan,
+        tglAwalBkrBero: beroBongkar.tglAwalBkr,
+        tglSiapTanamBero: beroBongkar.tglSiapTanam,
         aktivitasTerakhir,
         aplikasiDetails: land.aplikasiDetails || {},
         ...(typeof land.aplikasiDetails === 'object' && land.aplikasiDetails !== null ? land.aplikasiDetails : {}),
