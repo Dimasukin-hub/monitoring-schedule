@@ -407,34 +407,38 @@ export function PosisiLahanSection({
       const heightInfo = getDynamicHeightColor(luas, maxVal);
 
       return (
-        <div className="p-3.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl text-xs max-w-xs backdrop-blur-xl">
-          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2 mb-2">
-            <span className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 font-mono text-sm">
-              <MapPin className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" /> Wilayah {label}
+        <div className="p-3.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl text-xs min-w-[270px] max-w-[320px] backdrop-blur-xl space-y-2">
+          {/* Baris 1: Wilayah dan Badge Keterangan (Tinggi, Sedang-Tinggi, dll) + Rank (#1, #2) */}
+          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2 gap-2">
+            <span className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 font-mono text-sm shrink-0">
+              <MapPin className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 shrink-0" /> Wilayah {label}
             </span>
-            <div className="flex items-center gap-1">
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${heightInfo.colorBadge}`}>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded whitespace-nowrap inline-flex items-center justify-center shrink-0 ${heightInfo.colorBadge}`}>
                 {heightInfo.tier}
               </span>
-              <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded shrink-0">
                 #{rank}
               </span>
             </div>
           </div>
 
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-slate-600 dark:text-slate-400 text-[11px] font-medium">{title}:</span>
-            <strong className="text-slate-900 dark:text-slate-100 font-extrabold text-sm">
+          {/* Baris 2: Judul Metrik dan Nilai Luas Sejajar Rapi */}
+          <div className="flex items-center justify-between gap-3 text-xs">
+            <span className="text-slate-600 dark:text-slate-400 text-[11px] font-medium whitespace-nowrap">{title}:</span>
+            <strong className="text-slate-900 dark:text-slate-100 font-extrabold text-sm font-mono tabular-nums text-right">
               {Number(luas).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Ha
             </strong>
           </div>
 
+          {/* Baris 3: Daftar Lokasi Sejajar Rapi */}
           {locations.length > 0 && (
-            <div>
-              <span className="text-slate-600 dark:text-slate-400 text-[10px] block mb-1 font-semibold">
-                Daftar Lokasi ({locations.length} lokasi):
-              </span>
-              <div className="max-h-28 overflow-y-auto pr-1 flex flex-wrap gap-1">
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-1.5">
+              <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 font-semibold">
+                <span>Daftar Lokasi:</span>
+                <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{locations.length} Lokasi</span>
+              </div>
+              <div className="max-h-28 overflow-y-auto pr-1 flex flex-wrap gap-1 content-start">
                 {locations.map((loc) => (
                   <button
                     key={loc}
@@ -530,6 +534,10 @@ export function PosisiLahanSection({
                 <stop offset="0%" stopColor="#fbbf24" stopOpacity={1} />
                 <stop offset="100%" stopColor="#d97706" stopOpacity={0.9} />
               </linearGradient>
+              <linearGradient id="grad-posisi-top-red" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#dc2626" stopOpacity={1} />
+                <stop offset="100%" stopColor="#7f1d1d" stopOpacity={0.95} />
+              </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
             <XAxis
@@ -564,7 +572,18 @@ export function PosisiLahanSection({
               animationDuration={750}
               animationEasing="ease-out"
               animationBegin={50}
-            />
+            >
+              {displayBK.map((entry) => {
+                const rank = rankMapBK.get(entry.wilayah) || 1;
+                const isTop1Or2 = (rank === 1 || rank === 2) && entry.luas > 0;
+                return (
+                  <Cell
+                    key={`cell-bk-${entry.wilayah}`}
+                    fill={isTop1Or2 ? 'url(#grad-posisi-top-red)' : 'url(#grad-posisi-bk)'}
+                  />
+                );
+              })}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -601,6 +620,10 @@ export function PosisiLahanSection({
                 <stop offset="0%" stopColor="#38bdf8" stopOpacity={1} />
                 <stop offset="100%" stopColor="#0284c7" stopOpacity={0.9} />
               </linearGradient>
+              <linearGradient id="grad-posisi-top-red" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#dc2626" stopOpacity={1} />
+                <stop offset="100%" stopColor="#7f1d1d" stopOpacity={0.95} />
+              </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
             <XAxis
@@ -635,7 +658,18 @@ export function PosisiLahanSection({
               animationDuration={750}
               animationEasing="ease-out"
               animationBegin={50}
-            />
+            >
+              {displayBJK.map((entry) => {
+                const rank = rankMapBJK.get(entry.wilayah) || 1;
+                const isTop1Or2 = (rank === 1 || rank === 2) && entry.luas > 0;
+                return (
+                  <Cell
+                    key={`cell-bjk-${entry.wilayah}`}
+                    fill={isTop1Or2 ? 'url(#grad-posisi-top-red)' : 'url(#grad-posisi-bjk)'}
+                  />
+                );
+              })}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -672,6 +706,10 @@ export function PosisiLahanSection({
                 <stop offset="0%" stopColor="#34d399" stopOpacity={1} />
                 <stop offset="100%" stopColor="#059669" stopOpacity={0.9} />
               </linearGradient>
+              <linearGradient id="grad-posisi-top-red" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#dc2626" stopOpacity={1} />
+                <stop offset="100%" stopColor="#7f1d1d" stopOpacity={0.95} />
+              </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} vertical={false} />
             <XAxis
@@ -706,7 +744,18 @@ export function PosisiLahanSection({
               animationDuration={750}
               animationEasing="ease-out"
               animationBegin={50}
-            />
+            >
+              {displaySN.map((entry) => {
+                const rank = rankMapSN.get(entry.wilayah) || 1;
+                const isTop1Or2 = (rank === 1 || rank === 2) && entry.luas > 0;
+                return (
+                  <Cell
+                    key={`cell-sn-${entry.wilayah}`}
+                    fill={isTop1Or2 ? 'url(#grad-posisi-top-red)' : 'url(#grad-posisi-sn)'}
+                  />
+                );
+              })}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>

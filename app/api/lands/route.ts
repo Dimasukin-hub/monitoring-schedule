@@ -725,3 +725,133 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const {
+      lokasi,
+      wilayah,
+      luasBruto,
+      luasNetto,
+      status,
+      bulanTanam,
+      rencBkr,
+      year,
+    } = body;
+
+    if (!lokasi || !String(lokasi).trim()) {
+      return NextResponse.json(
+        { success: false, error: 'Nama lokasi / petak wajib diisi' },
+        { status: 400 }
+      );
+    }
+
+    const cleanLokasi = String(lokasi).trim();
+    const cleanWilayah = String(wilayah || 'W01').trim();
+    const cleanBruto = Number(luasBruto) || 0;
+    const cleanNetto = Number(luasNetto) || 0;
+    const cleanStatus = status ? String(status).trim() : 'NSBK';
+    const cleanBulanTanam = bulanTanam ? String(bulanTanam).trim() : null;
+    const cleanRencBkr = rencBkr && String(rencBkr).trim() !== '' && String(rencBkr).trim() !== '-' ? String(rencBkr).trim() : null;
+
+    // Determine target year
+    let targetYear = 2026;
+    if (year) {
+      targetYear = parseInt(year, 10) || 2026;
+    } else if (cleanBulanTanam) {
+      const parts = cleanBulanTanam.split('-');
+      if (parts.length === 2) {
+        let yy = parseInt(parts[1], 10);
+        if (yy < 100) yy += 2000;
+        if (!isNaN(yy)) targetYear = yy;
+      }
+    }
+
+    // Check if duplicate in the same year
+    const existing = await prisma.land.findFirst({
+      where: {
+        lokasi: cleanLokasi,
+        year: targetYear,
+      },
+    });
+
+    if (existing) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Lahan dengan lokasi "${cleanLokasi}" untuk tahun ${targetYear} sudah terdaftar di database!`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Standard 20 activity pipeline
+    const activitiesConfig = [
+      { code: '01.CHOPPER', name: 'Chopper', order: 1, renc: cleanRencBkr },
+      { code: '02.CHOPPER_LU', name: 'Chopper Lu', order: 2, renc: null },
+      { code: '03.RH1', name: 'RH1', order: 3, renc: null },
+      { code: '04.CUTTING_BANANA', name: 'Cutting Banana', order: 4, renc: null },
+      { code: '05.DOLOMIT', name: 'Aplikasi Dolomit', order: 5, renc: null },
+      { code: '06.DP1', name: 'DP1', order: 6, renc: null },
+      { code: '07.DP_CROSS', name: 'DP Cross', order: 7, renc: null },
+      { code: '08.DP2', name: 'DP2', order: 8, renc: null },
+      { code: '09.BELERANG', name: 'Belerang', order: 9, renc: null },
+      { code: '10.KOMPOS', name: 'Kompos', order: 10, renc: null },
+      { code: '11.BAJAK_AWAL', name: 'Bajak Awal', order: 11, renc: null },
+      { code: '17.SUBSOILER', name: 'Subsoiler', order: 12, renc: null },
+      { code: '18.FINISHING_HARROW', name: 'Finishing Harrow', order: 13, renc: null },
+      { code: '19.FINISHING_ROTARY', name: 'Finishing Rotary', order: 14, renc: null },
+      { code: '20.ROTARY_FH2', name: 'Rotary FH2', order: 15, renc: null },
+      { code: '21.RIDGER', name: 'Ridger', order: 16, renc: null },
+      { code: '22.JALAN_SAL', name: 'Jalan & Saluran', order: 17, renc: null },
+      { code: '22.SIAP_TANAM', name: 'Siap Tanam', order: 18, renc: null },
+      { code: '23.PROSES_TNM', name: 'Proses Tanam', order: 19, renc: null },
+      { code: '24.SLS_TANAM', name: 'Selesai Tanam', order: 20, renc: null },
+    ];
+
+    const aplikasiDetails: Record<string, any> = {};
+    if (cleanRencBkr) {
+      aplikasiDetails.chopper = cleanRencBkr;
+    }
+
+    const newLand = await prisma.land.create({
+      data: {
+        lokasi: cleanLokasi,
+        wilayah: cleanWilayah,
+        year: targetYear,
+        luasBruto: cleanBruto,
+        luasNetto: cleanNetto,
+        status: cleanStatus,
+        statusAplikasi: cleanStatus,
+        bulanTanam: cleanBulanTanam,
+        rencBkr: cleanRencBkr,
+        aplikasiTerakhir: 'Persiapan Bongkar',
+        aplikasiDetails,
+        activities: {
+          create: activitiesConfig.map((act) => ({
+            code: act.code,
+            name: act.name,
+            stepOrder: act.order,
+            rencanaDate: act.renc,
+            realisasiDate: null,
+            status: 'PENDING',
+          })),
+        },
+      },
+      include: {
+        activities: true,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Data lahan "${cleanLokasi}" berhasil ditambahkan.`,
+      data: newLand,
+    });
+  } catch (error: any) {
+    console.error('Error creating new land:', error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+

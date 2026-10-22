@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { computeAktivitasTerakhir } from '@/lib/landActivityUtils';
+import { computeAktivitasTerakhir, computeRencanaBeroBongkar } from '@/lib/landActivityUtils';
 import { recalculateAndPersistStageStocks, syncStokLahanMasterForLand, parseDateVal } from '@/lib/stageStockCalculator';
 import lands2026BaselinesJson from '@/lib/lands2026Baselines.json';
 
@@ -442,6 +442,7 @@ export async function PUT(
       : {};
 
     const emptyAct = { rencana: null, real: null, status: 'PENDING' };
+    const beroBongkar = computeRencanaBeroBongkar(freshLand);
 
     return NextResponse.json({
       success: true,
@@ -449,6 +450,11 @@ export async function PUT(
       data: {
         ...freshLand,
         aktivitasTerakhir: newAktivitasTerakhir,
+        rencanaBeroBongkar: beroBongkar.hari,
+        kondisiBeroBongkar: beroBongkar.kondisi,
+        keteranganBeroBongkar: beroBongkar.keterangan,
+        tglAwalBkrBero: beroBongkar.tglAwalBkr,
+        tglSiapTanamBero: beroBongkar.tglSiapTanam,
         chopper: actDict['01.CHOPPER'] ? { rencana: actDict['01.CHOPPER'].rencanaDate, real: actDict['01.CHOPPER'].realisasiDate, status: actDict['01.CHOPPER'].status } : emptyAct,
         chopperLu: actDict['02.CHOPPER_LU'] ? { rencana: actDict['02.CHOPPER_LU'].rencanaDate, real: actDict['02.CHOPPER_LU'].realisasiDate, status: actDict['02.CHOPPER_LU'].status } : emptyAct,
         rh1: actDict['03.RH1'] ? { rencana: actDict['03.RH1'].rencanaDate, real: actDict['03.RH1'].realisasiDate, status: actDict['03.RH1'].status } : emptyAct,
@@ -481,6 +487,63 @@ export async function PUT(
     });
   } catch (error: any) {
     console.error('Error updating land:', error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const landId = parseInt(id, 10);
+
+    let targetLand: any;
+    if (!isNaN(landId)) {
+      targetLand = await prisma.land.findUnique({ where: { id: landId } });
+    }
+    if (!targetLand) {
+      targetLand = await prisma.land.findFirst({ where: { lokasi: id } });
+    }
+
+    if (!targetLand) {
+      return NextResponse.json({ success: false, error: 'Data lahan tidak ditemukan' }, { status: 404 });
+    }
+
+    const currentId = targetLand.id;
+    const targetLokasi = targetLand.lokasi;
+
+    // Delete cascading relations safely
+    await prisma.landActivity.deleteMany({ where: { landId: currentId } });
+    await prisma.landStageStock.deleteMany({ where: { landId: currentId } });
+
+    // Delete the land record
+    await prisma.land.delete({ where: { id: currentId } });
+
+    // Check if there are other lands with this lokasi; if none, clean up StokLahanMaster
+    const remainingWithSameLokasi = await prisma.land.count({
+      where: { lokasi: targetLokasi },
+    });
+    if (remainingWithSameLokasi === 0) {
+      await prisma.stokLahanMaster.deleteMany({
+        where: { lokasi: targetLokasi },
+      });
+    }
+
+    // Automatically recalculate StageStockSummary
+    try {
+      await recalculateAndPersistStageStocks(2026);
+    } catch (calcErr) {
+      console.error('Error recalculating stage stocks after delete:', calcErr);
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Data lahan ${targetLokasi} berhasil dihapus`,
+    });
+  } catch (error: any) {
+    console.error('Error deleting land:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

@@ -1,0 +1,37 @@
+[
+  {
+    "lokasi": "005D",
+    "wilayah": "W01",
+    "luasBruto": 7.68,
+    "luasNetto": 6.04,
+    "status": "NSFC1801"
+  },
+  {
+    "lokasi": "064C",
+    "wilayah": "W02",
+    "luasBruto": 8.22,
+    "luasNetto": 5.87,
+    "status": "NSFC1802"
+  },
+  {
+    "lokasi": "027H",
+    "wilayah": "W03",
+    "luasBruto": 9.25,
+    "luasNetto": 7.31,
+    "status": "NSFC1801"
+  },
+  {
+    "lokasi": "048K",
+    "wilayah": "W02",
+    "luasBruto": 7.6,
+    "luasNetto": 6.34,
+    "status": "NSFC1801"
+  },
+  {
+    "lokasi": "072A",
+    "wilayah": "W03",
+    "luasBruto": 13.95,
+    "luasNetto": 11.3,
+    "status": "NSFC1801"
+  }
+]

@@ -28,6 +28,7 @@ interface TransactionItem {
   besar: number | null;
   sedang: number | null;
   kecil: number | null;
+  extraKecil: number | null;
   total: number;
   jenisBibit: string | null;
   wilayah: string | null;
@@ -62,7 +63,7 @@ interface ApiResponse {
     countTanam: number;
     countPetik: number;
     countTotal: number;
-    bibitBreakdown: Record<string, { total: number; standar: number; besar: number; sedang: number; kecil: number }>;
+    bibitBreakdown: Record<string, { total: number; standar: number; besar: number; sedang: number; kecil: number; extraKecil: number }>;
     firstDate: string | null;
     lastDate: string | null;
   };
@@ -177,7 +178,7 @@ export default function PlantingDetailDrawer({
     try {
       const payload: any = { transactionId: tx.id };
       if (
-        ['total', 'luasNetto', 'standar', 'besar', 'sedang', 'kecil', 'akumTanam', 'persenTanam'].includes(
+        ['total', 'luasNetto', 'standar', 'besar', 'sedang', 'kecil', 'extraKecil', 'akumTanam', 'persenTanam'].includes(
           field
         )
       ) {
@@ -402,7 +403,7 @@ export default function PlantingDetailDrawer({
                           <th rowSpan={2} className="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
                             Aktivitas
                           </th>
-                          <th colSpan={4} className="py-1 px-2 text-center border-r border-b border-slate-200 dark:border-slate-800 bg-slate-200/50 dark:bg-slate-900">
+                          <th colSpan={5} className="py-1 px-2 text-center border-r border-b border-slate-200 dark:border-slate-800 bg-slate-200/50 dark:bg-slate-900">
                             Kelas Bibit
                           </th>
                           <th rowSpan={2} className="py-2.5 px-3 text-right font-black text-emerald-700 dark:text-emerald-300 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
@@ -442,6 +443,9 @@ export default function PlantingDetailDrawer({
                           <th className="py-1.5 px-2 text-right border-r border-slate-200 dark:border-slate-800 font-semibold text-[9px] text-slate-500">
                             Kecil
                           </th>
+                          <th className="py-1.5 px-2 text-right border-r border-slate-200 dark:border-slate-800 font-semibold text-[9px] text-slate-500">
+                            Extra Kecil
+                          </th>
                           <th className="py-1.5 px-2.5 text-center border-r border-slate-200 dark:border-slate-800 font-semibold text-[9px] text-slate-500">
                             Awal Tanam
                           </th>
@@ -455,7 +459,7 @@ export default function PlantingDetailDrawer({
                         {displayedTransactions.length === 0 ? (
                           <tr>
                             <td
-                              colSpan={16}
+                              colSpan={17}
                               className="py-12 text-center text-slate-400 dark:text-slate-500 font-sans"
                             >
                               <div className="flex flex-col items-center justify-center gap-2">
@@ -689,6 +693,35 @@ export default function PlantingDetailDrawer({
                                   ) : (
                                     <span className="text-slate-500">
                                       {tx.kecil && tx.kecil > 0 ? tx.kecil.toFixed(2) : '-'}
+                                    </span>
+                                  )}
+                                </td>
+
+                                {/* Extra Kecil (Inline Editable) */}
+                                <td
+                                  className={cellBaseClass('extraKecil', 'text-right whitespace-nowrap')}
+                                  onClick={() => startEdit(tx, 'extraKecil')}
+                                  title="Klik untuk mengedit Extra Kecil"
+                                >
+                                  {isCellEditing('extraKecil') ? (
+                                    <input
+                                      ref={inputRef as any}
+                                      type="number"
+                                      step="0.01"
+                                      value={editValue}
+                                      onClick={(e) => e.stopPropagation()}
+                                      onMouseDown={(e) => e.stopPropagation()}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      onBlur={(e) => saveInlineEdit(tx, 'extraKecil', e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') saveInlineEdit(tx, 'extraKecil', (e.target as HTMLInputElement).value);
+                                        if (e.key === 'Escape') cancelEdit();
+                                      }}
+                                      className="w-20 px-1 py-0.5 text-right text-xs font-semibold rounded border border-emerald-500 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500 shadow-sm"
+                                    />
+                                  ) : (
+                                    <span className="text-slate-500">
+                                      {tx.extraKecil && tx.extraKecil > 0 ? tx.extraKecil.toFixed(2) : '-'}
                                     </span>
                                   )}
                                 </td>

@@ -183,6 +183,7 @@ model PlantingDetail {
   besar        Float?    @default(0)
   sedang       Float?    @default(0)
   kecil        Float?    @default(0)
+  extraKecil   Float?    @default(0)
   total        Float     @default(0)
   jenisBibit   String?
   wilayah      String?

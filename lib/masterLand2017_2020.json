@@ -1,0 +1,5754 @@
+{
+  "005D": [
+    {
+      "year": 2020,
+      "bruto": 7.16,
+      "netto": 5.86,
+      "sts": "NSBK",
+      "rawSts": "NSBK2007",
+      "wil": "W01"
+    },
+    {
+      "year": 2017,
+      "bruto": 7.68,
+      "netto": 6.04,
+      "sts": "NSFC",
+      "rawSts": "NSFC1801",
+      "wil": "W01"
+    }
+  ],
+  "064C": [
+    {
+      "year": 2020,
+      "bruto": 8.08,
+      "netto": 6.39,
+      "sts": "NSST",
+      "rawSts": "NSST2101",
+      "wil": "W02"
+    },
+    {
+      "year": 2017,
+      "bruto": 8.22,
+      "netto": 5.87,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W02"
+    }
+  ],
+  "027H": [
+    {
+      "year": 2020,
+      "bruto": 10,
+      "netto": 7.96,
+      "sts": "NSBK",
+      "rawSts": "NSBK2009",
+      "wil": "W03"
+    },
+    {
+      "year": 2017,
+      "bruto": 9.25,
+      "netto": 7.31,
+      "sts": "NSFC",
+      "rawSts": "NSFC1801",
+      "wil": "W03"
+    }
+  ],
+  "048K": [
+    {
+      "year": 2020,
+      "bruto": 7.5,
+      "netto": 6.28,
+      "sts": "NSFC",
+      "rawSts": "NSFC2101",
+      "wil": "W02"
+    },
+    {
+      "year": 2017,
+      "bruto": 7.6,
+      "netto": 6.34,
+      "sts": "NSFC",
+      "rawSts": "NSFC1801",
+      "wil": "W02"
+    }
+  ],
+  "072A": [
+    {
+      "year": 2020,
+      "bruto": 14.2,
+      "netto": 11.32,
+      "sts": "NSFC",
+      "rawSts": "NSFC2107",
+      "wil": "W05"
+    },
+    {
+      "year": 2017,
+      "bruto": 13.95,
+      "netto": 11.3,
+      "sts": "NSFC",
+      "rawSts": "NSFC1801",
+      "wil": "W03"
+    }
+  ],
+  "024B1": [
+    {
+      "year": 2017,
+      "bruto": 16.8,
+      "netto": 13.65,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W01"
+    }
+  ],
+  "024A": [
+    {
+      "year": 2017,
+      "bruto": 13.24,
+      "netto": 10.6,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W01"
+    }
+  ],
+  "080D": [
+    {
+      "year": 2020,
+      "bruto": 17.24,
+      "netto": 13.7,
+      "sts": "NSFC",
+      "rawSts": "NSFC2011",
+      "wil": "W03"
+    },
+    {
+      "year": 2017,
+      "bruto": 17.44,
+      "netto": 13.97,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W03"
+    }
+  ],
+  "052B": [
+    {
+      "year": 2020,
+      "bruto": 11.64,
+      "netto": 9.17,
+      "sts": "NSFC",
+      "rawSts": "NSFC2103",
+      "wil": "W04"
+    },
+    {
+      "year": 2017,
+      "bruto": 10.98,
+      "netto": 8.98,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W03"
+    }
+  ],
+  "017I": [
+    {
+      "year": 2020,
+      "bruto": 7.7,
+      "netto": 6.13,
+      "sts": "NSFC",
+      "rawSts": "NSFC2011",
+      "wil": "W01"
+    },
+    {
+      "year": 2017,
+      "bruto": 7.98,
+      "netto": 6.37,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W01"
+    }
+  ],
+  "017H": [
+    {
+      "year": 2020,
+      "bruto": 7.13,
+      "netto": 5.74,
+      "sts": "NSFC",
+      "rawSts": "NSFC2104",
+      "wil": "W02"
+    },
+    {
+      "year": 2017,
+      "bruto": 7.98,
+      "netto": 6.36,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W01"
+    }
+  ],
+  "012D": [
+    {
+      "year": 2017,
+      "bruto": 11.26,
+      "netto": 8.95,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W01"
+    }
+  ],
+  "096J": [
+    {
+      "year": 2020,
+      "bruto": 15.58,
+      "netto": 12.38,
+      "sts": "NSFC",
+      "rawSts": "NSFC2107",
+      "wil": "W07"
+    },
+    {
+      "year": 2017,
+      "bruto": 16.34,
+      "netto": 13.04,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W04"
+    }
+  ],
+  "017L": [
+    {
+      "year": 2020,
+      "bruto": 9.34,
+      "netto": 7.47,
+      "sts": "NSFC",
+      "rawSts": "NSFC2104",
+      "wil": "W02"
+    },
+    {
+      "year": 2017,
+      "bruto": 10.2,
+      "netto": 7.95,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W01"
+    }
+  ],
+  "054A1": [
+    {
+      "year": 2017,
+      "bruto": 11.75,
+      "netto": 9.48,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W02"
+    }
+  ],
+  "054A": [
+    {
+      "year": 2017,
+      "bruto": 6.22,
+      "netto": 5.09,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W02"
+    }
+  ],
+  "009G": [
+    {
+      "year": 2017,
+      "bruto": 13.92,
+      "netto": 11.14,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W01"
+    }
+  ],
+  "062I": [
+    {
+      "year": 2020,
+      "bruto": 16.22,
+      "netto": 12.94,
+      "sts": "NSFC",
+      "rawSts": "NSFC2104",
+      "wil": "W03"
+    },
+    {
+      "year": 2017,
+      "bruto": 16.25,
+      "netto": 13.13,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W02"
+    }
+  ],
+  "050A": [
+    {
+      "year": 2020,
+      "bruto": 15.56,
+      "netto": 12.16,
+      "sts": "NSFC",
+      "rawSts": "NSFC2107",
+      "wil": "W04"
+    },
+    {
+      "year": 2017,
+      "bruto": 24.2,
+      "netto": 19.68,
+      "sts": "NSFC",
+      "rawSts": "NSFC1803",
+      "wil": "W03"
+    }
+  ],
+  "061A": [
+    {
+      "year": 2017,
+      "bruto": 20.68,
+      "netto": 16.96,
+      "sts": "NSFC",
+      "rawSts": "NSFC1804",
+      "wil": "W02"
+    }
+  ],
+  "034E": [
+    {
+      "year": 2017,
+      "bruto": 14.3,
+      "netto": 11.52,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W02"
+    }
+  ],
+  "055F": [
+    {
+      "year": 2017,
+      "bruto": 29.1,
+      "netto": 23.57,
+      "sts": "NSFC",
+      "rawSts": "NSFC1804",
+      "wil": "W02"
+    }
+  ],
+  "055E": [
+    {
+      "year": 2020,
+      "bruto": 9.76,
+      "netto": 7.66,
+      "sts": "NSFC",
+      "rawSts": "NSFC2105",
+      "wil": "W03"
+    },
+    {
+      "year": 2017,
+      "bruto": 10,
+      "netto": 7.9,
+      "sts": "NSFC",
+      "rawSts": "NSFC1804",
+      "wil": "W02"
+    }
+  ],
+  "030C1": [
+    {
+      "year": 2020,
+      "bruto": 14.04,
+      "netto": 11.17,
+      "sts": "NSBK",
+      "rawSts": "NSBK2008",
+      "wil": "W02"
+    },
+    {
+      "year": 2017,
+      "bruto": 14.3,
+      "netto": 11.4,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W02"
+    }
+  ],
+  "088C2": [
+    {
+      "year": 2017,
+      "bruto": 12.37,
+      "netto": 10.06,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W04"
+    }
+  ],
+  "088C3": [
+    {
+      "year": 2020,
+      "bruto": 10.24,
+      "netto": 8.28,
+      "sts": "NSFC",
+      "rawSts": "NSFC2107",
+      "wil": "W06"
+    },
+    {
+      "year": 2017,
+      "bruto": 10.5,
+      "netto": 8.4,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W04"
+    }
+  ],
+  "083J": [
+    {
+      "year": 2020,
+      "bruto": 14.68,
+      "netto": 11.63,
+      "sts": "NSFC",
+      "rawSts": "NSFC2104",
+      "wil": "W07"
+    },
+    {
+      "year": 2017,
+      "bruto": 15.03,
+      "netto": 12.02,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W04"
+    }
+  ],
+  "084B": [
+    {
+      "year": 2020,
+      "bruto": 15.25,
+      "netto": 12.26,
+      "sts": "NSFC",
+      "rawSts": "NSFC2103",
+      "wil": "W07"
+    },
+    {
+      "year": 2017,
+      "bruto": 14.82,
+      "netto": 11.76,
+      "sts": "NSFC",
+      "rawSts": "NSFC1803",
+      "wil": "W04"
+    }
+  ],
+  "096E": [
+    {
+      "year": 2017,
+      "bruto": 11.44,
+      "netto": 9.48,
+      "sts": "NSFC",
+      "rawSts": "NSFC1804",
+      "wil": "W04"
+    }
+  ],
+  "096A": [
+    {
+      "year": 2017,
+      "bruto": 9.64,
+      "netto": 8.04,
+      "sts": "NSFC",
+      "rawSts": "NSFC1804",
+      "wil": "W04"
+    }
+  ],
+  "024I": [
+    {
+      "year": 2020,
+      "bruto": 14.3,
+      "netto": 11.33,
+      "sts": "NSFC",
+      "rawSts": "NSFC2109",
+      "wil": "W02"
+    },
+    {
+      "year": 2017,
+      "bruto": 15.05,
+      "netto": 11.9,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W02"
+    }
+  ],
+  "017A": [
+    {
+      "year": 2020,
+      "bruto": 9.21,
+      "netto": 7.28,
+      "sts": "NSFC",
+      "rawSts": "NSFC2104",
+      "wil": "W02"
+    },
+    {
+      "year": 2017,
+      "bruto": 9.48,
+      "netto": 7.45,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W01"
+    }
+  ],
+  "090E": [
+    {
+      "year": 2017,
+      "bruto": 14.6,
+      "netto": 11.78,
+      "sts": "NSFC",
+      "rawSts": "NSFC1804",
+      "wil": "W04"
+    }
+  ],
+  "096G": [
+    {
+      "year": 2017,
+      "bruto": 13.97,
+      "netto": 11.39,
+      "sts": "NSFC",
+      "rawSts": "NSFC1804",
+      "wil": "W04"
+    }
+  ],
+  "069D1": [
+    {
+      "year": 2020,
+      "bruto": 8.1,
+      "netto": 6.32,
+      "sts": "NSFC",
+      "rawSts": "NSFC2107",
+      "wil": "W05"
+    },
+    {
+      "year": 2017,
+      "bruto": 8.3,
+      "netto": 6.63,
+      "sts": "NSFC",
+      "rawSts": "NSFC1804",
+      "wil": "W03"
+    }
+  ],
+  "010B": [
+    {
+      "year": 2020,
+      "bruto": 4.29,
+      "netto": 3.34,
+      "sts": "NSFC",
+      "rawSts": "NSFC2106",
+      "wil": "W01"
+    },
+    {
+      "year": 2017,
+      "bruto": 4.37,
+      "netto": 3.43,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W01"
+    }
+  ],
+  "066G": [
+    {
+      "year": 2020,
+      "bruto": 16.94,
+      "netto": 13.48,
+      "sts": "NSFC",
+      "rawSts": "NSFC2107",
+      "wil": "W05"
+    },
+    {
+      "year": 2017,
+      "bruto": 17.22,
+      "netto": 13.77,
+      "sts": "NSFC",
+      "rawSts": "NSFC1804",
+      "wil": "W03"
+    }
+  ],
+  "066G1": [
+    {
+      "year": 2017,
+      "bruto": 7.22,
+      "netto": 5.9,
+      "sts": "NSFC",
+      "rawSts": "NSFC1804",
+      "wil": "W03"
+    }
+  ],
+  "062A3": [
+    {
+      "year": 2020,
+      "bruto": 10.52,
+      "netto": 8.45,
+      "sts": "NSFC",
+      "rawSts": "NSFC2104",
+      "wil": "W03"
+    },
+    {
+      "year": 2017,
+      "bruto": 10.72,
+      "netto": 8.62,
+      "sts": "NSFC",
+      "rawSts": "NSFC1804",
+      "wil": "W02"
+    }
+  ],
+  "029G": [
+    {
+      "year": 2020,
+      "bruto": 4.94,
+      "netto": 3.9,
+      "sts": "NSFC",
+      "rawSts": "NSFC2108",
+      "wil": "W04"
+    },
+    {
+      "year": 2017,
+      "bruto": 5.14,
+      "netto": 4.02,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W03"
+    }
+  ],
+  "039C2": [
+    {
+      "year": 2017,
+      "bruto": 2.55,
+      "netto": 2.03,
+      "sts": "NSFC",
+      "rawSts": "NSFC1802",
+      "wil": "W03"
+    }
+  ],
+  "049F1": [
+    {
+      "year": 2017,
+      "bruto": 6.96,
+      "netto": 5.79,
+      "sts": "NSFC",
+      "rawSts": "NSFC1804",
+      "wil": "W02"
+    }
+  ],
+  "049F": [
+    {
+      "year": 2020,
+      "bruto": 9.72,
+      "netto": 7.72,
+      "sts": "NSFC",
+      "rawSts": "NSFC2103",
+      "wil": "W04"
+    },
+    {
+      "year": 2017,
+      "bruto": 18.6,
+      "netto": 15.21,
+      "sts": "NSFC",
+      "rawSts": "NSFC1804",
+      "wil": "W02"
+    }
+  ],
+  "035A": [
+    {
+      "year": 2017,
+      "bruto": 7.52,
+      "netto": 6.3,
+      "sts": "NSFC",
+      "rawSts": "NSFC1804",
+      "wil": "W02"
+    }
+  ],
+  "091C": [
+    {
+      "year": 2020,
+      "bruto": 17.24,
+      "netto": 13.68,
+      "sts": "NSFC",
+      "rawSts": "NSFC2104",
+      "wil": "W06"
+    },
+    {
+      "year": 2017,
+      "bruto": 17.07,
+      "netto": 13.84,
+      "sts": "NSFC",
+      "rawSts": "NSFC1804",
+      "wil": "W04"
+    }
+  ],
+  "091A": [
+    {
+      "year": 2020,
+      "bruto": 7.46,
+      "netto": 5.79,
+      "sts": "NSFC",
+      "rawSts": "NSFC2104",
+      "wil": "W06"
+    },
+    {
+      "year": 2017,
+      "bruto": 7.43,
+      "netto": 5.85,
+      "sts": "NSFC",
+      "rawSts": "NSFC1804",
+      "wil": "W04"
+    }
+  ],
+  "093E": [
+    {
+      "year": 2020,
+      "bruto": 13.38,
+      "netto": 10.62,
+      "sts": "NSFC",
+      "rawSts": "NSFC2106",
+      "wil": "W06"
+    },
+    {
+      "year": 2017,
+      "bruto": 13.31,
+      "netto": 10.67,
+      "sts": "NSFC",
+      "rawSts": "NSFC1805",
+      "wil": "W04"
+    }
+  ],
+  "003J": [
+    {
+      "year": 2020,
+      "bruto": 6,
+      "netto": 4.9,
+      "sts": "NSFC",
+      "rawSts": "NSFC2106",
+      "wil": "W01"
+    },
+    {
+      "year": 2017,
+      "bruto": 5.76,
+      "netto": 4.61,
+      "sts": "NSFC",
+      "rawSts": "NSFC1804",
+      "wil": "W01"
+    }
+  ],
+  "004C": [
+    {
+      "year": 2017,
+      "bruto": 15.38,
+      "netto": 11.85,
+      "sts": "NSFC",
+      "rawSts": "NSFC1804",
+      "wil": "W01"
+    }
+  ],
+  "085H": [
+    {
+      "year": 2017,
+      "bruto": 15.72,
+      "netto": 12.94,
+      "sts": "NSFC",
+      "rawSts": "NSFC1805",
+      "wil": "W04"
+    }
+  ],
+  "025F": [
+    {
+      "year": 2020,
+      "bruto": 10.45,
+      "netto": 8.28,
+      "sts": "NSFC",
+      "rawSts": "NSFC2103",
+      "wil": "W04"
+    },
+    {
+      "year": 2017,
+      "bruto": 10.3,
+      "netto": 8.05,
+      "sts": "NSFC",
+      "rawSts": "NSFC1804",
+      "wil": "W01"
+    }
+  ],
+  "090D": [
+    {
+      "year": 2017,
+      "bruto": 13.4,
+      "netto": 10.59,
+      "sts": "NSFC",
+      "rawSts": "NSFC1806",
+      "wil": "W04"
+    }
+  ],
+  "090C": [
+    {
+      "year": 2017,
+      "bruto": 10.3,
+      "netto": 8.18,
+      "sts": "NSFC",
+      "rawSts": "NSFC1805",
+      "wil": "W04"
+    }
+  ],
+  "096M": [
+    {
+      "year": 2017,
+      "bruto": 8.83,
+      "netto": 7.12,
+      "sts": "NSFC",
+      "rawSts": "NSFC1806",
+      "wil": "W04"
+    }
+  ],
+  "070B1": [
+    {
+      "year": 2020,
+      "bruto": 11.75,
+      "netto": 9.25,
+      "sts": "NSFC",
+      "rawSts": "NSFC2104",
+      "wil": "W05"
+    },
+    {
+      "year": 2017,
+      "bruto": 11.02,
+      "netto": 8.8,
+      "sts": "NSFC",
+      "rawSts": "NSFC1806",
+      "wil": "W04"
+    }
+  ],
+  "033A1": [
+    {
+      "year": 2017,
+      "bruto": 22.3,
+      "netto": 17.98,
+      "sts": "NSFC",
+      "rawSts": "NSFC1805",
+      "wil": "W02"
+    }
+  ],
+  "097D1": [
+    {
+      "year": 2017,
+      "bruto": 12.1,
+      "netto": 9.83,
+      "sts": "NSFC",
+      "rawSts": "NSFC1805",
+      "wil": "W04"
+    }
+  ],
+  "033A": [
+    {
+      "year": 2020,
+      "bruto": 8.37,
+      "netto": 6.68,
+      "sts": "NSFC",
+      "rawSts": "NSFC2105",
+      "wil": "W02"
+    },
+    {
+      "year": 2017,
+      "bruto": 8.56,
+      "netto": 6.9,
+      "sts": "NSFC",
+      "rawSts": "NSFC1805",
+      "wil": "W02"
+    }
+  ],
+  "070C": [
+    {
+      "year": 2017,
+      "bruto": 14.8,
+      "netto": 12.13,
+      "sts": "NSFC",
+      "rawSts": "NSFC1805",
+      "wil": "W04"
+    }
+  ],
+  "085H1": [
+    {
+      "year": 2017,
+      "bruto": 9.13,
+      "netto": 7.14,
+      "sts": "NSFC",
+      "rawSts": "NSFC1806",
+      "wil": "W04"
+    }
+  ],
+  "066H1": [
+    {
+      "year": 2020,
+      "bruto": 7.3,
+      "netto": 5.7,
+      "sts": "NSFC",
+      "rawSts": "NSFC2105",
+      "wil": "W05"
+    },
+    {
+      "year": 2017,
+      "bruto": 7.21,
+      "netto": 5.68,
+      "sts": "NSFC",
+      "rawSts": "NSFC1806",
+      "wil": "W03"
+    }
+  ],
+  "056G": [
+    {
+      "year": 2017,
+      "bruto": 15.46,
+      "netto": 12.58,
+      "sts": "NSFC",
+      "rawSts": "NSFC1806",
+      "wil": "W03"
+    }
+  ],
+  "008F9": [
+    {
+      "year": 2018,
+      "bruto": 11.09,
+      "netto": 8.9,
+      "sts": "NSFC",
+      "rawSts": "NSFC1806",
+      "wil": "W01"
+    }
+  ],
+  "013G2": [
+    {
+      "year": 2018,
+      "bruto": 3.22,
+      "netto": 2.56,
+      "sts": "NSFC",
+      "rawSts": "NSFC1806",
+      "wil": "W01"
+    }
+  ],
+  "017C": [
+    {
+      "year": 2020,
+      "bruto": 12.3,
+      "netto": 9.86,
+      "sts": "NSFC",
+      "rawSts": "NSFC2103",
+      "wil": "W02"
+    },
+    {
+      "year": 2018,
+      "bruto": 12.2,
+      "netto": 9.73,
+      "sts": "NSFC",
+      "rawSts": "NSFC1806",
+      "wil": "W01"
+    }
+  ],
+  "083F": [
+    {
+      "year": 2017,
+      "bruto": 11.5,
+      "netto": 9.32,
+      "sts": "NSFC",
+      "rawSts": "NSFC1807",
+      "wil": "W04"
+    }
+  ],
+  "062D": [
+    {
+      "year": 2018,
+      "bruto": 5.36,
+      "netto": 4.46,
+      "sts": "NSFC",
+      "rawSts": "NSFC1806",
+      "wil": "W02"
+    }
+  ],
+  "062A1": [
+    {
+      "year": 2020,
+      "bruto": 7.25,
+      "netto": 5.7,
+      "sts": "NSFC",
+      "rawSts": "NSFC2107",
+      "wil": "W03"
+    },
+    {
+      "year": 2018,
+      "bruto": 7.2,
+      "netto": 5.72,
+      "sts": "NSFC",
+      "rawSts": "NSFC1807",
+      "wil": "W02"
+    }
+  ],
+  "034D": [
+    {
+      "year": 2018,
+      "bruto": 23.72,
+      "netto": 19.66,
+      "sts": "NSFC",
+      "rawSts": "NSFC1806",
+      "wil": "W02"
+    }
+  ],
+  "084F": [
+    {
+      "year": 2020,
+      "bruto": 13.68,
+      "netto": 10.88,
+      "sts": "NSFC",
+      "rawSts": "NSFC2106",
+      "wil": "W07"
+    },
+    {
+      "year": 2017,
+      "bruto": 13.7,
+      "netto": 11.02,
+      "sts": "NSFC",
+      "rawSts": "NSFC1807",
+      "wil": "W04"
+    }
+  ],
+  "082C": [
+    {
+      "year": 2017,
+      "bruto": 14.34,
+      "netto": 11.44,
+      "sts": "NSFC",
+      "rawSts": "NSFC1807",
+      "wil": "W04"
+    }
+  ],
+  "082H": [
+    {
+      "year": 2018,
+      "bruto": 12.43,
+      "netto": 10.05,
+      "sts": "NSFC",
+      "rawSts": "NSFC1807",
+      "wil": "W03"
+    }
+  ],
+  "082I": [
+    {
+      "year": 2018,
+      "bruto": 14.48,
+      "netto": 11.7,
+      "sts": "NSFC",
+      "rawSts": "NSFC1808",
+      "wil": "W03"
+    }
+  ],
+  "096F": [
+    {
+      "year": 2017,
+      "bruto": 8.5,
+      "netto": 6.75,
+      "sts": "NSFC",
+      "rawSts": "NSFC1807",
+      "wil": "W04"
+    }
+  ],
+  "075C": [
+    {
+      "year": 2017,
+      "bruto": 12.1,
+      "netto": 9.6,
+      "sts": "NSFC",
+      "rawSts": "NSFC1809",
+      "wil": "W03"
+    }
+  ],
+  "075B": [
+    {
+      "year": 2017,
+      "bruto": 12.86,
+      "netto": 10.1,
+      "sts": "NSFC",
+      "rawSts": "NSFC1809",
+      "wil": "W04"
+    }
+  ],
+  "047K1": [
+    {
+      "year": 2018,
+      "bruto": 6.57,
+      "netto": 5.5,
+      "sts": "NSFC",
+      "rawSts": "NSFC1807",
+      "wil": "W02"
+    }
+  ],
+  "047J1": [
+    {
+      "year": 2018,
+      "bruto": 12.3,
+      "netto": 10.1,
+      "sts": "NSFC",
+      "rawSts": "NSFC1809",
+      "wil": "W02"
+    }
+  ],
+  "047I": [
+    {
+      "year": 2018,
+      "bruto": 19.98,
+      "netto": 16.44,
+      "sts": "NSFC",
+      "rawSts": "NSFC1807",
+      "wil": "W02"
+    }
+  ],
+  "055H": [
+    {
+      "year": 2018,
+      "bruto": 12.88,
+      "netto": 10.77,
+      "sts": "NSFC",
+      "rawSts": "NSFC1807",
+      "wil": "W02"
+    }
+  ],
+  "055I": [
+    {
+      "year": 2018,
+      "bruto": 5.08,
+      "netto": 4.2,
+      "sts": "NSFC",
+      "rawSts": "NSFC1807",
+      "wil": "W02"
+    }
+  ],
+  "055C": [
+    {
+      "year": 2018,
+      "bruto": 24.11,
+      "netto": 19.95,
+      "sts": "NSFC",
+      "rawSts": "NSFC1807",
+      "wil": "W02"
+    }
+  ],
+  "061C": [
+    {
+      "year": 2018,
+      "bruto": 14,
+      "netto": 11.49,
+      "sts": "NSFC",
+      "rawSts": "NSFC1807",
+      "wil": "W02"
+    }
+  ],
+  "008A": [
+    {
+      "year": 2018,
+      "bruto": 8.55,
+      "netto": 6.73,
+      "sts": "NSFC",
+      "rawSts": "NSFC1807",
+      "wil": "W01"
+    }
+  ],
+  "061G": [
+    {
+      "year": 2018,
+      "bruto": 6.65,
+      "netto": 5.46,
+      "sts": "NSFC",
+      "rawSts": "NSFC1807",
+      "wil": "W02"
+    }
+  ],
+  "010F": [
+    {
+      "year": 2018,
+      "bruto": 13.25,
+      "netto": 10.5,
+      "sts": "NSFC",
+      "rawSts": "NSFC1807",
+      "wil": "W01"
+    }
+  ],
+  "061E": [
+    {
+      "year": 2018,
+      "bruto": 12.13,
+      "netto": 10.14,
+      "sts": "NSFC",
+      "rawSts": "NSFC1807",
+      "wil": "W02"
+    }
+  ],
+  "093B": [
+    {
+      "year": 2017,
+      "bruto": 8.71,
+      "netto": 7.02,
+      "sts": "NSFC",
+      "rawSts": "NSFC1809",
+      "wil": "W04"
+    }
+  ],
+  "020K": [
+    {
+      "year": 2018,
+      "bruto": 8.87,
+      "netto": 7.04,
+      "sts": "NSFC",
+      "rawSts": "NSFC1807",
+      "wil": "W01"
+    }
+  ],
+  "020E": [
+    {
+      "year": 2018,
+      "bruto": 6.44,
+      "netto": 5.11,
+      "sts": "NSFC",
+      "rawSts": "NSFC1808",
+      "wil": "W01"
+    }
+  ],
+  "066Q2": [
+    {
+      "year": 2018,
+      "bruto": 10.7,
+      "netto": 8.46,
+      "sts": "NSFC",
+      "rawSts": "NSFC1809",
+      "wil": "W03"
+    }
+  ],
+  "082G": [
+    {
+      "year": 2018,
+      "bruto": 6.18,
+      "netto": 5.04,
+      "sts": "NSFC",
+      "rawSts": "NSFC1807",
+      "wil": "W03"
+    }
+  ],
+  "066T": [
+    {
+      "year": 2018,
+      "bruto": 9.55,
+      "netto": 7.66,
+      "sts": "NSFC",
+      "rawSts": "NSFC1809",
+      "wil": "W03"
+    }
+  ],
+  "038C": [
+    {
+      "year": 2018,
+      "bruto": 14.8,
+      "netto": 11.81,
+      "sts": "NSFC",
+      "rawSts": "NSFC1809",
+      "wil": "W03"
+    }
+  ],
+  "022A": [
+    {
+      "year": 2017,
+      "bruto": 10.57,
+      "netto": 8.35,
+      "sts": "NSFC",
+      "rawSts": "NSFC1809",
+      "wil": "W01"
+    }
+  ],
+  "050C1": [
+    {
+      "year": 2018,
+      "bruto": 8.58,
+      "netto": 7.09,
+      "sts": "NSFC",
+      "rawSts": "NSFC1809",
+      "wil": "W03"
+    }
+  ],
+  "066B": [
+    {
+      "year": 2017,
+      "bruto": 8.94,
+      "netto": 7.11,
+      "sts": "NSFC",
+      "rawSts": "NSFC1809",
+      "wil": "W03"
+    }
+  ],
+  "048C": [
+    {
+      "year": 2018,
+      "bruto": 7.6,
+      "netto": 6.26,
+      "sts": "NSFC",
+      "rawSts": "NSFC1808",
+      "wil": "W02"
+    }
+  ],
+  "077C": [
+    {
+      "year": 2018,
+      "bruto": 14.27,
+      "netto": 11.43,
+      "sts": "NSFC",
+      "rawSts": "NSFC1809",
+      "wil": "W04"
+    }
+  ],
+  "077C1": [
+    {
+      "year": 2018,
+      "bruto": 8.81,
+      "netto": 6.99,
+      "sts": "NSFC",
+      "rawSts": "NSFC1809",
+      "wil": "W04"
+    }
+  ],
+  "095B": [
+    {
+      "year": 2018,
+      "bruto": 8.64,
+      "netto": 6.7,
+      "sts": "NSFC",
+      "rawSts": "NSFC1812",
+      "wil": "W04"
+    }
+  ],
+  "083B": [
+    {
+      "year": 2018,
+      "bruto": 4.4,
+      "netto": 3.37,
+      "sts": "NSFC",
+      "rawSts": "NSFC1809",
+      "wil": "W04"
+    }
+  ],
+  "085A": [
+    {
+      "year": 2018,
+      "bruto": 11.44,
+      "netto": 9.2,
+      "sts": "NSFC",
+      "rawSts": "NSFC1809",
+      "wil": "W04"
+    }
+  ],
+  "082A": [
+    {
+      "year": 2017,
+      "bruto": 18.4,
+      "netto": 14.73,
+      "sts": "NSFC",
+      "rawSts": "NSFC1810",
+      "wil": "W03"
+    }
+  ],
+  "037E": [
+    {
+      "year": 2018,
+      "bruto": 13.07,
+      "netto": 10.78,
+      "sts": "NSFC",
+      "rawSts": "NSFC1809",
+      "wil": "W03"
+    }
+  ],
+  "099B": [
+    {
+      "year": 2017,
+      "bruto": 8.66,
+      "netto": 6.88,
+      "sts": "NSFC",
+      "rawSts": "NSFC1811",
+      "wil": "W04"
+    }
+  ],
+  "027D": [
+    {
+      "year": 2020,
+      "bruto": 3.21,
+      "netto": 2.5,
+      "sts": "NSFC",
+      "rawSts": "NSFC2106",
+      "wil": "W04"
+    },
+    {
+      "year": 2018,
+      "bruto": 3.18,
+      "netto": 2.67,
+      "sts": "NSFC",
+      "rawSts": "NSFC1809",
+      "wil": "W03"
+    }
+  ],
+  "027J": [
+    {
+      "year": 2020,
+      "bruto": 2.57,
+      "netto": 2.03,
+      "sts": "NSFC",
+      "rawSts": "NSFC2106",
+      "wil": "W04"
+    },
+    {
+      "year": 2018,
+      "bruto": 2.59,
+      "netto": 2.14,
+      "sts": "NSFC",
+      "rawSts": "NSFC1809",
+      "wil": "W03"
+    }
+  ],
+  "099B1": [
+    {
+      "year": 2017,
+      "bruto": 6.77,
+      "netto": 5.4,
+      "sts": "NSFC",
+      "rawSts": "NSFC1810",
+      "wil": "W04"
+    }
+  ],
+  "099A": [
+    {
+      "year": 2017,
+      "bruto": 11.5,
+      "netto": 9.14,
+      "sts": "NSFC",
+      "rawSts": "NSFC1811",
+      "wil": "W04"
+    }
+  ],
+  "026B": [
+    {
+      "year": 2018,
+      "bruto": 14.14,
+      "netto": 11.85,
+      "sts": "NSFC",
+      "rawSts": "NSFC1809",
+      "wil": "W02"
+    }
+  ],
+  "026A": [
+    {
+      "year": 2018,
+      "bruto": 3.61,
+      "netto": 3.03,
+      "sts": "NSFC",
+      "rawSts": "NSFC1809",
+      "wil": "W02"
+    }
+  ],
+  "063A": [
+    {
+      "year": 2018,
+      "bruto": 13,
+      "netto": 10.73,
+      "sts": "NSFC",
+      "rawSts": "NSFC1809",
+      "wil": "W02"
+    }
+  ],
+  "026D": [
+    {
+      "year": 2018,
+      "bruto": 10.42,
+      "netto": 8.6,
+      "sts": "NSFC",
+      "rawSts": "NSFC1810",
+      "wil": "W03"
+    }
+  ],
+  "063B": [
+    {
+      "year": 2018,
+      "bruto": 15,
+      "netto": 12.28,
+      "sts": "NSFC",
+      "rawSts": "NSFC1810",
+      "wil": "W02"
+    }
+  ],
+  "094F": [
+    {
+      "year": 2018,
+      "bruto": 12.15,
+      "netto": 8.88,
+      "sts": "NSFC",
+      "rawSts": "NSFC1812",
+      "wil": "W04"
+    }
+  ],
+  "028C": [
+    {
+      "year": 2018,
+      "bruto": 13.32,
+      "netto": 11.06,
+      "sts": "NSFC",
+      "rawSts": "NSFC1811",
+      "wil": "W03"
+    }
+  ],
+  "095F": [
+    {
+      "year": 2018,
+      "bruto": 17,
+      "netto": 13.53,
+      "sts": "NSFC",
+      "rawSts": "NSFC1812",
+      "wil": "W04"
+    }
+  ],
+  "084G": [
+    {
+      "year": 2018,
+      "bruto": 7.92,
+      "netto": 6.67,
+      "sts": "NSFC",
+      "rawSts": "NSFC1809",
+      "wil": "W04"
+    }
+  ],
+  "079C": [
+    {
+      "year": 2018,
+      "bruto": 6.34,
+      "netto": 5.18,
+      "sts": "NSFC",
+      "rawSts": "NSFC1810",
+      "wil": "W03"
+    }
+  ],
+  "070I": [
+    {
+      "year": 2018,
+      "bruto": 14.12,
+      "netto": 11.32,
+      "sts": "NSFC",
+      "rawSts": "NSFC1810",
+      "wil": "W02"
+    }
+  ],
+  "038E": [
+    {
+      "year": 2018,
+      "bruto": 8.16,
+      "netto": 6.83,
+      "sts": "NSFC",
+      "rawSts": "NSFC1810",
+      "wil": "W03"
+    }
+  ],
+  "025E": [
+    {
+      "year": 2018,
+      "bruto": 10.75,
+      "netto": 8.51,
+      "sts": "NSFC",
+      "rawSts": "NSFC1810",
+      "wil": "W01"
+    }
+  ],
+  "059C": [
+    {
+      "year": 2018,
+      "bruto": 8.88,
+      "netto": 7.51,
+      "sts": "NSFC",
+      "rawSts": "NSFC1812",
+      "wil": "W02"
+    }
+  ],
+  "059D": [
+    {
+      "year": 2018,
+      "bruto": 7.45,
+      "netto": 6.34,
+      "sts": "NSFC",
+      "rawSts": "NSFC1810",
+      "wil": "W02"
+    }
+  ],
+  "016B": [
+    {
+      "year": 2018,
+      "bruto": 14.3,
+      "netto": 11.26,
+      "sts": "NSFC",
+      "rawSts": "NSFC1810",
+      "wil": "W01"
+    }
+  ],
+  "070J": [
+    {
+      "year": 2018,
+      "bruto": 11.8,
+      "netto": 9.5,
+      "sts": "NSFC",
+      "rawSts": "NSFC1810",
+      "wil": "W03"
+    }
+  ],
+  "027G": [
+    {
+      "year": 2018,
+      "bruto": 8.33,
+      "netto": 6.97,
+      "sts": "NSFC",
+      "rawSts": "NSFC1812",
+      "wil": "W03"
+    }
+  ],
+  "039C": [
+    {
+      "year": 2018,
+      "bruto": 19,
+      "netto": 15.46,
+      "sts": "NSFC",
+      "rawSts": "NSFC1901",
+      "wil": "W03"
+    }
+  ],
+  "070G": [
+    {
+      "year": 2018,
+      "bruto": 5.48,
+      "netto": 4.39,
+      "sts": "NSFC",
+      "rawSts": "NSFC1811",
+      "wil": "W03"
+    }
+  ],
+  "071A": [
+    {
+      "year": 2018,
+      "bruto": 14.65,
+      "netto": 12.11,
+      "sts": "NSFC",
+      "rawSts": "NSFC1811",
+      "wil": "W03"
+    }
+  ],
+  "076D": [
+    {
+      "year": 2018,
+      "bruto": 7.16,
+      "netto": 5.76,
+      "sts": "NSFC",
+      "rawSts": "NSFC1811",
+      "wil": "W04"
+    }
+  ],
+  "076E": [
+    {
+      "year": 2018,
+      "bruto": 15.21,
+      "netto": 12.16,
+      "sts": "NSFC",
+      "rawSts": "NSFC1901",
+      "wil": "W04"
+    }
+  ],
+  "049C2": [
+    {
+      "year": 2018,
+      "bruto": 12.06,
+      "netto": 9.83,
+      "sts": "NSFC",
+      "rawSts": "NSFC1901",
+      "wil": "W02"
+    }
+  ],
+  "049C1": [
+    {
+      "year": 2018,
+      "bruto": 21.08,
+      "netto": 17.38,
+      "sts": "NSFC",
+      "rawSts": "NSFC1901",
+      "wil": "W02"
+    }
+  ],
+  "053A": [
+    {
+      "year": 2018,
+      "bruto": 5.35,
+      "netto": 4.44,
+      "sts": "NSFC",
+      "rawSts": "NSFC1811",
+      "wil": "W02"
+    }
+  ],
+  "054G": [
+    {
+      "year": 2018,
+      "bruto": 7.85,
+      "netto": 6.5,
+      "sts": "NSFC",
+      "rawSts": "NSFC1811",
+      "wil": "W02"
+    }
+  ],
+  "037C2": [
+    {
+      "year": 2018,
+      "bruto": 4.7,
+      "netto": 3.92,
+      "sts": "NSFC",
+      "rawSts": "NSFC1811",
+      "wil": "W03"
+    }
+  ],
+  "084H": [
+    {
+      "year": 2018,
+      "bruto": 8.13,
+      "netto": 6.54,
+      "sts": "NSFC",
+      "rawSts": "NSFC1812",
+      "wil": "W04"
+    }
+  ],
+  "072G": [
+    {
+      "year": 2018,
+      "bruto": 7.86,
+      "netto": 6.22,
+      "sts": "NSFC",
+      "rawSts": "NSFC1812",
+      "wil": "W03"
+    }
+  ],
+  "018F": [
+    {
+      "year": 2018,
+      "bruto": 15.18,
+      "netto": 12.07,
+      "sts": "NSFC",
+      "rawSts": "NSFC1812",
+      "wil": "W01"
+    }
+  ],
+  "018F1": [
+    {
+      "year": 2018,
+      "bruto": 6.29,
+      "netto": 5.08,
+      "sts": "NSFC",
+      "rawSts": "NSFC1812",
+      "wil": "W01"
+    }
+  ],
+  "057D": [
+    {
+      "year": 2018,
+      "bruto": 7.48,
+      "netto": 6.27,
+      "sts": "NSFC",
+      "rawSts": "NSFC1812",
+      "wil": "W02"
+    }
+  ],
+  "098B1": [
+    {
+      "year": 2018,
+      "bruto": 15.43,
+      "netto": 12.28,
+      "sts": "NSFC",
+      "rawSts": "NSFC1901",
+      "wil": "W04"
+    }
+  ],
+  "098A1": [
+    {
+      "year": 2018,
+      "bruto": 11.25,
+      "netto": 8.92,
+      "sts": "NSFC",
+      "rawSts": "NSFC1901",
+      "wil": "W04"
+    }
+  ],
+  "088A": [
+    {
+      "year": 2018,
+      "bruto": 11.63,
+      "netto": 9.21,
+      "sts": "NSFC",
+      "rawSts": "NSFC1811",
+      "wil": "W04"
+    }
+  ],
+  "041B1": [
+    {
+      "year": 2018,
+      "bruto": 10.44,
+      "netto": 8.49,
+      "sts": "NSFC",
+      "rawSts": "NSFC1902",
+      "wil": "W03"
+    }
+  ],
+  "041A": [
+    {
+      "year": 2018,
+      "bruto": 18.8,
+      "netto": 15.19,
+      "sts": "NSST",
+      "rawSts": "NSST1901",
+      "wil": "W03"
+    }
+  ],
+  "021A": [
+    {
+      "year": 2018,
+      "bruto": 9.85,
+      "netto": 8,
+      "sts": "NSFC",
+      "rawSts": "NSFC1812",
+      "wil": "W01"
+    }
+  ],
+  "021E": [
+    {
+      "year": 2018,
+      "bruto": 9.61,
+      "netto": 7.79,
+      "sts": "NSFC",
+      "rawSts": "NSFC1901",
+      "wil": "W01"
+    }
+  ],
+  "021F": [
+    {
+      "year": 2018,
+      "bruto": 12.63,
+      "netto": 10.32,
+      "sts": "NSFC",
+      "rawSts": "NSFC1901",
+      "wil": "W01"
+    }
+  ],
+  "011C": [
+    {
+      "year": 2018,
+      "bruto": 22.42,
+      "netto": 18.16,
+      "sts": "NSFC",
+      "rawSts": "NSFC1902",
+      "wil": "W01"
+    }
+  ],
+  "012E": [
+    {
+      "year": 2018,
+      "bruto": 9.88,
+      "netto": 8,
+      "sts": "PSBK",
+      "rawSts": "PSBK1806",
+      "wil": "W01"
+    }
+  ],
+  "019A": [
+    {
+      "year": 2018,
+      "bruto": 5.28,
+      "netto": 4.2,
+      "sts": "NSFC",
+      "rawSts": "NSFC1902",
+      "wil": "W01"
+    }
+  ],
+  "018B": [
+    {
+      "year": 2018,
+      "bruto": 15.11,
+      "netto": 11.94,
+      "sts": "NSST",
+      "rawSts": "NSST1901",
+      "wil": "W01"
+    }
+  ],
+  "018B1": [
+    {
+      "year": 2018,
+      "bruto": 7.14,
+      "netto": 6.22,
+      "sts": "NSST",
+      "rawSts": "NSST1901",
+      "wil": "W01"
+    }
+  ],
+  "051A": [
+    {
+      "year": 2018,
+      "bruto": 13.87,
+      "netto": 11.34,
+      "sts": "NSFC",
+      "rawSts": "NSFC1901",
+      "wil": "W03"
+    }
+  ],
+  "033B2": [
+    {
+      "year": 2018,
+      "bruto": 5.77,
+      "netto": 4.86,
+      "sts": "NSFC",
+      "rawSts": "NSFC1902",
+      "wil": "W02"
+    }
+  ],
+  "033B1": [
+    {
+      "year": 2018,
+      "bruto": 18.37,
+      "netto": 15.11,
+      "sts": "NSST",
+      "rawSts": "NSST1901",
+      "wil": "W02"
+    }
+  ],
+  "014A": [
+    {
+      "year": 2018,
+      "bruto": 4.5,
+      "netto": 3.61,
+      "sts": "NSST",
+      "rawSts": "NSST1902",
+      "wil": "W01"
+    }
+  ],
+  "032A": [
+    {
+      "year": 2018,
+      "bruto": 28.04,
+      "netto": 23.19,
+      "sts": "PSBK",
+      "rawSts": "PSBK1808",
+      "wil": "W02"
+    }
+  ],
+  "032B": [
+    {
+      "year": 2018,
+      "bruto": 12.28,
+      "netto": 10.13,
+      "sts": "PSBK",
+      "rawSts": "PSBK1808",
+      "wil": "W01"
+    }
+  ],
+  "010A": [
+    {
+      "year": 2018,
+      "bruto": 5.74,
+      "netto": 4.69,
+      "sts": "NSST",
+      "rawSts": "NSST1812",
+      "wil": "W01"
+    }
+  ],
+  "062N": [
+    {
+      "year": 2018,
+      "bruto": 5.24,
+      "netto": 4.18,
+      "sts": "NSFC",
+      "rawSts": "NSFC1901",
+      "wil": "W02"
+    }
+  ],
+  "046E": [
+    {
+      "year": 2018,
+      "bruto": 14.7,
+      "netto": 12.37,
+      "sts": "NSST",
+      "rawSts": "NSST1902",
+      "wil": "W02"
+    }
+  ],
+  "045F": [
+    {
+      "year": 2018,
+      "bruto": 16.78,
+      "netto": 13.28,
+      "sts": "NSBK",
+      "rawSts": "NSBK1807",
+      "wil": "W02"
+    }
+  ],
+  "005E": [
+    {
+      "year": 2018,
+      "bruto": 6.82,
+      "netto": 5.45,
+      "sts": "PSBK",
+      "rawSts": "PSBK1808",
+      "wil": "W01"
+    }
+  ],
+  "005F": [
+    {
+      "year": 2018,
+      "bruto": 18.28,
+      "netto": 14.66,
+      "sts": "NSST",
+      "rawSts": "NSST1812",
+      "wil": "W01"
+    }
+  ],
+  "073A1": [
+    {
+      "year": 2018,
+      "bruto": 8.22,
+      "netto": 6.58,
+      "sts": "NSFC",
+      "rawSts": "NSFC1902",
+      "wil": "W03"
+    }
+  ],
+  "084E": [
+    {
+      "year": 2018,
+      "bruto": 16.22,
+      "netto": 12.98,
+      "sts": "NSFC",
+      "rawSts": "NSFC1902",
+      "wil": "W04"
+    }
+  ],
+  "083C": [
+    {
+      "year": 2018,
+      "bruto": 11.12,
+      "netto": 8.9,
+      "sts": "NSST",
+      "rawSts": "NSST1812",
+      "wil": "W04"
+    }
+  ],
+  "083E": [
+    {
+      "year": 2018,
+      "bruto": 11.51,
+      "netto": 9.1,
+      "sts": "NSST",
+      "rawSts": "NSST1901",
+      "wil": "W04"
+    }
+  ],
+  "069E": [
+    {
+      "year": 2018,
+      "bruto": 19,
+      "netto": 15.2,
+      "sts": "NSST",
+      "rawSts": "NSST1901",
+      "wil": "W03"
+    }
+  ],
+  "066D": [
+    {
+      "year": 2018,
+      "bruto": 11,
+      "netto": 8.85,
+      "sts": "NSST",
+      "rawSts": "NSST1901",
+      "wil": "W03"
+    }
+  ],
+  "066F": [
+    {
+      "year": 2018,
+      "bruto": 9.6,
+      "netto": 7.83,
+      "sts": "NSST",
+      "rawSts": "NSST1901",
+      "wil": "W03"
+    }
+  ],
+  "088B": [
+    {
+      "year": 2018,
+      "bruto": 8.02,
+      "netto": 6.52,
+      "sts": "NSST",
+      "rawSts": "NSST1901",
+      "wil": "W04"
+    }
+  ],
+  "091G": [
+    {
+      "year": 2018,
+      "bruto": 5.38,
+      "netto": 4.39,
+      "sts": "NSST",
+      "rawSts": "NSST1902",
+      "wil": "W04"
+    }
+  ],
+  "091H": [
+    {
+      "year": 2018,
+      "bruto": 10.48,
+      "netto": 8.23,
+      "sts": "NSBK",
+      "rawSts": "NSBK1807",
+      "wil": "W04"
+    }
+  ],
+  "031B": [
+    {
+      "year": 2018,
+      "bruto": 13.66,
+      "netto": 11.28,
+      "sts": "NSFC",
+      "rawSts": "NSFC1903",
+      "wil": "W02"
+    }
+  ],
+  "069C5": [
+    {
+      "year": 2018,
+      "bruto": 13.22,
+      "netto": 10.7,
+      "sts": "NSFC",
+      "rawSts": "NSFC1903",
+      "wil": "W03"
+    }
+  ],
+  "066A": [
+    {
+      "year": 2018,
+      "bruto": 12.03,
+      "netto": 9.65,
+      "sts": "NSFC",
+      "rawSts": "NSFC1904",
+      "wil": "W03"
+    }
+  ],
+  "016B1": [
+    {
+      "year": 2018,
+      "bruto": 6.73,
+      "netto": 5.32,
+      "sts": "NSFC",
+      "rawSts": "NSFC1904",
+      "wil": "W01"
+    }
+  ],
+  "056F": [
+    {
+      "year": 2018,
+      "bruto": 13.23,
+      "netto": 10.68,
+      "sts": "NSFC",
+      "rawSts": "NSFC1903",
+      "wil": "W02"
+    }
+  ],
+  "083A": [
+    {
+      "year": 2018,
+      "bruto": 15.13,
+      "netto": 11.57,
+      "sts": "NSFC",
+      "rawSts": "NSFC1903",
+      "wil": "W04"
+    }
+  ],
+  "076C1": [
+    {
+      "year": 2018,
+      "bruto": 12.69,
+      "netto": 10.28,
+      "sts": "NSFC",
+      "rawSts": "NSFC1904",
+      "wil": "W04"
+    }
+  ],
+  "056F1": [
+    {
+      "year": 2018,
+      "bruto": 9.86,
+      "netto": 7.81,
+      "sts": "NSFC",
+      "rawSts": "NSFC1903",
+      "wil": "W02"
+    }
+  ],
+  "066L": [
+    {
+      "year": 2018,
+      "bruto": 7.6,
+      "netto": 6.18,
+      "sts": "NSFC",
+      "rawSts": "NSFC1905",
+      "wil": "W03"
+    }
+  ],
+  "026E": [
+    {
+      "year": 2019,
+      "bruto": 16.88,
+      "netto": 13.38,
+      "sts": "NSFC",
+      "rawSts": "NSFC1905",
+      "wil": "W03"
+    }
+  ],
+  "042D": [
+    {
+      "year": 2019,
+      "bruto": 17.21,
+      "netto": 13.75,
+      "sts": "NSFC",
+      "rawSts": "NSFC1904",
+      "wil": "W03"
+    }
+  ],
+  "016A": [
+    {
+      "year": 2018,
+      "bruto": 4.35,
+      "netto": 3.74,
+      "sts": "NSFC",
+      "rawSts": "NSFC1904",
+      "wil": "W01"
+    }
+  ],
+  "060C": [
+    {
+      "year": 2018,
+      "bruto": 12.46,
+      "netto": 10.25,
+      "sts": "NSFC",
+      "rawSts": "NSFC1906",
+      "wil": "W02"
+    }
+  ],
+  "097D": [
+    {
+      "year": 2018,
+      "bruto": 11.1,
+      "netto": 9.32,
+      "sts": "NSFC",
+      "rawSts": "NSFC1905",
+      "wil": "W04"
+    }
+  ],
+  "097C": [
+    {
+      "year": 2018,
+      "bruto": 11.85,
+      "netto": 10.26,
+      "sts": "NSFC",
+      "rawSts": "NSFC1905",
+      "wil": "W04"
+    }
+  ],
+  "028P": [
+    {
+      "year": 2018,
+      "bruto": 21.92,
+      "netto": 17.4,
+      "sts": "NSFC",
+      "rawSts": "NSFC1906",
+      "wil": "W03"
+    }
+  ],
+  "028Q": [
+    {
+      "year": 2018,
+      "bruto": 9.77,
+      "netto": 7.9,
+      "sts": "NSFC",
+      "rawSts": "NSFC1906",
+      "wil": "W03"
+    }
+  ],
+  "028Q1": [
+    {
+      "year": 2018,
+      "bruto": 12.2,
+      "netto": 9.84,
+      "sts": "NSFC",
+      "rawSts": "NSFC1906",
+      "wil": "W03"
+    }
+  ],
+  "004F": [
+    {
+      "year": 2019,
+      "bruto": 11.5,
+      "netto": 9.15,
+      "sts": "NSFC",
+      "rawSts": "NSFC1905",
+      "wil": "W01"
+    }
+  ],
+  "004H": [
+    {
+      "year": 2019,
+      "bruto": 12.6,
+      "netto": 9.98,
+      "sts": "NSFC",
+      "rawSts": "NSFC1905",
+      "wil": "W01"
+    }
+  ],
+  "026C": [
+    {
+      "year": 2019,
+      "bruto": 7.98,
+      "netto": 6.58,
+      "sts": "NSFC",
+      "rawSts": "NSFC1906",
+      "wil": "W03"
+    }
+  ],
+  "089B": [
+    {
+      "year": 2018,
+      "bruto": 12.54,
+      "netto": 10.08,
+      "sts": "NSFC",
+      "rawSts": "NSFC1906",
+      "wil": "W04"
+    }
+  ],
+  "096I": [
+    {
+      "year": 2019,
+      "bruto": 5.9,
+      "netto": 4.7,
+      "sts": "NSFC",
+      "rawSts": "NSFC1905",
+      "wil": "W04"
+    }
+  ],
+  "089C": [
+    {
+      "year": 2018,
+      "bruto": 17.17,
+      "netto": 13.6,
+      "sts": "NSFC",
+      "rawSts": "NSFC1906",
+      "wil": "W04"
+    }
+  ],
+  "084D": [
+    {
+      "year": 2018,
+      "bruto": 14.93,
+      "netto": 13.02,
+      "sts": "NSFC",
+      "rawSts": "NSFC1906",
+      "wil": "W04"
+    }
+  ],
+  "098G": [
+    {
+      "year": 2018,
+      "bruto": 9.52,
+      "netto": 7.17,
+      "sts": "NSFC",
+      "rawSts": "NSFC1906",
+      "wil": "W04"
+    }
+  ],
+  "098H": [
+    {
+      "year": 2018,
+      "bruto": 4.96,
+      "netto": 3.86,
+      "sts": "NSFC",
+      "rawSts": "NSFC1907",
+      "wil": "W04"
+    }
+  ],
+  "076C": [
+    {
+      "year": 2018,
+      "bruto": 12.35,
+      "netto": 9.92,
+      "sts": "NSFC",
+      "rawSts": "NSFC1907",
+      "wil": "W04"
+    }
+  ],
+  "095G": [
+    {
+      "year": 2019,
+      "bruto": 12.7,
+      "netto": 10.13,
+      "sts": "NSFC",
+      "rawSts": "NSFC1907",
+      "wil": "W04"
+    }
+  ],
+  "098M": [
+    {
+      "year": 2019,
+      "bruto": 8.72,
+      "netto": 7.13,
+      "sts": "NSFC",
+      "rawSts": "NSFC1907",
+      "wil": "W04"
+    }
+  ],
+  "098M1": [
+    {
+      "year": 2019,
+      "bruto": 8.43,
+      "netto": 6.77,
+      "sts": "NSFC",
+      "rawSts": "NSFC1907",
+      "wil": "W04"
+    }
+  ],
+  "012A": [
+    {
+      "year": 2018,
+      "bruto": 15.15,
+      "netto": 12.44,
+      "sts": "NSFC",
+      "rawSts": "NSFC1907",
+      "wil": "W01"
+    }
+  ],
+  "049D": [
+    {
+      "year": 2018,
+      "bruto": 10.74,
+      "netto": 9.03,
+      "sts": "NSFC",
+      "rawSts": "NSFC1906",
+      "wil": "W02"
+    }
+  ],
+  "066N": [
+    {
+      "year": 2019,
+      "bruto": 11.9,
+      "netto": 9.5,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W03"
+    }
+  ],
+  "066P": [
+    {
+      "year": 2019,
+      "bruto": 5.32,
+      "netto": 4.26,
+      "sts": "NSFC",
+      "rawSts": "NSFC1907",
+      "wil": "W03"
+    }
+  ],
+  "094D": [
+    {
+      "year": 2019,
+      "bruto": 6.92,
+      "netto": 5.58,
+      "sts": "NSFC",
+      "rawSts": "NSFC1907",
+      "wil": "W04"
+    }
+  ],
+  "079A": [
+    {
+      "year": 2019,
+      "bruto": 8.13,
+      "netto": 6.64,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W03"
+    }
+  ],
+  "085G": [
+    {
+      "year": 2019,
+      "bruto": 14.4,
+      "netto": 12.08,
+      "sts": "NSFC",
+      "rawSts": "NSFC1907",
+      "wil": "W04"
+    }
+  ],
+  "028A1": [
+    {
+      "year": 2019,
+      "bruto": 13.05,
+      "netto": 10.52,
+      "sts": "NSFC",
+      "rawSts": "NSFC1907",
+      "wil": "W03"
+    }
+  ],
+  "028A": [
+    {
+      "year": 2019,
+      "bruto": 3.55,
+      "netto": 2.94,
+      "sts": "NSFC",
+      "rawSts": "NSFC1906",
+      "wil": "W03"
+    }
+  ],
+  "085I": [
+    {
+      "year": 2019,
+      "bruto": 10.46,
+      "netto": 10.08,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W04"
+    }
+  ],
+  "096B": [
+    {
+      "year": 2019,
+      "bruto": 16.76,
+      "netto": 14.36,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W04"
+    }
+  ],
+  "023A": [
+    {
+      "year": 2019,
+      "bruto": 15,
+      "netto": 12.1,
+      "sts": "NSFC",
+      "rawSts": "NSFC1907",
+      "wil": "W02"
+    }
+  ],
+  "047A": [
+    {
+      "year": 2018,
+      "bruto": 17.3,
+      "netto": 14.12,
+      "sts": "NSFC",
+      "rawSts": "NSFC1907",
+      "wil": "W02"
+    }
+  ],
+  "057B1": [
+    {
+      "year": 2019,
+      "bruto": 8.68,
+      "netto": 9.68,
+      "sts": "NSFC",
+      "rawSts": "NSFC1907",
+      "wil": "W02"
+    }
+  ],
+  "057B": [
+    {
+      "year": 2019,
+      "bruto": 11.03,
+      "netto": 5.86,
+      "sts": "NSFC",
+      "rawSts": "NSFC1907",
+      "wil": "W02"
+    }
+  ],
+  "023E": [
+    {
+      "year": 2019,
+      "bruto": 8.83,
+      "netto": 7.12,
+      "sts": "NSFC",
+      "rawSts": "NSFC1907",
+      "wil": "W01"
+    }
+  ],
+  "027F": [
+    {
+      "year": 2019,
+      "bruto": 20.16,
+      "netto": 16.22,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W03"
+    }
+  ],
+  "094C": [
+    {
+      "year": 2019,
+      "bruto": 10.1,
+      "netto": 8.34,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W04"
+    }
+  ],
+  "094E": [
+    {
+      "year": 2019,
+      "bruto": 10.26,
+      "netto": 7.53,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W04"
+    }
+  ],
+  "067A": [
+    {
+      "year": 2018,
+      "bruto": 14.54,
+      "netto": 11.52,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W03"
+    }
+  ],
+  "006A": [
+    {
+      "year": 2019,
+      "bruto": 11.72,
+      "netto": 9.3,
+      "sts": "NSST",
+      "rawSts": "NSST1907",
+      "wil": "W01"
+    }
+  ],
+  "006B": [
+    {
+      "year": 2019,
+      "bruto": 9.13,
+      "netto": 7.51,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W01"
+    }
+  ],
+  "006C": [
+    {
+      "year": 2019,
+      "bruto": 12.5,
+      "netto": 10.58,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W01"
+    }
+  ],
+  "047C": [
+    {
+      "year": 2019,
+      "bruto": 14,
+      "netto": 11.28,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W02"
+    }
+  ],
+  "047D": [
+    {
+      "year": 2019,
+      "bruto": 9.38,
+      "netto": 7.52,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W02"
+    }
+  ],
+  "048A": [
+    {
+      "year": 2019,
+      "bruto": 8.31,
+      "netto": 6.74,
+      "sts": "NSFC",
+      "rawSts": "NSFC1907",
+      "wil": "W02"
+    }
+  ],
+  "071B": [
+    {
+      "year": 2019,
+      "bruto": 13.5,
+      "netto": 9.94,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W03"
+    }
+  ],
+  "057E": [
+    {
+      "year": 2019,
+      "bruto": 10.88,
+      "netto": 8.94,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W02"
+    }
+  ],
+  "060A": [
+    {
+      "year": 2019,
+      "bruto": 12.26,
+      "netto": 11.07,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W02"
+    }
+  ],
+  "079B": [
+    {
+      "year": 2019,
+      "bruto": 4.4,
+      "netto": 3.4,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W03"
+    }
+  ],
+  "073A": [
+    {
+      "year": 2019,
+      "bruto": 8.21,
+      "netto": 6.54,
+      "sts": "NSFC",
+      "rawSts": "NSFC1909",
+      "wil": "W03"
+    }
+  ],
+  "086A": [
+    {
+      "year": 2019,
+      "bruto": 11.24,
+      "netto": 9.56,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W04"
+    }
+  ],
+  "086C": [
+    {
+      "year": 2019,
+      "bruto": 7.7,
+      "netto": 5.95,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W04"
+    }
+  ],
+  "095A": [
+    {
+      "year": 2019,
+      "bruto": 15.92,
+      "netto": 12.83,
+      "sts": "NSBK",
+      "rawSts": "NSBK1904",
+      "wil": "W04"
+    }
+  ],
+  "095H": [
+    {
+      "year": 2019,
+      "bruto": 3.56,
+      "netto": 2.84,
+      "sts": "NSBK",
+      "rawSts": "NSBK1904",
+      "wil": "W04"
+    }
+  ],
+  "083D": [
+    {
+      "year": 2019,
+      "bruto": 12.42,
+      "netto": 9.88,
+      "sts": "NSBK",
+      "rawSts": "NSBK1812",
+      "wil": "W04"
+    }
+  ],
+  "032C": [
+    {
+      "year": 2019,
+      "bruto": 4.08,
+      "netto": 3.43,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W02"
+    }
+  ],
+  "032D": [
+    {
+      "year": 2019,
+      "bruto": 11.24,
+      "netto": 9.34,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W02"
+    }
+  ],
+  "020A": [
+    {
+      "year": 2019,
+      "bruto": 12.48,
+      "netto": 10.1,
+      "sts": "NSST",
+      "rawSts": "NSST1908",
+      "wil": "W01"
+    }
+  ],
+  "015B": [
+    {
+      "year": 2019,
+      "bruto": 6.56,
+      "netto": 5.48,
+      "sts": "NSST",
+      "rawSts": "NSST1908",
+      "wil": "W01"
+    }
+  ],
+  "015B1": [
+    {
+      "year": 2019,
+      "bruto": 13.95,
+      "netto": 11.56,
+      "sts": "NSFC",
+      "rawSts": "NSFC1909",
+      "wil": "W01"
+    }
+  ],
+  "020H": [
+    {
+      "year": 2019,
+      "bruto": 6.7,
+      "netto": 5.42,
+      "sts": "NSST",
+      "rawSts": "NSST1908",
+      "wil": "W01"
+    }
+  ],
+  "075F": [
+    {
+      "year": 2019,
+      "bruto": 12.64,
+      "netto": 10.07,
+      "sts": "NSST",
+      "rawSts": "NSST1909",
+      "wil": "W04"
+    }
+  ],
+  "075G": [
+    {
+      "year": 2019,
+      "bruto": 7.35,
+      "netto": 5.82,
+      "sts": "NSST",
+      "rawSts": "NSST1909",
+      "wil": "W04"
+    }
+  ],
+  "075I": [
+    {
+      "year": 2019,
+      "bruto": 10.95,
+      "netto": 8.66,
+      "sts": "NSST",
+      "rawSts": "NSST1909",
+      "wil": "W04"
+    }
+  ],
+  "094I9": [
+    {
+      "year": 2019,
+      "bruto": 10,
+      "netto": 7.9,
+      "sts": "NSST",
+      "rawSts": "NSST1908",
+      "wil": "W04"
+    }
+  ],
+  "079A1": [
+    {
+      "year": 2019,
+      "bruto": 14.8,
+      "netto": 11.85,
+      "sts": "NSST",
+      "rawSts": "NSST1909",
+      "wil": "W04"
+    }
+  ],
+  "083A1": [
+    {
+      "year": 2019,
+      "bruto": 4.36,
+      "netto": 3.52,
+      "sts": "NSFC",
+      "rawSts": "NSFC1909",
+      "wil": "W04"
+    }
+  ],
+  "055K": [
+    {
+      "year": 2019,
+      "bruto": 8.68,
+      "netto": 7.3,
+      "sts": "NSFC",
+      "rawSts": "NSFC1909",
+      "wil": "W03"
+    }
+  ],
+  "055K2": [
+    {
+      "year": 2019,
+      "bruto": 6.35,
+      "netto": 5,
+      "sts": "NSFC",
+      "rawSts": "NSFC1909",
+      "wil": "W03"
+    }
+  ],
+  "097A1": [
+    {
+      "year": 2019,
+      "bruto": 14.7,
+      "netto": 11.66,
+      "sts": "NSST",
+      "rawSts": "NSST1909",
+      "wil": "W04"
+    }
+  ],
+  "005G": [
+    {
+      "year": 2019,
+      "bruto": 5.14,
+      "netto": 4.24,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W01"
+    }
+  ],
+  "005F1": [
+    {
+      "year": 2019,
+      "bruto": 11.82,
+      "netto": 9.47,
+      "sts": "NSFC",
+      "rawSts": "NSFC1908",
+      "wil": "W01"
+    }
+  ],
+  "052A": [
+    {
+      "year": 2019,
+      "bruto": 7.23,
+      "netto": 6.06,
+      "sts": "NSFC",
+      "rawSts": "NSFC1909",
+      "wil": "W03"
+    }
+  ],
+  "055D": [
+    {
+      "year": 2019,
+      "bruto": 6.22,
+      "netto": 4.86,
+      "sts": "NSFC",
+      "rawSts": "NSFC1909",
+      "wil": "W03"
+    }
+  ],
+  "076A": [
+    {
+      "year": 2019,
+      "bruto": 16.48,
+      "netto": 12.38,
+      "sts": "NSST",
+      "rawSts": "NSST1908",
+      "wil": "W04"
+    }
+  ],
+  "052G": [
+    {
+      "year": 2019,
+      "bruto": 7.06,
+      "netto": 5.86,
+      "sts": "NSST",
+      "rawSts": "NSST1909",
+      "wil": "W03"
+    }
+  ],
+  "094B1": [
+    {
+      "year": 2019,
+      "bruto": 8.71,
+      "netto": 7.08,
+      "sts": "NSBK",
+      "rawSts": "NSBK1904",
+      "wil": "W04"
+    }
+  ],
+  "052E": [
+    {
+      "year": 2019,
+      "bruto": 14.73,
+      "netto": 12.08,
+      "sts": "NSST",
+      "rawSts": "NSST1909",
+      "wil": "W03"
+    }
+  ],
+  "095J": [
+    {
+      "year": 2019,
+      "bruto": 10,
+      "netto": 7.72,
+      "sts": "NSBK",
+      "rawSts": "NSBK1904",
+      "wil": "W04"
+    }
+  ],
+  "095D": [
+    {
+      "year": 2019,
+      "bruto": 6.73,
+      "netto": 5.17,
+      "sts": "NSBK",
+      "rawSts": "NSBK1904",
+      "wil": "W04"
+    }
+  ],
+  "052D": [
+    {
+      "year": 2019,
+      "bruto": 13.04,
+      "netto": 10.7,
+      "sts": "NSST",
+      "rawSts": "NSST1909",
+      "wil": "W03"
+    }
+  ],
+  "052I": [
+    {
+      "year": 2019,
+      "bruto": 10.06,
+      "netto": 8.42,
+      "sts": "NSST",
+      "rawSts": "NSST1909",
+      "wil": "W03"
+    }
+  ],
+  "095E": [
+    {
+      "year": 2019,
+      "bruto": 11.76,
+      "netto": 9.1,
+      "sts": "NSBK",
+      "rawSts": "NSBK1904",
+      "wil": "W04"
+    }
+  ],
+  "027C": [
+    {
+      "year": 2019,
+      "bruto": 14.67,
+      "netto": 12.21,
+      "sts": "NSBK",
+      "rawSts": "NSBK1904",
+      "wil": "W02"
+    }
+  ],
+  "021C": [
+    {
+      "year": 2019,
+      "bruto": 10.87,
+      "netto": 8.7,
+      "sts": "NSBK",
+      "rawSts": "NSBK1905",
+      "wil": "W02"
+    }
+  ],
+  "021D": [
+    {
+      "year": 2019,
+      "bruto": 5.76,
+      "netto": 5.3,
+      "sts": "NSBK",
+      "rawSts": "NSBK1905",
+      "wil": "W02"
+    }
+  ],
+  "022C": [
+    {
+      "year": 2019,
+      "bruto": 10.96,
+      "netto": 8.88,
+      "sts": "NSST",
+      "rawSts": "NSST1909",
+      "wil": "W02"
+    }
+  ],
+  "022B": [
+    {
+      "year": 2019,
+      "bruto": 7.9,
+      "netto": 6.9,
+      "sts": "NSST",
+      "rawSts": "NSST1909",
+      "wil": "W02"
+    }
+  ],
+  "094H": [
+    {
+      "year": 2019,
+      "bruto": 8.76,
+      "netto": 6.26,
+      "sts": "NSST",
+      "rawSts": "NSST1908",
+      "wil": "W04"
+    }
+  ],
+  "004M3": [
+    {
+      "year": 2019,
+      "bruto": 7.67,
+      "netto": 6.11,
+      "sts": "NSBK",
+      "rawSts": "NSBK1903",
+      "wil": "W01"
+    }
+  ],
+  "092C3": [
+    {
+      "year": 2019,
+      "bruto": 17.42,
+      "netto": 13.92,
+      "sts": "NSBK",
+      "rawSts": "NSBK1903",
+      "wil": "W04"
+    }
+  ],
+  "025G": [
+    {
+      "year": 2019,
+      "bruto": 10.6,
+      "netto": 8.58,
+      "sts": "NSFC",
+      "rawSts": "NSFC1912",
+      "wil": "W02"
+    }
+  ],
+  "025D": [
+    {
+      "year": 2019,
+      "bruto": 7.33,
+      "netto": 5.9,
+      "sts": "NSFC",
+      "rawSts": "NSFC1912",
+      "wil": "W02"
+    }
+  ],
+  "094A": [
+    {
+      "year": 2019,
+      "bruto": 9.18,
+      "netto": 7.26,
+      "sts": "NSBK",
+      "rawSts": "NSBK1906",
+      "wil": "W04"
+    }
+  ],
+  "070L1": [
+    {
+      "year": 2019,
+      "bruto": 9.85,
+      "netto": 7.92,
+      "sts": "NSBK",
+      "rawSts": "NSBK1903",
+      "wil": "W03"
+    }
+  ],
+  "070M1": [
+    {
+      "year": 2019,
+      "bruto": 8.76,
+      "netto": 7.06,
+      "sts": "NSBK",
+      "rawSts": "NSBK1903",
+      "wil": "W03"
+    }
+  ],
+  "052F": [
+    {
+      "year": 2019,
+      "bruto": 4.82,
+      "netto": 3.88,
+      "sts": "NSST",
+      "rawSts": "NSST1911",
+      "wil": "W03"
+    }
+  ],
+  "089A": [
+    {
+      "year": 2019,
+      "bruto": 3.72,
+      "netto": 3,
+      "sts": "NSST",
+      "rawSts": "NSST1912",
+      "wil": "W04"
+    }
+  ],
+  "094G": [
+    {
+      "year": 2019,
+      "bruto": 10.67,
+      "netto": 8.42,
+      "sts": "NSST",
+      "rawSts": "NSST1912",
+      "wil": "W04"
+    }
+  ],
+  "052H": [
+    {
+      "year": 2019,
+      "bruto": 8.84,
+      "netto": 7.08,
+      "sts": "NSST",
+      "rawSts": "NSST1911",
+      "wil": "W03"
+    }
+  ],
+  "057A": [
+    {
+      "year": 2019,
+      "bruto": 17.04,
+      "netto": 14.12,
+      "sts": "NSBK",
+      "rawSts": "NSBK1905",
+      "wil": "W03"
+    }
+  ],
+  "015A": [
+    {
+      "year": 2019,
+      "bruto": 5.62,
+      "netto": 4.63,
+      "sts": "NTBK",
+      "rawSts": "NTBK1907",
+      "wil": "W01"
+    }
+  ],
+  "086A2": [
+    {
+      "year": 2019,
+      "bruto": 8.96,
+      "netto": 7.3,
+      "sts": "NSFC",
+      "rawSts": "NSFC1912",
+      "wil": "W04"
+    }
+  ],
+  "076F3": [
+    {
+      "year": 2019,
+      "bruto": 5.05,
+      "netto": 3.95,
+      "sts": "NSBK",
+      "rawSts": "NSBK1903",
+      "wil": "W04"
+    }
+  ],
+  "076F": [
+    {
+      "year": 2019,
+      "bruto": 7.97,
+      "netto": 6.5,
+      "sts": "NSBK",
+      "rawSts": "NSBK1907",
+      "wil": "W04"
+    }
+  ],
+  "086E": [
+    {
+      "year": 2019,
+      "bruto": 4.4,
+      "netto": 3.45,
+      "sts": "NSST",
+      "rawSts": "NSST1912",
+      "wil": "W04"
+    }
+  ],
+  "099C": [
+    {
+      "year": 2019,
+      "bruto": 10.58,
+      "netto": 8.5,
+      "sts": "NSFC",
+      "rawSts": "NSFC1912",
+      "wil": "W04"
+    }
+  ],
+  "063I": [
+    {
+      "year": 2019,
+      "bruto": 13.8,
+      "netto": 9.55,
+      "sts": "SKBK",
+      "rawSts": "SKBK1907",
+      "wil": "W03"
+    }
+  ],
+  "071D": [
+    {
+      "year": 2019,
+      "bruto": 12.93,
+      "netto": 10.32,
+      "sts": "NSST",
+      "rawSts": "NSST1912",
+      "wil": "W03"
+    }
+  ],
+  "098I1": [
+    {
+      "year": 2019,
+      "bruto": 8.23,
+      "netto": 6.6,
+      "sts": "NSBK",
+      "rawSts": "NSBK1903",
+      "wil": "W04"
+    }
+  ],
+  "052C": [
+    {
+      "year": 2019,
+      "bruto": 10.08,
+      "netto": 8.29,
+      "sts": "NSBK",
+      "rawSts": "NSBK1907",
+      "wil": "W03"
+    }
+  ],
+  "098I": [
+    {
+      "year": 2019,
+      "bruto": 9.81,
+      "netto": 7.76,
+      "sts": "NSBK",
+      "rawSts": "NSBK1907",
+      "wil": "W04"
+    }
+  ],
+  "039E": [
+    {
+      "year": 2019,
+      "bruto": 12.63,
+      "netto": 10.34,
+      "sts": "SKBK",
+      "rawSts": "SKBK1907",
+      "wil": "W03"
+    }
+  ],
+  "017G1": [
+    {
+      "year": 2019,
+      "bruto": 10.92,
+      "netto": 8.84,
+      "sts": "NSST",
+      "rawSts": "NSST1912",
+      "wil": "W02"
+    }
+  ],
+  "017G": [
+    {
+      "year": 2019,
+      "bruto": 10.94,
+      "netto": 8.6,
+      "sts": "NSST",
+      "rawSts": "NSST1912",
+      "wil": "W02"
+    }
+  ],
+  "048G": [
+    {
+      "year": 2019,
+      "bruto": 14.52,
+      "netto": 11.86,
+      "sts": "NSBK",
+      "rawSts": "NSBK1907",
+      "wil": "W02"
+    }
+  ],
+  "037A": [
+    {
+      "year": 2019,
+      "bruto": 15.52,
+      "netto": 12.85,
+      "sts": "NSBK",
+      "rawSts": "NSBK1907",
+      "wil": "W02"
+    }
+  ],
+  "093A": [
+    {
+      "year": 2019,
+      "bruto": 7.5,
+      "netto": 5.95,
+      "sts": "NSBK",
+      "rawSts": "NSBK1908",
+      "wil": "W04"
+    }
+  ],
+  "099D": [
+    {
+      "year": 2019,
+      "bruto": 7.28,
+      "netto": 5.88,
+      "sts": "NSFC",
+      "rawSts": "NSFC1910",
+      "wil": "W04"
+    }
+  ],
+  "021B": [
+    {
+      "year": 2019,
+      "bruto": 15.44,
+      "netto": 12.55,
+      "sts": "NSFC",
+      "rawSts": "NSFC1912",
+      "wil": "W01"
+    }
+  ],
+  "072F": [
+    {
+      "year": 2019,
+      "bruto": 12.25,
+      "netto": 9.84,
+      "sts": "NSST",
+      "rawSts": "NSST1912",
+      "wil": "W03"
+    }
+  ],
+  "075A": [
+    {
+      "year": 2019,
+      "bruto": 7.97,
+      "netto": 6.43,
+      "sts": "NSBK",
+      "rawSts": "NSBK1908",
+      "wil": "W04"
+    }
+  ],
+  "071B2": [
+    {
+      "year": 2019,
+      "bruto": 5.6,
+      "netto": 4.5,
+      "sts": "NSST",
+      "rawSts": "NSST1911",
+      "wil": "W03"
+    }
+  ],
+  "071B1": [
+    {
+      "year": 2019,
+      "bruto": 15.17,
+      "netto": 12.12,
+      "sts": "NSST",
+      "rawSts": "NSST1911",
+      "wil": "W03"
+    }
+  ],
+  "022D": [
+    {
+      "year": 2019,
+      "bruto": 10.1,
+      "netto": 8.1,
+      "sts": "NSST",
+      "rawSts": "NSST1911",
+      "wil": "W02"
+    }
+  ],
+  "004J": [
+    {
+      "year": 2019,
+      "bruto": 7.7,
+      "netto": 6.22,
+      "sts": "NSBK",
+      "rawSts": "NSBK1908",
+      "wil": "W01"
+    }
+  ],
+  "097M": [
+    {
+      "year": 2019,
+      "bruto": 14,
+      "netto": 11.07,
+      "sts": "NSBK",
+      "rawSts": "NSBK1908",
+      "wil": "W04"
+    }
+  ],
+  "031A2": [
+    {
+      "year": 2019,
+      "bruto": 13.48,
+      "netto": 10.94,
+      "sts": "NSBK",
+      "rawSts": "NSBK1903",
+      "wil": "W02"
+    }
+  ],
+  "028B": [
+    {
+      "year": 2019,
+      "bruto": 10.38,
+      "netto": 8.45,
+      "sts": "NSBK",
+      "rawSts": "NSBK1908",
+      "wil": "W02"
+    }
+  ],
+  "028D": [
+    {
+      "year": 2019,
+      "bruto": 9.06,
+      "netto": 7.32,
+      "sts": "NSBK",
+      "rawSts": "NSBK1909",
+      "wil": "W02"
+    }
+  ],
+  "028E": [
+    {
+      "year": 2019,
+      "bruto": 3.92,
+      "netto": 3.16,
+      "sts": "NSBK",
+      "rawSts": "NSBK1909",
+      "wil": "W02"
+    }
+  ],
+  "009F": [
+    {
+      "year": 2019,
+      "bruto": 11.58,
+      "netto": 9.19,
+      "sts": "NSFC",
+      "rawSts": "NSFC1911",
+      "wil": "W01"
+    }
+  ],
+  "098D": [
+    {
+      "year": 2019,
+      "bruto": 7.67,
+      "netto": 6.12,
+      "sts": "NSBK",
+      "rawSts": "NSBK1909",
+      "wil": "W04"
+    }
+  ],
+  "092C1": [
+    {
+      "year": 2019,
+      "bruto": 12.26,
+      "netto": 8.78,
+      "sts": "NSBK",
+      "rawSts": "NSBK1909",
+      "wil": "W04"
+    }
+  ],
+  "062G2": [
+    {
+      "year": 2019,
+      "bruto": 6.4,
+      "netto": 5.23,
+      "sts": "NSST",
+      "rawSts": "NSST1912",
+      "wil": "W03"
+    }
+  ],
+  "045C": [
+    {
+      "year": 2019,
+      "bruto": 18.62,
+      "netto": 15.72,
+      "sts": "NSBK",
+      "rawSts": "NSBK1909",
+      "wil": "W02"
+    }
+  ],
+  "045D": [
+    {
+      "year": 2019,
+      "bruto": 14,
+      "netto": 10.88,
+      "sts": "NSBK",
+      "rawSts": "NSBK1909",
+      "wil": "W02"
+    }
+  ],
+  "062K9": [
+    {
+      "year": 2019,
+      "bruto": 8.3,
+      "netto": 6.72,
+      "sts": "NSBK",
+      "rawSts": "NSBK1909",
+      "wil": "W03"
+    }
+  ],
+  "092E": [
+    {
+      "year": 2019,
+      "bruto": 19.9,
+      "netto": 16.08,
+      "sts": "NSBK",
+      "rawSts": "NSBK1909",
+      "wil": "W04"
+    }
+  ],
+  "092F": [
+    {
+      "year": 2019,
+      "bruto": 8.54,
+      "netto": 6.03,
+      "sts": "NSBK",
+      "rawSts": "NSBK1909",
+      "wil": "W04"
+    }
+  ],
+  "092G": [
+    {
+      "year": 2019,
+      "bruto": 3.22,
+      "netto": 2.64,
+      "sts": "NSBK",
+      "rawSts": "NSBK1909",
+      "wil": "W04"
+    }
+  ],
+  "098E": [
+    {
+      "year": 2019,
+      "bruto": 13.03,
+      "netto": 10.23,
+      "sts": "NSBK",
+      "rawSts": "NSBK1908",
+      "wil": "W04"
+    }
+  ],
+  "078L": [
+    {
+      "year": 2019,
+      "bruto": 7.38,
+      "netto": 5.98,
+      "sts": "SKBK",
+      "rawSts": "SKBK1910",
+      "wil": "W04"
+    }
+  ],
+  "078M": [
+    {
+      "year": 2019,
+      "bruto": 4.96,
+      "netto": 4.04,
+      "sts": "SKBK",
+      "rawSts": "SKBK1910",
+      "wil": "W04"
+    }
+  ],
+  "090A": [
+    {
+      "year": 2019,
+      "bruto": 13.58,
+      "netto": 10.88,
+      "sts": "NSBK",
+      "rawSts": "NSBK1910",
+      "wil": "W04"
+    }
+  ],
+  "090B": [
+    {
+      "year": 2019,
+      "bruto": 10.3,
+      "netto": 8.38,
+      "sts": "NSBK",
+      "rawSts": "NSBK1910",
+      "wil": "W04"
+    }
+  ],
+  "096G1": [
+    {
+      "year": 2019,
+      "bruto": 12.45,
+      "netto": 10.06,
+      "sts": "NSBK",
+      "rawSts": "NSBK1910",
+      "wil": "W04"
+    }
+  ],
+  "096H": [
+    {
+      "year": 2019,
+      "bruto": 7.7,
+      "netto": 7.09,
+      "sts": "NSBK",
+      "rawSts": "NSBK1910",
+      "wil": "W04"
+    }
+  ],
+  "080E": [
+    {
+      "year": 2019,
+      "bruto": 4.62,
+      "netto": 3.72,
+      "sts": "NSBK",
+      "rawSts": "NSBK1910",
+      "wil": "W04"
+    }
+  ],
+  "030B": [
+    {
+      "year": 2019,
+      "bruto": 10.9,
+      "netto": 8.63,
+      "sts": "NSBK",
+      "rawSts": "NSBK1910",
+      "wil": "W02"
+    }
+  ],
+  "097A": [
+    {
+      "year": 2019,
+      "bruto": 14.92,
+      "netto": 11.95,
+      "sts": "SKBK",
+      "rawSts": "SKBK1910",
+      "wil": "W04"
+    }
+  ],
+  "097G": [
+    {
+      "year": 2019,
+      "bruto": 13.4,
+      "netto": 10.47,
+      "sts": "NSBK",
+      "rawSts": "NSBK1911",
+      "wil": "W04"
+    }
+  ],
+  "097B": [
+    {
+      "year": 2019,
+      "bruto": 11.85,
+      "netto": 10.19,
+      "sts": "SKBK",
+      "rawSts": "SKBK1911",
+      "wil": "W04"
+    }
+  ],
+  "097F": [
+    {
+      "year": 2019,
+      "bruto": 7.8,
+      "netto": 6.65,
+      "sts": "SKBK",
+      "rawSts": "SKBK1911",
+      "wil": "W04"
+    }
+  ],
+  "014E": [
+    {
+      "year": 2019,
+      "bruto": 17.16,
+      "netto": 13.8,
+      "sts": "NSFC",
+      "rawSts": "NSFC2003",
+      "wil": "W01"
+    }
+  ],
+  "065C": [
+    {
+      "year": 2019,
+      "bruto": 12.75,
+      "netto": 10.58,
+      "sts": "NSFC",
+      "rawSts": "NSFC2003",
+      "wil": "W02"
+    }
+  ],
+  "014F": [
+    {
+      "year": 2019,
+      "bruto": 15.03,
+      "netto": 12.15,
+      "sts": "NSFC",
+      "rawSts": "NSFC2003",
+      "wil": "W01"
+    }
+  ],
+  "065B": [
+    {
+      "year": 2019,
+      "bruto": 13.58,
+      "netto": 11.11,
+      "sts": "NSFC",
+      "rawSts": "NSFC2003",
+      "wil": "W02"
+    }
+  ],
+  "029E": [
+    {
+      "year": 2019,
+      "bruto": 8.4,
+      "netto": 6.74,
+      "sts": "NSFC",
+      "rawSts": "NSFC2003",
+      "wil": "W03"
+    }
+  ],
+  "029E1": [
+    {
+      "year": 2019,
+      "bruto": 16.56,
+      "netto": 13.32,
+      "sts": "NSFC",
+      "rawSts": "NSFC2003",
+      "wil": "W03"
+    }
+  ],
+  "017K": [
+    {
+      "year": 2019,
+      "bruto": 6.51,
+      "netto": 5.25,
+      "sts": "NSFC",
+      "rawSts": "NSFC2004",
+      "wil": "W01"
+    }
+  ],
+  "082B": [
+    {
+      "year": 2019,
+      "bruto": 15.45,
+      "netto": 12.32,
+      "sts": "NSFC",
+      "rawSts": "NSFC2004",
+      "wil": "W03"
+    }
+  ],
+  "079E": [
+    {
+      "year": 2019,
+      "bruto": 7.8,
+      "netto": 6.27,
+      "sts": "NSFC",
+      "rawSts": "NSFC2006",
+      "wil": "W03"
+    }
+  ],
+  "069A": [
+    {
+      "year": 2019,
+      "bruto": 11.78,
+      "netto": 9.18,
+      "sts": "NSFC",
+      "rawSts": "NSFC2004",
+      "wil": "W03"
+    }
+  ],
+  "088D": [
+    {
+      "year": 2019,
+      "bruto": 16.44,
+      "netto": 12.96,
+      "sts": "NSFC",
+      "rawSts": "NSFC2005",
+      "wil": "W04"
+    }
+  ],
+  "055A": [
+    {
+      "year": 2019,
+      "bruto": 10.33,
+      "netto": 8.59,
+      "sts": "NSFC",
+      "rawSts": "NSFC2004",
+      "wil": "W02"
+    }
+  ],
+  "086A1": [
+    {
+      "year": 2019,
+      "bruto": 9.84,
+      "netto": 7.87,
+      "sts": "NSFC",
+      "rawSts": "NSFC2005",
+      "wil": "W04"
+    }
+  ],
+  "100B": [
+    {
+      "year": 2019,
+      "bruto": 9.86,
+      "netto": 7.8,
+      "sts": "NSFC",
+      "rawSts": "NSFC2006",
+      "wil": "W04"
+    }
+  ],
+  "092A": [
+    {
+      "year": 2019,
+      "bruto": 13.13,
+      "netto": 10.55,
+      "sts": "NSFC",
+      "rawSts": "NSFC2005",
+      "wil": "W04"
+    }
+  ],
+  "090G": [
+    {
+      "year": 2019,
+      "bruto": 8.1,
+      "netto": 6.46,
+      "sts": "NSFC",
+      "rawSts": "NSFC2006",
+      "wil": "W04"
+    }
+  ],
+  "031E": [
+    {
+      "year": 2020,
+      "bruto": 15.88,
+      "netto": 12.68,
+      "sts": "NSFC",
+      "rawSts": "NSFC2004",
+      "wil": "W02"
+    }
+  ],
+  "092B": [
+    {
+      "year": 2019,
+      "bruto": 9.1,
+      "netto": 7.32,
+      "sts": "NSFC",
+      "rawSts": "NSFC2005",
+      "wil": "W04"
+    }
+  ],
+  "092D": [
+    {
+      "year": 2019,
+      "bruto": 14.5,
+      "netto": 11.7,
+      "sts": "NSFC",
+      "rawSts": "NSFC2006",
+      "wil": "W04"
+    }
+  ],
+  "086B": [
+    {
+      "year": 2019,
+      "bruto": 11.4,
+      "netto": 9.05,
+      "sts": "NSFC",
+      "rawSts": "NSFC2005",
+      "wil": "W04"
+    }
+  ],
+  "086D": [
+    {
+      "year": 2019,
+      "bruto": 10.87,
+      "netto": 8.72,
+      "sts": "NSFC",
+      "rawSts": "NSFC2005",
+      "wil": "W04"
+    }
+  ],
+  "091E": [
+    {
+      "year": 2019,
+      "bruto": 12.03,
+      "netto": 9.63,
+      "sts": "NSFC",
+      "rawSts": "NSFC2007",
+      "wil": "W04"
+    }
+  ],
+  "100C": [
+    {
+      "year": 2019,
+      "bruto": 14.18,
+      "netto": 11.25,
+      "sts": "NSFC",
+      "rawSts": "NSFC2007",
+      "wil": "W04"
+    }
+  ],
+  "013G": [
+    {
+      "year": 2019,
+      "bruto": 12.53,
+      "netto": 9.83,
+      "sts": "NSFC",
+      "rawSts": "NSFC2005",
+      "wil": "W01"
+    }
+  ],
+  "046D": [
+    {
+      "year": 2020,
+      "bruto": 6.46,
+      "netto": 5.38,
+      "sts": "NSFC",
+      "rawSts": "NSFC2004",
+      "wil": "W02"
+    }
+  ],
+  "019B": [
+    {
+      "year": 2019,
+      "bruto": 16.9,
+      "netto": 13.33,
+      "sts": "NSFC",
+      "rawSts": "NSFC2005",
+      "wil": "W01"
+    }
+  ],
+  "026G": [
+    {
+      "year": 2020,
+      "bruto": 12.28,
+      "netto": 9.93,
+      "sts": "NSFC",
+      "rawSts": "NSFC2005",
+      "wil": "W03"
+    }
+  ],
+  "026F": [
+    {
+      "year": 2020,
+      "bruto": 7.38,
+      "netto": 5.96,
+      "sts": "NSFC",
+      "rawSts": "NSFC2006",
+      "wil": "W03"
+    }
+  ],
+  "019G": [
+    {
+      "year": 2019,
+      "bruto": 11.94,
+      "netto": 9.61,
+      "sts": "NSFC",
+      "rawSts": "NSFC2006",
+      "wil": "W01"
+    }
+  ],
+  "003B": [
+    {
+      "year": 2019,
+      "bruto": 7.8,
+      "netto": 6.3,
+      "sts": "NSFC",
+      "rawSts": "NSFC2006",
+      "wil": "W01"
+    }
+  ],
+  "012C": [
+    {
+      "year": 2019,
+      "bruto": 10.52,
+      "netto": 8.65,
+      "sts": "NSFC",
+      "rawSts": "NSFC2006",
+      "wil": "W01"
+    }
+  ],
+  "003C": [
+    {
+      "year": 2019,
+      "bruto": 9.85,
+      "netto": 7.8,
+      "sts": "NSFC",
+      "rawSts": "NSFC2006",
+      "wil": "W01"
+    }
+  ],
+  "065D": [
+    {
+      "year": 2020,
+      "bruto": 11.9,
+      "netto": 9.7,
+      "sts": "NSFC",
+      "rawSts": "NSFC2006",
+      "wil": "W02"
+    }
+  ],
+  "002B": [
+    {
+      "year": 2019,
+      "bruto": 11.56,
+      "netto": 9.57,
+      "sts": "NSFC",
+      "rawSts": "NSFC2006",
+      "wil": "W01"
+    }
+  ],
+  "002C": [
+    {
+      "year": 2019,
+      "bruto": 7.33,
+      "netto": 6.19,
+      "sts": "NSFC",
+      "rawSts": "NSFC2006",
+      "wil": "W01"
+    }
+  ],
+  "003G": [
+    {
+      "year": 2020,
+      "bruto": 6.5,
+      "netto": 5.13,
+      "sts": "NSFC",
+      "rawSts": "NSFC2006",
+      "wil": "W01"
+    }
+  ],
+  "007D": [
+    {
+      "year": 2020,
+      "bruto": 12.06,
+      "netto": 9.6,
+      "sts": "NSFC",
+      "rawSts": "NSFC2006",
+      "wil": "W01"
+    }
+  ],
+  "004G": [
+    {
+      "year": 2019,
+      "bruto": 15.83,
+      "netto": 12.35,
+      "sts": "NSFC",
+      "rawSts": "NSFC2006",
+      "wil": "W01"
+    }
+  ],
+  "070A": [
+    {
+      "year": 2020,
+      "bruto": 12.28,
+      "netto": 9.71,
+      "sts": "NSFC",
+      "rawSts": "NSFC2007",
+      "wil": "W03"
+    }
+  ],
+  "071C": [
+    {
+      "year": 2020,
+      "bruto": 8.9,
+      "netto": 7.11,
+      "sts": "NSFC",
+      "rawSts": "NSFC2007",
+      "wil": "W03"
+    }
+  ],
+  "070H": [
+    {
+      "year": 2020,
+      "bruto": 5.13,
+      "netto": 4.19,
+      "sts": "NSFC",
+      "rawSts": "NSFC2006",
+      "wil": "W03"
+    }
+  ],
+  "038B": [
+    {
+      "year": 2019,
+      "bruto": 12.93,
+      "netto": 10.41,
+      "sts": "NSFC",
+      "rawSts": "NSFC2007",
+      "wil": "W03"
+    }
+  ],
+  "009B": [
+    {
+      "year": 2019,
+      "bruto": 13.88,
+      "netto": 11,
+      "sts": "NSFC",
+      "rawSts": "NSFC2006",
+      "wil": "W01"
+    }
+  ],
+  "067B": [
+    {
+      "year": 2020,
+      "bruto": 10.72,
+      "netto": 8.39,
+      "sts": "NSFC",
+      "rawSts": "NSFC2007",
+      "wil": "W03"
+    }
+  ],
+  "003H": [
+    {
+      "year": 2020,
+      "bruto": 10.66,
+      "netto": 8.33,
+      "sts": "NSFC",
+      "rawSts": "NSFC2006",
+      "wil": "W01"
+    }
+  ],
+  "003I": [
+    {
+      "year": 2020,
+      "bruto": 9.18,
+      "netto": 7.13,
+      "sts": "NSFC",
+      "rawSts": "NSFC2006",
+      "wil": "W01"
+    }
+  ],
+  "009D": [
+    {
+      "year": 2019,
+      "bruto": 12.13,
+      "netto": 9.72,
+      "sts": "NSFC",
+      "rawSts": "NSFC2008",
+      "wil": "W01"
+    }
+  ],
+  "095C": [
+    {
+      "year": 2019,
+      "bruto": 8.66,
+      "netto": 6.82,
+      "sts": "NSFC",
+      "rawSts": "NSFC2007",
+      "wil": "W04"
+    }
+  ],
+  "007F": [
+    {
+      "year": 2020,
+      "bruto": 20.8,
+      "netto": 16.68,
+      "sts": "NSFC",
+      "rawSts": "NSFC2007",
+      "wil": "W01"
+    }
+  ],
+  "018G": [
+    {
+      "year": 2020,
+      "bruto": 14.27,
+      "netto": 11.21,
+      "sts": "NSFC",
+      "rawSts": "NSFC2007",
+      "wil": "W01"
+    }
+  ],
+  "037D": [
+    {
+      "year": 2020,
+      "bruto": 11.9,
+      "netto": 9.52,
+      "sts": "NSFC",
+      "rawSts": "NSFC2007",
+      "wil": "W03"
+    }
+  ],
+  "008F": [
+    {
+      "year": 2020,
+      "bruto": 12.15,
+      "netto": 9.84,
+      "sts": "NSFC",
+      "rawSts": "NSFC2007",
+      "wil": "W01"
+    }
+  ],
+  "046P": [
+    {
+      "year": 2020,
+      "bruto": 12.08,
+      "netto": 9.8,
+      "sts": "NSFC",
+      "rawSts": "NSFC2007",
+      "wil": "W02"
+    }
+  ],
+  "018C2": [
+    {
+      "year": 2020,
+      "bruto": 8.64,
+      "netto": 6.94,
+      "sts": "NSFC",
+      "rawSts": "NSFC2007",
+      "wil": "W01"
+    }
+  ],
+  "030E": [
+    {
+      "year": 2020,
+      "bruto": 4.96,
+      "netto": 4.08,
+      "sts": "NSFC",
+      "rawSts": "NSFC2007",
+      "wil": "W02"
+    }
+  ],
+  "027A1": [
+    {
+      "year": 2020,
+      "bruto": 9.92,
+      "netto": 7.8,
+      "sts": "NSFC",
+      "rawSts": "NSFC2007",
+      "wil": "W03"
+    }
+  ],
+  "005B": [
+    {
+      "year": 2020,
+      "bruto": 14.66,
+      "netto": 11.48,
+      "sts": "NSFC",
+      "rawSts": "NSFC2008",
+      "wil": "W01"
+    }
+  ],
+  "024F": [
+    {
+      "year": 2020,
+      "bruto": 13.46,
+      "netto": 10.86,
+      "sts": "NSFC",
+      "rawSts": "NSFC2008",
+      "wil": "W01"
+    }
+  ],
+  "025A": [
+    {
+      "year": 2020,
+      "bruto": 11.13,
+      "netto": 8.78,
+      "sts": "NSFC",
+      "rawSts": "NSFC2008",
+      "wil": "W01"
+    }
+  ],
+  "093H": [
+    {
+      "year": 2020,
+      "bruto": 4.16,
+      "netto": 3.31,
+      "sts": "NSFC",
+      "rawSts": "NSFC2007",
+      "wil": "W04"
+    }
+  ],
+  "091F": [
+    {
+      "year": 2019,
+      "bruto": 8.13,
+      "netto": 6.42,
+      "sts": "NSFC",
+      "rawSts": "NSFC2008",
+      "wil": "W04"
+    }
+  ],
+  "047F1": [
+    {
+      "year": 2020,
+      "bruto": 13.58,
+      "netto": 11.05,
+      "sts": "NSFC",
+      "rawSts": "NSFC2008",
+      "wil": "W02"
+    }
+  ],
+  "098C": [
+    {
+      "year": 2020,
+      "bruto": 8.67,
+      "netto": 6.97,
+      "sts": "NSFC",
+      "rawSts": "NSFC2008",
+      "wil": "W04"
+    }
+  ],
+  "042F": [
+    {
+      "year": 2020,
+      "bruto": 16.2,
+      "netto": 12.93,
+      "sts": "NSFC",
+      "rawSts": "NSFC2008",
+      "wil": "W03"
+    }
+  ],
+  "024K": [
+    {
+      "year": 2020,
+      "bruto": 5.52,
+      "netto": 4.44,
+      "sts": "NSFC",
+      "rawSts": "NSFC2008",
+      "wil": "W01"
+    }
+  ],
+  "083H": [
+    {
+      "year": 2020,
+      "bruto": 12.86,
+      "netto": 10.3,
+      "sts": "NSFC",
+      "rawSts": "NSFC2008",
+      "wil": "W04"
+    }
+  ],
+  "030H": [
+    {
+      "year": 2020,
+      "bruto": 5.86,
+      "netto": 4.74,
+      "sts": "NSFC",
+      "rawSts": "NSFC2008",
+      "wil": "W02"
+    }
+  ],
+  "030H1": [
+    {
+      "year": 2020,
+      "bruto": 21.15,
+      "netto": 17.08,
+      "sts": "NSFC",
+      "rawSts": "NSFC2008",
+      "wil": "W02"
+    }
+  ],
+  "042F1": [
+    {
+      "year": 2020,
+      "bruto": 11.07,
+      "netto": 8.88,
+      "sts": "NSFC",
+      "rawSts": "NSFC2008",
+      "wil": "W03"
+    }
+  ],
+  "048B": [
+    {
+      "year": 2020,
+      "bruto": 7.74,
+      "netto": 6.37,
+      "sts": "NSFC",
+      "rawSts": "NSFC2008",
+      "wil": "W02"
+    }
+  ],
+  "038A": [
+    {
+      "year": 2020,
+      "bruto": 15.84,
+      "netto": 12.7,
+      "sts": "NSFC",
+      "rawSts": "NSFC2008",
+      "wil": "W03"
+    }
+  ],
+  "038F": [
+    {
+      "year": 2020,
+      "bruto": 7.44,
+      "netto": 5.85,
+      "sts": "NSFC",
+      "rawSts": "NSFC2008",
+      "wil": "W03"
+    }
+  ],
+  "038F1": [
+    {
+      "year": 2020,
+      "bruto": 4.92,
+      "netto": 3.86,
+      "sts": "NSFC",
+      "rawSts": "NSFC2008",
+      "wil": "W03"
+    }
+  ],
+  "030A1": [
+    {
+      "year": 2020,
+      "bruto": 19.36,
+      "netto": 15.5,
+      "sts": "NSFC",
+      "rawSts": "NSFC2008",
+      "wil": "W02"
+    }
+  ],
+  "007E": [
+    {
+      "year": 2020,
+      "bruto": 19,
+      "netto": 15,
+      "sts": "NSFC",
+      "rawSts": "NSFC2009",
+      "wil": "W01"
+    }
+  ],
+  "017B": [
+    {
+      "year": 2020,
+      "bruto": 12.08,
+      "netto": 9.55,
+      "sts": "NSFC",
+      "rawSts": "NSFC2009",
+      "wil": "W01"
+    }
+  ],
+  "027A": [
+    {
+      "year": 2020,
+      "bruto": 12.64,
+      "netto": 10.08,
+      "sts": "NSFC",
+      "rawSts": "NSFC2009",
+      "wil": "W03"
+    }
+  ],
+  "048I": [
+    {
+      "year": 2020,
+      "bruto": 8.55,
+      "netto": 6.81,
+      "sts": "NSFC",
+      "rawSts": "NSFC2009",
+      "wil": "W02"
+    }
+  ],
+  "080C": [
+    {
+      "year": 2020,
+      "bruto": 11.78,
+      "netto": 9.31,
+      "sts": "NSFC",
+      "rawSts": "NSFC2009",
+      "wil": "W03"
+    }
+  ],
+  "080B1": [
+    {
+      "year": 2020,
+      "bruto": 10.98,
+      "netto": 8.57,
+      "sts": "NSFC",
+      "rawSts": "NSFC2009",
+      "wil": "W03"
+    }
+  ],
+  "019D": [
+    {
+      "year": 2020,
+      "bruto": 10.74,
+      "netto": 8.66,
+      "sts": "NSFC",
+      "rawSts": "NSFC2009",
+      "wil": "W01"
+    }
+  ],
+  "029A": [
+    {
+      "year": 2020,
+      "bruto": 17.92,
+      "netto": 14.2,
+      "sts": "NSFC",
+      "rawSts": "NSFC2009",
+      "wil": "W03"
+    }
+  ],
+  "072D": [
+    {
+      "year": 2020,
+      "bruto": 16.33,
+      "netto": 13.02,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W03"
+    }
+  ],
+  "079D": [
+    {
+      "year": 2019,
+      "bruto": 18.6,
+      "netto": 14.8,
+      "sts": "NSFC",
+      "rawSts": "NSFC2009",
+      "wil": "W03"
+    }
+  ],
+  "072C": [
+    {
+      "year": 2020,
+      "bruto": 11.58,
+      "netto": 9.28,
+      "sts": "NSFC",
+      "rawSts": "NSFC2009",
+      "wil": "W03"
+    }
+  ],
+  "072B": [
+    {
+      "year": 2020,
+      "bruto": 17.81,
+      "netto": 14.25,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W03"
+    }
+  ],
+  "025C": [
+    {
+      "year": 2019,
+      "bruto": 9.86,
+      "netto": 7.72,
+      "sts": "NSFC",
+      "rawSts": "NSFC2009",
+      "wil": "W01"
+    }
+  ],
+  "079F": [
+    {
+      "year": 2019,
+      "bruto": 12.52,
+      "netto": 10.07,
+      "sts": "NSFC",
+      "rawSts": "NSFC2009",
+      "wil": "W03"
+    }
+  ],
+  "026H": [
+    {
+      "year": 2019,
+      "bruto": 4.56,
+      "netto": 3.63,
+      "sts": "NSFC",
+      "rawSts": "NSFC2009",
+      "wil": "W03"
+    }
+  ],
+  "017J1": [
+    {
+      "year": 2019,
+      "bruto": 11.7,
+      "netto": 9.13,
+      "sts": "NSFC",
+      "rawSts": "NSFC2009",
+      "wil": "W01"
+    }
+  ],
+  "062F": [
+    {
+      "year": 2020,
+      "bruto": 5.78,
+      "netto": 4.67,
+      "sts": "NSFC",
+      "rawSts": "NSFC2009",
+      "wil": "W02"
+    }
+  ],
+  "062F1": [
+    {
+      "year": 2020,
+      "bruto": 8.66,
+      "netto": 6.92,
+      "sts": "NSFC",
+      "rawSts": "NSFC2009",
+      "wil": "W02"
+    }
+  ],
+  "049A": [
+    {
+      "year": 2020,
+      "bruto": 17.1,
+      "netto": 13.58,
+      "sts": "NSFC",
+      "rawSts": "NSFC2009",
+      "wil": "W02"
+    }
+  ],
+  "024G": [
+    {
+      "year": 2020,
+      "bruto": 12.96,
+      "netto": 10.32,
+      "sts": "NSFC",
+      "rawSts": "NSFC2009",
+      "wil": "W01"
+    }
+  ],
+  "084C1": [
+    {
+      "year": 2020,
+      "bruto": 10.74,
+      "netto": 8.44,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W04"
+    }
+  ],
+  "097H": [
+    {
+      "year": 2020,
+      "bruto": 9.7,
+      "netto": 7.7,
+      "sts": "NSFC",
+      "rawSts": "NSFC2009",
+      "wil": "W04"
+    }
+  ],
+  "082J": [
+    {
+      "year": 2020,
+      "bruto": 16.1,
+      "netto": 12.78,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W03"
+    }
+  ],
+  "076B": [
+    {
+      "year": 2020,
+      "bruto": 20.84,
+      "netto": 17.03,
+      "sts": "NSFC",
+      "rawSts": "NSFC2009",
+      "wil": "W04"
+    }
+  ],
+  "023D": [
+    {
+      "year": 2020,
+      "bruto": 5.24,
+      "netto": 4.31,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W01"
+    }
+  ],
+  "025B": [
+    {
+      "year": 2020,
+      "bruto": 7.78,
+      "netto": 6.13,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W01"
+    }
+  ],
+  "012F": [
+    {
+      "year": 2020,
+      "bruto": 3.73,
+      "netto": 2.94,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W01"
+    }
+  ],
+  "023B": [
+    {
+      "year": 2020,
+      "bruto": 7.5,
+      "netto": 6.05,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W01"
+    }
+  ],
+  "003F": [
+    {
+      "year": 2020,
+      "bruto": 8.93,
+      "netto": 7.15,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W01"
+    }
+  ],
+  "064A": [
+    {
+      "year": 2020,
+      "bruto": 9.9,
+      "netto": 7.86,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W02"
+    }
+  ],
+  "077A": [
+    {
+      "year": 2020,
+      "bruto": 10.95,
+      "netto": 8.78,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W04"
+    }
+  ],
+  "078A": [
+    {
+      "year": 2020,
+      "bruto": 6.2,
+      "netto": 4.9,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W04"
+    }
+  ],
+  "078B": [
+    {
+      "year": 2020,
+      "bruto": 10.52,
+      "netto": 8.3,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W04"
+    }
+  ],
+  "023C": [
+    {
+      "year": 2020,
+      "bruto": 9.9,
+      "netto": 8.1,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W01"
+    }
+  ],
+  "018A": [
+    {
+      "year": 2020,
+      "bruto": 2.6,
+      "netto": 2.05,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W01"
+    }
+  ],
+  "066Q": [
+    {
+      "year": 2020,
+      "bruto": 13.8,
+      "netto": 10.9,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W03"
+    }
+  ],
+  "078J": [
+    {
+      "year": 2020,
+      "bruto": 8.58,
+      "netto": 6.78,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W04"
+    }
+  ],
+  "078I": [
+    {
+      "year": 2020,
+      "bruto": 6.03,
+      "netto": 4.77,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W04"
+    }
+  ],
+  "078E": [
+    {
+      "year": 2020,
+      "bruto": 16.48,
+      "netto": 12.98,
+      "sts": "NSFC",
+      "rawSts": "NSFC2011",
+      "wil": "W04"
+    }
+  ],
+  "069C": [
+    {
+      "year": 2020,
+      "bruto": 14.1,
+      "netto": 11.25,
+      "sts": "NSFC",
+      "rawSts": "NSFC2011",
+      "wil": "W03"
+    }
+  ],
+  "069C3": [
+    {
+      "year": 2020,
+      "bruto": 12.71,
+      "netto": 10.18,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W03"
+    }
+  ],
+  "085D": [
+    {
+      "year": 2020,
+      "bruto": 8.02,
+      "netto": 6.45,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W04"
+    }
+  ],
+  "093C": [
+    {
+      "year": 2020,
+      "bruto": 11.55,
+      "netto": 9.13,
+      "sts": "NSFC",
+      "rawSts": "NSFC2011",
+      "wil": "W04"
+    }
+  ],
+  "002A": [
+    {
+      "year": 2020,
+      "bruto": 12.34,
+      "netto": 9.98,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W01"
+    }
+  ],
+  "007A": [
+    {
+      "year": 2020,
+      "bruto": 22.46,
+      "netto": 17.91,
+      "sts": "NSFC",
+      "rawSts": "NSFC2010",
+      "wil": "W01"
+    }
+  ],
+  "009A": [
+    {
+      "year": 2020,
+      "bruto": 15.66,
+      "netto": 12.5,
+      "sts": "NSFC",
+      "rawSts": "NSFC2011",
+      "wil": "W01"
+    }
+  ],
+  "048F": [
+    {
+      "year": 2020,
+      "bruto": 11.88,
+      "netto": 9.6,
+      "sts": "NSFC",
+      "rawSts": "NSFC2011",
+      "wil": "W02"
+    }
+  ],
+  "056D": [
+    {
+      "year": 2020,
+      "bruto": 19.8,
+      "netto": 15.96,
+      "sts": "NSFC",
+      "rawSts": "NSFC2011",
+      "wil": "W02"
+    }
+  ],
+  "085C": [
+    {
+      "year": 2020,
+      "bruto": 15.1,
+      "netto": 11.96,
+      "sts": "NSFC",
+      "rawSts": "NSFC2011",
+      "wil": "W04"
+    }
+  ],
+  "085E": [
+    {
+      "year": 2020,
+      "bruto": 10.54,
+      "netto": 8.33,
+      "sts": "NSFC",
+      "rawSts": "NSFC2011",
+      "wil": "W04"
+    }
+  ],
+  "070E3": [
+    {
+      "year": 2020,
+      "bruto": 15.14,
+      "netto": 12.06,
+      "sts": "NSFC",
+      "rawSts": "NSFC2011",
+      "wil": "W03"
+    }
+  ],
+  "077B1": [
+    {
+      "year": 2020,
+      "bruto": 6.08,
+      "netto": 4.91,
+      "sts": "NSFC",
+      "rawSts": "NSFC2012",
+      "wil": "W04"
+    }
+  ],
+  "065A": [
+    {
+      "year": 2020,
+      "bruto": 16.63,
+      "netto": 13.27,
+      "sts": "NSFC",
+      "rawSts": "NSFC2011",
+      "wil": "W02"
+    }
+  ],
+  "020C": [
+    {
+      "year": 2020,
+      "bruto": 3.64,
+      "netto": 2.87,
+      "sts": "NSFC",
+      "rawSts": "NSFC2011",
+      "wil": "W01"
+    }
+  ],
+  "024D": [
+    {
+      "year": 2020,
+      "bruto": 8.92,
+      "netto": 7.12,
+      "sts": "NSFC",
+      "rawSts": "NSFC2011",
+      "wil": "W01"
+    }
+  ],
+  "020D": [
+    {
+      "year": 2020,
+      "bruto": 7.72,
+      "netto": 6.17,
+      "sts": "NSFC",
+      "rawSts": "NSFC2012",
+      "wil": "W01"
+    }
+  ],
+  "017F": [
+    {
+      "year": 2020,
+      "bruto": 13.36,
+      "netto": 10.43,
+      "sts": "NSFC",
+      "rawSts": "NSFC2011",
+      "wil": "W01"
+    }
+  ],
+  "082L": [
+    {
+      "year": 2020,
+      "bruto": 7.88,
+      "netto": 6.27,
+      "sts": "NSFC",
+      "rawSts": "NSFC2012",
+      "wil": "W03"
+    }
+  ],
+  "014B": [
+    {
+      "year": 2020,
+      "bruto": 6.35,
+      "netto": 5.05,
+      "sts": "NSFC",
+      "rawSts": "NSFC2012",
+      "wil": "W01"
+    }
+  ],
+  "077B": [
+    {
+      "year": 2020,
+      "bruto": 8.13,
+      "netto": 6.53,
+      "sts": "NSFC",
+      "rawSts": "NSFC2012",
+      "wil": "W04"
+    }
+  ],
+  "077B2": [
+    {
+      "year": 2020,
+      "bruto": 12.32,
+      "netto": 9.95,
+      "sts": "NSFC",
+      "rawSts": "NSFC2012",
+      "wil": "W04"
+    }
+  ],
+  "038D": [
+    {
+      "year": 2020,
+      "bruto": 17,
+      "netto": 13.58,
+      "sts": "NSFC",
+      "rawSts": "NSFC2011",
+      "wil": "W03"
+    }
+  ],
+  "038D1": [
+    {
+      "year": 2020,
+      "bruto": 11.8,
+      "netto": 9.34,
+      "sts": "NSFC",
+      "rawSts": "NSFC2012",
+      "wil": "W03"
+    }
+  ],
+  "056B": [
+    {
+      "year": 2020,
+      "bruto": 8.52,
+      "netto": 6.93,
+      "sts": "NSFC",
+      "rawSts": "NSFC2011",
+      "wil": "W02"
+    }
+  ],
+  "056C": [
+    {
+      "year": 2020,
+      "bruto": 10.94,
+      "netto": 8.87,
+      "sts": "NSFC",
+      "rawSts": "NSFC2011",
+      "wil": "W02"
+    }
+  ],
+  "056A": [
+    {
+      "year": 2020,
+      "bruto": 4.48,
+      "netto": 3.62,
+      "sts": "NSFC",
+      "rawSts": "NSFC2011",
+      "wil": "W02"
+    }
+  ],
+  "078C": [
+    {
+      "year": 2020,
+      "bruto": 4.95,
+      "netto": 3.93,
+      "sts": "NSFC",
+      "rawSts": "NSFC2011",
+      "wil": "W04"
+    }
+  ],
+  "014I1": [
+    {
+      "year": 2020,
+      "bruto": 9.91,
+      "netto": 7.87,
+      "sts": "NSFC",
+      "rawSts": "NSFC2012",
+      "wil": "W01"
+    }
+  ],
+  "078D2": [
+    {
+      "year": 2020,
+      "bruto": 7.86,
+      "netto": 6.35,
+      "sts": "NSFC",
+      "rawSts": "NSFC2012",
+      "wil": "W04"
+    }
+  ],
+  "034A": [
+    {
+      "year": 2020,
+      "bruto": 11.6,
+      "netto": 9.62,
+      "sts": "NSFC",
+      "rawSts": "NSFC2012",
+      "wil": "W02"
+    }
+  ],
+  "069B2": [
+    {
+      "year": 2020,
+      "bruto": 12.6,
+      "netto": 9.9,
+      "sts": "NSFC",
+      "rawSts": "NSFC2101",
+      "wil": "W03"
+    }
+  ],
+  "029F": [
+    {
+      "year": 2020,
+      "bruto": 15.98,
+      "netto": 12.86,
+      "sts": "NSFC",
+      "rawSts": "NSFC2101",
+      "wil": "W03"
+    }
+  ],
+  "077D": [
+    {
+      "year": 2020,
+      "bruto": 4.3,
+      "netto": 3.42,
+      "sts": "NSFC",
+      "rawSts": "NSFC2101",
+      "wil": "W04"
+    }
+  ],
+  "089D1": [
+    {
+      "year": 2020,
+      "bruto": 6.48,
+      "netto": 5.15,
+      "sts": "NSFC",
+      "rawSts": "NSFC2101",
+      "wil": "W04"
+    }
+  ],
+  "029C": [
+    {
+      "year": 2020,
+      "bruto": 14.22,
+      "netto": 11.56,
+      "sts": "NSFC",
+      "rawSts": "NSFC2101",
+      "wil": "W03"
+    }
+  ],
+  "100A": [
+    {
+      "year": 2020,
+      "bruto": 11.4,
+      "netto": 8.92,
+      "sts": "NSST",
+      "rawSts": "NSST2011",
+      "wil": "W04"
+    }
+  ],
+  "063E": [
+    {
+      "year": 2020,
+      "bruto": 7.68,
+      "netto": 6.03,
+      "sts": "NSST",
+      "rawSts": "NSST2012",
+      "wil": "W02"
+    }
+  ],
+  "063G": [
+    {
+      "year": 2020,
+      "bruto": 20.53,
+      "netto": 17,
+      "sts": "NSST",
+      "rawSts": "NSST2012",
+      "wil": "W02"
+    }
+  ],
+  "013D": [
+    {
+      "year": 2020,
+      "bruto": 11.4,
+      "netto": 9.04,
+      "sts": "NSST",
+      "rawSts": "NSST2012",
+      "wil": "W01"
+    }
+  ],
+  "020B": [
+    {
+      "year": 2020,
+      "bruto": 12.93,
+      "netto": 10.45,
+      "sts": "NSST",
+      "rawSts": "NSST2012",
+      "wil": "W01"
+    }
+  ],
+  "048D": [
+    {
+      "year": 2020,
+      "bruto": 10.96,
+      "netto": 9,
+      "sts": "NSST",
+      "rawSts": "NSST2012",
+      "wil": "W02"
+    }
+  ],
+  "089E": [
+    {
+      "year": 2020,
+      "bruto": 18.72,
+      "netto": 14.84,
+      "sts": "NSST",
+      "rawSts": "NSST2012",
+      "wil": "W04"
+    }
+  ],
+  "093G": [
+    {
+      "year": 2020,
+      "bruto": 14.48,
+      "netto": 11.34,
+      "sts": "NSBK",
+      "rawSts": "NSBK2009",
+      "wil": "W04"
+    }
+  ],
+  "093D": [
+    {
+      "year": 2020,
+      "bruto": 13.66,
+      "netto": 10.92,
+      "sts": "NSST",
+      "rawSts": "NSST2101",
+      "wil": "W04"
+    }
+  ],
+  "054D": [
+    {
+      "year": 2020,
+      "bruto": 7.14,
+      "netto": 5.84,
+      "sts": "NSST",
+      "rawSts": "NSST2101",
+      "wil": "W02"
+    }
+  ],
+  "003D": [
+    {
+      "year": 2020,
+      "bruto": 4.2,
+      "netto": 3.3,
+      "sts": "NSBK",
+      "rawSts": "NSBK2009",
+      "wil": "W01"
+    }
+  ],
+  "078G": [
+    {
+      "year": 2020,
+      "bruto": 13.02,
+      "netto": 10.52,
+      "sts": "NSST",
+      "rawSts": "NSST2012",
+      "wil": "W04"
+    }
+  ],
+  "064B": [
+    {
+      "year": 2020,
+      "bruto": 5.15,
+      "netto": 4.09,
+      "sts": "NSST",
+      "rawSts": "NSST2012",
+      "wil": "W02"
+    }
+  ],
+  "017D9": [
+    {
+      "year": 2020,
+      "bruto": 17.35,
+      "netto": 13.58,
+      "sts": "NSBK",
+      "rawSts": "NSBK2008",
+      "wil": "W01"
+    }
+  ],
+  "010C": [
+    {
+      "year": 2020,
+      "bruto": 15.2,
+      "netto": 12.53,
+      "sts": "NSST",
+      "rawSts": "NSST2012",
+      "wil": "W01"
+    }
+  ],
+  "054C": [
+    {
+      "year": 2020,
+      "bruto": 7.06,
+      "netto": 5.58,
+      "sts": "NSST",
+      "rawSts": "NSST2101",
+      "wil": "W02"
+    }
+  ],
+  "054E": [
+    {
+      "year": 2020,
+      "bruto": 11.56,
+      "netto": 9.03,
+      "sts": "NSST",
+      "rawSts": "NSST2101",
+      "wil": "W02"
+    }
+  ],
+  "003E": [
+    {
+      "year": 2020,
+      "bruto": 12.54,
+      "netto": 9.96,
+      "sts": "NSBK",
+      "rawSts": "NSBK2009",
+      "wil": "W01"
+    }
+  ],
+  "005A": [
+    {
+      "year": 2020,
+      "bruto": 8.23,
+      "netto": 6.66,
+      "sts": "NSBK",
+      "rawSts": "NSBK2008",
+      "wil": "W01"
+    }
+  ],
+  "003A": [
+    {
+      "year": 2020,
+      "bruto": 6.74,
+      "netto": 5.46,
+      "sts": "NSBK",
+      "rawSts": "NSBK2008",
+      "wil": "W01"
+    }
+  ],
+  "018C": [
+    {
+      "year": 2020,
+      "bruto": 8.16,
+      "netto": 6.68,
+      "sts": "PSBK",
+      "rawSts": "PSBK2009",
+      "wil": "W01"
+    }
+  ],
+  "009C": [
+    {
+      "year": 2020,
+      "bruto": 7.76,
+      "netto": 6.15,
+      "sts": "NSBK",
+      "rawSts": "NSBK2008",
+      "wil": "W01"
+    }
+  ],
+  "009E": [
+    {
+      "year": 2020,
+      "bruto": 8,
+      "netto": 6.33,
+      "sts": "NSBK",
+      "rawSts": "NSBK2008",
+      "wil": "W01"
+    }
+  ],
+  "027I": [
+    {
+      "year": 2020,
+      "bruto": 5.6,
+      "netto": 4.53,
+      "sts": "NSBK",
+      "rawSts": "NSBK2009",
+      "wil": "W03"
+    }
+  ],
+  "098F": [
+    {
+      "year": 2020,
+      "bruto": 7.7,
+      "netto": 6.14,
+      "sts": "NSFC",
+      "rawSts": "NSFC2102",
+      "wil": "W07"
+    }
+  ],
+  "099G": [
+    {
+      "year": 2020,
+      "bruto": 12.87,
+      "netto": 10.16,
+      "sts": "NSFC",
+      "rawSts": "NSFC2102",
+      "wil": "W07"
+    }
+  ],
+  "014C": [
+    {
+      "year": 2020,
+      "bruto": 10.9,
+      "netto": 8.79,
+      "sts": "NSFC",
+      "rawSts": "NSFC2102",
+      "wil": "W02"
+    }
+  ],
+  "099F": [
+    {
+      "year": 2020,
+      "bruto": 17.3,
+      "netto": 13.66,
+      "sts": "NSFC",
+      "rawSts": "NSFC2102",
+      "wil": "W07"
+    }
+  ],
+  "061C2": [
+    {
+      "year": 2020,
+      "bruto": 6.66,
+      "netto": 5.48,
+      "sts": "NSFC",
+      "rawSts": "NSFC2103",
+      "wil": "W03"
+    }
+  ],
+  "049E": [
+    {
+      "year": 2020,
+      "bruto": 10.47,
+      "netto": 8.28,
+      "sts": "NSFC",
+      "rawSts": "NSFC2103",
+      "wil": "W03"
+    }
+  ],
+  "084A": [
+    {
+      "year": 2020,
+      "bruto": 4.72,
+      "netto": 3.64,
+      "sts": "NSFC",
+      "rawSts": "NSFC2103",
+      "wil": "W07"
+    }
+  ],
+  "075H": [
+    {
+      "year": 2020,
+      "bruto": 9.68,
+      "netto": 7.68,
+      "sts": "NSFC",
+      "rawSts": "NSFC2103",
+      "wil": "W05"
+    }
+  ],
+  "049B": [
+    {
+      "year": 2020,
+      "bruto": 6.6,
+      "netto": 5.22,
+      "sts": "NSFC",
+      "rawSts": "NSFC2103",
+      "wil": "W04"
+    }
+  ],
+  "049H": [
+    {
+      "year": 2020,
+      "bruto": 9.17,
+      "netto": 7.22,
+      "sts": "NSFC",
+      "rawSts": "NSFC2103",
+      "wil": "W04"
+    }
+  ],
+  "075E": [
+    {
+      "year": 2020,
+      "bruto": 9.9,
+      "netto": 7.75,
+      "sts": "NSFC",
+      "rawSts": "NSFC2103",
+      "wil": "W06"
+    }
+  ],
+  "099E": [
+    {
+      "year": 2020,
+      "bruto": 7.16,
+      "netto": 5.62,
+      "sts": "NSFC",
+      "rawSts": "NSFC2104",
+      "wil": "W07"
+    }
+  ],
+  "037B": [
+    {
+      "year": 2020,
+      "bruto": 8.3,
+      "netto": 6.48,
+      "sts": "NSFC",
+      "rawSts": "NSFC2103",
+      "wil": "W04"
+    }
+  ],
+  "047E": [
+    {
+      "year": 2020,
+      "bruto": 6.6,
+      "netto": 5.38,
+      "sts": "NSFC",
+      "rawSts": "NSFC2104",
+      "wil": "W03"
+    }
+  ],
+  "072L": [
+    {
+      "year": 2020,
+      "bruto": 12.64,
+      "netto": 10,
+      "sts": "NSFC",
+      "rawSts": "NSFC2104",
+      "wil": "W05"
+    }
+  ],
+  "055F1": [
+    {
+      "year": 2020,
+      "bruto": 13.42,
+      "netto": 10.66,
+      "sts": "NSFC",
+      "rawSts": "NSFC2105",
+      "wil": "W03"
+    }
+  ],
+  "033D": [
+    {
+      "year": 2020,
+      "bruto": 12.07,
+      "netto": 9.55,
+      "sts": "NSFC",
+      "rawSts": "NSFC2105",
+      "wil": "W02"
+    }
+  ],
+  "033C": [
+    {
+      "year": 2020,
+      "bruto": 8.6,
+      "netto": 6.78,
+      "sts": "NSFC",
+      "rawSts": "NSFC2106",
+      "wil": "W02"
+    }
+  ],
+  "005C": [
+    {
+      "year": 2020,
+      "bruto": 8.6,
+      "netto": 6.94,
+      "sts": "NSFC",
+      "rawSts": "NSFC2106",
+      "wil": "W01"
+    }
+  ],
+  "050D": [
+    {
+      "year": 2020,
+      "bruto": 8.22,
+      "netto": 6.5,
+      "sts": "NSFC",
+      "rawSts": "NSFC2107",
+      "wil": "W04"
+    }
+  ],
+  "078F": [
+    {
+      "year": 2020,
+      "bruto": 12,
+      "netto": 9.51,
+      "sts": "NSFC",
+      "rawSts": "NSFC2108",
+      "wil": "W06"
+    }
+  ],
+  "074D": [
+    {
+      "year": 2020,
+      "bruto": 8.18,
+      "netto": 6.15,
+      "sts": "NSFC",
+      "rawSts": "NSFC2108",
+      "wil": "W05"
+    }
+  ],
+  "074C": [
+    {
+      "year": 2020,
+      "bruto": 10.88,
+      "netto": 8.7,
+      "sts": "NSFC",
+      "rawSts": "NSFC2108",
+      "wil": "W05"
+    }
+  ],
+  "074A": [
+    {
+      "year": 2020,
+      "bruto": 9.3,
+      "netto": 7.48,
+      "sts": "NSFC",
+      "rawSts": "NSFC2109",
+      "wil": "W05"
+    }
+  ],
+  "074G": [
+    {
+      "year": 2020,
+      "bruto": 8.26,
+      "netto": 6.5,
+      "sts": "NSFC",
+      "rawSts": "NSFC2110",
+      "wil": "W05"
+    }
+  ],
+  "074F": [
+    {
+      "year": 2020,
+      "bruto": 8.93,
+      "netto": 7.05,
+      "sts": "NSFC",
+      "rawSts": "NSFC2110",
+      "wil": "W05"
+    }
+  ],
+  "074H1": [
+    {
+      "year": 2020,
+      "bruto": 8.46,
+      "netto": 6.63,
+      "sts": "NSFC",
+      "rawSts": "NSFC2110",
+      "wil": "W05"
+    }
+  ]
+}

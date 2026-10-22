@@ -52,6 +52,7 @@ interface PlantingSummary {
   avgProgress: number;
   avgLeadtime: number;
   selesaiCount: number;
+  cekSelesaiCount?: number;
   prosesCount: number;
   belumCount: number;
 }
@@ -179,7 +180,9 @@ export default function PlantingView({
 
   // Filter Dropdown Open State
   const [openDropdown, setOpenDropdown] = useState<'jenis' | 'kelas' | 'status' | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const jenisRef = useRef<HTMLDivElement>(null);
+  const kelasRef = useRef<HTMLDivElement>(null);
+  const statusRef = useRef<HTMLDivElement>(null);
 
   // Inline Editing States (Number/Select)
   const [editingCell, setEditingCell] = useState<{ id: number; field: string } | null>(null);
@@ -241,16 +244,22 @@ export default function PlantingView({
     }
   }, [editingCell]);
 
-  // Close dropdown on click outside
+  // Close dropdown on click outside anywhere
   useEffect(() => {
+    if (!openDropdown) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        (openDropdown === 'jenis' && jenisRef.current && !jenisRef.current.contains(target)) ||
+        (openDropdown === 'kelas' && kelasRef.current && !kelasRef.current.contains(target)) ||
+        (openDropdown === 'status' && statusRef.current && !statusRef.current.contains(target))
+      ) {
         setOpenDropdown(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [openDropdown]);
 
   // Fetch API Function
   const fetchPlantingData = async () => {
@@ -702,7 +711,7 @@ export default function PlantingView({
             <button
               onClick={handleExportExcel}
               disabled={isExporting}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-900 font-bold text-sm transition-all shadow-md disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-900 font-bold text-sm transition-all shadow-md disabled:opacity-50 cursor-pointer"
               title="Download Seluruh Data Tabel dalam Format Excel"
             >
               <FileSpreadsheet className={`w-4 h-4 ${isExporting ? 'animate-bounce' : ''}`} />
@@ -715,69 +724,98 @@ export default function PlantingView({
       {/* 2. Executive KPI Highlights Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {/* Total Lokasi */}
-        <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
-            <span>Total Lokasi</span>
-            <MapPin className="w-4 h-4 text-emerald-500" />
+        <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
+              <span>Total Lokasi</span>
+              <MapPin className="w-4 h-4 text-emerald-500" />
+            </div>
+            <div className="mt-2 text-2xl font-black text-slate-800 dark:text-slate-100">
+              {summary.totalLokasi.toLocaleString('id-ID')}
+            </div>
           </div>
-          <div className="mt-2 text-2xl font-black text-slate-800 dark:text-slate-100">
-            {summary.totalLokasi.toLocaleString('id-ID')}
-          </div>
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{summary.selesaiCount}</span> Selesai &bull;{' '}
-            <span className="text-amber-600 dark:text-amber-400 font-semibold">{summary.prosesCount}</span> Proses
+          <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-800 text-center">
+            <div className="flex flex-col items-center justify-center px-0.5">
+              <div className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{summary.selesaiCount}</span>
+              </div>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5 leading-tight">Selesai</span>
+            </div>
+            <div className="flex flex-col items-center justify-center px-0.5">
+              <div className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
+                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">{summary.cekSelesaiCount || 0}</span>
+              </div>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5 leading-tight">Cek Selesai</span>
+            </div>
+            <div className="flex flex-col items-center justify-center px-0.5">
+              <div className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{summary.prosesCount}</span>
+              </div>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5 leading-tight">Proses</span>
+            </div>
           </div>
         </div>
 
         {/* Total Luas Lahan */}
-        <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
-            <span>Total Luas</span>
-            <Layers className="w-4 h-4 text-blue-500" />
-          </div>
-          <div className="mt-2 text-2xl font-black text-slate-800 dark:text-slate-100">
-            {summary.totalLuas.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
-            <span className="text-xs font-medium text-slate-400 ml-1">Ha</span>
+        <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
+              <span>Total Luas</span>
+              <Layers className="w-4 h-4 text-blue-500" />
+            </div>
+            <div className="mt-2 text-2xl font-black text-slate-800 dark:text-slate-100">
+              {summary.totalLuas.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 3 })}
+              <span className="text-xs font-medium text-slate-400 ml-1">Ha</span>
+            </div>
           </div>
           <div className="mt-1 text-xs text-slate-400">Akumulasi luas target</div>
         </div>
 
         {/* Realisasi Tanam */}
-        <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
-            <span>Real Tanam</span>
-            <Sprout className="w-4 h-4 text-emerald-500" />
-          </div>
-          <div className="mt-2 text-2xl font-black text-emerald-600 dark:text-emerald-400">
-            {summary.totalRealTanam.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
-            <span className="text-xs font-medium text-slate-400 ml-1">Ha</span>
+        <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
+              <span>Real Tanam</span>
+              <Sprout className="w-4 h-4 text-emerald-500" />
+            </div>
+            <div className="mt-2 text-2xl font-black text-emerald-600 dark:text-emerald-400">
+              {summary.totalRealTanam.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
+              <span className="text-xs font-medium text-slate-400 ml-1">Ha</span>
+            </div>
           </div>
           <div className="mt-1 text-xs text-slate-400">Realisasi tertanam</div>
         </div>
 
         {/* Sisa Luas */}
-        <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
-            <span>Sisa Tanam</span>
-            <AlertCircle className="w-4 h-4 text-amber-500" />
-          </div>
-          <div className="mt-2 text-2xl font-black text-slate-800 dark:text-slate-100">
-            {summary.totalSisa.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
-            <span className="text-xs font-medium text-slate-400 ml-1">Ha</span>
+        <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
+              <span>Sisa Tanam</span>
+              <AlertCircle className="w-4 h-4 text-amber-500" />
+            </div>
+            <div className="mt-2 text-2xl font-black text-slate-800 dark:text-slate-100">
+              {summary.totalSisa.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
+              <span className="text-xs font-medium text-slate-400 ml-1">Ha</span>
+            </div>
           </div>
           <div className="mt-1 text-xs text-slate-400">
-            {summary.totalSisa <= 0 ? 'Target terpenuhi' : 'Belum tertanam'}
+            {summary.totalSisa === 0 ? 'Target terpenuhi' : 'Defisit / Kurang tanam'}
           </div>
         </div>
 
         {/* Rata-rata Progress */}
-        <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
-            <span>Rerata Progress</span>
-            <Percent className="w-4 h-4 text-emerald-500" />
-          </div>
-          <div className="mt-2 text-2xl font-black text-slate-800 dark:text-slate-100">
-            {summary.avgProgress}%
+        <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
+              <span>Rerata Progress</span>
+              <Percent className="w-4 h-4 text-emerald-500" />
+            </div>
+            <div className="mt-2 text-2xl font-black text-slate-800 dark:text-slate-100">
+              {summary.avgProgress}%
+            </div>
           </div>
           <div className="mt-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
             <div
@@ -788,21 +826,23 @@ export default function PlantingView({
         </div>
 
         {/* Rata-rata Leadtime */}
-        <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
-            <span>Rerata Leadtime</span>
-            <Clock className="w-4 h-4 text-indigo-500" />
-          </div>
-          <div className="mt-2 text-2xl font-black text-slate-800 dark:text-slate-100">
-            {summary.avgLeadtime}
-            <span className="text-xs font-medium text-slate-400 ml-1">Hari</span>
+        <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
+              <span>Rerata Leadtime</span>
+              <Clock className="w-4 h-4 text-indigo-500" />
+            </div>
+            <div className="mt-2 text-2xl font-black text-slate-800 dark:text-slate-100">
+              {summary.avgLeadtime}
+              <span className="text-xs font-medium text-slate-400 ml-1">Hari</span>
+            </div>
           </div>
           <div className="mt-1 text-xs text-slate-400">Durasi pengerjaan</div>
         </div>
       </div>
 
       {/* 3. Search & Multi-Centang Filters Toolbar (Poin 2 & Poin 4) */}
-      <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3" ref={dropdownRef}>
+      <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
         <div className="flex flex-col md:flex-row md:items-center gap-3">
         {/* Search input (Cari lokasi saja + Tombol Silang Bulat) */}
         <div className="relative flex-1 flex items-center">
@@ -833,7 +873,7 @@ export default function PlantingView({
         {/* Multi-Select Filters Menyamping Rapi + Tombol Reset & Pilih Semua (Poin 2) */}
         <div className="flex flex-wrap items-center gap-2">
           {/* FILTER: Jenis Bibit */}
-          <div className="relative">
+          <div ref={jenisRef} className="relative">
             <button
               type="button"
               onClick={() => setOpenDropdown(openDropdown === 'jenis' ? null : 'jenis')}
@@ -844,7 +884,11 @@ export default function PlantingView({
               }`}
             >
               <span>{selectedJenis.length > 0 ? `Jenis Bibit (${selectedJenis.length})` : 'Jenis Bibit'}</span>
-              <ChevronDownIcon className="w-3.5 h-3.5 opacity-60" />
+              <ChevronDownIcon
+                className={`w-3.5 h-3.5 opacity-60 transition-transform duration-200 ${
+                  openDropdown === 'jenis' ? 'rotate-180' : ''
+                }`}
+              />
             </button>
 
             {openDropdown === 'jenis' && (
@@ -910,7 +954,7 @@ export default function PlantingView({
           </div>
 
           {/* FILTER: Kelas Bibit (Ukuran Pas & 4 Kotak Data Disejajarkan Rapi) */}
-          <div className="relative">
+          <div ref={kelasRef} className="relative">
             <button
               type="button"
               onClick={() => setOpenDropdown(openDropdown === 'kelas' ? null : 'kelas')}
@@ -921,7 +965,11 @@ export default function PlantingView({
               }`}
             >
               <span>{selectedKelas.length > 0 ? `Kelas Bibit (${selectedKelas.length})` : 'Kelas Bibit'}</span>
-              <ChevronDownIcon className="w-3.5 h-3.5 opacity-60" />
+              <ChevronDownIcon
+                className={`w-3.5 h-3.5 opacity-60 transition-transform duration-200 ${
+                  openDropdown === 'kelas' ? 'rotate-180' : ''
+                }`}
+              />
             </button>
 
             {openDropdown === 'kelas' && (
@@ -987,7 +1035,7 @@ export default function PlantingView({
           </div>
 
           {/* FILTER: Status (Ukuran Pas & 3 Kotak Data Disejajarkan Rapi) */}
-          <div className="relative">
+          <div ref={statusRef} className="relative">
             <button
               type="button"
               onClick={() => setOpenDropdown(openDropdown === 'status' ? null : 'status')}
@@ -998,7 +1046,11 @@ export default function PlantingView({
               }`}
             >
               <span>{selectedStatus.length > 0 ? `Status (${selectedStatus.length})` : 'Status'}</span>
-              <ChevronDownIcon className="w-3.5 h-3.5 opacity-60" />
+              <ChevronDownIcon
+                className={`w-3.5 h-3.5 opacity-60 transition-transform duration-200 ${
+                  openDropdown === 'status' ? 'rotate-180' : ''
+                }`}
+              />
             </button>
 
             {openDropdown === 'status' && (
@@ -1007,10 +1059,10 @@ export default function PlantingView({
                   <button
                     type="button"
                     onClick={() => {
-                      setSelectedStatus(['SELESAI', 'PROSES', 'BELUM TANAM']);
+                      setSelectedStatus(['SELESAI', 'CEK SELESAI', 'PROSES', 'BELUM TANAM']);
                       setPage(1);
                     }}
-                    className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+                    className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
                   >
                     Pilih Semua
                   </button>
@@ -1028,10 +1080,11 @@ export default function PlantingView({
                   )}
                 </div>
 
-                {/* 3 Kotak Data Disejajarkan Rapi & Ukuran Pas */}
-                <div className="grid grid-cols-3 gap-2 whitespace-nowrap">
+                {/* 4 Kotak Data Status Disejajarkan Rapi & Ukuran Pas */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 whitespace-nowrap">
                   {[
                     { val: 'SELESAI', label: 'Selesai' },
+                    { val: 'CEK SELESAI', label: 'Cek Selesai' },
                     { val: 'PROSES', label: 'Proses' },
                     { val: 'BELUM TANAM', label: 'Belum Tanam' },
                   ].map((st) => {
@@ -1369,6 +1422,7 @@ export default function PlantingView({
               ) : (
                 data.map((item, idx) => {
                   const isDone = item.status === 'SELESAI';
+                  const isCekSelesai = item.status === 'CEK SELESAI';
                   const isProses = item.status === 'PROSES';
                   const rowNumber =
                     sortBy === 'id' && sortOrder === 'desc' && pagination.total > 0
@@ -1483,6 +1537,11 @@ export default function PlantingView({
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                             Selesai
+                          </span>
+                        ) : isCekSelesai ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
+                            <CheckCircle2 className="w-3 h-3 text-blue-600" />
+                            Cek Selesai
                           </span>
                         ) : isProses ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
@@ -1633,7 +1692,7 @@ export default function PlantingView({
                         {item.sisa !== null ? (
                           <span
                             className={`font-bold font-mono ${
-                              item.sisa > 0
+                              item.sisa < 0
                                 ? 'text-amber-600 dark:text-amber-400'
                                 : 'text-slate-500 dark:text-slate-400'
                             }`}
@@ -1655,7 +1714,9 @@ export default function PlantingView({
                             <div
                               className={`h-2 rounded-full transition-all duration-300 ${
                                 isDone
-                                   ? 'bg-emerald-500'
+                                  ? 'bg-emerald-500'
+                                  : isCekSelesai
+                                  ? 'bg-blue-500'
                                   : isProses
                                   ? 'bg-amber-500'
                                   : 'bg-slate-300 dark:bg-slate-700'

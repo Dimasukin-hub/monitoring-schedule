@@ -59,7 +59,7 @@ export async function GET(request: Request) {
     let countPetik = 0;
     const bibitBreakdown: Record<
       string,
-      { total: number; standar: number; besar: number; sedang: number; kecil: number }
+      { total: number; standar: number; besar: number; sedang: number; kecil: number; extraKecil: number }
     > = {};
 
     for (const tx of allTxForLoc) {
@@ -75,13 +75,14 @@ export async function GET(request: Request) {
 
       const bibitKey = tx.jenisBibit || 'Lainnya';
       if (!bibitBreakdown[bibitKey]) {
-        bibitBreakdown[bibitKey] = { total: 0, standar: 0, besar: 0, sedang: 0, kecil: 0 };
+        bibitBreakdown[bibitKey] = { total: 0, standar: 0, besar: 0, sedang: 0, kecil: 0, extraKecil: 0 };
       }
       bibitBreakdown[bibitKey].total += vol;
       bibitBreakdown[bibitKey].standar += tx.standar || 0;
       bibitBreakdown[bibitKey].besar += tx.besar || 0;
       bibitBreakdown[bibitKey].sedang += tx.sedang || 0;
       bibitBreakdown[bibitKey].kecil += tx.kecil || 0;
+      bibitBreakdown[bibitKey].extraKecil += tx.extraKecil || 0;
     }
 
     const totalAll = totalTanam + totalPetik;
@@ -481,6 +482,7 @@ export async function PUT(request: Request) {
       besar,
       sedang,
       kecil,
+      extraKecil,
       tanggal,
       aktivitas,
       luasNetto,
@@ -521,6 +523,7 @@ export async function PUT(request: Request) {
     if (besar !== undefined) updateData.besar = Number(parseFloat(besar) || 0);
     if (sedang !== undefined) updateData.sedang = Number(parseFloat(sedang) || 0);
     if (kecil !== undefined) updateData.kecil = Number(parseFloat(kecil) || 0);
+    if (extraKecil !== undefined) updateData.extraKecil = Number(parseFloat(extraKecil) || 0);
     if (tanggal !== undefined) updateData.tanggal = tanggal && String(tanggal).trim() !== '' && String(tanggal).trim() !== 'null' ? String(tanggal).trim() : null;
     if (aktivitas !== undefined) updateData.aktivitas = aktivitas && String(aktivitas).trim() !== '' ? String(aktivitas).trim() : null;
     if (luasNetto !== undefined) updateData.luasNetto = Number(parseFloat(luasNetto) || 0);
@@ -581,7 +584,8 @@ export async function PUT(request: Request) {
       }
       if (!plantingMaster.kelasBibit) {
         let kelasFromTx: string | null = null;
-        if (tanamTxs.some((t) => (t.kecil || 0) > 0)) kelasFromTx = 'Kecil';
+        if (tanamTxs.some((t) => (t.extraKecil || 0) > 0)) kelasFromTx = 'Extra Kecil';
+        else if (tanamTxs.some((t) => (t.kecil || 0) > 0)) kelasFromTx = 'Kecil';
         else if (tanamTxs.some((t) => (t.sedang || 0) > 0)) kelasFromTx = 'Sedang';
         else if (tanamTxs.some((t) => (t.besar || 0) > 0)) kelasFromTx = 'Besar';
         else if (tanamTxs.some((t) => (t.standar || 0) > 0)) kelasFromTx = 'Standar';

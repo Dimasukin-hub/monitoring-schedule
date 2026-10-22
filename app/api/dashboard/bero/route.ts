@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { prisma } from '@/lib/prisma';
+import { computeRencanaBeroBongkar } from '@/lib/landActivityUtils';
 
 function parseDate(dStr: string | null | undefined): Date | null {
   if (!dStr) return null;
@@ -19,13 +24,10 @@ const MONTH_NAMES_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 
 
 function getRangeKey(diffDays: number): string {
   if (diffDays < 80) return '< 80';
-  if (diffDays <= 90) return '80 - 90';
-  if (diffDays <= 120) return '90 - 120';
+  if (diffDays <= 120) return '80 - 120';
   if (diffDays <= 150) return '120 - 150';
-  if (diffDays <= 180) return '150 - 180';
-  if (diffDays <= 210) return '180 - 210';
-  if (diffDays <= 240) return '210 - 240';
-  return '> 240';
+  if (diffDays <= 200) return '150 - 200';
+  return '> 200';
 }
 
 // 18 Periode Standar Monitoring Bero (Oct-25 s/d Mar-27)
@@ -53,35 +55,37 @@ const TARGET_18_PERIODS = [
   { periodKey: 'Mar-27', year: 2027, monthNum: 3, label: 'Mar-27' },
 ];
 
+// Baseline resmi Target RFC dan fallback acuan Excel
+const BERO_BASELINE_CONFIG: Record<
+  string,
+  { rfc: number; defaultRencana: number; defaultRealisasi: number | null }
+> = {
+  // 2025: Arsip resmi terkunci
+  'Oct-25': { rfc: 57, defaultRencana: 57, defaultRealisasi: 57 },
+  'Nov-25': { rfc: 56, defaultRencana: 57, defaultRealisasi: 56 },
+  'Dec-25': { rfc: 69, defaultRencana: 69, defaultRealisasi: 69 },
+  // 2026: Target RFC resmi perusahaan + fallback awal
+  'Jan-26': { rfc: 87, defaultRencana: 87, defaultRealisasi: 87 },
+  'Feb-26': { rfc: 101, defaultRencana: 112, defaultRealisasi: 101 },
+  'Mar-26': { rfc: 94, defaultRencana: 111, defaultRealisasi: 94 },
+  'Apr-26': { rfc: 107, defaultRencana: 114, defaultRealisasi: 107 },
+  'May-26': { rfc: 131, defaultRencana: 164, defaultRealisasi: 131 },
+  'Jun-26': { rfc: 146, defaultRencana: 155, defaultRealisasi: 146 },
+  'Jul-26': { rfc: 143, defaultRencana: 124, defaultRealisasi: 143 },
+  'Aug-26': { rfc: 121, defaultRencana: 126, defaultRealisasi: 121 },
+  'Sep-26': { rfc: 62, defaultRencana: 65, defaultRealisasi: 62 },
+  'Oct-26': { rfc: 61, defaultRencana: 61, defaultRealisasi: null },
+  'Nov-26': { rfc: 69, defaultRencana: 69, defaultRealisasi: null },
+  'Dec-26': { rfc: 78, defaultRencana: 78, defaultRealisasi: null },
+  // 2027
+  'Jan-27': { rfc: 75, defaultRencana: 75, defaultRealisasi: null },
+  'Feb-27': { rfc: 74, defaultRencana: 75, defaultRealisasi: null },
+  'Mar-27': { rfc: 76, defaultRencana: 73, defaultRealisasi: null },
+};
+
 export async function GET() {
   try {
-    // 1. DATA GRAFIK 1 (KANAN): RERATA BERO / BULAN (Oct-25 s/d Mar-27) - Satuan: Hari Bero
-    const beroChartData = [
-      // 2025 (3 bulan)
-      { periodKey: 'Oct-25', year: 2025, monthNum: 10, label: 'Oct-25', rfc: 57, rencana: 57, realisasi: 57, deviasi: 0 },
-      { periodKey: 'Nov-25', year: 2025, monthNum: 11, label: 'Nov-25', rfc: 56, rencana: 57, realisasi: 56, deviasi: -1 },
-      { periodKey: 'Dec-25', year: 2025, monthNum: 12, label: 'Dec-25', rfc: 69, rencana: 69, realisasi: 69, deviasi: 0 },
-      // 2026 (12 bulan)
-      { periodKey: 'Jan-26', year: 2026, monthNum: 1, label: 'Jan-26', rfc: 87, rencana: 87, realisasi: 87, deviasi: 0 },
-      { periodKey: 'Feb-26', year: 2026, monthNum: 2, label: 'Feb-26', rfc: 101, rencana: 112, realisasi: 101, deviasi: -11 },
-      { periodKey: 'Mar-26', year: 2026, monthNum: 3, label: 'Mar-26', rfc: 94, rencana: 111, realisasi: 94, deviasi: -18 },
-      { periodKey: 'Apr-26', year: 2026, monthNum: 4, label: 'Apr-26', rfc: 107, rencana: 114, realisasi: 107, deviasi: -6 },
-      { periodKey: 'May-26', year: 2026, monthNum: 5, label: 'May-26', rfc: 131, rencana: 164, realisasi: 131, deviasi: -32 },
-      { periodKey: 'Jun-26', year: 2026, monthNum: 6, label: 'Jun-26', rfc: 146, rencana: 155, realisasi: 146, deviasi: -9 },
-      { periodKey: 'Jul-26', year: 2026, monthNum: 7, label: 'Jul-26', rfc: 143, rencana: 124, realisasi: 143, deviasi: 19 },
-      { periodKey: 'Aug-26', year: 2026, monthNum: 8, label: 'Aug-26', rfc: 121, rencana: 126, realisasi: 121, deviasi: -5 },
-      { periodKey: 'Sep-26', year: 2026, monthNum: 9, label: 'Sep-26', rfc: 62, rencana: 65, realisasi: 62, deviasi: -3, isCurrentMonth: true },
-      { periodKey: 'Oct-26', year: 2026, monthNum: 10, label: 'Oct-26', rfc: 61, rencana: 61, realisasi: null, deviasi: null },
-      { periodKey: 'Nov-26', year: 2026, monthNum: 11, label: 'Nov-26', rfc: 69, rencana: 69, realisasi: null, deviasi: null },
-      { periodKey: 'Dec-26', year: 2026, monthNum: 12, label: 'Dec-26', rfc: 78, rencana: 78, realisasi: null, deviasi: null },
-      // 2027 (3 bulan)
-      { periodKey: 'Jan-27', year: 2027, monthNum: 1, label: 'Jan-27', rfc: 75, rencana: 75, realisasi: null, deviasi: null },
-      { periodKey: 'Feb-27', year: 2027, monthNum: 2, label: 'Feb-27', rfc: 74, rencana: 75, realisasi: null, deviasi: null },
-      { periodKey: 'Mar-27', year: 2027, monthNum: 3, label: 'Mar-27', rfc: 76, rencana: 73, realisasi: null, deviasi: null },
-    ];
-
-    // 2. DATA GRAFIK 2 (KIRI): GRAFIK RANGE BERO (Oct-25 s/d Mar-27)
-    // Sesuai permintaan pengguna: Mengikuti timeline grafik bero/bulan (18 bulan: Oct-25 s/d Mar-27)
+    // 1. Inisialisasi struktur Range Bero (Grafik Kiri) dengan 5 Kategori
     const rangeBeroChartData: Array<{
       periodKey: string;
       year: number;
@@ -90,77 +94,145 @@ export async function GET() {
       totalHa: number;
       countLands: number;
       '< 80': number;
-      '80 - 90': number;
-      '90 - 120': number;
+      '80 - 120': number;
       '120 - 150': number;
-      '150 - 180': number;
-      '180 - 210': number;
-      '210 - 240': number;
-      '> 240': number;
+      '150 - 200': number;
+      '> 200': number;
     }> = TARGET_18_PERIODS.map((p) => ({
       ...p,
       totalHa: 0,
       countLands: 0,
       '< 80': 0,
-      '80 - 90': 0,
-      '90 - 120': 0,
+      '80 - 120': 0,
       '120 - 150': 0,
-      '150 - 180': 0,
-      '180 - 210': 0,
-      '210 - 240': 0,
-      '> 240': 0,
+      '150 - 200': 0,
+      '> 200': 0,
     }));
 
-    const itemMap = new Map<string, (typeof rangeBeroChartData)[0]>();
+    const rangeItemMap = new Map<string, (typeof rangeBeroChartData)[0]>();
     for (const item of rangeBeroChartData) {
-      itemMap.set(item.periodKey, item);
+      rangeItemMap.set(item.periodKey, item);
     }
 
-    try {
-      const lands = await prisma.land.findMany({
-        where: {
-          year: { in: [2025, 2026, 2027] },
-        },
-        select: {
-          id: true,
-          lokasi: true,
-          year: true,
-          luasNetto: true,
-          bulanTanam: true,
-          rencMulaiTanam: true,
-          realMulaiTanam: true,
-          rencBkr: true,
-          realBkr: true,
-        },
-      });
+    // 2. Map akumulasi hari bero per bulan Siap Tanam untuk Grafik Bero / Bulan (Kanan)
+    const rencMonthlyMap: Record<string, { sumDays: number; count: number }> = {};
+    const realMonthlyMap: Record<string, { sumDays: number; count: number }> = {};
 
-      for (const l of lands) {
-        const bkr = parseDate(l.realBkr || l.rencBkr);
-        const tanam = parseDate(l.realMulaiTanam || l.rencMulaiTanam);
-        if (!bkr || !tanam) continue;
+    const lands = await prisma.land.findMany({
+      where: {
+        year: { in: [2025, 2026, 2027] },
+      },
+      select: {
+        id: true,
+        lokasi: true,
+        year: true,
+        luasNetto: true,
+        bulanTanam: true,
+        rencMulaiTanam: true,
+        realMulaiTanam: true,
+        rencBkr: true,
+        realBkr: true,
+        aplikasiDetails: true,
+        activities: {
+          select: { code: true, status: true, rencanaDate: true, realisasiDate: true },
+        },
+      },
+    });
 
+    for (const l of lands) {
+      // 1. Perhitungan untuk Grafik Kiri: Range Bero (Tanam vs Bongkar)
+      const bkr = parseDate(l.realBkr || l.rencBkr);
+      const tanam = parseDate(l.realMulaiTanam || l.rencMulaiTanam);
+      if (bkr && tanam) {
         const diffDays = Math.round((tanam.getTime() - bkr.getTime()) / (1000 * 60 * 60 * 24));
         const range = getRangeKey(diffDays) as keyof (typeof rangeBeroChartData)[0];
-
-        // Format periodKey: e.g. "Oct-25", "Jan-26", "Mar-27"
         const tanamMonth = tanam.getMonth();
         const tanamYear = tanam.getFullYear();
         const pKey = `${MONTH_NAMES_EN[tanamMonth]}-${String(tanamYear).slice(2)}`;
 
-        const targetItem = itemMap.get(pKey);
+        const targetItem = rangeItemMap.get(pKey);
         if (targetItem && range) {
-          (targetItem[range] as number) = Number(((targetItem[range] as number) + l.luasNetto).toFixed(2));
-          targetItem.totalHa = Number((targetItem.totalHa + l.luasNetto).toFixed(2));
+          (targetItem[range] as number) = Number(((targetItem[range] as number) + (l.luasNetto || 0)).toFixed(2));
+          targetItem.totalHa = Number((targetItem.totalHa + (l.luasNetto || 0)).toFixed(2));
           targetItem.countLands++;
         }
       }
-    } catch (dbErr) {
-      console.error('Error querying land for rangeBeroChartData:', dbErr);
+
+      // 2. Perhitungan untuk Grafik Kanan: Bero / Bulan (Bongkar s/d Siap Tanam via computeRencanaBeroBongkar)
+      // Hanya menghitung petak aktif tahun >= 2026 (tahun 2025 terkunci arsip baseline)
+      if (l.year && l.year >= 2026) {
+        const bero = computeRencanaBeroBongkar(l);
+        if (bero.hari !== null && bero.tglSiapTanam) {
+          const parts = String(bero.tglSiapTanam).trim().split('/');
+          if (parts.length === 3) {
+            const mIdx = parseInt(parts[1], 10) - 1;
+            let yr = parts[2].slice(-2);
+            if (mIdx >= 0 && mIdx < 12) {
+              const pKey = `${MONTH_NAMES_EN[mIdx]}-${yr}`;
+              if (!rencMonthlyMap[pKey]) rencMonthlyMap[pKey] = { sumDays: 0, count: 0 };
+              rencMonthlyMap[pKey].sumDays += bero.hari;
+              rencMonthlyMap[pKey].count++;
+
+              if (bero.kondisi === 3) {
+                if (!realMonthlyMap[pKey]) realMonthlyMap[pKey] = { sumDays: 0, count: 0 };
+                realMonthlyMap[pKey].sumDays += bero.hari;
+                realMonthlyMap[pKey].count++;
+              }
+            }
+          }
+        }
+      }
     }
+
+    // Bangun beroChartData (18 Periode) secara dinamis
+    const beroChartData = TARGET_18_PERIODS.map((p) => {
+      const cfg = BERO_BASELINE_CONFIG[p.periodKey] || { rfc: 0, defaultRencana: 0, defaultRealisasi: null };
+      const isHistorical = p.year === 2025;
+
+      let rencanaVal = cfg.defaultRencana;
+      let realisasiVal: number | null = cfg.defaultRealisasi;
+
+      if (!isHistorical) {
+        // Tahun >= 2026: Dihitung secara dinamis dari database
+        if (rencMonthlyMap[p.periodKey] && rencMonthlyMap[p.periodKey].count > 0) {
+          rencanaVal = Math.round(rencMonthlyMap[p.periodKey].sumDays / rencMonthlyMap[p.periodKey].count);
+        }
+        if (realMonthlyMap[p.periodKey] && realMonthlyMap[p.periodKey].count > 0) {
+          realisasiVal = Math.round(realMonthlyMap[p.periodKey].sumDays / realMonthlyMap[p.periodKey].count);
+        } else {
+          realisasiVal = null;
+        }
+      }
+
+      const deviasiVal = realisasiVal !== null ? realisasiVal - rencanaVal : null;
+      const isCurrentMonth = p.periodKey === 'Sep-26';
+
+      return {
+        periodKey: p.periodKey,
+        year: p.year,
+        monthNum: p.monthNum,
+        label: p.label,
+        rfc: cfg.rfc,
+        rencana: rencanaVal,
+        realisasi: realisasiVal,
+        deviasi: deviasiVal,
+        isCurrentMonth,
+      };
+    });
 
     const periods2025 = beroChartData.filter((d) => d.year === 2025);
     const periods2026 = beroChartData.filter((d) => d.year === 2026);
     const periods2027 = beroChartData.filter((d) => d.year === 2027);
+
+    // Hitung KPI ringkasan untuk tahun berjalan 2026
+    const real2026List = periods2026.filter((p) => p.realisasi !== null);
+    const lastRealPeriod = real2026List.length > 0 ? real2026List[real2026List.length - 1] : periods2026[8]; // default Sep-26
+
+    const rfc2026Avg = Math.round(periods2026.reduce((acc, curr) => acc + curr.rfc, 0) / periods2026.length);
+    const renc2026Avg = Math.round(periods2026.reduce((acc, curr) => acc + curr.rencana, 0) / periods2026.length);
+    const real2026Avg = real2026List.length > 0
+      ? Math.round(real2026List.reduce((acc, curr) => acc + (curr.realisasi || 0), 0) / real2026List.length)
+      : 110;
 
     return NextResponse.json({
       success: true,
@@ -174,15 +246,15 @@ export async function GET() {
         periods2026,
         periods2027,
         summaryKPI: {
-          rfc2026: 100,
-          rencana2026: 106,
-          realisasi2026: 110,
-          deviasi2026: -65,
-          latestMonth: 'Sep-26',
-          latestRfc: 62,
-          latestRenc: 65,
-          latestReal: 62,
-          latestDev: -3,
+          rfc2026: rfc2026Avg,
+          rencana2026: renc2026Avg,
+          realisasi2026: real2026Avg,
+          deviasi2026: real2026Avg - renc2026Avg,
+          latestMonth: lastRealPeriod.periodKey,
+          latestRfc: lastRealPeriod.rfc,
+          latestRenc: lastRealPeriod.rencana,
+          latestReal: lastRealPeriod.realisasi ?? lastRealPeriod.rencana,
+          latestDev: lastRealPeriod.deviasi ?? 0,
         },
       },
     });

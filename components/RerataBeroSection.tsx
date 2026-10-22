@@ -10,6 +10,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Rectangle,
 } from 'recharts';
 import { Calendar } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
@@ -34,13 +35,10 @@ interface RangeBeroChartItem {
   totalHa: number;
   countLands: number;
   '< 80': number;
-  '80 - 90': number;
-  '90 - 120': number;
+  '80 - 120': number;
   '120 - 150': number;
-  '150 - 180': number;
-  '180 - 210': number;
-  '210 - 240': number;
-  '> 240': number;
+  '150 - 200': number;
+  '> 200': number;
 }
 
 interface BeroApiResponse {
@@ -54,6 +52,15 @@ export const BERO_RANGES = [
   {
     key: '< 80',
     label: '< 80',
+    color: '#ef4444',
+    badgeBg: 'bg-rose-500/10 hover:bg-rose-500/20',
+    textCol: 'text-rose-700 dark:text-rose-300',
+    borderCol: 'border-rose-500/30',
+    ringCol: 'ring-rose-500/20',
+  },
+  {
+    key: '80 - 120',
+    label: '80 - 120',
     color: '#10b981',
     badgeBg: 'bg-emerald-500/10 hover:bg-emerald-500/20',
     textCol: 'text-emerald-700 dark:text-emerald-300',
@@ -61,17 +68,8 @@ export const BERO_RANGES = [
     ringCol: 'ring-emerald-500/20',
   },
   {
-    key: '80 - 90',
-    label: '80 - 90',
-    color: '#14b8a6',
-    badgeBg: 'bg-teal-500/10 hover:bg-teal-500/20',
-    textCol: 'text-teal-700 dark:text-teal-300',
-    borderCol: 'border-teal-500/30',
-    ringCol: 'ring-teal-500/20',
-  },
-  {
-    key: '90 - 120',
-    label: '90 - 120',
+    key: '120 - 150',
+    label: '120 - 150',
     color: '#0284c7',
     badgeBg: 'bg-sky-500/10 hover:bg-sky-500/20',
     textCol: 'text-sky-700 dark:text-sky-300',
@@ -79,61 +77,31 @@ export const BERO_RANGES = [
     ringCol: 'ring-sky-500/20',
   },
   {
-    key: '120 - 150',
-    label: '120 - 150',
-    color: '#6366f1',
-    badgeBg: 'bg-indigo-500/10 hover:bg-indigo-500/20',
-    textCol: 'text-indigo-700 dark:text-indigo-300',
-    borderCol: 'border-indigo-500/30',
-    ringCol: 'ring-indigo-500/20',
-  },
-  {
-    key: '150 - 180',
-    label: '150 - 180',
-    color: '#f59e0b',
+    key: '150 - 200',
+    label: '150 - 200',
+    color: '#eab308',
     badgeBg: 'bg-amber-500/10 hover:bg-amber-500/20',
     textCol: 'text-amber-700 dark:text-amber-300',
     borderCol: 'border-amber-500/30',
     ringCol: 'ring-amber-500/20',
   },
   {
-    key: '180 - 210',
-    label: '180 - 210',
+    key: '> 200',
+    label: '> 200',
     color: '#f97316',
     badgeBg: 'bg-orange-500/10 hover:bg-orange-500/20',
     textCol: 'text-orange-700 dark:text-orange-300',
     borderCol: 'border-orange-500/30',
     ringCol: 'ring-orange-500/20',
   },
-  {
-    key: '210 - 240',
-    label: '210 - 240',
-    color: '#f43f5e',
-    badgeBg: 'bg-rose-500/10 hover:bg-rose-500/20',
-    textCol: 'text-rose-700 dark:text-rose-300',
-    borderCol: 'border-rose-500/30',
-    ringCol: 'ring-rose-500/20',
-  },
-  {
-    key: '> 240',
-    label: '> 240',
-    color: '#be123c',
-    badgeBg: 'bg-red-500/10 hover:bg-red-500/20',
-    textCol: 'text-red-700 dark:text-red-300',
-    borderCol: 'border-red-500/30',
-    ringCol: 'ring-red-500/20',
-  },
 ] as const;
 
 export const RANGE_GRADIENT_MAP: Record<string, { id: string; from: string; to: string }> = {
-  '< 80': { id: 'grad-range-lt80', from: '#34d399', to: '#059669' },
-  '80 - 90': { id: 'grad-range-80-90', from: '#2dd4bf', to: '#0d9488' },
-  '90 - 120': { id: 'grad-range-90-120', from: '#38bdf8', to: '#0284c7' },
-  '120 - 150': { id: 'grad-range-120-150', from: '#818cf8', to: '#4f46e5' },
-  '150 - 180': { id: 'grad-range-150-180', from: '#fbbf24', to: '#d97706' },
-  '180 - 210': { id: 'grad-range-180-210', from: '#fb923c', to: '#ea580c' },
-  '210 - 240': { id: 'grad-range-210-240', from: '#fb7185', to: '#e11d48' },
-  '> 240': { id: 'grad-range-gt240', from: '#f87171', to: '#be123c' },
+  '< 80': { id: 'grad-range-lt80', from: '#f87171', to: '#dc2626' },
+  '80 - 120': { id: 'grad-range-80-120', from: '#34d399', to: '#059669' },
+  '120 - 150': { id: 'grad-range-120-150', from: '#38bdf8', to: '#0284c7' },
+  '150 - 200': { id: 'grad-range-150-200', from: '#facc15', to: '#d97706' },
+  '> 200': { id: 'grad-range-gt200', from: '#fb923c', to: '#ea580c' },
 };
 
 export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?: number }) {
@@ -186,11 +154,11 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
       .finally(() => setLoading(false));
   }, [refreshTrigger]);
 
-  // Filter helper berdasarkan pilihan tahun pada filter dropdown "Tahun"
+  // Filter helper: default ke tahun 2026 jika tidak ada tahun yang dicentang
   const filterByYear = <T extends { year: number }>(items: T[]): T[] => {
     if (!items) return [];
-    if (selectedYears.length === 0 || selectedYears.length === 3) {
-      return items;
+    if (selectedYears.length === 0) {
+      return items.filter((d) => d.year === 2026);
     }
     return items.filter((d) => selectedYears.includes(String(d.year)));
   };
@@ -222,6 +190,32 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
 
   if (!data) return null;
 
+  // Helper render shape adaptif (mengikuti grafik Sebaran Bibit / Bulan):
+  // - Batang di puncak teratas tiang -> sudut atas membulat [6, 6, 0, 0]
+  // - Batang di bagian bawah/tengah (ada data aktif di atasnya) -> flat rata [0, 0, 0, 0] agar menyatu mulus tanpa batas patah
+  const renderCustomRangeBar = (props: any) => {
+    if (!props.height || props.height <= 0) return null;
+    const rangeKey = props.dataKey;
+    if (hiddenRanges.has(rangeKey)) return null;
+
+    const payload = props.payload || {};
+    let totalActiveVal = 0;
+    for (const rng of BERO_RANGES) {
+      if (!hiddenRanges.has(rng.key)) {
+        totalActiveVal += (payload[rng.key] || 0);
+      }
+    }
+
+    let isTop = true;
+    if (Array.isArray(props.value)) {
+      const [_startVal, endVal] = props.value;
+      isTop = endVal >= totalActiveVal - 0.001;
+    }
+
+    const radius = isTop ? [6, 6, 0, 0] : [0, 0, 0, 0];
+    return <Rectangle {...props} radius={radius} />;
+  };
+
   return (
     <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 glass-panel shadow-sm dark:shadow-2xl space-y-6 transition-colors">
       {/* Header Section */}
@@ -240,15 +234,15 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
           </div>
         </div>
 
-        {/* Filter Dropdown Tahun */}
+        {/* Filter Dropdown Tahun (Default 2026 tanpa perlu dicentang) */}
         <div className="flex items-center gap-2 self-start sm:self-auto">
           <MultiSelectDropdown
-            label="Tahun"
+            label={selectedYears.length > 0 ? `Tahun: ${selectedYears.join(', ')}` : 'Tahun: 2026'}
             options={['2025', '2026', '2027']}
             selected={selectedYears}
             onChange={(val) => setSelectedYears(val)}
             align="right"
-            placeholder="Pilih tahun..."
+            placeholder="2026"
           />
         </div>
       </div>
@@ -256,8 +250,9 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
       {/* Grid Grafik 2 Kolom (Kiri: Range Bero / Bulan, Kanan: Bero / Bulan) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
         {/* =========================================================================
-            GRAFIK KIRI: GRAFIK RANGE BERO (Stacked Bar 8 Range Hari Bero dalam Ha)
-            Oct-25 s/d Mar-27 (18 Bulan)
+            GRAFIK KIRI: GRAFIK RANGE BERO (Stacked Bar 5 Range Hari Bero dalam Ha)
+            Oct-25 s/d Mar-27 (Default 2026: Jan-26 s/d Dec-26)
+            Desain dibuat menyatu (cohesive single pillar) seperti Sebaran Bibit/Bulan
            ========================================================================= */}
         <div className="p-5 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 space-y-4 transition-all hover:border-indigo-500/40 flex flex-col justify-between">
           <div>
@@ -283,7 +278,7 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
                       className="outline-none focus:outline-none"
                       data={filteredRangeBeroData}
                       margin={{ top: 12, right: 16, left: -16, bottom: 20 }}
-                      barCategoryGap="22%"
+                      barCategoryGap="20%"
                     >
                       <defs>
                         {Object.values(RANGE_GRADIENT_MAP).map((g) => (
@@ -293,7 +288,7 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
                           </linearGradient>
                         ))}
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} opacity={0.8} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#e2e8f0'} opacity={0.8} />
                       <XAxis
                         dataKey="periodKey"
                         stroke={isDark ? '#475569' : '#cbd5e1'}
@@ -313,6 +308,7 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
                         domain={[0, 'auto']}
                       />
                       <Tooltip
+                        cursor={{ fill: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}
                         content={({ active, payload, label }) => {
                           if (active && payload && payload.length) {
                             const item = payload[0].payload as RangeBeroChartItem;
@@ -372,7 +368,7 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
                         }}
                       />
 
-                      {/* Stacked Bars for the 8 Bero Ranges (Ukuran batang agak besar dengan maxBarSize={28}) */}
+                      {/* Stacked Bars for the 5 Bero Ranges (Bentuk Menyatu Mulus seperti Sebaran Bibit/Bulan) */}
                       {BERO_RANGES.map((rng) => {
                         const gradInfo = RANGE_GRADIENT_MAP[rng.key];
                         return (
@@ -382,8 +378,8 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
                             name={rng.label}
                             stackId="rangeBero"
                             fill={gradInfo ? `url(#${gradInfo.id})` : rng.color}
-                            radius={[3, 3, 0, 0]}
-                            maxBarSize={28}
+                            shape={renderCustomRangeBar}
+                            maxBarSize={32}
                             hide={hiddenRanges.has(rng.key)}
                             cursor="pointer"
                             className="cursor-pointer transition-opacity duration-150 hover:opacity-85"
@@ -402,18 +398,19 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
             </div>
           </div>
 
-          {/* Tombol Legenda 8 Range Bero (Tanpa kotak area, tombol lebih kecil & berjarak, teks muat) */}
+          {/* Tombol Legenda 5 Range Bero dengan titik gradasi */}
           <div className="pt-2.5">
             <div className="flex flex-nowrap items-center justify-between gap-1.5 sm:gap-2 w-full overflow-x-auto select-none no-scrollbar">
               {BERO_RANGES.map((rng) => {
                 const isHidden = hiddenRanges.has(rng.key);
+                const gradInfo = RANGE_GRADIENT_MAP[rng.key];
 
                 return (
                   <button
                     key={rng.key}
                     type="button"
                     onClick={() => handleToggleRange(rng.key)}
-                    className={`flex-1 min-w-0 inline-flex items-center justify-center gap-1 px-1 sm:px-1.5 py-1 rounded-lg text-[9.5px] sm:text-[10px] font-bold transition-all cursor-pointer border shadow-2xs active:scale-95 ${
+                    className={`flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-xl text-[10px] sm:text-xs font-bold transition-all cursor-pointer border shadow-2xs active:scale-95 ${
                       isHidden
                         ? 'opacity-40 grayscale hover:opacity-75 bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700'
                         : `${rng.badgeBg} ${rng.textCol} ${rng.borderCol} ring-1 ${rng.ringCol}`
@@ -425,10 +422,14 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
                     }
                   >
                     <span
-                      className={`w-2 h-2 rounded-xs shrink-0 ${
+                      className={`w-2.5 h-2.5 rounded-full shrink-0 ${
                         isHidden ? 'bg-slate-400 dark:bg-slate-500' : ''
                       }`}
-                      style={{ backgroundColor: isHidden ? undefined : rng.color }}
+                      style={{
+                        background: isHidden
+                          ? undefined
+                          : `linear-gradient(to bottom, ${gradInfo?.from || rng.color}, ${gradInfo?.to || rng.color})`,
+                      }}
                     />
                     <span className="whitespace-nowrap">{rng.label}</span>
                   </button>
@@ -467,7 +468,7 @@ export default function RerataBeroSection({ refreshTrigger }: { refreshTrigger?:
                           <stop offset="100%" stopColor="#059669" stopOpacity={0.95} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1e293b' : '#e2e8f0'} opacity={0.8} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#e2e8f0'} opacity={0.8} />
                       <XAxis
                         dataKey="periodKey"
                         stroke={isDark ? '#475569' : '#cbd5e1'}

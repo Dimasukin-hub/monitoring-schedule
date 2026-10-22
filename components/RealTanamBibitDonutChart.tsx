@@ -79,6 +79,8 @@ const MONTH_KEY_MAP: Record<string, string> = {
   'Agu-26': '2026-08',
   'Sep-26': '2026-09',
   'Okt-26': '2026-10',
+  'Nov-26': '2026-11',
+  'Des-26': '2026-12',
 };
 
 const AVAILABLE_MONTH_OPTIONS = [
@@ -92,6 +94,8 @@ const AVAILABLE_MONTH_OPTIONS = [
   'Agu-26',
   'Sep-26',
   'Okt-26',
+  'Nov-26',
+  'Des-26',
 ];
 
 export default function RealTanamBibitDonutChart({
@@ -100,7 +104,7 @@ export default function RealTanamBibitDonutChart({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  // Filter tunggal: multi-select bulan tanam tahun 2026 (default: data Oktober aktif, tanpa centang di checkbox)
+  // Filter: multi-select bulan tanam tahun 2026 (default: Semua Bulan aktif ketika kosong / tanpa centang)
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
 
   // State bibit yang disembunyikan (hidden): Set<'Crown' | 'Sucker'>
@@ -192,15 +196,19 @@ export default function RealTanamBibitDonutChart({
   const currentPeriodData: PeriodData = useMemo(() => {
     // Jika belum memilih filter bulan, default adalah akumulasi semua bulan ('all')
     if (selectedMonths.length === 0) {
-      return data['all'] || data['2026-10'];
+      if (data['all']) return data['all'];
     }
 
     const activeKeys = selectedMonths
       .map((m) => MONTH_KEY_MAP[m])
       .filter(Boolean);
 
+    // Jika filter bulan kosong atau semua bulan tidak dipilih, gunakan 'all' jika ada, atau gabungkan seluruh bulan yang ada di data
     if (activeKeys.length === 0) {
-      return data['all'] || data['2026-10'];
+      if (data['all']) return data['all'];
+      const allKeys = Object.keys(data).filter((k) => k !== 'all' && k.startsWith('2026-'));
+      if (allKeys.length === 0) return data['all'] || data['2026-10'];
+      activeKeys.push(...allKeys);
     }
 
     if (activeKeys.length === 1 && data[activeKeys[0]]) {

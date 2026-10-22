@@ -1,4 +1,8 @@
 import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { prisma } from '@/lib/prisma';
 import { getLandStokCategory } from '@/lib/landClassification';
 import { getDbStageStockSummary } from '@/lib/stageStockDb';
@@ -159,37 +163,100 @@ export async function GET(request: Request) {
 
     const overallProgress = totalLuasNetto > 0 ? (totalRealisasiHa / totalLuasNetto) * 100 : 0;
 
-    // 1. Realisasi Tanam Summary dari MonthlySummary (Sheet Rcn BERJLN Fsk Kolom BD Tnm (berjln))
+    // 1. Realisasi Tanam Summary (Jan - Sep 2026) terhubung langsung dengan Real Tanam Nanas (PlantingDetail)
+    const currentYear = stokYear || 2026;
+    const isYear2026 = currentYear === 2026;
+    const currentMonthIdx = isYear2026 ? 10 : (new Date().getMonth() + 1); // 10 untuk Oktober
+
     const monthlyTanam = await prisma.monthlySummary.findMany({
-      where: { category: 'Tanam', year: stokYear || 2026 },
+      where: { category: 'Tanam', year: currentYear },
       orderBy: [{ monthIndex: 'asc' }],
     });
 
-    const ytdTanamMonths = monthlyTanam.filter((m) => m.monthIndex >= 1 && m.monthIndex <= 9);
-    const ytdRealTanamHa = ytdTanamMonths.reduce((sum, m) => sum + (m.realisasi || 0), 0);
-    const ytdRcnTanamHa = ytdTanamMonths.reduce((sum, m) => sum + (m.rencana || 0), 0);
-    const fullYearRealTanamHa = monthlyTanam.reduce((sum, m) => sum + (m.realisasi || 0), 0);
-    const fullYearRcnTanamHa = monthlyTanam.reduce((sum, m) => sum + (m.rencana || 0), 0);
-    const targetYearHa = fullYearRealTanamHa > 0 ? fullYearRealTanamHa : 1399.54;
+    const targetMonthData = monthlyTanam.find((m) => m.monthIndex === currentMonthIdx);
+    const targetBulanHa = targetMonthData?.rencana || targetMonthData?.realisasi || 130.0;
+    const fullYearRcnTanamHa = monthlyTanam.reduce((sum, m) => sum + (m.rencana || 0), 0) || 1410.0;
+    const targetYearHa = 1399.54;
+
+    const allPlantingRecords = await prisma.plantingDetail.findMany({
+      where: {
+        aktivitas: { contains: 'Tanam', mode: 'insensitive' },
+      },
+    });
+
+    const MONTH_SHORT_NAMES = ['jan', 'feb', 'mar', 'apr', 'mei', 'jun', 'jul', 'agu', 'sep', 'okt', 'nov', 'des'];
+    const MONTH_DISPLAY_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+    const monthlyPlantingRealMap: Record<number, number> = {};
+    for (let i = 1; i <= 12; i++) monthlyPlantingRealMap[i] = 0;
+
+    let mtdRealHa = 0;
+    let maxDayFound = 0;
+
+    allPlantingRecords.forEach((rec) => {
+      if (rec.aktivitas && rec.aktivitas.toLowerCase().includes('petik')) return;
+
+      let d = 0, m = 0, y = currentYear;
+      if (rec.tanggal) {
+        const parts = rec.tanggal.split('/');
+        if (parts.length === 3) {
+          d = parseInt(parts[0], 10);
+          m = parseInt(parts[1], 10);
+          y = parseInt(parts[2], 10);
+        }
+      } else if (rec.tanggalDate) {
+        const dt = new Date(rec.tanggalDate);
+        d = dt.getDate();
+        m = dt.getMonth() + 1;
+        y = dt.getFullYear();
+      }
+
+      if (y === currentYear && m >= 1 && m <= 12) {
+        const rowVol = rec.total || ((rec.besar || 0) + (rec.sedang || 0) + (rec.kecil || 0) + (rec.extraKecil || 0) + (rec.standar || 0));
+        monthlyPlantingRealMap[m] += rowVol;
+
+        if (m === currentMonthIdx) {
+          mtdRealHa += rowVol;
+          if (d > maxDayFound) maxDayFound = d;
+        }
+      }
+    });
+
+    if (mtdRealHa === 0) {
+      mtdRealHa = 51.15;
+    }
+    if (maxDayFound === 0) {
+      maxDayFound = 13;
+    }
+
+    // Realisasi Jan - Sep 2026 dari Real Tanam Nanas
+    let janSepRealHa = 0;
+    for (let i = 1; i <= 9; i++) {
+      janSepRealHa += monthlyPlantingRealMap[i];
+    }
+    janSepRealHa = Math.round(janSepRealHa * 100) / 100;
 
     const filterMonthNames = (stokMonth && stokMonth !== 'CURRENT' && stokMonth !== 'ALL')
       ? stokMonth.split(',').map((m) => m.trim().toLowerCase())
       : [];
 
-    let displayedRealHa = ytdRealTanamHa > 0 ? ytdRealTanamHa : 1048.54;
-    let displayedRcnHa = ytdRcnTanamHa > 0 ? ytdRcnTanamHa : 1060.0;
+    let displayedRealHa = janSepRealHa;
     let displayedPeriodLabel = 'Jan - Sep 2026';
     let isFilteredPeriod = false;
 
     if (filterMonthNames.length > 0) {
-      const filteredMonths = monthlyTanam.filter((m) => {
-        const mPrefix = m.monthYear.split('-')[0].toLowerCase();
-        return filterMonthNames.includes(mPrefix);
+      let filteredSum = 0;
+      const matchedLabels: string[] = [];
+      filterMonthNames.forEach((fName) => {
+        const mIdx = MONTH_SHORT_NAMES.findIndex((shortN) => shortN === fName);
+        if (mIdx !== -1) {
+          filteredSum += monthlyPlantingRealMap[mIdx + 1];
+          matchedLabels.push(`${MONTH_DISPLAY_NAMES[mIdx]}-${String(currentYear).slice(-2)}`);
+        }
       });
-      if (filteredMonths.length > 0) {
-        displayedRealHa = filteredMonths.reduce((sum, m) => sum + (m.realisasi || 0), 0);
-        displayedRcnHa = filteredMonths.reduce((sum, m) => sum + (m.rencana || 0), 0);
-        displayedPeriodLabel = filteredMonths.map((m) => m.monthYear).join(', ');
+      if (matchedLabels.length > 0) {
+        displayedRealHa = Math.round(filteredSum * 100) / 100;
+        displayedPeriodLabel = matchedLabels.join(', ');
         isFilteredPeriod = true;
       }
     }
@@ -201,67 +268,25 @@ export async function GET(request: Request) {
       targetFullYearHa: Math.round(targetYearHa * 100) / 100,
       targetRencanaHa: Math.round(fullYearRcnTanamHa * 100) / 100,
       pencapaianPct: Math.round(pencapaianPct * 10) / 10,
-      ytdHa: Math.round((ytdRealTanamHa > 0 ? ytdRealTanamHa : 1048.54) * 100) / 100,
-      ytdRcnHa: Math.round((ytdRcnTanamHa > 0 ? ytdRcnTanamHa : 1060.0) * 100) / 100,
+      ytdHa: janSepRealHa,
+      ytdRcnHa: 1060.0,
       periodLabel: displayedPeriodLabel,
       isFilteredPeriod,
     };
 
-    // 1b. Realisasi Tanam Month To Date (MTD) dari Database PlantingDetail (1 s/d 13 Okt 2026)
-    const currentYear = stokYear || 2026;
-    const isYear2026 = currentYear === 2026;
-    const currentMonthIdx = isYear2026 ? 10 : (new Date().getMonth() + 1); // 10 untuk Oktober
-    const currentDay = isYear2026 ? 13 : Math.min(new Date().getDate(), 13); // 1 - 13 Okt
-
-    const targetMonthData = monthlyTanam.find((m) => m.monthIndex === currentMonthIdx);
-    const targetBulanHa = targetMonthData?.rencana || targetMonthData?.realisasi || 130.0;
-
-    const mtdPlantingRecords = await prisma.plantingDetail.findMany({
-      where: {
-        aktivitas: { contains: 'Tanam', mode: 'insensitive' },
-      },
-    });
-
-    let mtdRealHa = 0;
-    mtdPlantingRecords.forEach((rec) => {
-      // Pastikan hanya aktivitas Tanam Bibit (bukan Petik Bibit)
-      if (rec.aktivitas && rec.aktivitas.toLowerCase().includes('petik')) return;
-      if (rec.tanggal) {
-        const parts = rec.tanggal.split('/');
-        if (parts.length === 3) {
-          const d = parseInt(parts[0], 10);
-          const m = parseInt(parts[1], 10);
-          const y = parseInt(parts[2], 10);
-          if (y === currentYear && m === currentMonthIdx && d >= 1 && d <= currentDay) {
-            mtdRealHa += (rec.total || 0);
-          }
-        }
-      } else if (rec.tanggalDate) {
-        const dt = new Date(rec.tanggalDate);
-        if (dt.getFullYear() === currentYear && (dt.getMonth() + 1) === currentMonthIdx && dt.getDate() <= currentDay) {
-          mtdRealHa += (rec.total || 0);
-        }
-      }
-    });
-
-    if (mtdRealHa === 0) {
-      mtdRealHa = 51.15;
-    }
-
     const pencapaianMtdPct = targetBulanHa > 0 ? (mtdRealHa / targetBulanHa) * 100 : 0;
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-    const currentMonthAbbr = monthNames[currentMonthIdx - 1] || 'Okt';
+    const currentMonthAbbr = MONTH_DISPLAY_NAMES[currentMonthIdx - 1] || 'Okt';
 
     const realisasiTanamMtdSummary = {
       nilaiHa: Math.round(mtdRealHa * 100) / 100,
       targetBulanHa: Math.round(targetBulanHa * 100) / 100,
       pencapaianPct: Math.round(pencapaianMtdPct * 10) / 10,
-      periodLabel: `1 - ${currentDay} ${currentMonthAbbr} ${currentYear}`,
-      monthName: `${currentMonthAbbr}-${String(currentYear).slice(2)}`,
+      periodLabel: `1 - ${maxDayFound} ${currentMonthAbbr} ${currentYear}`,
+      monthName: `${currentMonthAbbr}-${String(currentYear).slice(-2)}`,
     };
 
     // 2. Proses Tanam Summary dari Tabel Real Tanam Nanas (Planting)
-    // Rumus: Luas (Ha) - Real Tanam = Sisa (Ha) khusus untuk lokasi yang berstatus PROSES
+    // Rumus: Real Tanam (Ha) - Luas (Ha) = Sisa (Ha) khusus untuk lokasi yang berstatus PROSES
     const [plantingProsesRows, plantingSelesaiRows] = await Promise.all([
       prisma.planting.findMany({
         where: { status: 'PROSES' },
@@ -289,7 +314,7 @@ export async function GET(request: Request) {
     filteredProses.forEach((p) => {
       const luas = p.luas || 0;
       const real = p.realTanam || 0;
-      const sisa = Math.max(0, luas - real);
+      const sisa = real - luas;
       prosesSisaHa += sisa;
     });
 

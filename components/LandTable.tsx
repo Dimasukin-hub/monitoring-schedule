@@ -15,11 +15,14 @@ import {
   ChevronUp,
   Check,
   XCircle,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import TableDatePicker from '@/components/TableDatePicker';
 import MultiSelectDropdown, { FilterGroup } from '@/components/MultiSelectDropdown';
-import { PIPELINE_ORDER, computeAktivitasTerakhir, isValidDate } from '@/lib/landActivityUtils';
+import { PIPELINE_ORDER, computeAktivitasTerakhir, computeRencanaBeroBongkar, isValidDate } from '@/lib/landActivityUtils';
 import { useAuth } from '@/components/AuthProvider';
+import AddLandModal from '@/components/AddLandModal';
 
 export const REAL_MASTER_STATUSES = [
   'JBBK', 'NRBB', 'NRST', 'NSBB', 'NSBK', 'NSCL', 'NSFC', 'NSSC', 'NSST',
@@ -231,7 +234,7 @@ const getFieldRencanaReal = (land: any, fieldKey: string): { rencana: string | n
     case 'bajakAwalMb5Btr':
       return {
         rencana: app.rencAwalMb5Btr || app.bajakAwalMb5Btr || land.bajakAwalMb5Btr || null,
-        real: app.realBajakAwalMb5Btr || (app.rencAwalMb5Btr && app.bajakAwalMb5Btr ? app.bajakAwalMb5Btr : null) || null,
+        real: app.realBajakAwalMb5Btr || null,
       };
     case 'bajakAwalMb25':
       return {
@@ -645,6 +648,9 @@ export default function LandTable({
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const prevSelectedActivitiesRef = useRef<string[]>([]);
   const [highlightedColumn, setHighlightedColumn] = useState<string | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [landToDelete, setLandToDelete] = useState<{ id: number; lokasi: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [page, setPage] = useState(() => {
     if (typeof window !== 'undefined') {
       const savedPage = sessionStorage.getItem('labita_table_page');
@@ -1227,6 +1233,35 @@ export default function LandTable({
     }
   };
 
+  const handleConfirmDelete = async () => {
+    if (!landToDelete) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/lands/${landToDelete.id}`, {
+        method: 'DELETE',
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || 'Gagal menghapus data lahan');
+      }
+
+      // Optimistic update: remove from local table
+      setLands((prev) => prev.filter((l) => l.id !== landToDelete.id));
+      setPagination((prev) => ({
+        ...prev,
+        total: Math.max(0, prev.total - 1),
+      }));
+
+      setLandToDelete(null);
+      onDataChanged?.();
+    } catch (err: any) {
+      console.error('Error deleting land:', err);
+      alert(err.message || 'Terjadi kesalahan saat menghapus data lahan');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleUpdateBibitKelas = async (landId: number, rawValue: string | null) => {
     const { jenisBibit, kelasBibit } = parseBibitKelas(rawValue);
     // Optimistic UI update
@@ -1310,9 +1345,15 @@ export default function LandTable({
           [actKey]: updatedAct,
           aplikasiDetails: updatedDetails,
         };
+        const bero = computeRencanaBeroBongkar(updatedLand);
         return {
           ...updatedLand,
           aktivitasTerakhir: computeAktivitasTerakhir(updatedLand),
+          rencanaBeroBongkar: bero.hari,
+          kondisiBeroBongkar: bero.kondisi,
+          keteranganBeroBongkar: bero.keterangan,
+          tglAwalBkrBero: bero.tglAwalBkr,
+          tglSiapTanamBero: bero.tglSiapTanam,
         };
       })
     );
@@ -1350,6 +1391,11 @@ export default function LandTable({
                   ...resData.data,
                   aktivitasTerakhir: resData.data.aktivitasTerakhir || l.aktivitasTerakhir,
                   aplikasiDetails: resData.data.aplikasiDetails || l.aplikasiDetails,
+                  rencanaBeroBongkar: resData.data.rencanaBeroBongkar ?? l.rencanaBeroBongkar,
+                  kondisiBeroBongkar: resData.data.kondisiBeroBongkar ?? l.kondisiBeroBongkar,
+                  keteranganBeroBongkar: resData.data.keteranganBeroBongkar ?? l.keteranganBeroBongkar,
+                  tglAwalBkrBero: resData.data.tglAwalBkrBero ?? l.tglAwalBkrBero,
+                  tglSiapTanamBero: resData.data.tglSiapTanamBero ?? l.tglSiapTanamBero,
                 }
               : l
           )
@@ -1455,9 +1501,15 @@ export default function LandTable({
           if (type === 'real') updatedLand.realJalanSal = cleanDate;
         }
 
+        const bero = computeRencanaBeroBongkar(updatedLand);
         return {
           ...updatedLand,
           aktivitasTerakhir: computeAktivitasTerakhir(updatedLand),
+          rencanaBeroBongkar: bero.hari,
+          kondisiBeroBongkar: bero.kondisi,
+          keteranganBeroBongkar: bero.keterangan,
+          tglAwalBkrBero: bero.tglAwalBkr,
+          tglSiapTanamBero: bero.tglSiapTanam,
         };
       })
     );
@@ -1510,6 +1562,11 @@ export default function LandTable({
               ...resData.data,
               aktivitasTerakhir: resData.data.aktivitasTerakhir || l.aktivitasTerakhir,
               aplikasiDetails: resData.data.aplikasiDetails || l.aplikasiDetails,
+              rencanaBeroBongkar: resData.data.rencanaBeroBongkar ?? l.rencanaBeroBongkar,
+              kondisiBeroBongkar: resData.data.kondisiBeroBongkar ?? l.kondisiBeroBongkar,
+              keteranganBeroBongkar: resData.data.keteranganBeroBongkar ?? l.keteranganBeroBongkar,
+              tglAwalBkrBero: resData.data.tglAwalBkrBero ?? l.tglAwalBkrBero,
+              tglSiapTanamBero: resData.data.tglSiapTanamBero ?? l.tglSiapTanamBero,
             };
           })
         );
@@ -1554,9 +1611,15 @@ export default function LandTable({
           aplikasiDetails: updatedDetails,
           progressTanam: hasRealSelesai ? 100 : (hasRealMulai ? 50 : 0),
         };
+        const bero = computeRencanaBeroBongkar(updatedLand);
         return {
           ...updatedLand,
           aktivitasTerakhir: computeAktivitasTerakhir(updatedLand),
+          rencanaBeroBongkar: bero.hari,
+          kondisiBeroBongkar: bero.kondisi,
+          keteranganBeroBongkar: bero.keterangan,
+          tglAwalBkrBero: bero.tglAwalBkr,
+          tglSiapTanamBero: bero.tglSiapTanam,
         };
       })
     );
@@ -1604,6 +1667,11 @@ export default function LandTable({
                   aktivitasTerakhir: resData.data.aktivitasTerakhir || l.aktivitasTerakhir,
                   aplikasiDetails: resData.data.aplikasiDetails || l.aplikasiDetails,
                   progressTanam: resData.data.progressTanam ?? l.progressTanam,
+                  rencanaBeroBongkar: resData.data.rencanaBeroBongkar ?? l.rencanaBeroBongkar,
+                  kondisiBeroBongkar: resData.data.kondisiBeroBongkar ?? l.kondisiBeroBongkar,
+                  keteranganBeroBongkar: resData.data.keteranganBeroBongkar ?? l.keteranganBeroBongkar,
+                  tglAwalBkrBero: resData.data.tglAwalBkrBero ?? l.tglAwalBkrBero,
+                  tglSiapTanamBero: resData.data.tglSiapTanamBero ?? l.tglSiapTanamBero,
                 }
               : l
           )
@@ -1833,6 +1901,19 @@ export default function LandTable({
               setPage(1);
             }}
           />
+
+          {/* Tombol Tambah Data di pojok kanan sejajar dengan deretan filter lainnya */}
+          <div className="ml-auto flex items-center">
+            <button
+              type="button"
+              onClick={() => setIsAddModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold shadow-sm hover:shadow transition-all duration-150 active:scale-95 cursor-pointer"
+              title="Tambah Data Lahan Baru"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Tambah Data</span>
+            </button>
+          </div>
         </div>
 
         {/* Baris Data Terpilih Diperlihatkan Lebih Rapi & Sejajar Kanan-Kiri */}
@@ -2635,8 +2716,23 @@ export default function LandTable({
                     className="hover:bg-slate-100/70 dark:hover:bg-slate-800/40 transition-colors group"
                   >
                     {/* 0. NO */}
-                    <td className="sticky left-0 z-10 w-[50px] min-w-[50px] max-w-[50px] overflow-hidden py-1 px-0.5 font-mono text-[10px] text-slate-400 dark:text-slate-500 border-r border-b border-slate-200 dark:border-slate-800/60 text-center align-middle bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors">
-                      {rowNumber}
+                    <td className="sticky left-0 z-10 w-[50px] min-w-[50px] max-w-[50px] overflow-hidden py-1 px-0.5 font-mono text-[10px] text-slate-400 dark:text-slate-500 border-r border-b border-slate-200 dark:border-slate-800/60 text-center align-middle bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors relative group/no">
+                      <div className="relative flex items-center justify-center w-full h-full min-h-[20px]">
+                        <span className="group-hover/no:opacity-0 transition-opacity select-none">
+                          {rowNumber}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLandToDelete({ id: land.id, lokasi: land.lokasi });
+                          }}
+                          title={`Hapus data lahan ${land.lokasi}`}
+                          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/no:opacity-100 text-rose-500 hover:text-rose-600 transition-all cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-rose-500 hover:scale-110 active:scale-90 transition-transform" />
+                        </button>
+                      </div>
                     </td>
 
                     {/* 1. Wilayah */}
@@ -2826,6 +2922,16 @@ export default function LandTable({
                       const isRencanaMatch = selectedActivityMonths.length > 0 && matchActivityMonth(actData.rencana, selectedActivityMonths);
                       const isRealMatch = selectedActivityMonths.length > 0 && matchActivityMonth(actData.real, selectedActivityMonths);
 
+                      // Logika Highlight:
+                      // 1. Jika hanya filter rencana/real aktif (tanpa filter aktivitas) -> semua kolom ter-highlight
+                      // 2. Jika filter aktivitas juga dipilih -> HANYA aktivitas terpilih (isSelected) yang ter-highlight
+                      const isRencanaHighlighted = activityType === 'rencana' && (selectedActivityKeys.length === 0 || isSelected);
+                      const isRealHighlighted = activityType === 'real' && (selectedActivityKeys.length === 0 || isSelected);
+
+                      // Fallback isSelected: HANYA aktif jika tipe jadwal 'all' (tidak memfilter salah satu rencana/real)
+                      const isRencanaSelected = activityType === 'all' && isSelected;
+                      const isRealSelected = activityType === 'all' && isSelected;
+
                       const isLastVisibleBongkar = idx === arr.length - 1;
                       const borderClass = isLastVisibleBongkar && (bajakVisibleCount > 0 || snVisibleCount > 0 || tanamVisibleCount > 0)
                         ? 'border-r-2 border-slate-400 dark:border-slate-600'
@@ -2844,20 +2950,20 @@ export default function LandTable({
                           <div className="flex flex-col text-[10px] leading-tight space-y-1">
                             {/* Baris 1: Rencana & Tanggal */}
                             <div className={`flex items-center justify-between gap-1.5 py-0.5 px-1 rounded transition-colors ${
-                              activityType === 'real' ? 'opacity-75 hover:opacity-100' : ''
+                              isRealHighlighted ? 'opacity-75 hover:opacity-100' : ''
                             } ${
                               isRencanaMatch
                                 ? 'bg-emerald-300 dark:bg-emerald-700 text-emerald-950 dark:text-white font-bold ring-1.5 ring-emerald-500 shadow-xs'
-                                : activityType === 'rencana'
+                                : isRencanaHighlighted
                                 ? actData.rencana && actData.rencana !== '-'
                                   ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-950 dark:text-emerald-100 font-bold border border-emerald-400 dark:border-emerald-500 ring-1.5 ring-emerald-500/40 shadow-xs'
                                   : 'bg-emerald-50/60 dark:bg-emerald-950/40 text-slate-500 dark:text-slate-400 border border-dashed border-emerald-300/60 dark:border-emerald-800/60'
-                                : isSelected
+                                : isRencanaSelected
                                 ? 'bg-emerald-100/90 dark:bg-emerald-900/50 font-semibold border border-emerald-300/60 dark:border-emerald-700/60'
                                 : 'hover:bg-slate-100/70 dark:hover:bg-slate-800/40'
                             }`}>
                               <span className={`text-[9px] font-sans transition-colors ${
-                                activityType === 'rencana'
+                                isRencanaHighlighted
                                   ? 'text-emerald-800 dark:text-emerald-300 font-bold uppercase tracking-wider'
                                   : 'text-slate-500 dark:text-slate-400 font-medium'
                               }`}>
@@ -2874,20 +2980,20 @@ export default function LandTable({
 
                             {/* Baris 2: Real & Tanggal */}
                             <div className={`flex items-center justify-between gap-1.5 py-0.5 px-1 rounded transition-colors ${
-                              activityType === 'rencana' ? 'opacity-75 hover:opacity-100' : ''
+                              isRencanaHighlighted ? 'opacity-75 hover:opacity-100' : ''
                             } ${
                               isRealMatch
                                 ? 'bg-emerald-300 dark:bg-emerald-700 text-emerald-950 dark:text-white font-bold ring-1.5 ring-emerald-500 shadow-xs'
-                                : activityType === 'real'
+                                : isRealHighlighted
                                 ? actData.real && actData.real !== '-'
                                   ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-950 dark:text-emerald-100 font-bold border border-emerald-400 dark:border-emerald-500 ring-1.5 ring-emerald-500/40 shadow-xs'
                                   : 'bg-emerald-50/60 dark:bg-emerald-950/40 text-slate-500 dark:text-slate-400 border border-dashed border-emerald-300/60 dark:border-emerald-800/60'
-                                : isSelected
+                                : isRealSelected
                                 ? 'bg-emerald-100/90 dark:bg-emerald-900/50 font-semibold border border-emerald-300/60 dark:border-emerald-700/60'
                                 : 'hover:bg-slate-100/70 dark:hover:bg-slate-800/40'
                             }`}>
                               <span className={`text-[9px] font-sans transition-colors ${
-                                activityType === 'real'
+                                isRealHighlighted
                                   ? 'text-emerald-800 dark:text-emerald-300 font-bold uppercase tracking-wider'
                                   : actData.real && actData.real !== '-'
                                   ? 'text-emerald-700 dark:text-emerald-400 font-semibold'
@@ -2928,6 +3034,16 @@ export default function LandTable({
                         const hasRencValue = actData.rencana && actData.rencana !== '-' && actData.rencana !== '0';
                         const hasRealValue = actData.real && actData.real !== '-' && actData.real !== '0';
 
+                        // Logika Highlight:
+                        // 1. Jika hanya filter rencana/real aktif -> semua kolom ter-highlight
+                        // 2. Jika filter aktivitas juga dipilih -> HANYA aktivitas terpilih (isSelected) yang ter-highlight
+                        const isRencanaHighlighted = activityType === 'rencana' && (selectedActivityKeys.length === 0 || isSelected);
+                        const isRealHighlighted = activityType === 'real' && (selectedActivityKeys.length === 0 || isSelected);
+
+                        // Fallback isSelected: HANYA aktif jika tipe jadwal 'all'
+                        const isRencanaSelected = activityType === 'all' && isSelected;
+                        const isRealSelected = activityType === 'all' && isSelected;
+
                         return (
                           <td
                             key={field.key}
@@ -2941,20 +3057,20 @@ export default function LandTable({
                             <div className="flex flex-col text-[10px] leading-tight space-y-1">
                               {/* Baris 1: Rencana & Tanggal */}
                               <div className={`flex items-center justify-between gap-1.5 py-0.5 px-1 rounded transition-colors ${
-                                activityType === 'real' ? 'opacity-75 hover:opacity-100' : ''
+                                isRealHighlighted ? 'opacity-75 hover:opacity-100' : ''
                               } ${
                                 isRencanaMatch
                                   ? 'bg-emerald-300 dark:bg-emerald-700 text-emerald-950 dark:text-white font-bold ring-1.5 ring-emerald-500 shadow-xs'
-                                  : activityType === 'rencana'
+                                  : isRencanaHighlighted
                                   ? hasRencValue
                                     ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-950 dark:text-emerald-100 font-bold border border-emerald-400 dark:border-emerald-500 ring-1.5 ring-emerald-500/40 shadow-xs'
                                     : 'bg-emerald-50/60 dark:bg-emerald-950/40 text-slate-500 dark:text-slate-400 border border-dashed border-emerald-300/60 dark:border-emerald-800/60'
-                                  : isSelected
+                                  : isRencanaSelected
                                   ? 'bg-emerald-100/90 dark:bg-emerald-900/50 font-semibold border border-emerald-300/60 dark:border-emerald-700/60'
                                   : 'hover:bg-slate-100/70 dark:hover:bg-slate-800/40'
                               }`}>
                                 <span className={`text-[9px] font-sans transition-colors ${
-                                  activityType === 'rencana'
+                                  isRencanaHighlighted
                                     ? 'text-emerald-800 dark:text-emerald-300 font-bold uppercase tracking-wider'
                                     : 'text-slate-500 dark:text-slate-400 font-medium'
                                 }`}>
@@ -2971,20 +3087,20 @@ export default function LandTable({
 
                               {/* Baris 2: Real & Tanggal */}
                               <div className={`flex items-center justify-between gap-1.5 py-0.5 px-1 rounded transition-colors ${
-                                activityType === 'rencana' ? 'opacity-75 hover:opacity-100' : ''
+                                isRencanaHighlighted ? 'opacity-75 hover:opacity-100' : ''
                               } ${
                                 isRealMatch
                                   ? 'bg-emerald-300 dark:bg-emerald-700 text-emerald-950 dark:text-white font-bold ring-1.5 ring-emerald-500 shadow-xs'
-                                  : activityType === 'real'
+                                  : isRealHighlighted
                                   ? hasRealValue
                                     ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-950 dark:text-emerald-100 font-bold border border-emerald-400 dark:border-emerald-500 ring-1.5 ring-emerald-500/40 shadow-xs'
                                     : 'bg-emerald-50/60 dark:bg-emerald-950/40 text-slate-500 dark:text-slate-400 border border-dashed border-emerald-300/60 dark:border-emerald-800/60'
-                                  : isSelected
+                                  : isRealSelected
                                   ? 'bg-emerald-100/90 dark:bg-emerald-900/50 font-semibold border border-emerald-300/60 dark:border-emerald-700/60'
                                   : 'hover:bg-slate-100/70 dark:hover:bg-slate-800/40'
                               }`}>
                                 <span className={`text-[9px] font-sans transition-colors ${
-                                  activityType === 'real'
+                                  isRealHighlighted
                                     ? 'text-emerald-800 dark:text-emerald-300 font-bold uppercase tracking-wider'
                                     : hasRealValue
                                     ? 'text-emerald-700 dark:text-emerald-400 font-semibold'
@@ -3005,7 +3121,10 @@ export default function LandTable({
 
                       const val = land[field.key] || land.aplikasiDetails?.[field.key];
                       const isFieldMonthMatch = selectedActivityMonths.length > 0 && matchActivityMonth(val, selectedActivityMonths);
-                      const isActTypeHighlighted = (activityType === 'rencana' || activityType === 'real') && (field.key === 'prosesTanam' || field.key === 'selesaiTanam') && val && val !== '-';
+                      const isActTypeHighlighted = (activityType === 'rencana' || activityType === 'real') &&
+                        (field.key === 'prosesTanam' || field.key === 'selesaiTanam') &&
+                        (selectedActivityKeys.length === 0 || isSelected) &&
+                        val && val !== '-';
 
                       return (
                         <td
@@ -3022,7 +3141,7 @@ export default function LandTable({
                               ? 'bg-emerald-300 dark:bg-emerald-700 text-emerald-950 dark:text-white ring-2 ring-emerald-500 font-bold shadow-xs'
                               : isActTypeHighlighted
                               ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-950 dark:text-emerald-100 font-bold border border-emerald-400 dark:border-emerald-500 ring-1.5 ring-emerald-500/40 shadow-xs'
-                              : isSelected
+                              : (activityType === 'all' && isSelected)
                               ? 'bg-emerald-100/90 dark:bg-emerald-900/50 font-semibold border border-emerald-300/60 dark:border-emerald-700/60'
                               : 'hover:bg-slate-100/70 dark:hover:bg-slate-800/40'
                           }`}>
@@ -3081,6 +3200,76 @@ export default function LandTable({
           </button>
         </div>
       </div>
+
+      {/* Modal Tambah Data Lahan */}
+      <AddLandModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={() => {
+          fetchLands();
+          onDataChanged?.();
+        }}
+        availableWilayahs={filters.wilayahs}
+        availableStatuses={availableStatusOptions}
+        availableBulanTanams={filters.bulanTanam}
+      />
+
+      {/* Modal Konfirmasi Hapus Data Lahan */}
+      {landToDelete && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+          onClick={() => !isDeleting && setLandToDelete(null)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-sm w-full p-5 space-y-4 animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/60 flex items-center justify-center shrink-0 text-rose-600 dark:text-rose-400">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                  Hapus Data Lahan
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Apakah Anda yakin ingin menghapus data lahan{' '}
+                  <span className="font-bold text-slate-900 dark:text-white font-mono">
+                    {landToDelete.lokasi}
+                  </span>
+                  ?
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+              <button
+                type="button"
+                onClick={() => !isDeleting && setLandToDelete(null)}
+                disabled={isDeleting}
+                className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="px-3.5 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 active:bg-rose-800 rounded-xl shadow-xs transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+              >
+                {isDeleting ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Menghapus...
+                  </>
+                ) : (
+                  'Hapus'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

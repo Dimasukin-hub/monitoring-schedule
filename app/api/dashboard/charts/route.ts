@@ -1,4 +1,8 @@
 import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { prisma } from '@/lib/prisma';
 import { getLandStokCategory } from '@/lib/landClassification';
 import lands2026BaselinesJson from '@/lib/lands2026Baselines.json';
@@ -10,6 +14,7 @@ import realTanamBibitDonutJson from '@/lib/realTanamBibitDonut.json';
 import sebaranBibitBulanJson from '@/lib/sebaranBibitBulan.json';
 import listLokasiSelesaiTanamJson from '@/lib/listLokasiSelesaiTanam.json';
 import listLokasiProsesTanamJson from '@/lib/listLokasiProsesTanam.json';
+import { getDynamicProsesTanamList, getDynamicTanamChartsData } from '@/lib/dynamicTanamCharts';
 
 const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
@@ -806,9 +811,17 @@ export async function GET(request: Request) {
     const yearlySiapTanam = aggregateYearly(monthlySiapTanam);
 
     // 6. Seed Summaries
-    const seedSummaries = await prisma.seedSummary.findMany({
-      orderBy: { id: 'asc' },
-    });
+    const [seedSummaries, dynamicProsesList, dynamicTanamCharts] = await Promise.all([
+      prisma.seedSummary.findMany({
+        orderBy: { id: 'asc' },
+      }),
+      getDynamicProsesTanamList(),
+      getDynamicTanamChartsData(),
+    ]);
+
+    const filteredDynamicProses = (wilayahFilter && wilayahFilter !== 'ALL')
+      ? dynamicProsesList.filter((item) => targetWilayahList.includes(item.wilayah))
+      : dynamicProsesList;
 
     return NextResponse.json({
       success: true,
@@ -873,11 +886,11 @@ export async function GET(request: Request) {
           deviasi: s.deviasi || 0,
         })),
         tanamBenchmark: tanamBenchmarkJson,
-        realTanamKemarin: realTanamKemarinJson,
-        realTanamBibitDonut: realTanamBibitDonutJson,
-        sebaranBibitBulan: sebaranBibitBulanJson,
+        realTanamKemarin: dynamicTanamCharts.realTanamKemarin || realTanamKemarinJson,
+        realTanamBibitDonut: dynamicTanamCharts.realTanamBibitDonut || realTanamBibitDonutJson,
+        sebaranBibitBulan: dynamicTanamCharts.sebaranBibitBulan || sebaranBibitBulanJson,
         listLokasiSelesaiTanam: dynamicSelesaiTanamList,
-        listLokasiProsesTanam: listLokasiProsesTanamJson,
+        listLokasiProsesTanam: filteredDynamicProses,
       },
     });
   } catch (error: any) {

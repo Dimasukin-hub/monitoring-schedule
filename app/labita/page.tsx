@@ -19,6 +19,8 @@ import RealTanamBibitDonutChart from '@/components/RealTanamBibitDonutChart';
 import SebaranBibitBulanChart from '@/components/SebaranBibitBulanChart';
 import ListLokasiSelesaiTanamTable from '@/components/ListLokasiSelesaiTanamTable';
 import ListLokasiProsesTanamTable from '@/components/ListLokasiProsesTanamTable';
+import QuickUpdateTanamView from '@/components/QuickUpdateTanamView';
+import InputRealTanamPetikView from '@/components/InputRealTanamPetikView';
 import { useAuth } from '@/components/AuthProvider';
 
 export default function LabitaDashboardPage() {
@@ -27,6 +29,7 @@ export default function LabitaDashboardPage() {
   const [executiveSubTab, setExecutiveSubTab] = useState<string>('pengolahan_lahan');
   const [pengolahanSubTab, setPengolahanSubTab] = useState<string>('list_stok_lahan');
   const [plantingSubTab, setPlantingSubTab] = useState<string>('real_tanam_nanas');
+  const [updateSubTab, setUpdateSubTab] = useState<string>('tanam');
   const [selectedWilayah, setSelectedWilayah] = useState<string>('ALL');
   const [prosesTanamWilayah, setProsesTanamWilayah] = useState<string>('ALL');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('LATEST');
@@ -113,7 +116,8 @@ export default function LabitaDashboardPage() {
   };
 
   const handleSilentDataChanged = () => {
-    // Perbarui kartu dashboard di latar belakang tanpa reload tabel dan tanpa jeda/kedipan loading
+    // Perbarui kartu dashboard & grafik bero di latar belakang tanpa reload tabel dan tanpa jeda/kedipan loading
+    setRefreshLandTrigger((prev) => prev + 1);
     loadDashboardData(false, true);
   };
 
@@ -142,10 +146,18 @@ export default function LabitaDashboardPage() {
       case 'planting': {
         const subTitles: Record<string, string> = {
           real_tanam_nanas: 'Real Tanam Nanas',
+          input_real_tanam_petik: 'Input Real Tanam & Petik Nanas',
           proses_selesai_tanam: 'Proses Tanam & Selesai Tanam',
         };
         const sub = subTitles[plantingSubTab];
         return sub ? `Planting • ${sub}` : 'Planting';
+      }
+      case 'update': {
+        const subTitles: Record<string, string> = {
+          tanam: 'Tanam',
+        };
+        const sub = subTitles[updateSubTab];
+        return sub ? `Update • ${sub}` : 'Update';
       }
       default:
         return 'LABITA - Monitor Schedule 2026';
@@ -164,6 +176,8 @@ export default function LabitaDashboardPage() {
         setPengolahanSubTab={setPengolahanSubTab}
         plantingSubTab={plantingSubTab}
         setPlantingSubTab={setPlantingSubTab}
+        updateSubTab={updateSubTab}
+        setUpdateSubTab={setUpdateSubTab}
         activeTabTitle={getTabTitle()}
         selectedWilayah={selectedWilayah}
         setSelectedWilayah={setSelectedWilayah}
@@ -356,7 +370,12 @@ export default function LabitaDashboardPage() {
             />
           </div>
 
-          {/* 3.2 SUB MENU: PROSES TANAM & SELESAI TANAM (GRAFIK PER WILAYAH) */}
+          {/* 3.2 SUB MENU: INPUT REAL TANAM & PETIK NANAS (Master Log Transaksi Detail Tanpa KPI Card) */}
+          <div className={plantingSubTab === 'input_real_tanam_petik' ? 'block' : 'hidden'}>
+            <InputRealTanamPetikView />
+          </div>
+
+          {/* 3.3 SUB MENU: PROSES TANAM & SELESAI TANAM (GRAFIK PER WILAYAH) */}
           {plantingSubTab === 'proses_selesai_tanam' && (
             <ProsesTanamSection
               chartsData={chartsData}
@@ -365,6 +384,13 @@ export default function LabitaDashboardPage() {
               setSelectedWilayah={setProsesTanamWilayah}
               availableWilayahs={summaryData?.availableWilayahs || []}
             />
+          )}
+        </div>
+
+        {/* 4. MENU: UPDATE (Sub-Menu Tanam) */}
+        <div className={activeTab === 'update' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
+          {updateSubTab === 'tanam' && (
+            <QuickUpdateTanamView onDataChanged={handleSilentDataChanged} isAdmin={isAdmin} />
           )}
         </div>
       </main>

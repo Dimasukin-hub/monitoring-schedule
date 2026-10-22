@@ -98,9 +98,10 @@ export async function GET(request: Request) {
     let allSummary: any[] = [];
     let distinctJenis: any[] = [];
     let distinctKelas: any[] = [];
+    let distinctStatus: any[] = [];
 
     if (isDateSort) {
-      const [totalCount, allMatchingRows, summaryRows, dJenis, dKelas] = await Promise.all([
+      const [totalCount, allMatchingRows, summaryRows, dJenis, dKelas, dStatus] = await Promise.all([
         prisma.planting.count({ where }),
         prisma.planting.findMany({ where }),
         prisma.planting.findMany({
@@ -123,12 +124,18 @@ export async function GET(request: Request) {
           distinct: ['kelasBibit'],
           select: { kelasBibit: true },
         }),
+        prisma.planting.findMany({
+          where: { status: { not: null } },
+          distinct: ['status'],
+          select: { status: true },
+        }),
       ]);
 
       total = totalCount;
       allSummary = summaryRows;
       distinctJenis = dJenis;
       distinctKelas = dKelas;
+      distinctStatus = dStatus;
 
       allMatchingRows.sort((a: any, b: any) => {
         const ta = parseDateTimestamp(a[sortBy]);
@@ -149,7 +156,7 @@ export async function GET(request: Request) {
         orderBy.id = 'asc';
       }
 
-      const [totalCount, queryData, summaryRows, dJenis, dKelas] = await Promise.all([
+      const [totalCount, queryData, summaryRows, dJenis, dKelas, dStatus] = await Promise.all([
         prisma.planting.count({ where }),
         prisma.planting.findMany({
           where,
@@ -177,6 +184,11 @@ export async function GET(request: Request) {
           distinct: ['kelasBibit'],
           select: { kelasBibit: true },
         }),
+        prisma.planting.findMany({
+          where: { status: { not: null } },
+          distinct: ['status'],
+          select: { status: true },
+        }),
       ]);
 
       total = totalCount;
@@ -184,6 +196,7 @@ export async function GET(request: Request) {
       allSummary = summaryRows;
       distinctJenis = dJenis;
       distinctKelas = dKelas;
+      distinctStatus = dStatus;
     }
 
     // KPI Metrics calculation
@@ -195,6 +208,7 @@ export async function GET(request: Request) {
     let leadtimeSum = 0;
     let leadtimeCount = 0;
     let selesaiCount = 0;
+    let cekSelesaiCount = 0;
     let prosesCount = 0;
     let belumCount = 0;
 
@@ -210,6 +224,7 @@ export async function GET(request: Request) {
       }
 
       if (item.status === 'SELESAI') selesaiCount++;
+      else if (item.status === 'CEK SELESAI') cekSelesaiCount++;
       else if (item.status === 'PROSES') prosesCount++;
       else belumCount++;
     }
@@ -222,18 +237,20 @@ export async function GET(request: Request) {
       data,
       summary: {
         totalLokasi,
-        totalLuas: Number(totalLuas.toFixed(2)),
+        totalLuas: Number(totalLuas.toFixed(3)),
         totalRealTanam: Number(totalRealTanam.toFixed(2)),
         totalSisa: Number(totalSisa.toFixed(2)),
         avgProgress,
         avgLeadtime,
         selesaiCount,
+        cekSelesaiCount,
         prosesCount,
         belumCount,
       },
       filters: {
         jenisBibit: distinctJenis.map((d) => d.jenisBibit).filter(Boolean),
         kelasBibit: distinctKelas.map((d) => d.kelasBibit).filter(Boolean),
+        status: distinctStatus.map((d) => d.status).filter(Boolean),
       },
       pagination: {
         total,
@@ -275,18 +292,21 @@ export async function PATCH(request: Request) {
       progress = Number(((finalReal / finalLuas) * 100).toFixed(1));
     }
 
-    // STATUS OTOMATIS
-    let status = 'BELUM TANAM';
-    if (progress >= 100 || (finalLuas > 0 && finalReal >= finalLuas) || (Math.abs(finalReal - finalLuas) <= 0.05 && finalReal > 0)) {
+    // STATUS OTOMATIS (3 Status: SELESAI >= 100%, CEK SELESAI > 95% s/d < 100%, PROSES <= 95%)
+    let status = 'PROSES';
+    if (progress >= 100 || (finalLuas > 0 && finalReal >= finalLuas)) {
       status = 'SELESAI';
       if (progress < 100) progress = 100;
-    } else if (finalReal > 0 || (progress > 0 && progress < 100)) {
+    } else if (progress > 95) {
+      status = 'CEK SELESAI';
+    } else if (finalReal > 0 || progress > 0) {
       status = 'PROSES';
+    } else {
+      status = 'BELUM TANAM';
     }
 
-    // RUMUS 1: Sisa (Kolom I) = Luas - Real Tanam (Khusus PROSES bernilai positif sisa, SELESAI = 0)
-    const rawSisa = Number((finalLuas - finalReal).toFixed(2));
-    const sisa = status === 'SELESAI' ? 0 : Math.max(0, rawSisa);
+    // RUMUS 1: Sisa (Kolom I) = Real Tanam - Luas
+    const sisa = Number((finalReal - finalLuas).toFixed(2));
 
     // RUMUS 3: Proyeksi Estimasi Selesai (Jika belum ada & sisa > 0)
     // Sucker: kecepatan 0.1 Ha/hari | Crown: kecepatan 0.2 Ha/hari
