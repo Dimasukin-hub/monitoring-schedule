@@ -198,6 +198,7 @@ export default function ListStokLahanView({
   const [search, setSearch] = useState<string>('');
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(15);
+  const [isLimitOpen, setIsLimitOpen] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<string>('no');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [lands, setLands] = useState<any[]>([]);
@@ -664,15 +665,15 @@ export default function ListStokLahanView({
                 )}
               </div>
 
-              {/* Download Excel Button */}
+              {/* Export Excel Button */}
               <button
                 onClick={handleDownloadExcel}
                 disabled={isDownloading}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition-all cursor-pointer disabled:opacity-50 shadow-2xs"
-                title="Download data tabel ke format Excel (.xlsx)"
+                title="Export data tabel ke format Excel (.xlsx)"
               >
                 <Download className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
-                <span>{isDownloading ? 'Mengunduh...' : 'Download Excel'}</span>
+                <span>{isDownloading ? 'Mengekspor...' : 'Export Excel'}</span>
               </button>
 
               {/* Upload Excel Button */}
@@ -1083,6 +1084,18 @@ export default function ListStokLahanView({
                           isSaving={savingCells[`${land.id}-status`]}
                           isSaved={savedCells[`${land.id}-status`]}
                         />
+                        {activeCategory === 'PROSES' && land.progressTanam !== null && land.progressTanam !== undefined && (
+                          <div className="mt-1 flex flex-col items-center gap-0.5">
+                            <span className="font-mono text-[10px] font-bold text-cyan-600 dark:text-cyan-400">
+                              {land.progressTanam}%
+                            </span>
+                            {(land.progressTanam > 95 || land.statusAplikasi === 'Cek Selesai') && (
+                              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 uppercase tracking-wider">
+                                Cek Selesai
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </td>
 
                       {/* 6. Eks (Directly Editable) */}
@@ -1152,23 +1165,38 @@ export default function ListStokLahanView({
 
         {/* Pagination Footer */}
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 dark:text-slate-400">
-          <div className="flex items-center gap-2">
-            <span>Tampilkan per halaman:</span>
-            <select
-              value={limit}
-              onChange={(e) => {
-                setLimit(parseInt(e.target.value, 10));
-                setPage(1);
-              }}
-              className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-slate-800 dark:text-slate-200 focus:outline-none"
-            >
-              <option value="15">15</option>
-              <option value="30">30</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
-            <span className="ml-2">
-              Halaman {page} dari {pagination.totalPages}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <span>Tampilkan per halaman:</span>
+              <div className="relative inline-flex items-center">
+                <select
+                  value={limit}
+                  onFocus={() => setIsLimitOpen(true)}
+                  onBlur={() => setIsLimitOpen(false)}
+                  onChange={(e) => {
+                    setLimit(parseInt(e.target.value, 10));
+                    setPage(1);
+                    setIsLimitOpen(false);
+                    (e.target as HTMLElement).blur();
+                  }}
+                  className="appearance-none pl-2.5 pr-7 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+                >
+                  <option value="15">15</option>
+                  <option value="30">30</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 transition-transform duration-200 ${
+                    isLimitOpen ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : 'rotate-0'
+                  }`}
+                />
+              </div>
+            </div>
+            <span className="text-slate-300 dark:text-slate-700">|</span>
+            <span>
+              Halaman <strong className="text-slate-800 dark:text-slate-100">{page}</strong> dari{' '}
+              <strong className="text-slate-800 dark:text-slate-100">{pagination.totalPages}</strong>
             </span>
           </div>
 

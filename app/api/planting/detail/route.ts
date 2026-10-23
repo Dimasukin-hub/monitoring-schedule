@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { syncPlantingToStokLahan } from '@/lib/tanamSyncService';
 
 export async function GET(request: Request) {
   try {
@@ -565,6 +566,8 @@ export async function PUT(request: Request) {
       let newStatus = 'BELUM TANAM';
       if (newProgress >= 100 || (targetLuas > 0 && newRealTanam >= targetLuas)) {
         newStatus = 'SELESAI';
+      } else if (newProgress > 95) {
+        newStatus = 'CEK SELESAI';
       } else if (newRealTanam > 0) {
         newStatus = 'PROSES';
       }
@@ -596,6 +599,9 @@ export async function PUT(request: Request) {
         where: { id: plantingMaster.id },
         data: updateData,
       });
+
+      // Sinkronisasi otomatis ke StokLahanMaster dan Land
+      await syncPlantingToStokLahan(lokasi);
     }
     // Note: Jika lokasi tidak terdaftar di master Planting (Sheet RTN), 
     // sistem TIDAK membuat record master baru agar tabel Real Tanam Nanas 

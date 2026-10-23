@@ -88,6 +88,7 @@ export default function QuickUpdateTanamView({ onDataChanged, isAdmin = true }: 
   // Selected petak
   const [selectedLandId, setSelectedLandId] = useState<number | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
+  const [openSelect, setOpenSelect] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Form Fields
@@ -403,10 +404,14 @@ export default function QuickUpdateTanamView({ onDataChanged, isAdmin = true }: 
               <div className="relative">
                 <select
                   value={selectedYear}
+                  onFocus={() => setOpenSelect('year')}
+                  onBlur={() => setOpenSelect(null)}
                   onChange={(e) => {
                     setSelectedYear(e.target.value ? parseInt(e.target.value, 10) : '');
                     setSelectedLandId(null);
                     setSearchPetak('');
+                    setOpenSelect(null);
+                    (e.target as HTMLElement).blur();
                   }}
                   className="w-full appearance-none bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 pr-10 py-2.5 text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer shadow-xs"
                 >
@@ -432,7 +437,11 @@ export default function QuickUpdateTanamView({ onDataChanged, isAdmin = true }: 
                       <XCircle className="w-4 h-4" />
                     </button>
                   ) : (
-                    <ChevronDown className="w-4 h-4 text-slate-400 pointer-events-none" />
+                    <ChevronDown
+                      className={`w-4 h-4 text-slate-400 pointer-events-none transition-transform duration-200 ${
+                        openSelect === 'year' ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : 'rotate-0'
+                      }`}
+                    />
                   )}
                 </div>
               </div>
@@ -446,10 +455,14 @@ export default function QuickUpdateTanamView({ onDataChanged, isAdmin = true }: 
               <div className="relative">
                 <select
                   value={selectedWilayah}
+                  onFocus={() => setOpenSelect('wilayah')}
+                  onBlur={() => setOpenSelect(null)}
                   onChange={(e) => {
                     setSelectedWilayah(e.target.value);
                     setSelectedLandId(null);
                     setSearchPetak('');
+                    setOpenSelect(null);
+                    (e.target as HTMLElement).blur();
                   }}
                   className="w-full appearance-none bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 pr-10 py-2.5 text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer shadow-xs"
                 >
@@ -475,7 +488,11 @@ export default function QuickUpdateTanamView({ onDataChanged, isAdmin = true }: 
                       <XCircle className="w-4 h-4" />
                     </button>
                   ) : (
-                    <ChevronDown className="w-4 h-4 text-slate-400 pointer-events-none" />
+                    <ChevronDown
+                      className={`w-4 h-4 text-slate-400 pointer-events-none transition-transform duration-200 ${
+                        openSelect === 'wilayah' ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : 'rotate-0'
+                      }`}
+                    />
                   )}
                 </div>
               </div>
@@ -679,7 +696,13 @@ export default function QuickUpdateTanamView({ onDataChanged, isAdmin = true }: 
                 <div className="relative">
                   <select
                     value={selectedJenisBibit}
-                    onChange={(e) => setSelectedJenisBibit(e.target.value)}
+                    onFocus={() => setOpenSelect('jenis')}
+                    onBlur={() => setOpenSelect(null)}
+                    onChange={(e) => {
+                      setSelectedJenisBibit(e.target.value);
+                      setOpenSelect(null);
+                      (e.target as HTMLElement).blur();
+                    }}
                     className="w-full appearance-none bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 pr-10 py-2.5 text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer shadow-xs"
                   >
                     <option value="" disabled hidden className="hidden"></option>
@@ -700,7 +723,11 @@ export default function QuickUpdateTanamView({ onDataChanged, isAdmin = true }: 
                         <XCircle className="w-4 h-4" />
                       </button>
                     ) : (
-                      <ChevronDown className="w-4 h-4 text-slate-400 pointer-events-none" />
+                      <ChevronDown
+                        className={`w-4 h-4 text-slate-400 pointer-events-none transition-transform duration-200 ${
+                          openSelect === 'jenis' ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : 'rotate-0'
+                        }`}
+                      />
                     )}
                   </div>
                 </div>
@@ -713,7 +740,13 @@ export default function QuickUpdateTanamView({ onDataChanged, isAdmin = true }: 
                 <div className="relative">
                   <select
                     value={selectedKelasBibit}
-                    onChange={(e) => setSelectedKelasBibit(e.target.value)}
+                    onFocus={() => setOpenSelect('kelas')}
+                    onBlur={() => setOpenSelect(null)}
+                    onChange={(e) => {
+                      setSelectedKelasBibit(e.target.value);
+                      setOpenSelect(null);
+                      (e.target as HTMLElement).blur();
+                    }}
                     className="w-full appearance-none bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 pr-10 py-2.5 text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer shadow-xs"
                   >
                     <option value="" disabled hidden className="hidden"></option>
@@ -734,7 +767,11 @@ export default function QuickUpdateTanamView({ onDataChanged, isAdmin = true }: 
                         <XCircle className="w-4 h-4" />
                       </button>
                     ) : (
-                      <ChevronDown className="w-4 h-4 text-slate-400 pointer-events-none" />
+                      <ChevronDown
+                        className={`w-4 h-4 text-slate-400 pointer-events-none transition-transform duration-200 ${
+                          openSelect === 'kelas' ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : 'rotate-0'
+                        }`}
+                      />
                     )}
                   </div>
                 </div>

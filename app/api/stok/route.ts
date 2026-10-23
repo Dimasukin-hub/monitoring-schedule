@@ -93,9 +93,13 @@ export async function GET(request: Request) {
         phBk: l.phBk,
         phSn: l.phSn,
         aplikasiTerakhir: l.aplikasiTerakhir || 'Tahap Bongkar',
+        statusAplikasi: l.statusAplikasi,
+        progressTanam: l.progressTanam,
         realBkr: l.realBkr,
         realBajak: l.realBajak,
         realSn: l.realSn,
+        realMulaiTanam: l.realMulaiTanam,
+        realSelesaiTanam: l.realSelesaiTanam,
         category: validCat,
       });
     }

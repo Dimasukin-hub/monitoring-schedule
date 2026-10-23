@@ -286,10 +286,10 @@ export async function GET(request: Request) {
     };
 
     // 2. Proses Tanam Summary dari Tabel Real Tanam Nanas (Planting)
-    // Rumus: Real Tanam (Ha) - Luas (Ha) = Sisa (Ha) khusus untuk lokasi yang berstatus PROSES
+    // Rumus: Sisa = Luas (Ha) - Real Tanam (Ha) khusus untuk lokasi yang berstatus PROSES & CEK SELESAI
     const [plantingProsesRows, plantingSelesaiRows] = await Promise.all([
       prisma.planting.findMany({
-        where: { status: 'PROSES' },
+        where: { status: { in: ['PROSES', 'CEK SELESAI'] } },
         select: { lokasi: true, luas: true, realTanam: true, sisa: true },
       }),
       prisma.planting.findMany({
@@ -314,7 +314,7 @@ export async function GET(request: Request) {
     filteredProses.forEach((p) => {
       const luas = p.luas || 0;
       const real = p.realTanam || 0;
-      const sisa = real - luas;
+      const sisa = Math.max(0, Number((luas - real).toFixed(2)));
       prosesSisaHa += sisa;
     });
 

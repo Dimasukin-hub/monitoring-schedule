@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { syncPlantingToStokLahan, parseDateString } from '@/lib/tanamSyncService';
 
 export async function GET(request: Request) {
   try {
@@ -169,5 +170,133 @@ export async function GET(request: Request) {
       { success: false, error: 'Gagal memuat data transaksi planting.' },
       { status: 500 }
     );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const {
+      tanggal,
+      lokasi,
+      aktivitas,
+      jenisBibit,
+      wilayah,
+      standar,
+      besar,
+      sedang,
+      kecil,
+      extraKecil,
+      petikKe,
+    } = body;
+
+    if (!lokasi || String(lokasi).trim() === '') {
+      return NextResponse.json({ success: false, error: 'Nama lokasi/petak wajib dipilih.' }, { status: 400 });
+    }
+    const cleanLokasi = String(lokasi).trim().toUpperCase();
+
+    if (!tanggal || String(tanggal).trim() === '') {
+      return NextResponse.json({ success: false, error: 'Tanggal transaksi wajib diisi.' }, { status: 400 });
+    }
+    const cleanTanggal = String(tanggal).trim();
+
+    const cleanAktivitas = aktivitas && String(aktivitas).trim() !== '' ? String(aktivitas).trim() : 'Tanam Bibit';
+    const cleanJenis = jenisBibit && String(jenisBibit).trim() !== '' ? String(jenisBibit).trim() : 'Crown';
+
+    const numStandar = Number(standar) || 0;
+    const numBesar = Number(besar) || 0;
+    const numSedang = Number(sedang) || 0;
+    const numKecil = Number(kecil) || 0;
+    const numExtraKecil = Number(extraKecil) || 0;
+
+    const rawTotal = numStandar + numBesar + numSedang + numKecil + numExtraKecil;
+    const cleanTotal = Number(rawTotal.toFixed(2));
+
+    if (cleanTotal <= 0) {
+      return NextResponse.json(
+        { success: false, error: 'Total luasan bibit harus lebih dari 0 Ha (isi minimal satu kelas bibit).' },
+        { status: 400 }
+      );
+    }
+
+    // Lookup master informasi jika ada
+    let luasNetto = 0;
+    let autoWilayah = wilayah ? String(wilayah).trim() : null;
+
+    const pMaster = await prisma.planting.findFirst({
+      where: { lokasi: cleanLokasi },
+    });
+    if (pMaster) {
+      luasNetto = pMaster.luas;
+    }
+
+    if (!autoWilayah) {
+      const lMaster = await prisma.land.findFirst({
+        where: { lokasi: cleanLokasi },
+      });
+      if (lMaster) {
+        autoWilayah = lMaster.wilayah;
+        if (!luasNetto) luasNetto = lMaster.luasNetto || lMaster.luasBruto || 0;
+      }
+    }
+
+    // Parse tanggal ke Date
+    const parsedDate = parseDateString(cleanTanggal);
+    const tanggalDate = parsedDate || new Date();
+
+    const created = await prisma.plantingDetail.create({
+      data: {
+        lokasi: cleanLokasi,
+        tanggal: cleanTanggal,
+        tanggalDate,
+        luasNetto,
+        aktivitas: cleanAktivitas,
+        jenisBibit: cleanJenis,
+        wilayah: autoWilayah,
+        standar: numStandar,
+        besar: numBesar,
+        sedang: numSedang,
+        kecil: numKecil,
+        extraKecil: numExtraKecil,
+        total: cleanTotal,
+        petikKe: petikKe ? String(petikKe).trim() : null,
+        sourceFile: 'Web Application',
+        sourceSheet: 'Input Real Tanam&Petik Nanas',
+      },
+    });
+
+    // Jika aktivitas Tanam Bibit, recalculate realTanam di Planting master
+    if (cleanAktivitas.toLowerCase().includes('tanam')) {
+      const tanamTxs = await prisma.plantingDetail.findMany({
+        where: {
+          lokasi: { equals: cleanLokasi, mode: 'insensitive' },
+          aktivitas: { contains: 'tanam', mode: 'insensitive' },
+        },
+      });
+      const newRealTanam = Number(tanamTxs.reduce((sum, t) => sum + (t.total || 0), 0).toFixed(2));
+
+      if (pMaster) {
+        await prisma.planting.update({
+          where: { id: pMaster.id },
+          data: { realTanam: newRealTanam },
+        });
+      }
+
+      // Sinkronisasi Est. Selesai, Leadtime, Sisa, Progress, Status otomatis
+      try {
+        await syncPlantingToStokLahan(cleanLokasi);
+      } catch (syncErr) {
+        console.error('Error syncing planting after creating transaction:', syncErr);
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: created,
+      message: `Transaksi ${cleanAktivitas} untuk petak ${cleanLokasi} sebesar ${cleanTotal} Ha berhasil ditambahkan.`,
+    });
+  } catch (error: any) {
+    console.error('Error creating planting transaction:', error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

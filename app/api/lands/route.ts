@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { computeAktivitasTerakhir, sortAktivitasTerakhirList, computeRencanaBeroBongkar } from '@/lib/landActivityUtils';
+import { calculateCascadeRencanaDates } from '@/lib/planScheduleCascade';
 
 function parseParamArray(searchParams: URLSearchParams, key: string): string[] {
   const all = searchParams.getAll(key);
@@ -786,25 +787,28 @@ export async function POST(request: Request) {
       );
     }
 
-    // Standard 20 activity pipeline
+    // Calculate cascade dates if Rencana Bongkar (Chopper) is provided
+    const cascade = calculateCascadeRencanaDates(cleanRencBkr);
+
+    // Standard 20 activity pipeline with auto-cascade dates
     const activitiesConfig = [
       { code: '01.CHOPPER', name: 'Chopper', order: 1, renc: cleanRencBkr },
-      { code: '02.CHOPPER_LU', name: 'Chopper Lu', order: 2, renc: null },
-      { code: '03.RH1', name: 'RH1', order: 3, renc: null },
+      { code: '02.CHOPPER_LU', name: 'Chopper Lu', order: 2, renc: cascade?.chopperLu || null },
+      { code: '03.RH1', name: 'RH1', order: 3, renc: cascade?.rh1 || null },
       { code: '04.CUTTING_BANANA', name: 'Cutting Banana', order: 4, renc: null },
-      { code: '05.DOLOMIT', name: 'Aplikasi Dolomit', order: 5, renc: null },
+      { code: '05.DOLOMIT', name: 'Aplikasi Dolomit', order: 5, renc: cascade?.dolomit || null },
       { code: '06.DP1', name: 'DP1', order: 6, renc: null },
       { code: '07.DP_CROSS', name: 'DP Cross', order: 7, renc: null },
       { code: '08.DP2', name: 'DP2', order: 8, renc: null },
       { code: '09.BELERANG', name: 'Belerang', order: 9, renc: null },
       { code: '10.KOMPOS', name: 'Kompos', order: 10, renc: null },
-      { code: '11.BAJAK_AWAL', name: 'Bajak Awal', order: 11, renc: null },
-      { code: '17.SUBSOILER', name: 'Subsoiler', order: 12, renc: null },
+      { code: '11.BAJAK_AWAL', name: 'Bajak Awal', order: 11, renc: cascade?.bajakMb5Btr || null },
+      { code: '17.SUBSOILER', name: 'Subsoiler', order: 12, renc: cascade?.subsoilerSs1 || null },
       { code: '18.FINISHING_HARROW', name: 'Finishing Harrow', order: 13, renc: null },
-      { code: '19.FINISHING_ROTARY', name: 'Finishing Rotary', order: 14, renc: null },
+      { code: '19.FINISHING_ROTARY', name: 'Finishing Rotary', order: 14, renc: cascade?.finishingRotaryFh1 || null },
       { code: '20.ROTARY_FH2', name: 'Rotary FH2', order: 15, renc: null },
-      { code: '21.RIDGER', name: 'Ridger', order: 16, renc: null },
-      { code: '22.JALAN_SAL', name: 'Jalan & Saluran', order: 17, renc: null },
+      { code: '21.RIDGER', name: 'Ridger', order: 16, renc: cascade?.ridger || null },
+      { code: '22.JALAN_SAL', name: 'Jalan & Saluran', order: 17, renc: cascade?.jalanSal || null },
       { code: '22.SIAP_TANAM', name: 'Siap Tanam', order: 18, renc: null },
       { code: '23.PROSES_TNM', name: 'Proses Tanam', order: 19, renc: null },
       { code: '24.SLS_TANAM', name: 'Selesai Tanam', order: 20, renc: null },
@@ -813,6 +817,17 @@ export async function POST(request: Request) {
     const aplikasiDetails: Record<string, any> = {};
     if (cleanRencBkr) {
       aplikasiDetails.chopper = cleanRencBkr;
+    }
+    if (cascade) {
+      aplikasiDetails.dolomit = cascade.dolomit;
+      aplikasiDetails.chopperLu = cascade.chopperLu;
+      aplikasiDetails.rh1 = cascade.rh1;
+      aplikasiDetails.rencAwalMb5Btr = cascade.bajakMb5Btr;
+      aplikasiDetails.bajakAwalMb5Btr = cascade.bajakMb5Btr;
+      aplikasiDetails.subsoilerSs1 = cascade.subsoilerSs1;
+      aplikasiDetails.finishingRotaryFh1 = cascade.finishingRotaryFh1;
+      aplikasiDetails.ridger = cascade.ridger;
+      aplikasiDetails.jalanSal = cascade.jalanSal;
     }
 
     const newLand = await prisma.land.create({
@@ -826,6 +841,7 @@ export async function POST(request: Request) {
         statusAplikasi: cleanStatus,
         bulanTanam: cleanBulanTanam,
         rencBkr: cleanRencBkr,
+        rencBajak: cascade?.bajakMb5Btr || null,
         aplikasiTerakhir: 'Persiapan Bongkar',
         aplikasiDetails,
         activities: {

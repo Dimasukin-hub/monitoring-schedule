@@ -19,7 +19,7 @@ export async function getDynamicProsesTanamList(): Promise<DynamicProsesTanamIte
     prisma.planting.findMany({
       where: {
         OR: [
-          { status: 'PROSES' },
+          { status: { in: ['PROSES', 'CEK SELESAI'] } },
           { progress: { gt: 0, lt: 100 } },
         ],
       },
@@ -69,7 +69,20 @@ export async function getDynamicProsesTanamList(): Promise<DynamicProsesTanamIte
     const bibitFormatted = kelas ? `${jenis} (${kelas})` : jenis;
     const luas = p.luas || ld?.luasNetto || 0;
     const real = p.realTanam || 0;
-    const sisa = p.sisa ?? Math.max(0, Math.round((luas - real) * 100) / 100);
+    const prog = p.progress ?? (luas > 0 ? Number(((real / luas) * 100).toFixed(1)) : (ld?.progressTanam ?? 50));
+
+    let status = p.status || 'PROSES';
+    if (prog >= 100 || (luas > 0 && real >= luas)) {
+      status = 'SELESAI';
+    } else if (prog > 95) {
+      status = 'CEK SELESAI';
+    } else if (real > 0 || prog > 0) {
+      status = 'PROSES';
+    }
+
+    if (status === 'SELESAI') continue;
+
+    const sisa = Math.max(0, Number((luas - real).toFixed(2)));
 
     resultMap.set(locKey, {
       wilayah: w,
@@ -77,12 +90,12 @@ export async function getDynamicProsesTanamList(): Promise<DynamicProsesTanamIte
       jenisBibit: jenis,
       kelasBibit: kelas,
       bibit: bibitFormatted,
-      progress: p.progress ?? ld?.progressTanam ?? 50,
+      progress: prog,
       realTanam: Math.round(real * 100) / 100,
       luasHa: Math.round(luas * 100) / 100,
-      sisaHa: Math.round(sisa * 100) / 100,
+      sisaHa: sisa,
       estSelesai: p.estSelesai || ld?.rencSelesaiTanam || '-',
-      status: 'PROSES',
+      status: status,
     });
   }
 

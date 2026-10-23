@@ -23,6 +23,7 @@ import MultiSelectDropdown, { FilterGroup } from '@/components/MultiSelectDropdo
 import { PIPELINE_ORDER, computeAktivitasTerakhir, computeRencanaBeroBongkar, isValidDate } from '@/lib/landActivityUtils';
 import { useAuth } from '@/components/AuthProvider';
 import AddLandModal from '@/components/AddLandModal';
+import { calculateCascadeRencanaDates } from '@/lib/planScheduleCascade';
 
 export const REAL_MASTER_STATUSES = [
   'JBBK', 'NRBB', 'NRST', 'NSBB', 'NSBK', 'NSCL', 'NSFC', 'NSSC', 'NSST',
@@ -662,6 +663,7 @@ export default function LandTable({
     return 1;
   });
   const [limit, setLimit] = useState(15);
+  const [isLimitOpen, setIsLimitOpen] = useState(false);
   const [sortBy, setSortBy] = useState('lokasi');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
@@ -1322,6 +1324,7 @@ export default function LandTable({
       ridger: { realKey: 'realRidger', rencKey: 'ridger' },
     };
     const detailsInfo = ACT_KEY_TO_DETAILS[actKey];
+    const cascade = actKey === 'chopper' && type === 'rencana' ? calculateCascadeRencanaDates(cleanDate) : null;
 
     // Optimistic UI update
     setLands((prev) =>
@@ -1340,11 +1343,40 @@ export default function LandTable({
           ...currentDetails,
           ...(detailsInfo ? { [type === 'real' ? detailsInfo.realKey : detailsInfo.rencKey]: cleanDate } : {}),
         };
-        const updatedLand = {
+
+        if (cascade) {
+          updatedDetails.chopper = cleanDate;
+          updatedDetails.dolomit = cascade.dolomit;
+          updatedDetails.chopperLu = cascade.chopperLu;
+          updatedDetails.rh1 = cascade.rh1;
+          updatedDetails.rencAwalMb5Btr = cascade.bajakMb5Btr;
+          updatedDetails.bajakAwalMb5Btr = cascade.bajakMb5Btr;
+          updatedDetails.subsoilerSs1 = cascade.subsoilerSs1;
+          updatedDetails.finishingRotaryFh1 = cascade.finishingRotaryFh1;
+          updatedDetails.ridger = cascade.ridger;
+          updatedDetails.jalanSal = cascade.jalanSal;
+        }
+
+        const updatedLand: any = {
           ...l,
           [actKey]: updatedAct,
           aplikasiDetails: updatedDetails,
         };
+
+        if (cascade) {
+          updatedLand.dolomit = { ...(l.dolomit || {}), rencana: cascade.dolomit, status: l.dolomit?.real ? 'COMPLETED' : 'IN_PROGRESS' };
+          updatedLand.chopperLu = { ...(l.chopperLu || {}), rencana: cascade.chopperLu, status: l.chopperLu?.real ? 'COMPLETED' : 'IN_PROGRESS' };
+          updatedLand.rh1 = { ...(l.rh1 || {}), rencana: cascade.rh1, status: l.rh1?.real ? 'COMPLETED' : 'IN_PROGRESS' };
+          updatedLand.rencBajak = cascade.bajakMb5Btr;
+          updatedLand.rencBkr = cleanDate;
+          updatedLand.ridger = typeof l.ridger === 'object' && l.ridger !== null
+            ? { ...l.ridger, rencana: cascade.ridger }
+            : cascade.ridger;
+          updatedLand.jalanSal = typeof l.jalanSal === 'object' && l.jalanSal !== null
+            ? { ...l.jalanSal, rencana: cascade.jalanSal }
+            : cascade.jalanSal;
+        }
+
         const bero = computeRencanaBeroBongkar(updatedLand);
         return {
           ...updatedLand,
@@ -1359,17 +1391,46 @@ export default function LandTable({
     );
 
     try {
-      const actPayload = {
-        code,
-        rencanaDate: type === 'rencana' ? cleanDate : undefined,
-        realisasiDate: type === 'real' ? cleanDate : undefined,
-      };
-
-      const bodyPayload: any = { activities: [actPayload] };
-      if (detailsInfo) {
-        bodyPayload.aplikasiDetails = {
-          [type === 'real' ? detailsInfo.realKey : detailsInfo.rencKey]: cleanDate,
+      let bodyPayload: any;
+      if (cascade) {
+        bodyPayload = {
+          activities: [
+            { code: '01.CHOPPER', rencanaDate: cleanDate },
+            { code: '02.CHOPPER_LU', rencanaDate: cascade.chopperLu },
+            { code: '03.RH1', rencanaDate: cascade.rh1 },
+            { code: '05.DOLOMIT', rencanaDate: cascade.dolomit },
+            { code: '11.BAJAK_AWAL', rencanaDate: cascade.bajakMb5Btr },
+            { code: '17.SUBSOILER', rencanaDate: cascade.subsoilerSs1 },
+            { code: '19.FINISHING_ROTARY', rencanaDate: cascade.finishingRotaryFh1 },
+            { code: '21.RIDGER', rencanaDate: cascade.ridger },
+            { code: '22.JALAN_SAL', rencanaDate: cascade.jalanSal },
+          ],
+          aplikasiDetails: {
+            chopper: cleanDate,
+            dolomit: cascade.dolomit,
+            chopperLu: cascade.chopperLu,
+            rh1: cascade.rh1,
+            rencAwalMb5Btr: cascade.bajakMb5Btr,
+            bajakAwalMb5Btr: cascade.bajakMb5Btr,
+            subsoilerSs1: cascade.subsoilerSs1,
+            finishingRotaryFh1: cascade.finishingRotaryFh1,
+            ridger: cascade.ridger,
+            jalanSal: cascade.jalanSal,
+          },
         };
+      } else {
+        const actPayload = {
+          code,
+          rencanaDate: type === 'rencana' ? cleanDate : undefined,
+          realisasiDate: type === 'real' ? cleanDate : undefined,
+        };
+
+        bodyPayload = { activities: [actPayload] };
+        if (detailsInfo) {
+          bodyPayload.aplikasiDetails = {
+            [type === 'real' ? detailsInfo.realKey : detailsInfo.rencKey]: cleanDate,
+          };
+        }
       }
 
       const res = await fetch(`/api/lands/${landId}`, {
@@ -1734,15 +1795,15 @@ export default function LandTable({
               )}
             </div>
 
-            {/* Download Excel Button */}
+            {/* Export Excel Button */}
             <button
               onClick={handleDownloadExcel}
               disabled={downloading}
               className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap shadow-sm"
-              title="Download Data Lahan ke Excel (.xlsx)"
+              title="Export Data Lahan ke Excel (.xlsx)"
             >
               <Download className={`w-3.5 h-3.5 ${downloading ? 'animate-bounce' : ''}`} />
-              <span>{downloading ? 'Mengunduh...' : 'Download Excel'}</span>
+              <span>{downloading ? 'Mengekspor...' : 'Export Excel'}</span>
             </button>
           </div>
         </div>
@@ -3163,23 +3224,38 @@ export default function LandTable({
 
       {/* Pagination Footer */}
       <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 rounded-b-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 dark:text-slate-400">
-        <div className="flex items-center gap-2">
-          <span>Tampilkan per halaman:</span>
-          <select
-            value={limit}
-            onChange={(e) => {
-              setLimit(parseInt(e.target.value, 10));
-              setPage(1);
-            }}
-            className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-slate-800 dark:text-slate-200 focus:outline-none"
-          >
-            <option value="15">15</option>
-            <option value="30">30</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
-          </select>
-          <span className="ml-2">
-            Halaman {page} dari {pagination.totalPages}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span>Tampilkan per halaman:</span>
+            <div className="relative inline-flex items-center">
+              <select
+                value={limit}
+                onFocus={() => setIsLimitOpen(true)}
+                onBlur={() => setIsLimitOpen(false)}
+                onChange={(e) => {
+                  setLimit(parseInt(e.target.value, 10));
+                  setPage(1);
+                  setIsLimitOpen(false);
+                  (e.target as HTMLElement).blur();
+                }}
+                className="appearance-none pl-2.5 pr-7 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option value="15">15</option>
+                <option value="30">30</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <ChevronDown
+                className={`w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 transition-transform duration-200 ${
+                  isLimitOpen ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : 'rotate-0'
+                }`}
+              />
+            </div>
+          </div>
+          <span className="text-slate-300 dark:text-slate-700">|</span>
+          <span>
+            Halaman <strong className="text-slate-800 dark:text-slate-100">{page}</strong> dari{' '}
+            <strong className="text-slate-800 dark:text-slate-100">{pagination.totalPages}</strong>
           </span>
         </div>
 

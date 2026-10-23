@@ -1162,7 +1162,7 @@ export default function KpiCards({
               <div>
                 <div className="flex items-baseline gap-1">
                   <span className="text-2xl lg:text-3xl font-black tracking-tight text-amber-600 dark:text-amber-400">
-                    {(data.prosesTanamSummary?.prosesHa ?? -22.24).toLocaleString('id-ID', {
+                    {(data.prosesTanamSummary?.prosesHa ?? 0).toLocaleString('id-ID', {
                       minimumFractionDigits: 1,
                       maximumFractionDigits: 2,
                     })}

@@ -1916,15 +1916,7 @@ export function ProsesTanamSection({
     }));
   }, [chartsData?.wilayahPositions]);
 
-  const selectedWilayahList = useMemo(() => {
-    if (!selectedWilayah || selectedWilayah === 'ALL') return null;
-    return selectedWilayah.split(',').map((w) => w.trim()).filter(Boolean);
-  }, [selectedWilayah]);
-
-  const displayData = useMemo(() => {
-    if (!selectedWilayahList || selectedWilayahList.length === 0) return normalizedData;
-    return normalizedData.filter((item) => selectedWilayahList.includes(item.wilayah));
-  }, [normalizedData, selectedWilayahList]);
+  const displayData = normalizedData;
 
   if (!chartsData || !chartsData.wilayahPositions) return null;
 
@@ -2099,16 +2091,6 @@ export function ProsesTanamSection({
             </div>
           </div>
         </div>
-
-        {setSelectedWilayah && (
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <WilayahFilterDropdown
-              selectedWilayah={selectedWilayah}
-              setSelectedWilayah={setSelectedWilayah}
-              availableWilayahs={availableWilayahs || ['W01', 'W02', 'W03', 'W04', 'W05', 'W06', 'W07']}
-            />
-          </div>
-        )}
       </div>
 
       <div className="h-80 w-full outline-none focus:outline-none select-none">

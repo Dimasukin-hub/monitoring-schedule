@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { syncPlantingToStokLahan, calculateEstSelesaiAndLeadtime } from '@/lib/tanamSyncService';
 
 const MONTHS_MAP: Record<string, number> = {
   jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
@@ -112,6 +113,7 @@ export async function GET(request: Request) {
             progress: true,
             leadtime: true,
             status: true,
+            awalTanam: true,
           },
         }),
         prisma.planting.findMany({
@@ -172,6 +174,7 @@ export async function GET(request: Request) {
             progress: true,
             leadtime: true,
             status: true,
+            awalTanam: true,
           },
         }),
         prisma.planting.findMany({
@@ -202,9 +205,11 @@ export async function GET(request: Request) {
     // KPI Metrics calculation
     const totalLokasi = allSummary.length;
     let totalLuas = 0;
-    let totalRealTanam = 0;
+    let totalRealTanam = 0; // Poin 2 (Opsi A): Hitungan 1 tahun (2026)
+    let totalRealTanamAll = 0; // Akumulatif seluruh tahun
     let totalSisa = 0;
-    let progressSum = 0;
+    let prosesProgressSum = 0;
+    let prosesProgressCount = 0;
     let leadtimeSum = 0;
     let leadtimeCount = 0;
     let selesaiCount = 0;
@@ -212,13 +217,36 @@ export async function GET(request: Request) {
     let prosesCount = 0;
     let belumCount = 0;
 
+    const isYear2026 = (awal: string | null | undefined): boolean => {
+      if (!awal) return false;
+      const parts = awal.trim().split('-');
+      if (parts.length === 3) {
+        const yr = parts[2].trim();
+        return yr === '26' || yr === '2026';
+      }
+      return false;
+    };
+
     for (const item of allSummary) {
       totalLuas += item.luas || 0;
-      totalRealTanam += item.realTanam || 0;
-      totalSisa += item.sisa || 0;
-      progressSum += item.progress || 0;
+      totalRealTanamAll += item.realTanam || 0;
 
-      if (item.leadtime !== null && item.leadtime !== undefined) {
+      // Poin 2 (Opsi A): Hitungan Real Tanam dalam 1 tahun (2026)
+      if (isYear2026(item.awalTanam)) {
+        totalRealTanam += item.realTanam || 0;
+      }
+
+      const cleanSisa = item.status === 'SELESAI' ? 0 : Math.max(0, Number(((item.luas || 0) - (item.realTanam || 0)).toFixed(2)));
+      totalSisa += cleanSisa;
+
+      // Poin 4: Rerata progress hanya untuk yang statusnya masih proses (PROSES / CEK SELESAI / < 100%)
+      if (item.status === 'PROSES' || item.status === 'CEK SELESAI' || (item.progress > 0 && item.progress < 100)) {
+        prosesProgressSum += item.progress || 0;
+        prosesProgressCount++;
+      }
+
+      // Poin 5: Rerata leadtime hanya untuk petak yang progressnya 100% (SELESAI)
+      if ((item.progress >= 100 || item.status === 'SELESAI') && item.leadtime !== null && item.leadtime !== undefined) {
         leadtimeSum += item.leadtime;
         leadtimeCount++;
       }
@@ -229,7 +257,7 @@ export async function GET(request: Request) {
       else belumCount++;
     }
 
-    const avgProgress = totalLokasi > 0 ? Number((progressSum / totalLokasi).toFixed(1)) : 0;
+    const avgProgress = prosesProgressCount > 0 ? Number((prosesProgressSum / prosesProgressCount).toFixed(1)) : 0;
     const avgLeadtime = leadtimeCount > 0 ? Math.round(leadtimeSum / leadtimeCount) : 0;
 
     return NextResponse.json({
@@ -239,6 +267,7 @@ export async function GET(request: Request) {
         totalLokasi,
         totalLuas: Number(totalLuas.toFixed(3)),
         totalRealTanam: Number(totalRealTanam.toFixed(2)),
+        totalRealTanamAll: Number(totalRealTanamAll.toFixed(2)),
         totalSisa: Number(totalSisa.toFixed(2)),
         avgProgress,
         avgLeadtime,
@@ -305,57 +334,21 @@ export async function PATCH(request: Request) {
       status = 'BELUM TANAM';
     }
 
-    // RUMUS 1: Sisa (Kolom I) = Real Tanam - Luas
-    const sisa = Number((finalReal - finalLuas).toFixed(2));
+    // RUMUS 1: Sisa (Kolom I) = Luas - Real Tanam (Khusus PROSES / CEK SELESAI bernilai positif sisa, SELESAI = 0)
+    const sisa = status === 'SELESAI' ? 0 : Math.max(0, Number((finalLuas - finalReal).toFixed(2)));
 
-    // RUMUS 3: Proyeksi Estimasi Selesai (Jika belum ada & sisa > 0)
-    // Sucker: kecepatan 0.1 Ha/hari | Crown: kecepatan 0.2 Ha/hari
-    if (!finalEst && sisa > 0) {
-      const dailyRate = (finalJenis && finalJenis.toLowerCase().includes('crown')) ? 0.2 : 0.1;
-      const daysNeeded = Math.ceil(sisa / dailyRate);
-      const estDate = new Date();
-      estDate.setDate(estDate.getDate() + daysNeeded);
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      finalEst = `${estDate.getDate()}-${months[estDate.getMonth()]}-${String(estDate.getFullYear()).slice(-2)}`;
-    }
-
-    // RUMUS 4: Leadtime (Kolom M) = IF(progress=100%, Est_Selesai - Awal_Tanam, TODAY() - Awal_Tanam)
-    let leadtime = existing.leadtime;
-    if (finalAwal) {
-      const parseDate = (dStr: string) => {
-        if (!dStr) return null;
-        const parts = dStr.split('-');
-        if (parts.length === 3) {
-          const d = parseInt(parts[0], 10);
-          const mStr = parts[1].toLowerCase();
-          const months: Record<string, number> = {
-            jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-            jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
-          };
-          const m = months[mStr] !== undefined ? months[mStr] : parseInt(mStr, 10) - 1;
-          let y = parseInt(parts[2], 10);
-          if (y < 100) y += 2000;
-          return new Date(y, m, d);
-        }
-        const parsed = new Date(dStr);
-        return isNaN(parsed.getTime()) ? null : parsed;
-      };
-
-      const startDate = parseDate(finalAwal);
-      if (startDate) {
-        if (status === 'SELESAI' && finalEst) {
-          const endDate = parseDate(finalEst);
-          if (endDate) {
-            const diffTime = endDate.getTime() - startDate.getTime();
-            leadtime = Math.max(0, Math.round(diffTime / (1000 * 60 * 60 * 24)));
-          }
-        } else {
-          const today = new Date();
-          const diffTime = today.getTime() - startDate.getTime();
-          leadtime = Math.max(0, Math.round(diffTime / (1000 * 60 * 60 * 24)));
-        }
-      }
-    }
+    // RUMUS 3 & 4: Proyeksi Estimasi Selesai & Leadtime (Rumus Pengguna: Max Tanggal Detail + Sisa / Kapasitas Mayoritas)
+    const { estSelesai: calculatedEst, leadtime: calculatedLead } = await calculateEstSelesaiAndLeadtime({
+      lokasi: existing.lokasi,
+      sisa,
+      status,
+      awalTanam: finalAwal,
+      existingEstSelesai: existing.estSelesai,
+      overrideEstSelesai: estSelesai !== undefined ? (estSelesai ? String(estSelesai).trim() : null) : undefined,
+      jenisBibit: finalJenis,
+    });
+    finalEst = calculatedEst;
+    const leadtime = calculatedLead;
 
     const updated = await prisma.planting.update({
       where: { id: Number(id) },
@@ -373,6 +366,13 @@ export async function PATCH(request: Request) {
       },
     });
 
+    // Auto-sync real-time ke StokLahanMaster dan Land
+    try {
+      await syncPlantingToStokLahan(existing.lokasi);
+    } catch (syncErr) {
+      console.error('Error syncing planting to stok lahan:', syncErr);
+    }
+
     return NextResponse.json({
       success: true,
       data: updated,
@@ -380,6 +380,83 @@ export async function PATCH(request: Request) {
     });
   } catch (error: any) {
     console.error('Error updating planting record:', error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { lokasi, luas, jenisBibit, kelasBibit, awalTanam, wilayah } = body;
+
+    if (!lokasi || String(lokasi).trim() === '') {
+      return NextResponse.json({ success: false, error: 'Nama lokasi wajib diisi.' }, { status: 400 });
+    }
+    const cleanLokasi = String(lokasi).trim().toUpperCase();
+
+    const cleanLuas = Number(Number(luas).toFixed(2));
+    if (isNaN(cleanLuas) || cleanLuas <= 0) {
+      return NextResponse.json({ success: false, error: 'Luas lahan harus berupa angka lebih dari 0.' }, { status: 400 });
+    }
+
+    // Cek apakah lokasi sudah ada di Planting
+    const existing = await prisma.planting.findFirst({
+      where: { lokasi: cleanLokasi },
+    });
+    if (existing) {
+      return NextResponse.json(
+        { success: false, error: `Petak lokasi ${cleanLokasi} sudah terdaftar di tabel Real Tanam Nanas.` },
+        { status: 400 }
+      );
+    }
+
+    const cleanJenis = jenisBibit ? String(jenisBibit).trim() : 'Crown';
+    const cleanKelas = kelasBibit ? String(kelasBibit).trim() : 'Standar';
+    const cleanAwal = awalTanam ? String(awalTanam).trim() : null;
+    const realTanam = 0;
+    const sisa = cleanLuas;
+    const progress = 0;
+    const status = 'BELUM TANAM';
+
+    // Hitung Est. Selesai dan Leadtime berdasarkan rumus
+    const { estSelesai, leadtime } = await calculateEstSelesaiAndLeadtime({
+      lokasi: cleanLokasi,
+      sisa,
+      status,
+      awalTanam: cleanAwal,
+      jenisBibit: cleanJenis,
+    });
+
+    const created = await prisma.planting.create({
+      data: {
+        lokasi: cleanLokasi,
+        luas: cleanLuas,
+        realTanam,
+        sisa,
+        progress,
+        status,
+        jenisBibit: cleanJenis,
+        kelasBibit: cleanKelas,
+        awalTanam: cleanAwal,
+        estSelesai,
+        leadtime,
+      },
+    });
+
+    // Auto-sync ke StokLahanMaster dan Land jika ada
+    try {
+      await syncPlantingToStokLahan(cleanLokasi);
+    } catch (syncErr) {
+      console.error('Error syncing new planting to stok lahan:', syncErr);
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: created,
+      message: `Petak lokasi ${cleanLokasi} berhasil ditambahkan ke Real Tanam Nanas.`,
+    });
+  } catch (error: any) {
+    console.error('Error creating planting record:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

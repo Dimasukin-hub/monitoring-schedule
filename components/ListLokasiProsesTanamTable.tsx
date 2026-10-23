@@ -200,22 +200,35 @@ export default function ListLokasiProsesTanamTable({
                       </span>
                     </td>
 
-                    {/* % Progress (Bar & Angka) */}
+                    {/* % Progress (Bar & Angka & Status) */}
                     <td className="px-3 py-2 text-center border-b border-r first:border-l border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
-                      <div className="flex items-center justify-center gap-2">
-                        {/* Mini Progress Bar */}
-                        <div className="w-16 h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden shrink-0">
-                          <div
-                            className={`h-full rounded-full transition-all duration-300 ${progColor}`}
-                            style={{ width: `${Math.min(100, Math.max(0, prog))}%` }}
-                          />
+                      <div className="flex flex-col items-center justify-center gap-1">
+                        <div className="flex items-center justify-center gap-2">
+                          {/* Mini Progress Bar */}
+                          <div className="w-16 h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden shrink-0">
+                            <div
+                              className={`h-full rounded-full transition-all duration-300 ${
+                                row.status === 'CEK SELESAI' || prog > 95 ? 'bg-purple-500' : progColor
+                              }`}
+                              style={{ width: `${Math.min(100, Math.max(0, prog))}%` }}
+                            />
+                          </div>
+                          {/* Badge Angka % */}
+                          <span
+                            className={`font-mono text-[11px] font-bold px-1.5 py-0.5 rounded border min-w-[48px] text-center ${
+                              row.status === 'CEK SELESAI' || prog > 95
+                                ? 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30'
+                                : badgeBg
+                            }`}
+                          >
+                            {fmt(prog)}%
+                          </span>
                         </div>
-                        {/* Badge Angka % */}
-                        <span
-                          className={`font-mono text-[11px] font-bold px-1.5 py-0.5 rounded border min-w-[48px] text-center ${badgeBg}`}
-                        >
-                          {fmt(prog)}%
-                        </span>
+                        {(row.status === 'CEK SELESAI' || prog > 95) && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-purple-50 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-2xs">
+                            Cek Selesai
+                          </span>
+                        )}
                       </div>
                     </td>
                   </tr>

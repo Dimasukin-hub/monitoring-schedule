@@ -23,9 +23,11 @@ import {
   CheckCheck,
   XCircle,
   X,
+  Plus,
 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import PlantingDetailDrawer from '@/components/PlantingDetailDrawer';
+import AddPlantingModal from '@/components/AddPlantingModal';
 
 interface PlantingItem {
   id: number;
@@ -173,6 +175,7 @@ export default function PlantingView({
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(15);
+  const [isLimitOpen, setIsLimitOpen] = useState<boolean>(false);
   const [pagination, setPagination] = useState<{ total: number; totalPages: number }>({
     total: 0,
     totalPages: 1,
@@ -191,6 +194,7 @@ export default function PlantingView({
   const [savedSuccessCell, setSavedSuccessCell] = useState<{ id: number; field: string } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // Date Picker State (Muncul hanya saat sel tanggal diklik)
   interface HoverDatePickerState {
@@ -707,23 +711,23 @@ export default function PlantingView({
             </h1>
           </div>
 
-          <div className="flex items-center gap-3 self-start sm:self-auto">
+          <div className="flex items-center gap-2.5 self-start sm:self-auto">
             <button
               onClick={handleExportExcel}
               disabled={isExporting}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-900 font-bold text-sm transition-all shadow-md disabled:opacity-50 cursor-pointer"
-              title="Download Seluruh Data Tabel dalam Format Excel"
+              title="Export Seluruh Data Tabel dalam Format Excel"
             >
               <FileSpreadsheet className={`w-4 h-4 ${isExporting ? 'animate-bounce' : ''}`} />
-              <span>{isExporting ? 'Mengunduh Excel...' : 'Download Excel'}</span>
+              <span>{isExporting ? 'Mengekspor...' : 'Export Excel'}</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* 2. Executive KPI Highlights Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {/* Total Lokasi */}
+      {/* 2. Executive KPI Highlights Cards (5 Kartu Sesuai Permintaan) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {/* 1. Total Lokasi */}
         <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
@@ -759,22 +763,7 @@ export default function PlantingView({
           </div>
         </div>
 
-        {/* Total Luas Lahan */}
-        <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
-              <span>Total Luas</span>
-              <Layers className="w-4 h-4 text-blue-500" />
-            </div>
-            <div className="mt-2 text-2xl font-black text-slate-800 dark:text-slate-100">
-              {summary.totalLuas.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 3 })}
-              <span className="text-xs font-medium text-slate-400 ml-1">Ha</span>
-            </div>
-          </div>
-          <div className="mt-1 text-xs text-slate-400">Akumulasi luas target</div>
-        </div>
-
-        {/* Realisasi Tanam */}
+        {/* 2. Realisasi Tanam (Hitungan 1 Tahun 2026) */}
         <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
@@ -786,27 +775,27 @@ export default function PlantingView({
               <span className="text-xs font-medium text-slate-400 ml-1">Ha</span>
             </div>
           </div>
-          <div className="mt-1 text-xs text-slate-400">Realisasi tertanam</div>
+          <div className="mt-1 text-xs text-slate-400">Realisasi tahun 2026</div>
         </div>
 
-        {/* Sisa Luas */}
+        {/* 3. Proses Tanam (Sebelumnya Sisa Tanam) */}
         <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
-              <span>Sisa Tanam</span>
+              <span>Proses Tanam</span>
               <AlertCircle className="w-4 h-4 text-amber-500" />
             </div>
-            <div className="mt-2 text-2xl font-black text-slate-800 dark:text-slate-100">
+            <div className="mt-2 text-2xl font-black text-amber-600 dark:text-amber-400">
               {summary.totalSisa.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
               <span className="text-xs font-medium text-slate-400 ml-1">Ha</span>
             </div>
           </div>
           <div className="mt-1 text-xs text-slate-400">
-            {summary.totalSisa === 0 ? 'Target terpenuhi' : 'Defisit / Kurang tanam'}
+            Sisa luasan proses tanam
           </div>
         </div>
 
-        {/* Rata-rata Progress */}
+        {/* 4. Rerata Progress (Khusus Petak Proses) */}
         <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
@@ -817,15 +806,18 @@ export default function PlantingView({
               {summary.avgProgress}%
             </div>
           </div>
-          <div className="mt-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
-            <div
-              className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500"
-              style={{ width: `${Math.min(100, summary.avgProgress)}%` }}
-            />
+          <div className="mt-2 space-y-1">
+            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+              <div
+                className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, summary.avgProgress)}%` }}
+              />
+            </div>
+            <div className="text-[11px] text-slate-400">Khusus lokasi proses tanam</div>
           </div>
         </div>
 
-        {/* Rata-rata Leadtime */}
+        {/* 5. Rerata Leadtime (Khusus Lokasi 100% Selesai) */}
         <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
@@ -837,7 +829,7 @@ export default function PlantingView({
               <span className="text-xs font-medium text-slate-400 ml-1">Hari</span>
             </div>
           </div>
-          <div className="mt-1 text-xs text-slate-400">Durasi pengerjaan</div>
+          <div className="mt-1 text-xs text-slate-400">Khusus lokasi selesai (100%)</div>
         </div>
       </div>
 
@@ -883,7 +875,10 @@ export default function PlantingView({
                   : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200'
               }`}
             >
-              <span>{selectedJenis.length > 0 ? `Jenis Bibit (${selectedJenis.length})` : 'Jenis Bibit'}</span>
+              <span>Jenis Bibit</span>
+              {selectedJenis.length > 0 && (
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              )}
               <ChevronDownIcon
                 className={`w-3.5 h-3.5 opacity-60 transition-transform duration-200 ${
                   openDropdown === 'jenis' ? 'rotate-180' : ''
@@ -964,7 +959,10 @@ export default function PlantingView({
                   : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200'
               }`}
             >
-              <span>{selectedKelas.length > 0 ? `Kelas Bibit (${selectedKelas.length})` : 'Kelas Bibit'}</span>
+              <span>Kelas Bibit</span>
+              {selectedKelas.length > 0 && (
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              )}
               <ChevronDownIcon
                 className={`w-3.5 h-3.5 opacity-60 transition-transform duration-200 ${
                   openDropdown === 'kelas' ? 'rotate-180' : ''
@@ -1045,7 +1043,10 @@ export default function PlantingView({
                   : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200'
               }`}
             >
-              <span>{selectedStatus.length > 0 ? `Status (${selectedStatus.length})` : 'Status'}</span>
+              <span>Status</span>
+              {selectedStatus.length > 0 && (
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              )}
               <ChevronDownIcon
                 className={`w-3.5 h-3.5 opacity-60 transition-transform duration-200 ${
                   openDropdown === 'status' ? 'rotate-180' : ''
@@ -1240,9 +1241,15 @@ export default function PlantingView({
               </span>
             )}
           </div>
-          <div className="text-xs text-slate-400">
-            Halaman {page} dari {pagination.totalPages}
-          </div>
+          <button
+            type="button"
+            onClick={() => setIsAddModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs transition-all shadow-sm shadow-emerald-600/20 cursor-pointer"
+            title="Tambah Data Petak Baru"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Tambah Data</span>
+          </button>
         </div>
 
         {/* Tabel Freeze Panes (Header Kolom NO sampai STATUS Tetap Membeku di Atas) */}
@@ -1847,22 +1854,41 @@ export default function PlantingView({
 
         {/* 5. Pagination Bar */}
         <div className="p-4 border-t border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-950/50 text-xs text-slate-500 dark:text-slate-400">
-          <div className="flex items-center gap-2">
-            <span>Tampilkan</span>
-            <select
-              value={limit}
-              onChange={(e) => {
-                setLimit(Number(e.target.value));
-                setPage(1);
-              }}
-              className="px-2 py-1 rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 focus:outline-none"
-            >
-              <option value={15}>15</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-            <span>baris per halaman (Total: {pagination.total} data)</span>
+          <div className="flex items-center gap-3 text-slate-600 dark:text-slate-400">
+            <div className="flex items-center gap-1.5">
+              <span>Tampilkan per halaman:</span>
+              <div className="relative inline-flex items-center">
+                <select
+                  value={limit}
+                  onFocus={() => setIsLimitOpen(true)}
+                  onBlur={() => setIsLimitOpen(false)}
+                  onChange={(e) => {
+                    setLimit(Number(e.target.value));
+                    setPage(1);
+                    setIsLimitOpen(false);
+                    (e.target as HTMLElement).blur();
+                  }}
+                  className="appearance-none pl-2.5 pr-7 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
+                >
+                  <option value={15}>15</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 transition-transform duration-200 ${
+                    isLimitOpen ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : 'rotate-0'
+                  }`}
+                />
+              </div>
+            </div>
+
+            <span className="text-slate-300 dark:text-slate-700">|</span>
+
+            <span>
+              Halaman <strong className="text-slate-800 dark:text-slate-100">{pagination.total > 0 ? page : 0}</strong> dari{' '}
+              <strong className="text-slate-800 dark:text-slate-100">{pagination.totalPages}</strong>
+            </span>
           </div>
 
           <div className="flex items-center gap-1.5">
@@ -1875,9 +1901,6 @@ export default function PlantingView({
               <ChevronLeft className="w-3.5 h-3.5" />
               <span>Sebelumnya</span>
             </button>
-            <span className="px-3 py-1.5 font-semibold text-slate-700 dark:text-slate-200">
-              {page} / {pagination.totalPages}
-            </span>
             <button
               type="button"
               onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
@@ -1899,6 +1922,18 @@ export default function PlantingView({
         onTransactionSaved={() => {
           fetchPlantingData();
           onDataChanged?.();
+        }}
+      />
+
+      {/* Modal Tambah Petak Baru */}
+      <AddPlantingModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={() => {
+          fetchPlantingData();
+          onDataChanged?.();
+          setToastMessage('Petak lokasi baru berhasil ditambahkan.');
+          setTimeout(() => setToastMessage(null), 3000);
         }}
       />
     </div>

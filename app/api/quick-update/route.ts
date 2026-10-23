@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { recalculateAndPersistStageStocks, syncStokLahanMasterForLand } from '@/lib/stageStockCalculator';
 import { computeAktivitasTerakhir, computeRencanaBeroBongkar, isValidDate } from '@/lib/landActivityUtils';
 import { getLandStokCategory } from '@/lib/landClassification';
+import { syncPlantingToStokLahan } from '@/lib/tanamSyncService';
 
 export async function GET(request: Request) {
   try {
@@ -475,6 +476,13 @@ export async function POST(request: Request) {
           await prisma.planting.create({
             data: plantingPayload,
           });
+        }
+
+        // Sinkronisasi Est. Selesai, Leadtime, dan Stok Lahan
+        try {
+          await syncPlantingToStokLahan(existingLand.lokasi);
+        } catch (syncErr) {
+          console.error('Error syncing planting after quick update:', syncErr);
         }
 
         createdDetailIdResult = createdDetailRecord?.id || null;

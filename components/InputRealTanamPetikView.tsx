@@ -10,11 +10,14 @@ import {
   ChevronRight,
   FileSpreadsheet,
   XCircle,
+  X,
   Check,
   Loader2,
+  Plus,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import TableDatePicker from '@/components/TableDatePicker';
+import AddPlantingTransactionModal from '@/components/AddPlantingTransactionModal';
 
 interface TransactionItem {
   id: number;
@@ -74,6 +77,7 @@ export default function InputRealTanamPetikView() {
 
   const [loading, setLoading] = useState<boolean>(true);
   const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [isAddTxModalOpen, setIsAddTxModalOpen] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   // Search state
@@ -96,6 +100,7 @@ export default function InputRealTanamPetikView() {
   // Sorting & Pagination States
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(50);
+  const [isLimitOpen, setIsLimitOpen] = useState<boolean>(false);
   const [sortField, setSortField] = useState<string>('tanggalDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
@@ -394,12 +399,12 @@ export default function InputRealTanamPetikView() {
             </h2>
           </div>
 
-          {/* Sisi Kanan: Action Button (Export Excel saja) */}
+          {/* Sisi Kanan: Action Buttons */}
           <div className="flex items-center gap-2.5">
             <button
               onClick={handleExportExcel}
               disabled={isExporting || total === 0}
-              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-sm shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 cursor-pointer"
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 cursor-pointer"
               title="Unduh seluruh data sesuai filter saat ini ke file Excel"
             >
               <Download className={`w-4 h-4 ${isExporting ? 'animate-bounce' : ''}`} />
@@ -775,19 +780,163 @@ export default function InputRealTanamPetikView() {
             </div>
           </div>
         </div>
+
+        {/* Active Filters Display & Reset Bar */}
+        {(selectedMonths.length > 0 ||
+          selectedWilayahs.length > 0 ||
+          selectedAktivitas.length > 0 ||
+          selectedJenisBibit.length > 0) && (
+          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-2">
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 leading-none">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                <span>Data Difilter:</span>
+                <span className="text-[11px] font-normal text-slate-400 dark:text-slate-500">
+                  ({selectedMonths.length + selectedWilayahs.length + selectedAktivitas.length + selectedJenisBibit.length} filter aktif)
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedMonths([]);
+                  setSelectedWilayahs([]);
+                  setSelectedAktivitas([]);
+                  setSelectedJenisBibit([]);
+                  setPage(1);
+                }}
+                className="text-xs font-semibold text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 underline underline-offset-2 cursor-pointer transition-colors leading-none inline-flex items-center"
+                title="Hapus semua filter"
+              >
+                Reset
+              </button>
+            </div>
+
+            <div className="flex items-center flex-wrap gap-1.5">
+              {/* Bulan badges */}
+              {selectedMonths.map((m) => {
+                const label = MONTH_LIST.find((item) => item.value === m)?.label || m;
+                return (
+                  <span
+                    key={`m-${m}`}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 shadow-2xs transition-all hover:bg-emerald-100 dark:hover:bg-emerald-900/60"
+                  >
+                    <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">Bulan:</span>
+                    <span className="font-semibold">{label}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedMonths((prev) => prev.filter((item) => item !== m));
+                        setPage(1);
+                      }}
+                      className="p-0.5 rounded-full hover:bg-rose-500 hover:text-white text-emerald-700 dark:text-emerald-300 transition-colors cursor-pointer"
+                      title={`Hapus filter Bulan ${label}`}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </span>
+                );
+              })}
+
+              {/* Wilayah badges */}
+              {selectedWilayahs.map((w) => (
+                <span
+                  key={`w-${w}`}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium bg-blue-50 dark:bg-blue-950/60 border border-blue-300 dark:border-blue-800 text-blue-800 dark:text-blue-300 shadow-2xs transition-all hover:bg-blue-100 dark:hover:bg-blue-900/60"
+                >
+                  <span className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400">Wilayah:</span>
+                  <span className="font-semibold">{w}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedWilayahs((prev) => prev.filter((item) => item !== w));
+                      setPage(1);
+                    }}
+                    className="p-0.5 rounded-full hover:bg-rose-500 hover:text-white text-blue-700 dark:text-blue-300 transition-colors cursor-pointer"
+                    title={`Hapus filter Wilayah ${w}`}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              ))}
+
+              {/* Aktivitas badges */}
+              {selectedAktivitas.map((akt) => (
+                <span
+                  key={`akt-${akt}`}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium bg-purple-50 dark:bg-purple-950/60 border border-purple-300 dark:border-purple-800 text-purple-800 dark:text-purple-300 shadow-2xs transition-all hover:bg-purple-100 dark:hover:bg-purple-900/60"
+                >
+                  <span className="text-[10px] uppercase font-bold text-purple-600 dark:text-purple-400">Aktivitas:</span>
+                  <span className="font-semibold">{akt}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedAktivitas((prev) => prev.filter((item) => item !== akt));
+                      setPage(1);
+                    }}
+                    className="p-0.5 rounded-full hover:bg-rose-500 hover:text-white text-purple-700 dark:text-purple-300 transition-colors cursor-pointer"
+                    title={`Hapus filter Aktivitas ${akt}`}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              ))}
+
+              {/* Jenis Bibit badges */}
+              {selectedJenisBibit.map((jb) => (
+                <span
+                  key={`jb-${jb}`}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 shadow-2xs transition-all hover:bg-amber-100 dark:hover:bg-amber-900/60"
+                >
+                  <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400">Jenis:</span>
+                  <span className="font-semibold">{jb}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedJenisBibit((prev) => prev.filter((item) => item !== jb));
+                      setPage(1);
+                    }}
+                    className="p-0.5 rounded-full hover:bg-rose-500 hover:text-white text-amber-700 dark:text-amber-300 transition-colors cursor-pointer"
+                    title={`Hapus filter Jenis Bibit ${jb}`}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main Table Container (Freeze Panes Vertikal & Horizontal Dari NO sampai AKTIVITAS) */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-300">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-300 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-300">
+        {/* Header Baris di Atas Tabel */}
+        <div className="p-3.5 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-slate-800 dark:text-slate-100 text-sm">
+              Tabel Input Real Tanam &amp; Petik Nanas
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsAddTxModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs transition-all shadow-sm shadow-emerald-600/20 cursor-pointer"
+            title="Tambah Data Transaksi Baru"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Tambah Data</span>
+          </button>
+        </div>
+
         <div className="overflow-x-auto max-h-[68vh] overflow-y-auto">
-          <table className="w-full text-center border-collapse text-xs border border-slate-200 dark:border-slate-800">
+          <table className="w-full text-center border-separate border-spacing-0 text-xs">
             {/* Header Sticky Top-0 z-30 (Solid Opaque Background pada thead & setiap th) */}
-            <thead className="sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 shadow-xs">
-              <tr className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 font-bold uppercase tracking-wider select-none whitespace-nowrap text-[11px]">
-                {/* 1. NO (Sticky top-0 left-0 z-50) */}
+            <thead className="sticky top-0 z-30 shadow-xs">
+              <tr className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold uppercase tracking-tight select-none whitespace-nowrap text-[10.5px]">
+                {/* 1. NO (Sticky top-0 left-0 z-40) */}
                 <th
                   onClick={() => setSortField('id')}
-                  className="py-3 px-2 text-center w-[50px] min-w-[50px] max-w-[50px] sticky top-0 left-0 z-50 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 cursor-pointer hover:text-emerald-600"
+                  className="py-2.5 px-1.5 text-center w-[50px] min-w-[50px] max-w-[50px] sticky top-0 left-0 z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700 cursor-pointer hover:text-emerald-600 transition-colors"
                 >
                   <div className="flex items-center justify-center gap-0.5">
                     <span>NO</span>
@@ -795,10 +944,10 @@ export default function InputRealTanamPetikView() {
                   </div>
                 </th>
 
-                {/* 2. TANGGAL (Sticky top-0 left-[50px] z-50) */}
+                {/* 2. TANGGAL (Sticky top-0 left-[50px] z-40) */}
                 <th
                   onClick={() => setSortField('tanggalDate')}
-                  className="py-3 px-2 text-center w-[125px] min-w-[125px] max-w-[125px] sticky top-0 left-[50px] z-50 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 cursor-pointer hover:text-emerald-600"
+                  className="py-2.5 px-2 text-center w-[125px] min-w-[125px] max-w-[125px] sticky top-0 left-[50px] z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700 cursor-pointer hover:text-emerald-600 transition-colors"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>TANGGAL</span>
@@ -806,10 +955,10 @@ export default function InputRealTanamPetikView() {
                   </div>
                 </th>
 
-                {/* 3. LOKASI (Sticky top-0 left-[175px] z-50, Width 115px to prevent overlap) */}
+                {/* 3. LOKASI (Sticky top-0 left-[175px] z-40, Width 115px) */}
                 <th
                   onClick={() => setSortField('lokasi')}
-                  className="py-3 px-2 text-center w-[115px] min-w-[115px] max-w-[115px] sticky top-0 left-[175px] z-50 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 cursor-pointer hover:text-emerald-600"
+                  className="py-2.5 px-2 text-center w-[115px] min-w-[115px] max-w-[115px] sticky top-0 left-[175px] z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700 cursor-pointer hover:text-emerald-600 transition-colors"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>LOKASI</span>
@@ -817,10 +966,10 @@ export default function InputRealTanamPetikView() {
                   </div>
                 </th>
 
-                {/* 4. LUAS NETTO (HA) (Sticky top-0 left-[290px] z-50, Width 130px) */}
+                {/* 4. LUAS NETTO (HA) (Sticky top-0 left-[290px] z-40, Width 130px) */}
                 <th
                   onClick={() => setSortField('luasNetto')}
-                  className="py-3 px-2 text-center w-[130px] min-w-[130px] max-w-[130px] sticky top-0 left-[290px] z-50 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 cursor-pointer hover:text-emerald-600"
+                  className="py-2.5 px-2 text-center w-[130px] min-w-[130px] max-w-[130px] sticky top-0 left-[290px] z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700 cursor-pointer hover:text-emerald-600 transition-colors"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>LUAS NETTO (HA)</span>
@@ -828,10 +977,10 @@ export default function InputRealTanamPetikView() {
                   </div>
                 </th>
 
-                {/* 5. AKTIVITAS (Sticky top-0 left-[420px] z-50, Width 130px with right border divider & shadow) */}
+                {/* 5. AKTIVITAS (Sticky top-0 left-[420px] z-40, Width 130px with right border divider & shadow) */}
                 <th
                   onClick={() => setSortField('aktivitas')}
-                  className="py-3 px-2 text-center w-[130px] min-w-[130px] max-w-[130px] sticky top-0 left-[420px] z-50 bg-slate-100 dark:bg-slate-800 border-r-2 border-b border-slate-300 dark:border-slate-600 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.12)] dark:shadow-[3px_0_6px_-2px_rgba(0,0,0,0.6)] cursor-pointer hover:text-emerald-600"
+                  className="py-2.5 px-2 text-center w-[130px] min-w-[130px] max-w-[130px] sticky top-0 left-[420px] z-40 bg-slate-100 dark:bg-slate-800 border-r-[1.5px] border-b border-slate-300 dark:border-slate-700 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.08)] dark:shadow-[2px_0_4px_-1px_rgba(0,0,0,0.5)] cursor-pointer hover:text-emerald-600 transition-colors"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>AKTIVITAS</span>
@@ -839,10 +988,10 @@ export default function InputRealTanamPetikView() {
                   </div>
                 </th>
 
-                {/* 6. STANDAR (Sticky top-0 z-30 bg-slate-100 dark:bg-slate-800) */}
+                {/* 6. STANDAR (Sticky top-0 z-30) */}
                 <th
                   onClick={() => setSortField('standar')}
-                  className="py-3 px-3 text-center sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 cursor-pointer hover:text-emerald-600"
+                  className="py-2.5 px-2 text-center w-[90px] min-w-[90px] sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700 cursor-pointer hover:text-emerald-600 transition-colors"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>STANDAR</span>
@@ -850,10 +999,10 @@ export default function InputRealTanamPetikView() {
                   </div>
                 </th>
 
-                {/* 7. BESAR (Sticky top-0 z-30 bg-slate-100 dark:bg-slate-800) */}
+                {/* 7. BESAR (Sticky top-0 z-30) */}
                 <th
                   onClick={() => setSortField('besar')}
-                  className="py-3 px-3 text-center sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 cursor-pointer hover:text-emerald-600"
+                  className="py-2.5 px-2 text-center w-[90px] min-w-[90px] sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700 cursor-pointer hover:text-emerald-600 transition-colors"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>BESAR</span>
@@ -861,10 +1010,10 @@ export default function InputRealTanamPetikView() {
                   </div>
                 </th>
 
-                {/* 8. SEDANG (Sticky top-0 z-30 bg-slate-100 dark:bg-slate-800) */}
+                {/* 8. SEDANG (Sticky top-0 z-30) */}
                 <th
                   onClick={() => setSortField('sedang')}
-                  className="py-3 px-3 text-center sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 cursor-pointer hover:text-emerald-600"
+                  className="py-2.5 px-2 text-center w-[90px] min-w-[90px] sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700 cursor-pointer hover:text-emerald-600 transition-colors"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>SEDANG</span>
@@ -872,10 +1021,10 @@ export default function InputRealTanamPetikView() {
                   </div>
                 </th>
 
-                {/* 9. KECIL (Sticky top-0 z-30 bg-slate-100 dark:bg-slate-800) */}
+                {/* 9. KECIL (Sticky top-0 z-30) */}
                 <th
                   onClick={() => setSortField('kecil')}
-                  className="py-3 px-3 text-center sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 cursor-pointer hover:text-emerald-600"
+                  className="py-2.5 px-2 text-center w-[90px] min-w-[90px] sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700 cursor-pointer hover:text-emerald-600 transition-colors"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>KECIL</span>
@@ -883,10 +1032,10 @@ export default function InputRealTanamPetikView() {
                   </div>
                 </th>
 
-                {/* 10. EXTRA KECIL (Sticky top-0 z-30 bg-slate-100 dark:bg-slate-800) */}
+                {/* 10. EXTRA KECIL (Sticky top-0 z-30) */}
                 <th
                   onClick={() => setSortField('extraKecil')}
-                  className="py-3 px-3 text-center sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 cursor-pointer hover:text-emerald-600"
+                  className="py-2.5 px-2 text-center w-[110px] min-w-[110px] sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700 cursor-pointer hover:text-emerald-600 transition-colors"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>EXTRA KECIL</span>
@@ -894,10 +1043,10 @@ export default function InputRealTanamPetikView() {
                   </div>
                 </th>
 
-                {/* 11. TOTAL (HA) (Sticky top-0 z-30 bg-slate-100 dark:bg-slate-800) */}
+                {/* 11. TOTAL (HA) (Sticky top-0 z-30) */}
                 <th
                   onClick={() => setSortField('total')}
-                  className="py-3 px-3 text-center sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 cursor-pointer hover:text-emerald-600 text-slate-800 dark:text-slate-100"
+                  className="py-2.5 px-2 text-center w-[105px] min-w-[105px] sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700 cursor-pointer hover:text-emerald-600 text-slate-800 dark:text-slate-100 transition-colors"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>TOTAL (HA)</span>
@@ -905,10 +1054,10 @@ export default function InputRealTanamPetikView() {
                   </div>
                 </th>
 
-                {/* 12. JENIS BIBIT (Sticky top-0 z-30 bg-slate-100 dark:bg-slate-800) */}
+                {/* 12. JENIS BIBIT (Sticky top-0 z-30) */}
                 <th
                   onClick={() => setSortField('jenisBibit')}
-                  className="py-3 px-3 text-center sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 cursor-pointer hover:text-emerald-600"
+                  className="py-2.5 px-2 text-center w-[115px] min-w-[115px] sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700 cursor-pointer hover:text-emerald-600 transition-colors"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>JENIS BIBIT</span>
@@ -916,10 +1065,10 @@ export default function InputRealTanamPetikView() {
                   </div>
                 </th>
 
-                {/* 13. WILAYAH (Sticky top-0 z-30 bg-slate-100 dark:bg-slate-800) */}
+                {/* 13. WILAYAH (Sticky top-0 z-30) */}
                 <th
                   onClick={() => setSortField('wilayah')}
-                  className="py-3 px-3 text-center sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 cursor-pointer hover:text-emerald-600"
+                  className="py-2.5 px-2 text-center w-[95px] min-w-[95px] sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700 cursor-pointer hover:text-emerald-600 transition-colors"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>WILAYAH</span>
@@ -927,10 +1076,10 @@ export default function InputRealTanamPetikView() {
                   </div>
                 </th>
 
-                {/* 14. AWAL TANAM (Sticky top-0 z-30 bg-slate-100 dark:bg-slate-800) */}
+                {/* 14. AWAL TANAM (Sticky top-0 z-30) */}
                 <th
                   onClick={() => setSortField('awalTanam')}
-                  className="py-3 px-3 text-center sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 cursor-pointer hover:text-emerald-600"
+                  className="py-2.5 px-2 text-center w-[125px] min-w-[125px] sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700 cursor-pointer hover:text-emerald-600 transition-colors"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>AWAL TANAM</span>
@@ -938,10 +1087,10 @@ export default function InputRealTanamPetikView() {
                   </div>
                 </th>
 
-                {/* 15. SELESAI TANAM (Sticky top-0 z-30 bg-slate-100 dark:bg-slate-800) */}
+                {/* 15. SELESAI TANAM (Sticky top-0 z-30) */}
                 <th
                   onClick={() => setSortField('selesaiTanam')}
-                  className="py-3 px-3 text-center sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 cursor-pointer hover:text-emerald-600"
+                  className="py-2.5 px-2 text-center w-[130px] min-w-[130px] sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700 cursor-pointer hover:text-emerald-600 transition-colors"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>SELESAI TANAM</span>
@@ -949,10 +1098,10 @@ export default function InputRealTanamPetikView() {
                   </div>
                 </th>
 
-                {/* 16. AKUM TANAM (HA) (Sticky top-0 z-30 bg-slate-100 dark:bg-slate-800) */}
+                {/* 16. AKUM TANAM (HA) (Sticky top-0 z-30) */}
                 <th
                   onClick={() => setSortField('akumTanam')}
-                  className="py-3 px-3 text-center sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 cursor-pointer hover:text-emerald-600"
+                  className="py-2.5 px-2 text-center w-[140px] min-w-[140px] sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700 cursor-pointer hover:text-emerald-600 transition-colors"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>AKUM TANAM (HA)</span>
@@ -960,10 +1109,10 @@ export default function InputRealTanamPetikView() {
                   </div>
                 </th>
 
-                {/* 17. % TANAM (Sticky top-0 z-30 bg-slate-100 dark:bg-slate-800) */}
+                {/* 17. % TANAM (Sticky top-0 z-30) */}
                 <th
                   onClick={() => setSortField('persenTanam')}
-                  className="py-3 px-3 text-center sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 cursor-pointer hover:text-emerald-600"
+                  className="py-2.5 px-2 text-center w-[95px] min-w-[95px] sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700 cursor-pointer hover:text-emerald-600 transition-colors"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>% TANAM</span>
@@ -971,10 +1120,10 @@ export default function InputRealTanamPetikView() {
                   </div>
                 </th>
 
-                {/* 18. PETIK KE- (Sticky top-0 z-30 bg-slate-100 dark:bg-slate-800) */}
+                {/* 18. PETIK KE- (Sticky top-0 z-30, dengan border-r) */}
                 <th
                   onClick={() => setSortField('petikKe')}
-                  className="py-3 px-3 text-center sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 cursor-pointer hover:text-emerald-600"
+                  className="py-2.5 px-2 text-center w-[95px] min-w-[95px] sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700 cursor-pointer hover:text-emerald-600 transition-colors"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>PETIK KE-</span>
@@ -988,7 +1137,7 @@ export default function InputRealTanamPetikView() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={18} className="py-20 text-center">
+                  <td colSpan={18} className="py-20 text-center border-r border-b border-slate-300 dark:border-slate-700">
                     <div className="inline-flex flex-col items-center justify-center gap-2 text-slate-500 dark:text-slate-400">
                       <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
                       <span className="text-xs font-medium">Memuat data transaksi...</span>
@@ -997,7 +1146,7 @@ export default function InputRealTanamPetikView() {
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={18} className="py-16 text-center text-rose-500 text-xs">
+                  <td colSpan={18} className="py-16 text-center text-rose-500 text-xs border-r border-b border-slate-300 dark:border-slate-700">
                     <p className="font-semibold">{error}</p>
                     <button
                       onClick={fetchData}
@@ -1009,7 +1158,7 @@ export default function InputRealTanamPetikView() {
                 </tr>
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={18} className="py-16 text-center text-slate-400 dark:text-slate-500 text-xs">
+                  <td colSpan={18} className="py-16 text-center text-slate-400 dark:text-slate-500 text-xs border-r border-b border-slate-300 dark:border-slate-700">
                     <p className="font-medium text-slate-600 dark:text-slate-300">
                       Tidak ada data transaksi yang cocok dengan filter.
                     </p>
@@ -1028,9 +1177,9 @@ export default function InputRealTanamPetikView() {
                   const cellClass = (field: string, extra = '') => {
                     let base = `${extra} transition-colors `;
                     if (isSavedSuccess(field)) {
-                      base += 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 ';
+                      base += 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 ';
                     } else if (isSaving(field)) {
-                      base += 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 opacity-70 ';
+                      base += 'bg-amber-100 dark:bg-amber-950 text-amber-700 ';
                     }
                     return base;
                   };
@@ -1038,15 +1187,15 @@ export default function InputRealTanamPetikView() {
                   return (
                     <tr
                       key={item.id}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors whitespace-nowrap group"
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors whitespace-nowrap group"
                     >
                       {/* 1. NO (Sticky left-0, 100% Solid Background) */}
-                      <td className="py-2 px-2 text-center font-mono text-[11px] text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 sticky left-0 z-20 w-[50px] min-w-[50px] max-w-[50px] bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-800">
+                      <td className="py-2 px-1.5 text-center font-mono text-[11px] text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200 sticky left-0 z-20 w-[50px] min-w-[50px] max-w-[50px] bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700">
                         {rowNumber}
                       </td>
 
                       {/* 2. TANGGAL (Sticky left-[50px], Editable via TableDatePicker) */}
-                      <td className={`py-1.5 px-2 text-center font-mono sticky left-[50px] z-20 w-[125px] min-w-[125px] max-w-[125px] bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-800 ${cellClass('tanggal')}`}>
+                      <td className={`py-1.5 px-2 text-center font-mono text-[11px] sticky left-[50px] z-20 w-[125px] min-w-[125px] max-w-[125px] bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700 ${cellClass('tanggal')}`}>
                         <div className="flex items-center justify-center">
                           <TableDatePicker
                             value={item.tanggal}
@@ -1057,14 +1206,14 @@ export default function InputRealTanamPetikView() {
                       </td>
 
                       {/* 3. LOKASI (Sticky left-[175px], Read-only, Width 115px) */}
-                      <td className="py-2 px-2.5 text-center font-bold text-slate-800 dark:text-slate-100 font-mono tracking-tight sticky left-[175px] z-20 w-[115px] min-w-[115px] max-w-[115px] bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-800">
+                      <td className="py-2 px-2 text-center font-bold text-slate-800 dark:text-slate-100 font-mono text-[11px] tracking-tight sticky left-[175px] z-20 w-[115px] min-w-[115px] max-w-[115px] bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700">
                         {item.lokasi}
                       </td>
 
                       {/* 4. LUAS NETTO (HA) (Sticky left-[290px], Inline editable, Width 130px) */}
                       <td
                         onClick={() => startEdit(item, 'luasNetto')}
-                        className={`py-2 px-2.5 text-center font-mono cursor-pointer sticky left-[290px] z-20 w-[130px] min-w-[130px] max-w-[130px] bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-800 ${cellClass('luasNetto', 'hover:bg-emerald-50/60 dark:hover:bg-emerald-950/40')}`}
+                        className={`py-2 px-2 text-center font-mono text-[11px] cursor-pointer sticky left-[290px] z-20 w-[130px] min-w-[130px] max-w-[130px] bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700 ${cellClass('luasNetto', 'hover:bg-emerald-50 dark:hover:bg-emerald-950')}`}
                         title="Klik untuk mengedit Luas Netto"
                       >
                         {isEditing('luasNetto') ? (
@@ -1079,7 +1228,7 @@ export default function InputRealTanamPetikView() {
                               if (e.key === 'Enter') handleSaveEdit(item, 'luasNetto', editValue);
                               if (e.key === 'Escape') cancelEdit();
                             }}
-                            className="w-20 text-center px-1.5 py-0.5 text-xs bg-white dark:bg-slate-800 border border-emerald-500 rounded font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                            className="w-20 text-center px-1.5 py-0.5 text-[11px] bg-white dark:bg-slate-800 border border-emerald-500 rounded font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500"
                           />
                         ) : (
                           <span>{item.luasNetto !== null ? item.luasNetto.toFixed(2) : '-'}</span>
@@ -1088,7 +1237,7 @@ export default function InputRealTanamPetikView() {
 
                       {/* 5. AKTIVITAS (Sticky left-[420px], Dropdown Inline Editable, Divider Shadow) */}
                       <td
-                        className={`py-1.5 px-2 text-center sticky left-[420px] z-20 w-[130px] min-w-[130px] max-w-[130px] bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 border-r-2 border-b border-slate-300 dark:border-slate-700 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.12)] dark:shadow-[3px_0_6px_-2px_rgba(0,0,0,0.6)] ${cellClass('aktivitas')}`}
+                        className={`py-1.5 px-2 text-center text-[11px] font-medium sticky left-[420px] z-20 w-[130px] min-w-[130px] max-w-[130px] bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 border-r-[1.5px] border-b border-slate-300 dark:border-slate-700 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.08)] dark:shadow-[2px_0_4px_-1px_rgba(0,0,0,0.5)] ${cellClass('aktivitas')}`}
                       >
                         {isEditing('aktivitas') ? (
                           <select
@@ -1118,7 +1267,7 @@ export default function InputRealTanamPetikView() {
                       {/* 6. STANDAR (Inline editable) */}
                       <td
                         onClick={() => startEdit(item, 'standar')}
-                        className={`py-2 px-3 text-center font-mono cursor-pointer border-r border-b border-slate-200 dark:border-slate-800 ${cellClass('standar', 'hover:bg-emerald-50/60 dark:hover:bg-emerald-950/40 text-slate-600 dark:text-slate-400')}`}
+                        className={`py-2 px-2 text-center font-mono text-[11px] cursor-pointer w-[90px] min-w-[90px] border-r border-b border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 ${cellClass('standar', 'hover:bg-emerald-50 dark:hover:bg-emerald-950 text-slate-700 dark:text-slate-300')}`}
                         title="Klik untuk mengedit Standar"
                       >
                         {isEditing('standar') ? (
@@ -1133,7 +1282,7 @@ export default function InputRealTanamPetikView() {
                               if (e.key === 'Enter') handleSaveEdit(item, 'standar', editValue);
                               if (e.key === 'Escape') cancelEdit();
                             }}
-                            className="w-20 text-center px-1.5 py-0.5 text-xs bg-white dark:bg-slate-800 border border-emerald-500 rounded font-mono focus:outline-none"
+                            className="w-16 text-center px-1.5 py-0.5 text-[11px] bg-white dark:bg-slate-800 border border-emerald-500 rounded font-mono focus:outline-none"
                           />
                         ) : (
                           <span>{item.standar ? item.standar.toFixed(2) : '-'}</span>
@@ -1143,7 +1292,7 @@ export default function InputRealTanamPetikView() {
                       {/* 7. BESAR (Inline editable) */}
                       <td
                         onClick={() => startEdit(item, 'besar')}
-                        className={`py-2 px-3 text-center font-mono cursor-pointer border-r border-b border-slate-200 dark:border-slate-800 ${cellClass('besar', 'hover:bg-emerald-50/60 dark:hover:bg-emerald-950/40 text-slate-600 dark:text-slate-400')}`}
+                        className={`py-2 px-2 text-center font-mono text-[11px] cursor-pointer w-[90px] min-w-[90px] border-r border-b border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 ${cellClass('besar', 'hover:bg-emerald-50 dark:hover:bg-emerald-950 text-slate-700 dark:text-slate-300')}`}
                         title="Klik untuk mengedit Besar"
                       >
                         {isEditing('besar') ? (
@@ -1158,7 +1307,7 @@ export default function InputRealTanamPetikView() {
                               if (e.key === 'Enter') handleSaveEdit(item, 'besar', editValue);
                               if (e.key === 'Escape') cancelEdit();
                             }}
-                            className="w-20 text-center px-1.5 py-0.5 text-xs bg-white dark:bg-slate-800 border border-emerald-500 rounded font-mono focus:outline-none"
+                            className="w-16 text-center px-1.5 py-0.5 text-[11px] bg-white dark:bg-slate-800 border border-emerald-500 rounded font-mono focus:outline-none"
                           />
                         ) : (
                           <span>{item.besar ? item.besar.toFixed(2) : '-'}</span>
@@ -1168,7 +1317,7 @@ export default function InputRealTanamPetikView() {
                       {/* 8. SEDANG (Inline editable) */}
                       <td
                         onClick={() => startEdit(item, 'sedang')}
-                        className={`py-2 px-3 text-center font-mono cursor-pointer border-r border-b border-slate-200 dark:border-slate-800 ${cellClass('sedang', 'hover:bg-emerald-50/60 dark:hover:bg-emerald-950/40 text-slate-600 dark:text-slate-400')}`}
+                        className={`py-2 px-2 text-center font-mono text-[11px] cursor-pointer w-[90px] min-w-[90px] border-r border-b border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 ${cellClass('sedang', 'hover:bg-emerald-50 dark:hover:bg-emerald-950 text-slate-700 dark:text-slate-300')}`}
                         title="Klik untuk mengedit Sedang"
                       >
                         {isEditing('sedang') ? (
@@ -1183,7 +1332,7 @@ export default function InputRealTanamPetikView() {
                               if (e.key === 'Enter') handleSaveEdit(item, 'sedang', editValue);
                               if (e.key === 'Escape') cancelEdit();
                             }}
-                            className="w-20 text-center px-1.5 py-0.5 text-xs bg-white dark:bg-slate-800 border border-emerald-500 rounded font-mono focus:outline-none"
+                            className="w-16 text-center px-1.5 py-0.5 text-[11px] bg-white dark:bg-slate-800 border border-emerald-500 rounded font-mono focus:outline-none"
                           />
                         ) : (
                           <span>{item.sedang ? item.sedang.toFixed(2) : '-'}</span>
@@ -1193,7 +1342,7 @@ export default function InputRealTanamPetikView() {
                       {/* 9. KECIL (Inline editable) */}
                       <td
                         onClick={() => startEdit(item, 'kecil')}
-                        className={`py-2 px-3 text-center font-mono cursor-pointer border-r border-b border-slate-200 dark:border-slate-800 ${cellClass('kecil', 'hover:bg-emerald-50/60 dark:hover:bg-emerald-950/40 text-slate-600 dark:text-slate-400')}`}
+                        className={`py-2 px-2 text-center font-mono text-[11px] cursor-pointer w-[90px] min-w-[90px] border-r border-b border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 ${cellClass('kecil', 'hover:bg-emerald-50 dark:hover:bg-emerald-950 text-slate-700 dark:text-slate-300')}`}
                         title="Klik untuk mengedit Kecil"
                       >
                         {isEditing('kecil') ? (
@@ -1208,7 +1357,7 @@ export default function InputRealTanamPetikView() {
                               if (e.key === 'Enter') handleSaveEdit(item, 'kecil', editValue);
                               if (e.key === 'Escape') cancelEdit();
                             }}
-                            className="w-20 text-center px-1.5 py-0.5 text-xs bg-white dark:bg-slate-800 border border-emerald-500 rounded font-mono focus:outline-none"
+                            className="w-16 text-center px-1.5 py-0.5 text-[11px] bg-white dark:bg-slate-800 border border-emerald-500 rounded font-mono focus:outline-none"
                           />
                         ) : (
                           <span>{item.kecil ? item.kecil.toFixed(2) : '-'}</span>
@@ -1218,7 +1367,7 @@ export default function InputRealTanamPetikView() {
                       {/* 10. EXTRA KECIL (Inline editable) */}
                       <td
                         onClick={() => startEdit(item, 'extraKecil')}
-                        className={`py-2 px-3 text-center font-mono cursor-pointer border-r border-b border-slate-200 dark:border-slate-800 ${cellClass('extraKecil', 'hover:bg-emerald-50/60 dark:hover:bg-emerald-950/40 text-slate-600 dark:text-slate-400')}`}
+                        className={`py-2 px-2 text-center font-mono text-[11px] cursor-pointer w-[110px] min-w-[110px] border-r border-b border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 ${cellClass('extraKecil', 'hover:bg-emerald-50 dark:hover:bg-emerald-950 text-slate-700 dark:text-slate-300')}`}
                         title="Klik untuk mengedit Extra Kecil"
                       >
                         {isEditing('extraKecil') ? (
@@ -1233,7 +1382,7 @@ export default function InputRealTanamPetikView() {
                               if (e.key === 'Enter') handleSaveEdit(item, 'extraKecil', editValue);
                               if (e.key === 'Escape') cancelEdit();
                             }}
-                            className="w-20 text-center px-1.5 py-0.5 text-xs bg-white dark:bg-slate-800 border border-emerald-500 rounded font-mono focus:outline-none"
+                            className="w-16 text-center px-1.5 py-0.5 text-[11px] bg-white dark:bg-slate-800 border border-emerald-500 rounded font-mono focus:outline-none"
                           />
                         ) : (
                           <span>{item.extraKecil ? item.extraKecil.toFixed(2) : '-'}</span>
@@ -1243,7 +1392,7 @@ export default function InputRealTanamPetikView() {
                       {/* 11. TOTAL (HA) (Inline editable) */}
                       <td
                         onClick={() => startEdit(item, 'total')}
-                        className={`py-2 px-3 text-center font-mono font-bold cursor-pointer bg-emerald-50/40 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-r border-b border-slate-200 dark:border-slate-800 ${cellClass('total', 'hover:bg-emerald-100/50')}`}
+                        className={`py-2 px-2 text-center font-mono font-bold text-[11px] cursor-pointer w-[105px] min-w-[105px] bg-emerald-50/70 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-r border-b border-slate-300 dark:border-slate-700 ${cellClass('total', 'hover:bg-emerald-100 dark:hover:bg-emerald-950')}`}
                         title="Klik untuk mengedit Total Ha"
                       >
                         {isEditing('total') ? (
@@ -1258,7 +1407,7 @@ export default function InputRealTanamPetikView() {
                               if (e.key === 'Enter') handleSaveEdit(item, 'total', editValue);
                               if (e.key === 'Escape') cancelEdit();
                             }}
-                            className="w-20 text-center px-1.5 py-0.5 text-xs bg-white dark:bg-slate-800 border border-emerald-500 rounded font-mono focus:outline-none"
+                            className="w-16 text-center px-1.5 py-0.5 text-[11px] bg-white dark:bg-slate-800 border border-emerald-500 rounded font-mono focus:outline-none"
                           />
                         ) : (
                           <span>{item.total ? item.total.toFixed(2) : '0.00'}</span>
@@ -1266,7 +1415,7 @@ export default function InputRealTanamPetikView() {
                       </td>
 
                       {/* 12. JENIS BIBIT (Dropdown Inline Editable: No arrow initially, select shown on click) */}
-                      <td className={`py-1.5 px-3 text-center border-r border-b border-slate-200 dark:border-slate-800 ${cellClass('jenisBibit')}`}>
+                      <td className={`py-1.5 px-2 text-center text-[11px] font-medium w-[115px] min-w-[115px] border-r border-b border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 ${cellClass('jenisBibit')}`}>
                         {isEditing('jenisBibit') ? (
                           <select
                             autoFocus
@@ -1293,7 +1442,7 @@ export default function InputRealTanamPetikView() {
                       </td>
 
                       {/* 13. WILAYAH (Dropdown Inline Editable: No arrow initially, select shown on click) */}
-                      <td className={`py-1.5 px-3 text-center border-r border-b border-slate-200 dark:border-slate-800 ${cellClass('wilayah')}`}>
+                      <td className={`py-1.5 px-2 text-center text-[11px] font-medium w-[95px] min-w-[95px] border-r border-b border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 ${cellClass('wilayah')}`}>
                         {isEditing('wilayah') ? (
                           <select
                             autoFocus
@@ -1320,7 +1469,7 @@ export default function InputRealTanamPetikView() {
                       </td>
 
                       {/* 14. AWAL TANAM (Editable via TableDatePicker) */}
-                      <td className={`py-1.5 px-3 text-center font-mono border-r border-b border-slate-200 dark:border-slate-800 ${cellClass('awalTanam')}`}>
+                      <td className={`py-1.5 px-2 text-center font-mono text-[11px] w-[125px] min-w-[125px] border-r border-b border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 ${cellClass('awalTanam')}`}>
                         <div className="flex items-center justify-center">
                           <TableDatePicker
                             value={item.awalTanam}
@@ -1331,7 +1480,7 @@ export default function InputRealTanamPetikView() {
                       </td>
 
                       {/* 15. SELESAI TANAM (Editable via TableDatePicker) */}
-                      <td className={`py-1.5 px-3 text-center font-mono border-r border-b border-slate-200 dark:border-slate-800 ${cellClass('selesaiTanam')}`}>
+                      <td className={`py-1.5 px-2 text-center font-mono text-[11px] w-[130px] min-w-[130px] border-r border-b border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 ${cellClass('selesaiTanam')}`}>
                         <div className="flex items-center justify-center">
                           <TableDatePicker
                             value={item.selesaiTanam}
@@ -1344,7 +1493,7 @@ export default function InputRealTanamPetikView() {
                       {/* 16. AKUM TANAM (HA) (Inline editable) */}
                       <td
                         onClick={() => startEdit(item, 'akumTanam')}
-                        className={`py-2 px-3 text-center font-mono cursor-pointer border-r border-b border-slate-200 dark:border-slate-800 ${cellClass('akumTanam', 'hover:bg-emerald-50/60 dark:hover:bg-emerald-950/40 text-slate-600 dark:text-slate-400')}`}
+                        className={`py-2 px-2 text-center font-mono text-[11px] cursor-pointer w-[140px] min-w-[140px] border-r border-b border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 ${cellClass('akumTanam', 'hover:bg-emerald-50 dark:hover:bg-emerald-950 text-slate-700 dark:text-slate-300')}`}
                         title="Klik untuk mengedit Akum Tanam"
                       >
                         {isEditing('akumTanam') ? (
@@ -1359,7 +1508,7 @@ export default function InputRealTanamPetikView() {
                               if (e.key === 'Enter') handleSaveEdit(item, 'akumTanam', editValue);
                               if (e.key === 'Escape') cancelEdit();
                             }}
-                            className="w-20 text-center px-1.5 py-0.5 text-xs bg-white dark:bg-slate-800 border border-emerald-500 rounded font-mono focus:outline-none"
+                            className="w-16 text-center px-1.5 py-0.5 text-[11px] bg-white dark:bg-slate-800 border border-emerald-500 rounded font-mono focus:outline-none"
                           />
                         ) : (
                           <span>{item.akumTanam ? item.akumTanam.toFixed(2) : '-'}</span>
@@ -1369,7 +1518,7 @@ export default function InputRealTanamPetikView() {
                       {/* 17. % TANAM (Inline editable) */}
                       <td
                         onClick={() => startEdit(item, 'persenTanam')}
-                        className={`py-2 px-3 text-center font-mono cursor-pointer border-r border-b border-slate-200 dark:border-slate-800 ${cellClass('persenTanam', 'hover:bg-emerald-50/60 dark:hover:bg-emerald-950/40 text-slate-600 dark:text-slate-400')}`}
+                        className={`py-2 px-2 text-center font-mono text-[11px] cursor-pointer w-[95px] min-w-[95px] border-r border-b border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 ${cellClass('persenTanam', 'hover:bg-emerald-50 dark:hover:bg-emerald-950 text-slate-700 dark:text-slate-300')}`}
                         title="Klik untuk mengedit % Tanam"
                       >
                         {isEditing('persenTanam') ? (
@@ -1384,7 +1533,7 @@ export default function InputRealTanamPetikView() {
                               if (e.key === 'Enter') handleSaveEdit(item, 'persenTanam', editValue);
                               if (e.key === 'Escape') cancelEdit();
                             }}
-                            className="w-20 text-center px-1.5 py-0.5 text-xs bg-white dark:bg-slate-800 border border-emerald-500 rounded font-mono focus:outline-none"
+                            className="w-16 text-center px-1.5 py-0.5 text-[11px] bg-white dark:bg-slate-800 border border-emerald-500 rounded font-mono focus:outline-none"
                           />
                         ) : (
                           <span>
@@ -1395,10 +1544,10 @@ export default function InputRealTanamPetikView() {
                         )}
                       </td>
 
-                      {/* 18. PETIK KE- (Inline editable) */}
+                      {/* 18. PETIK KE- (Inline editable, dengan border-r) */}
                       <td
                         onClick={() => startEdit(item, 'petikKe')}
-                        className={`py-2 px-3 text-center font-mono cursor-pointer border-b border-slate-200 dark:border-slate-800 ${cellClass('petikKe', 'hover:bg-emerald-50/60 dark:hover:bg-emerald-950/40 text-slate-500')}`}
+                        className={`py-2 px-2 text-center font-mono text-[11px] cursor-pointer w-[95px] min-w-[95px] border-r border-b border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 ${cellClass('petikKe', 'hover:bg-emerald-50 dark:hover:bg-emerald-950 text-slate-700 dark:text-slate-300')}`}
                         title="Klik untuk mengedit Petik Ke"
                       >
                         {isEditing('petikKe') ? (
@@ -1412,7 +1561,7 @@ export default function InputRealTanamPetikView() {
                               if (e.key === 'Enter') handleSaveEdit(item, 'petikKe', editValue);
                               if (e.key === 'Escape') cancelEdit();
                             }}
-                            className="w-16 text-center px-1.5 py-0.5 text-xs bg-white dark:bg-slate-800 border border-emerald-500 rounded font-mono focus:outline-none"
+                            className="w-16 text-center px-1.5 py-0.5 text-[11px] bg-white dark:bg-slate-800 border border-emerald-500 rounded font-mono focus:outline-none"
                           />
                         ) : (
                           <span>{item.petikKe || '-'}</span>
@@ -1432,20 +1581,31 @@ export default function InputRealTanamPetikView() {
           <div className="flex items-center gap-3 text-slate-600 dark:text-slate-400">
             <div className="flex items-center gap-1.5">
               <span>Tampilkan per halaman:</span>
-              <select
-                value={limit}
-                onChange={(e) => {
-                  setLimit(Number(e.target.value));
-                  setPage(1);
-                }}
-                className="py-1 px-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
-              >
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-                <option value={200}>200</option>
-                <option value={500}>500</option>
-              </select>
+              <div className="relative inline-flex items-center">
+                <select
+                  value={limit}
+                  onFocus={() => setIsLimitOpen(true)}
+                  onBlur={() => setIsLimitOpen(false)}
+                  onChange={(e) => {
+                    setLimit(Number(e.target.value));
+                    setPage(1);
+                    setIsLimitOpen(false);
+                    (e.target as HTMLElement).blur();
+                  }}
+                  className="appearance-none pl-2.5 pr-7 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
+                >
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                  <option value={200}>200</option>
+                  <option value={500}>500</option>
+                </select>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 transition-transform duration-200 ${
+                    isLimitOpen ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : 'rotate-0'
+                  }`}
+                />
+              </div>
             </div>
 
             <span className="text-slate-300 dark:text-slate-700">|</span>
@@ -1475,6 +1635,15 @@ export default function InputRealTanamPetikView() {
           </div>
         </div>
       </div>
+
+      {/* Modal Tambah Transaksi Harian */}
+      <AddPlantingTransactionModal
+        isOpen={isAddTxModalOpen}
+        onClose={() => setIsAddTxModalOpen(false)}
+        onSuccess={() => {
+          fetchData();
+        }}
+      />
     </div>
   );
 }

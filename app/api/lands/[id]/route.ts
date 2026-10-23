@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { computeAktivitasTerakhir, computeRencanaBeroBongkar } from '@/lib/landActivityUtils';
+import { calculateCascadeRencanaDates } from '@/lib/planScheduleCascade';
 import { recalculateAndPersistStageStocks, syncStokLahanMasterForLand, parseDateVal } from '@/lib/stageStockCalculator';
 import lands2026BaselinesJson from '@/lib/lands2026Baselines.json';
 
@@ -53,11 +54,13 @@ export async function GET(
       };
     });
 
-    const jalanSal =
-      (typeof land.aplikasiDetails === 'object' && land.aplikasiDetails !== null
-        ? (land.aplikasiDetails as any)?.jalanSal
-        : null) || actDict['22.JALAN_SAL']?.real || null;
-    const siapTanam = actDict['22.SIAP_TANAM']?.real || null;
+    const app = (typeof land.aplikasiDetails === 'object' && land.aplikasiDetails !== null)
+      ? (land.aplikasiDetails as any)
+      : {};
+    const emptyAct = { rencana: null, real: null, status: 'PENDING' };
+
+    const jalanSalReal = app.jalanSal || app.realJalanSal || actDict['22.JALAN_SAL']?.real || null;
+    const siapTanam = actDict['22.SIAP_TANAM']?.real || app.realSiapTanam || null;
     const prosesTanam = actDict['23.PROSES_TNM']?.real || land.realMulaiTanam || null;
     const selesaiTanam = actDict['24.SLS_TANAM']?.real || land.realSelesaiTanam || null;
 
@@ -70,7 +73,21 @@ export async function GET(
         preparationProgress,
         completedActivitiesCount: completedCount,
         totalActivitiesCount: totalActivities,
-        jalanSal,
+        chopper: actDict['01.CHOPPER'] ? { rencana: actDict['01.CHOPPER'].rencana, real: actDict['01.CHOPPER'].real, status: actDict['01.CHOPPER'].status } : emptyAct,
+        chopperLu: actDict['02.CHOPPER_LU'] ? { rencana: actDict['02.CHOPPER_LU'].rencana, real: actDict['02.CHOPPER_LU'].real, status: actDict['02.CHOPPER_LU'].status } : emptyAct,
+        rh1: actDict['03.RH1'] ? { rencana: actDict['03.RH1'].rencana, real: actDict['03.RH1'].real, status: actDict['03.RH1'].status } : emptyAct,
+        cuttingBanana: actDict['04.CUTTING_BANANA'] ? { rencana: actDict['04.CUTTING_BANANA'].rencana, real: actDict['04.CUTTING_BANANA'].real, status: actDict['04.CUTTING_BANANA'].status } : emptyAct,
+        dolomit: actDict['05.DOLOMIT'] ? { rencana: actDict['05.DOLOMIT'].rencana, real: actDict['05.DOLOMIT'].real, status: actDict['05.DOLOMIT'].status } : emptyAct,
+        ridger: {
+          rencana: actDict['21.RIDGER']?.rencana || app.ridger || null,
+          real: actDict['21.RIDGER']?.real || app.realRidger || null,
+          status: actDict['21.RIDGER']?.status || 'PENDING',
+        },
+        jalanSal: {
+          rencana: actDict['22.JALAN_SAL']?.rencana || app.jalanSal || null,
+          real: jalanSalReal,
+          status: actDict['22.JALAN_SAL']?.status || 'PENDING',
+        },
         siapTanam,
         prosesTanam,
         selesaiTanam,
@@ -196,6 +213,65 @@ export async function PUT(
       for (const [k, v] of Object.entries(body.aplikasiDetails)) {
         if (k !== 'realisasiAplikasi') {
           mergedDetails[k] = v;
+        }
+      }
+    }
+
+    // Auto-cascade planned dates when Rencana Chopper is updated
+    let chopperRencDate: string | null = null;
+    if (Array.isArray(body.activities)) {
+      const chAct = body.activities.find((a: any) => a.code === '01.CHOPPER' && a.rencanaDate !== undefined);
+      if (chAct) chopperRencDate = chAct.rencanaDate ? String(chAct.rencanaDate).trim() : null;
+    }
+    if (!chopperRencDate && body.rencBkr !== undefined) {
+      chopperRencDate = body.rencBkr ? String(body.rencBkr).trim() : null;
+    }
+    if (!chopperRencDate && body.aplikasiDetails?.chopper !== undefined) {
+      chopperRencDate = body.aplikasiDetails.chopper ? String(body.aplikasiDetails.chopper).trim() : null;
+    }
+
+    if (chopperRencDate) {
+      const cascade = calculateCascadeRencanaDates(chopperRencDate);
+      if (cascade) {
+        mergedDetails.chopper = chopperRencDate;
+        mergedDetails.dolomit = cascade.dolomit;
+        mergedDetails.chopperLu = cascade.chopperLu;
+        mergedDetails.rh1 = cascade.rh1;
+        mergedDetails.rencAwalMb5Btr = cascade.bajakMb5Btr;
+        mergedDetails.bajakAwalMb5Btr = cascade.bajakMb5Btr;
+        mergedDetails.subsoilerSs1 = cascade.subsoilerSs1;
+        mergedDetails.finishingRotaryFh1 = cascade.finishingRotaryFh1;
+        mergedDetails.ridger = cascade.ridger;
+        mergedDetails.jalanSal = cascade.jalanSal;
+
+        updateData.rencBkr = chopperRencDate;
+        updateData.rencBajak = cascade.bajakMb5Btr;
+
+        const cascadeActMap: Record<string, string> = {
+          '02.CHOPPER_LU': cascade.chopperLu,
+          '03.RH1': cascade.rh1,
+          '05.DOLOMIT': cascade.dolomit,
+          '11.BAJAK_AWAL': cascade.bajakMb5Btr,
+          '17.SUBSOILER': cascade.subsoilerSs1,
+          '19.FINISHING_ROTARY': cascade.finishingRotaryFh1,
+          '21.RIDGER': cascade.ridger,
+          '22.JALAN_SAL': cascade.jalanSal,
+        };
+
+        if (!Array.isArray(body.activities)) {
+          body.activities = [];
+        }
+
+        for (const [code, rencDate] of Object.entries(cascadeActMap)) {
+          const existingInBody = body.activities.find((a: any) => a.code === code);
+          if (existingInBody) {
+            existingInBody.rencanaDate = rencDate;
+          } else {
+            body.activities.push({
+              code,
+              rencanaDate: rencDate,
+            });
+          }
         }
       }
     }

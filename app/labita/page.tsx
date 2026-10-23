@@ -380,9 +380,6 @@ export default function LabitaDashboardPage() {
             <ProsesTanamSection
               chartsData={chartsData}
               onSelectLand={(loc) => setSelectedLandId(loc)}
-              selectedWilayah={prosesTanamWilayah}
-              setSelectedWilayah={setProsesTanamWilayah}
-              availableWilayahs={summaryData?.availableWilayahs || []}
             />
           )}
         </div>

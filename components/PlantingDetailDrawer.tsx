@@ -8,8 +8,10 @@ import {
   Clock,
   AlertCircle,
   TrendingUp,
+  Plus,
 } from 'lucide-react';
 import TableDatePicker from '@/components/TableDatePicker';
+import AddPlantingTransactionModal from '@/components/AddPlantingTransactionModal';
 
 export interface PlantingDetailDrawerProps {
   isOpen: boolean;
@@ -86,6 +88,7 @@ export default function PlantingDetailDrawer({
   const [editValue, setEditValue] = useState<any>('');
   const [savingCell, setSavingCell] = useState<{ id: number; field: string } | null>(null);
   const [savedSuccessCell, setSavedSuccessCell] = useState<{ id: number; field: string } | null>(null);
+  const [isAddTxModalOpen, setIsAddTxModalOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement | HTMLSelectElement | null>(null);
 
   useEffect(() => {
@@ -342,9 +345,21 @@ export default function PlantingDetailDrawer({
 
               {/* 2. Section Tabel Transaksi (Inline Editable Langsung pada Sel) */}
               <div className="space-y-3">
-                <div className="flex items-center justify-end">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddTxModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                      title={`Tambah Data baru untuk petak ${master?.lokasi || lokasi}`}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Tambah Data</span>
+                    </button>
+                  </div>
+
                   {/* Filter Tabs Aktivitas */}
-                  <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs">
+                  <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs self-start sm:self-auto">
                     <button
                       type="button"
                       onClick={() => setActiveTab('ALL')}
@@ -955,6 +970,17 @@ export default function PlantingDetailDrawer({
           )}
         </div>
       </div>
+
+      {/* Modal Tambah Transaksi Harian (Locked ke Lokasi Ini) */}
+      <AddPlantingTransactionModal
+        isOpen={isAddTxModalOpen}
+        onClose={() => setIsAddTxModalOpen(false)}
+        lockedLokasi={master?.lokasi || lokasi}
+        onSuccess={() => {
+          if (lokasi) fetchDetail(lokasi);
+          onTransactionSaved?.();
+        }}
+      />
     </div>
   );
 }
