@@ -15,7 +15,6 @@ export const MAIN_MENU_ITEMS: MainMenuItem[] = [
   { id: 'executive_summary', label: 'Executive Summary' },
   { id: 'pengolahan_lahan_bibit_tanam', label: 'Pengolahan Lahan' },
   { id: 'planting', label: 'Planting' },
-  { id: 'update', label: 'Update' },
   { id: 'user_management', label: 'Manajemen User' },
 ];
 
@@ -38,10 +37,7 @@ export const PLANTING_SUB_MENUS: SubMenuItem[] = [
   { id: 'real_tanam_nanas', label: 'Real Tanam Nanas' },
   { id: 'input_real_tanam_petik', label: 'Input Real Tanam & Petik Nanas' },
   { id: 'proses_selesai_tanam', label: 'Proses Tanam & Selesai Tanam' },
-];
-
-export const UPDATE_SUB_MENUS: SubMenuItem[] = [
-  { id: 'tanam', label: 'Tanam' },
+  { id: 'update', label: 'Update' },
 ];
 
 // Fallback alias
@@ -124,8 +120,6 @@ interface HeaderProps {
   setOverviewSubTab?: (subTab: string) => void;
   plantingSubTab?: string;
   setPlantingSubTab?: (subTab: string) => void;
-  updateSubTab?: string;
-  setUpdateSubTab?: (subTab: string) => void;
   totalLands?: number;
 }
 
@@ -140,8 +134,6 @@ export default function Header({
   setOverviewSubTab,
   plantingSubTab,
   setPlantingSubTab,
-  updateSubTab,
-  setUpdateSubTab,
 }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const { user, isAdmin, logout, setUserDirectly } = useAuth();
@@ -155,9 +147,9 @@ export default function Header({
   const handleSetSubTab = setPengolahanSubTab || setOverviewSubTab;
   const currentTheme = MENU_THEMES[activeTab] || MENU_THEMES.executive_summary;
 
-  // Filter menu: Menu 'Update' dan 'Manajemen User' hanya muncul ketika sudah login sebagai Admin
+  // Filter menu: Menu 'Manajemen User' hanya muncul ketika sudah login sebagai Admin
   const displayedMenuItems = MAIN_MENU_ITEMS.filter((item) => {
-    if (item.id === 'update' || item.id === 'user_management') {
+    if (item.id === 'user_management') {
       return Boolean(user && isAdmin);
     }
     return true;
@@ -289,9 +281,6 @@ export default function Header({
                   }
                   if (item.id === 'executive_summary' && setExecutiveSubTab && !executiveSubTab) {
                     setExecutiveSubTab('pengolahan_lahan');
-                  }
-                  if (item.id === 'update' && setUpdateSubTab && !updateSubTab) {
-                    setUpdateSubTab('tanam');
                   }
                 }}
                 className={`relative py-2 px-1 text-xs sm:text-[13px] tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
@@ -574,46 +563,21 @@ export default function Header({
         </div>
       )}
 
-      {/* Row 2: Sub Menu untuk Planting (Real Tanam Nanas, Input Real Tanam & Petik Nanas, Proses Tanam & Selesai Tanam) */}
+      {/* Row 2: Sub Menu untuk Planting (Real Tanam Nanas, Input Real Tanam & Petik Nanas, Proses Tanam & Selesai Tanam, Update) */}
       {activeTab === 'planting' && (
         <div className="px-6 py-1.5 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
-          {PLANTING_SUB_MENUS.map((item) => {
+          {PLANTING_SUB_MENUS.filter((item) => {
+            if (item.id === 'update') {
+              return Boolean(user && isAdmin);
+            }
+            return true;
+          }).map((item) => {
             const isActive = (plantingSubTab || 'real_tanam_nanas') === item.id;
             return (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => setPlantingSubTab?.(item.id)}
-                className={`relative py-1 px-1 text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
-                  isActive
-                    ? `${currentTheme.subActiveText} font-semibold`
-                    : `text-slate-500 dark:text-slate-400 ${currentTheme.subHoverText} font-normal`
-                }`}
-              >
-                <span>{item.label}</span>
-
-                {/* Active Underline Indicator Sub Menu */}
-                {isActive ? (
-                  <span className={`absolute -bottom-1 left-0 right-0 h-[2px] ${currentTheme.subActiveLine} rounded-full`} />
-                ) : (
-                  <span className={`absolute -bottom-1 left-0 right-0 h-[1.5px] ${currentTheme.hoverLine} rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-150`} />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Row 2: Sub Menu untuk Update (Tanam) - Hanya tampil jika user adalah admin */}
-      {activeTab === 'update' && user && isAdmin && (
-        <div className="px-6 py-1.5 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
-          {UPDATE_SUB_MENUS.map((item) => {
-            const isActive = (updateSubTab || 'tanam') === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setUpdateSubTab?.(item.id)}
                 className={`relative py-1 px-1 text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
                   isActive
                     ? `${currentTheme.subActiveText} font-semibold`

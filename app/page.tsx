@@ -30,7 +30,6 @@ export default function DashboardPage() {
   const [executiveSubTab, setExecutiveSubTab] = useState<string>('pengolahan_lahan');
   const [pengolahanSubTab, setPengolahanSubTab] = useState<string>('list_stok_lahan');
   const [plantingSubTab, setPlantingSubTab] = useState<string>('real_tanam_nanas');
-  const [updateSubTab, setUpdateSubTab] = useState<string>('tanam');
   const [selectedWilayah, setSelectedWilayah] = useState<string>('ALL');
   const [prosesTanamWilayah, setProsesTanamWilayah] = useState<string>('ALL');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('LATEST');
@@ -127,10 +126,15 @@ export default function DashboardPage() {
   }, [selectedWilayah, selectedPeriod, stokYear, stokMonth]);
 
   useEffect(() => {
-    if (!isAdmin && (activeTab === 'update' || activeTab === 'user_management')) {
-      setActiveTab('executive_summary');
+    if (!isAdmin) {
+      if (activeTab === 'user_management') {
+        setActiveTab('executive_summary');
+      }
+      if (activeTab === 'planting' && plantingSubTab === 'update') {
+        setPlantingSubTab('real_tanam_nanas');
+      }
     }
-  }, [isAdmin, activeTab]);
+  }, [isAdmin, activeTab, plantingSubTab]);
 
   const getTabTitle = () => {
     switch (activeTab) {
@@ -155,16 +159,10 @@ export default function DashboardPage() {
           real_tanam_nanas: 'Real Tanam Nanas',
           input_real_tanam_petik: 'Input Real Tanam & Petik Nanas',
           proses_selesai_tanam: 'Proses Tanam & Selesai Tanam',
+          update: 'Update Tanam',
         };
         const sub = subTitles[plantingSubTab];
         return sub ? `Planting • ${sub}` : 'Planting';
-      }
-      case 'update': {
-        const subTitles: Record<string, string> = {
-          tanam: 'Tanam',
-        };
-        const sub = subTitles[updateSubTab];
-        return sub ? `Update • ${sub}` : 'Update';
       }
       case 'user_management':
         return 'Manajemen User';
@@ -185,8 +183,6 @@ export default function DashboardPage() {
         setPengolahanSubTab={setPengolahanSubTab}
         plantingSubTab={plantingSubTab}
         setPlantingSubTab={setPlantingSubTab}
-        updateSubTab={updateSubTab}
-        setUpdateSubTab={setUpdateSubTab}
         activeTabTitle={getTabTitle()}
         selectedWilayah={selectedWilayah}
         setSelectedWilayah={setSelectedWilayah}
@@ -379,16 +375,14 @@ export default function DashboardPage() {
               onSelectLand={(loc) => setSelectedLandId(loc)}
             />
           )}
-        </div>
 
-        {/* 4. MENU: UPDATE (Sub-Menu Tanam - Khusus Admin) */}
-        {isAdmin && (
-          <div className={activeTab === 'update' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
-            {updateSubTab === 'tanam' && (
+          {/* 3.4 SUB MENU: UPDATE TANAM (Form Cepat Update Tanam - Khusus Admin) */}
+          {isAdmin && (
+            <div className={plantingSubTab === 'update' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
               <QuickUpdateTanamView onDataChanged={handleSilentDataChanged} isAdmin={isAdmin} />
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
 
         {/* 5. MENU: MANAJEMEN USER (Khusus Admin) */}
         {isAdmin && (
