@@ -2,41 +2,44 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import {
   Lock,
-  Mail,
   User as UserIcon,
   ShieldCheck,
   Eye,
   EyeOff,
-  ArrowRight,
   ArrowLeft,
-  Sparkles,
   CheckCircle2,
   AlertCircle,
-  Building2,
+  Loader2,
+  BadgeCheck,
 } from 'lucide-react';
 
 function LoginContent() {
-  const searchParams = useSearchParams();
-  const initialMode = searchParams.get('mode') === 'register' ? 'register' : 'login';
-  const [mode, setMode] = useState<'login' | 'register'>(initialMode);
+  // Pilihan Role Login: 'admin' atau 'user'
+  const [loginRole, setLoginRole] = useState<'admin' | 'user'>('admin');
+  const [isRegistering, setIsRegistering] = useState<boolean>(false);
 
-  // Form States
-  const [email, setEmail] = useState('');
+  // Form States Login
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [role, setRole] = useState<'admin' | 'user'>('user');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Form States Registrasi User
+  const [regUsername, setRegUsername] = useState('');
+  const [regName, setRegName] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regConfirmPassword, setRegConfirmPassword] = useState('');
+  const [showRegPassword, setShowRegPassword] = useState(false);
 
   // UI States
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { login, register, user, setUserDirectly } = useAuth();
+  const { login, user } = useAuth();
   const router = useRouter();
 
   // Redirect jika sudah login
@@ -46,76 +49,89 @@ function LoginContent() {
     }
   }, [user, router]);
 
+  // Handle Submit Login (Admin atau User)
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
     setIsSubmitting(true);
 
-    const res = await login(email, password);
+    const cleanUsername = username.trim().toLowerCase();
+    const res = await login(cleanUsername, password);
     setIsSubmitting(false);
 
     if (res.success) {
-      setSuccessMsg('Login berhasil! Mengalihkan ke portal...');
+      setSuccessMsg('Login berhasil! Mengalihkan ke dashboard...');
       setTimeout(() => {
         router.push('/');
-      }, 700);
+      }, 600);
     } else {
-      setErrorMsg(res.message || 'Email atau password tidak sesuai.');
+      setErrorMsg(res.message || 'Username atau kata sandi tidak sesuai.');
     }
   };
 
+  // Handle Submit Registrasi User
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
-    setIsSubmitting(true);
 
-    const res = await register(name, email, password, role);
-    setIsSubmitting(false);
+    const cleanUsername = regUsername.trim().toLowerCase();
+    const cleanName = regName.trim();
 
-    if (res.success) {
-      setSuccessMsg('Akun berhasil didaftarkan! Mengalihkan ke portal...');
-      setTimeout(() => {
-        router.push('/');
-      }, 800);
-    } else {
-      setErrorMsg(res.message || 'Gagal mendaftarkan akun.');
+    if (!cleanUsername) {
+      setErrorMsg('Username wajib diisi.');
+      return;
     }
-  };
-
-  // Quick Demo Login Helper
-  const handleQuickLogin = (demoRole: 'admin' | 'user') => {
-    setErrorMsg('');
-    setIsSubmitting(true);
-    if (demoRole === 'admin') {
-      setEmail('admin');
-      setPassword('admin123');
-      setUserDirectly({
-        id: 1,
-        name: 'admin',
-        email: 'admin',
-        role: 'admin',
-      });
-    } else {
-      setEmail('user');
-      setPassword('user123');
-      setUserDirectly({
-        id: 2,
-        name: 'user',
-        email: 'user',
-        role: 'user',
-      });
+    if (cleanUsername.length < 3) {
+      setErrorMsg('Username minimal 3 karakter.');
+      return;
     }
-    setSuccessMsg(`Berhasil login sebagai ${demoRole === 'admin' ? 'Admin (Mode Edit)' : 'User (Mode View Only)'}!`);
-    setTimeout(() => {
-      router.push('/');
-    }, 600);
+    if (/\s/.test(cleanUsername)) {
+      setErrorMsg('Username tidak boleh mengandung spasi.');
+      return;
+    }
+    if (!regPassword || regPassword.length < 8) {
+      setErrorMsg('Kata sandi wajib diisi (minimal 8 karakter).');
+      return;
+    }
+    if (regPassword !== regConfirmPassword) {
+      setErrorMsg('Konfirmasi kata sandi tidak cocok.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: cleanUsername,
+          name: cleanName || cleanUsername,
+          password: regPassword,
+        }),
+      });
+      const data = await res.json();
+      setIsSubmitting(false);
+
+      if (data.success) {
+        setSuccessMsg('Pendaftaran akun berhasil! Mengalihkan ke dashboard...');
+        // Simpan sesi dan redirect
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 800);
+      } else {
+        setErrorMsg(data.message || 'Gagal mendaftarkan akun.');
+      }
+    } catch {
+      setIsSubmitting(false);
+      setErrorMsg('Terjadi kesalahan jaringan.');
+    }
   };
 
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4 sm:p-6 overflow-hidden select-none">
-      {/* Background Jelas Lahan Nanas 2 */}
+      {/* Background Lahan Nanas */}
       <div className="absolute inset-0 -z-50 pointer-events-none select-none">
         <img
           src="/assets/Lahan Nanas 2.jpg"
@@ -127,250 +143,304 @@ function LoginContent() {
       </div>
 
       {/* Main Container Card */}
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-white/20 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        {/* Top Header Card */}
-        <div className="p-6 sm:p-8 pb-6 border-b border-slate-100 dark:border-slate-800 text-center relative bg-gradient-to-b from-slate-50/80 to-white dark:from-slate-900 dark:to-slate-900">
-          <Link
-            href="/"
-            className="absolute left-6 top-6 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Portal</span>
-          </Link>
+      <div className="relative w-full max-w-[440px] bg-white dark:bg-slate-900 rounded-[28px] sm:rounded-3xl shadow-2xl border border-white/30 dark:border-slate-800 p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
+        {/* Tombol Back ke Dashboard */}
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-500 hover:text-emerald-700 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors mb-2 cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Dashboard</span>
+        </Link>
 
-          <div className="inline-flex items-center justify-center mb-3">
-            <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-center p-1.5 shadow-sm">
-              <img
-                src="/assets/logo.png"
-                alt="GGF Logo"
-                className="w-full h-full object-contain"
+        {/* Top Brand Logo */}
+        <div className="flex flex-col items-center text-center">
+          <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200/90 dark:border-slate-700/80 flex items-center justify-center p-2 shadow-xs mb-3">
+            <img
+              src="/assets/logo.png"
+              alt="GGF Logo"
+              className="w-full h-full object-contain"
+            />
+          </div>
+
+          {/* Kotak Pilihan di Atas: Admin dan User */}
+          <div className="w-full grid grid-cols-2 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 mb-5">
+            <button
+              type="button"
+              onClick={() => {
+                setLoginRole('admin');
+                setIsRegistering(false);
+                setErrorMsg('');
+                setSuccessMsg('');
+              }}
+              className={`py-2 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                loginRole === 'admin' && !isRegistering
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              <ShieldCheck
+                className={`w-4 h-4 ${
+                  loginRole === 'admin' && !isRegistering
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-slate-400'
+                }`}
               />
-            </div>
-          </div>
+              <span>Admin</span>
+            </button>
 
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-            PT Great Giant Pineapple
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
-            Sistem Autentikasi &amp; Akses Portal Terintegrasi
-          </p>
-
-          {/* Switcher Tab: Login / Register */}
-          <div className="grid grid-cols-2 gap-1 p-1 mt-5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl">
             <button
               type="button"
               onClick={() => {
-                setMode('login');
+                setLoginRole('user');
                 setErrorMsg('');
                 setSuccessMsg('');
               }}
-              className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                mode === 'login'
+              className={`py-2 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                loginRole === 'user'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
               }`}
             >
-              Masuk (Login)
+              <UserIcon
+                className={`w-4 h-4 ${
+                  loginRole === 'user'
+                    ? 'text-sky-600 dark:text-sky-400'
+                    : 'text-slate-400'
+                }`}
+              />
+              <span>User</span>
             </button>
+          </div>
+
+          {/* Title & Subtitle */}
+          {isRegistering ? (
+            <>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                Daftar Akun Pengguna
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                Lengkapi formulir untuk membuat akun monitoring baru
+              </p>
+            </>
+          ) : loginRole === 'admin' ? (
+            <>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                Login Administrator
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                Masuk untuk mengelola data jadwal operasional &amp; analitik
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                Login Pengguna
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                Masuk untuk melihat jadwal operasional &amp; monitoring
+              </p>
+            </>
+          )}
+        </div>
+
+        {/* Notifikasi Alerts */}
+        {errorMsg && (
+          <div className="mt-4 p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs flex items-start gap-2.5 animate-in fade-in">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" />
+            <span>{errorMsg}</span>
+          </div>
+        )}
+
+        {successMsg && (
+          <div className="mt-4 p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 text-xs flex items-start gap-2.5 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
+            <span>{successMsg}</span>
+          </div>
+        )}
+
+        {/* ================= FORM LOGIN (ADMIN / USER) ================= */}
+        {!isRegistering ? (
+          <form onSubmit={handleLoginSubmit} className="mt-5 space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+                Username
+              </label>
+              <div className="flex items-center w-full px-4 py-3 rounded-2xl bg-[#f0f5ff] dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 focus-within:ring-2 focus-within:ring-[#008f68]/30 focus-within:border-[#008f68] transition-all">
+                <UserIcon className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
+                <input
+                  type="text"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder={loginRole === 'admin' ? 'admin' : 'username'}
+                  className="bg-transparent flex-1 text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none placeholder:text-slate-400/80"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+                Kata Sandi
+              </label>
+              <div className="flex items-center w-full px-4 py-3 rounded-2xl bg-[#f0f5ff] dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 focus-within:ring-2 focus-within:ring-[#008f68]/30 focus-within:border-[#008f68] transition-all">
+                <Lock className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="bg-transparent flex-1 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none placeholder:text-slate-400/80"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer p-0.5 ml-2"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Tombol Login Hijau (Gaya Gambar GGF) */}
             <button
-              type="button"
-              onClick={() => {
-                setMode('register');
-                setErrorMsg('');
-                setSuccessMsg('');
-              }}
-              className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                mode === 'register'
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full py-3.5 px-4 rounded-2xl bg-[#008f68] hover:bg-[#007b5a] active:scale-[0.99] text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 mt-6"
             >
-              Daftar (Register)
+              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+              <span>{isSubmitting ? 'Memproses...' : 'Login'}</span>
             </button>
-          </div>
-        </div>
 
-        {/* Form Body */}
-        <div className="p-6 sm:p-8 pt-6 space-y-5">
-          {/* Notification Alerts */}
-          {errorMsg && (
-            <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs flex items-start gap-2.5 animate-in fade-in">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
-
-          {successMsg && (
-            <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 text-xs flex items-start gap-2.5 animate-in fade-in">
-              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
-              <span>{successMsg}</span>
-            </div>
-          )}
-
-          {/* FORM 1: LOGIN */}
-          {mode === 'login' && (
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Username atau Email
-                </label>
-                <div className="relative">
-                  <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    required
-                    placeholder="admin atau nama@ggf.co.id"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Kata Sandi (Password)
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    placeholder="cth. admin123"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-                  />
+            {/* Tautan Belum Punya Akun (Hanya Muncul Jika Pilihan User Aktif) */}
+            {loginRole === 'user' && (
+              <div className="text-center pt-2">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Belum mempunyai akun?{' '}
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer p-1"
+                    onClick={() => {
+                      setIsRegistering(true);
+                      setErrorMsg('');
+                      setSuccessMsg('');
+                    }}
+                    className="font-bold text-[#008f68] dark:text-emerald-400 hover:underline cursor-pointer"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    Daftar Akun
                   </button>
-                </div>
+                </p>
               </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 mt-2"
-              >
-                <span>{isSubmitting ? 'Memproses Masuk...' : 'Masuk ke Sistem'}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
-          )}
-
-          {/* FORM 2: REGISTER */}
-          {mode === 'register' && (
-            <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Nama Lengkap / Username
-                </label>
-                <div className="relative">
-                  <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    required
-                    placeholder="cth. Budi Santoso atau user123"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium"
-                  />
-                </div>
+            )}
+          </form>
+        ) : (
+          /* ================= FORM PENDAFTARAN USER BARU ================= */
+          <form onSubmit={handleRegisterSubmit} className="mt-5 space-y-3.5">
+            <div>
+              <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+                Username <span className="text-rose-500">*</span>
+              </label>
+              <div className="flex items-center w-full px-4 py-3 rounded-2xl bg-[#f0f5ff] dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 focus-within:ring-2 focus-within:ring-[#008f68]/30 focus-within:border-[#008f68] transition-all">
+                <span className="text-slate-400 font-mono text-xs mr-2 font-bold">@</span>
+                <input
+                  type="text"
+                  required
+                  value={regUsername}
+                  onChange={(e) => setRegUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
+                  placeholder="username"
+                  className="bg-transparent flex-1 text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none placeholder:text-slate-400/80"
+                />
               </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Username atau Email
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    required
-                    placeholder="nama@ggf.co.id atau username"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Kata Sandi
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    placeholder="Minimal 5 karakter"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer p-1"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 mt-2"
-              >
-                <span>{isSubmitting ? 'Mendaftarkan Akun...' : 'Daftar Akun Baru'}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
-          )}
-
-          {/* Quick Demo Login Box */}
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 text-center">
-              Pilihan Masuk Cepat (Akses Demo)
+              <p className="text-[10px] text-slate-400 mt-1">Digunakan untuk login (huruf kecil &amp; tanpa spasi).</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('admin')}
-                className="p-2.5 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50/70 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-900 dark:text-emerald-200 transition-all cursor-pointer text-left flex items-center gap-2"
-              >
-                <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold leading-tight">Admin (admin / admin123)</div>
-                  <div className="text-[10px] text-emerald-700 dark:text-emerald-400">Langsung Masuk &amp; Edit</div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('user')}
-                className="p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700/80 text-slate-800 dark:text-slate-200 transition-all cursor-pointer text-left flex items-center gap-2"
-              >
-                <div className="w-7 h-7 rounded-lg bg-slate-700 text-white flex items-center justify-center shrink-0">
-                  <Eye className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold leading-tight">User (user / user123)</div>
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400">Langsung Masuk View Only</div>
-                </div>
-              </button>
+            <div>
+              <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+                Nama Lengkap
+              </label>
+              <div className="flex items-center w-full px-4 py-3 rounded-2xl bg-[#f0f5ff] dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 focus-within:ring-2 focus-within:ring-[#008f68]/30 focus-within:border-[#008f68] transition-all">
+                <BadgeCheck className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
+                <input
+                  type="text"
+                  required
+                  value={regName}
+                  onChange={(e) => setRegName(e.target.value)}
+                  placeholder="Nama lengkap Anda"
+                  className="bg-transparent flex-1 text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none placeholder:text-slate-400/80"
+                />
+              </div>
             </div>
-          </div>
-        </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+                Kata Sandi <span className="text-rose-500">*</span>
+              </label>
+              <div className="flex items-center w-full px-4 py-3 rounded-2xl bg-[#f0f5ff] dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 focus-within:ring-2 focus-within:ring-[#008f68]/30 focus-within:border-[#008f68] transition-all">
+                <Lock className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
+                <input
+                  type={showRegPassword ? 'text' : 'password'}
+                  required
+                  value={regPassword}
+                  onChange={(e) => setRegPassword(e.target.value)}
+                  placeholder="Minimal 8 karakter"
+                  className="bg-transparent flex-1 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none placeholder:text-slate-400/80"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowRegPassword(!showRegPassword)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer p-0.5 ml-2"
+                >
+                  {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+                Ulangi Kata Sandi <span className="text-rose-500">*</span>
+              </label>
+              <div className="flex items-center w-full px-4 py-3 rounded-2xl bg-[#f0f5ff] dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 focus-within:ring-2 focus-within:ring-[#008f68]/30 focus-within:border-[#008f68] transition-all">
+                <Lock className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
+                <input
+                  type={showRegPassword ? 'text' : 'password'}
+                  required
+                  value={regConfirmPassword}
+                  onChange={(e) => setRegConfirmPassword(e.target.value)}
+                  placeholder="Ketik ulang kata sandi"
+                  className="bg-transparent flex-1 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none placeholder:text-slate-400/80"
+                />
+              </div>
+            </div>
+
+            {/* Tombol Daftar */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full py-3.5 px-4 rounded-2xl bg-[#008f68] hover:bg-[#007b5a] active:scale-[0.99] text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 mt-5"
+            >
+              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+              <span>{isSubmitting ? 'Mendaftarkan...' : 'Daftar Akun'}</span>
+            </button>
+
+            {/* Tautan Kembali ke Login */}
+            <div className="text-center pt-2">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Sudah mempunyai akun?{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsRegistering(false);
+                    setErrorMsg('');
+                    setSuccessMsg('');
+                  }}
+                  className="font-bold text-[#008f68] dark:text-emerald-400 hover:underline cursor-pointer"
+                >
+                  Login disini
+                </button>
+              </p>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
@@ -383,4 +453,3 @@ export default function LoginPage() {
     </Suspense>
   );
 }
-

@@ -14,14 +14,24 @@ export interface DynamicProsesTanamItem {
   status: string;
 }
 
+export const normalizeWilayah = (rawW: string | null | undefined): string => {
+  if (!rawW) return 'W01';
+  const clean = rawW.trim().toUpperCase();
+  if (clean === 'ARS1') return 'W07';
+  if (clean === 'SAG1' || clean === 'MD2') return 'W04';
+  if (clean.startsWith('AW0')) return 'W0' + clean.slice(3);
+  if (clean.startsWith('AW')) {
+    const num = clean.slice(2);
+    return num.length === 1 ? `W0${num}` : `W${num}`;
+  }
+  return clean;
+};
+
 export async function getDynamicProsesTanamList(): Promise<DynamicProsesTanamItem[]> {
   const [plantings, lands] = await Promise.all([
     prisma.planting.findMany({
       where: {
-        OR: [
-          { status: { in: ['PROSES', 'CEK SELESAI'] } },
-          { progress: { gt: 0, lt: 100 } },
-        ],
+        status: 'PROSES',
       },
     }),
     prisma.land.findMany({
@@ -44,19 +54,6 @@ export async function getDynamicProsesTanamList(): Promise<DynamicProsesTanamIte
     if (l.lokasi) landMap.set(l.lokasi.trim().toUpperCase(), l);
   }
 
-  const normalizeWilayah = (rawW: string | null | undefined): string => {
-    if (!rawW) return 'W01';
-    const clean = rawW.trim().toUpperCase();
-    if (clean === 'ARS1') return 'W07';
-    if (clean === 'SAG1' || clean === 'MD2') return 'W04';
-    if (clean.startsWith('AW0')) return 'W0' + clean.slice(3);
-    if (clean.startsWith('AW')) {
-      const num = clean.slice(2);
-      return num.length === 1 ? `W0${num}` : `W${num}`;
-    }
-    return clean;
-  };
-
   const resultMap = new Map<string, DynamicProsesTanamItem>();
 
   for (const p of plantings) {
@@ -70,18 +67,6 @@ export async function getDynamicProsesTanamList(): Promise<DynamicProsesTanamIte
     const luas = p.luas || ld?.luasNetto || 0;
     const real = p.realTanam || 0;
     const prog = p.progress ?? (luas > 0 ? Number(((real / luas) * 100).toFixed(1)) : (ld?.progressTanam ?? 50));
-
-    let status = p.status || 'PROSES';
-    if (prog >= 100 || (luas > 0 && real >= luas)) {
-      status = 'SELESAI';
-    } else if (prog > 95) {
-      status = 'CEK SELESAI';
-    } else if (real > 0 || prog > 0) {
-      status = 'PROSES';
-    }
-
-    if (status === 'SELESAI') continue;
-
     const sisa = Math.max(0, Number((luas - real).toFixed(2)));
 
     resultMap.set(locKey, {
@@ -95,12 +80,160 @@ export async function getDynamicProsesTanamList(): Promise<DynamicProsesTanamIte
       luasHa: Math.round(luas * 100) / 100,
       sisaHa: sisa,
       estSelesai: p.estSelesai || ld?.rencSelesaiTanam || '-',
-      status: status,
+      status: 'PROSES',
     });
   }
 
   const list = Array.from(resultMap.values());
   list.sort((a, b) => (b.progress || 0) - (a.progress || 0));
+  return list;
+}
+
+export async function getDynamicCekSelesaiList(): Promise<DynamicProsesTanamItem[]> {
+  const [plantings, lands] = await Promise.all([
+    prisma.planting.findMany({
+      where: {
+        status: 'CEK SELESAI',
+      },
+    }),
+    prisma.land.findMany({
+      select: {
+        lokasi: true,
+        wilayah: true,
+        luasNetto: true,
+        jenisBibit: true,
+        kelasBibit: true,
+        progressTanam: true,
+        rencSelesaiTanam: true,
+        realMulaiTanam: true,
+        realSelesaiTanam: true,
+      },
+    }),
+  ]);
+
+  const landMap = new Map<string, any>();
+  for (const l of lands) {
+    if (l.lokasi) landMap.set(l.lokasi.trim().toUpperCase(), l);
+  }
+
+  const resultMap = new Map<string, DynamicProsesTanamItem>();
+
+  for (const p of plantings) {
+    if (!p.lokasi) continue;
+    const locKey = p.lokasi.trim().toUpperCase();
+    const ld = landMap.get(locKey);
+    const w = ld ? normalizeWilayah(ld.wilayah) : 'W01';
+    const jenis = p.jenisBibit || ld?.jenisBibit || 'Crown';
+    const kelas = p.kelasBibit || ld?.kelasBibit || '';
+    const bibitFormatted = kelas ? `${jenis} (${kelas})` : jenis;
+    const luas = p.luas || ld?.luasNetto || 0;
+    const real = p.realTanam || 0;
+    const prog = p.progress ?? (luas > 0 ? Number(((real / luas) * 100).toFixed(1)) : 98);
+    const sisa = Math.max(0, Number((luas - real).toFixed(2)));
+
+    resultMap.set(locKey, {
+      wilayah: w,
+      lokasi: p.lokasi,
+      jenisBibit: jenis,
+      kelasBibit: kelas,
+      bibit: bibitFormatted,
+      progress: prog,
+      realTanam: Math.round(real * 100) / 100,
+      luasHa: Math.round(luas * 100) / 100,
+      sisaHa: sisa,
+      estSelesai: p.estSelesai || ld?.rencSelesaiTanam || '-',
+      status: 'CEK SELESAI',
+    });
+  }
+
+  const list = Array.from(resultMap.values());
+  list.sort((a, b) => (b.progress || 0) - (a.progress || 0));
+  return list;
+}
+
+export interface DynamicSelesaiTanamItem {
+  wilayah: string;
+  lokasi: string;
+  jenisBibit: string;
+  kelasBibit: string;
+  bibit: string;
+  tanggalSelesai: string;
+  luasHa: number;
+  progress: number;
+}
+
+export async function getDynamicSelesaiTanamList(): Promise<DynamicSelesaiTanamItem[]> {
+  const [plantings, lands] = await Promise.all([
+    prisma.planting.findMany({
+      where: {
+        OR: [
+          { status: 'SELESAI' },
+          { progress: { gte: 100 } },
+        ],
+      },
+    }),
+    prisma.land.findMany({
+      select: {
+        lokasi: true,
+        wilayah: true,
+        luasNetto: true,
+        jenisBibit: true,
+        kelasBibit: true,
+        realSelesaiTanam: true,
+        rencSelesaiTanam: true,
+      },
+    }),
+  ]);
+
+  const landMap = new Map<string, any>();
+  for (const l of lands) {
+    if (l.lokasi) landMap.set(l.lokasi.trim().toUpperCase(), l);
+  }
+
+  const normalizeWilayah = (rawW: string | null | undefined): string => {
+    if (!rawW) return 'W01';
+    const clean = rawW.trim().toUpperCase();
+    if (clean === 'ARS1') return 'W07';
+    if (clean === 'SAG1' || clean === 'MD2') return 'W04';
+    if (clean.startsWith('AW0')) return 'W0' + clean.slice(3);
+    if (clean.startsWith('AW')) {
+      const num = clean.slice(2);
+      return num.length === 1 ? `W0${num}` : `W${num}`;
+    }
+    return clean;
+  };
+
+  const list: DynamicSelesaiTanamItem[] = [];
+
+  for (const p of plantings) {
+    if (!p.lokasi) continue;
+    const locKey = p.lokasi.trim().toUpperCase();
+    const ld = landMap.get(locKey);
+    const w = ld ? normalizeWilayah(ld.wilayah) : 'W01';
+    const jenis = p.jenisBibit || ld?.jenisBibit || 'Crown';
+    const kelas = p.kelasBibit || ld?.kelasBibit || '';
+    const bibitFormatted = kelas ? `${jenis} (${kelas})` : jenis;
+    const luas = p.realTanam || p.luas || ld?.luasNetto || 0;
+    const tglSelesai = p.estSelesai || ld?.realSelesaiTanam || p.awalTanam || '-';
+
+    list.push({
+      wilayah: w,
+      lokasi: p.lokasi,
+      jenisBibit: jenis,
+      kelasBibit: kelas,
+      bibit: bibitFormatted,
+      tanggalSelesai: tglSelesai,
+      luasHa: Math.round(luas * 100) / 100,
+      progress: 100,
+    });
+  }
+
+  list.sort((a, b) => {
+    const wCmp = a.wilayah.localeCompare(b.wilayah, undefined, { numeric: true });
+    if (wCmp !== 0) return wCmp;
+    return a.lokasi.localeCompare(b.lokasi, undefined, { numeric: true });
+  });
+
   return list;
 }
 

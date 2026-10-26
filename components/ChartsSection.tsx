@@ -160,6 +160,9 @@ export interface ChartsDataProps {
     prosesCount: number;
     prosesLuas?: number;
     prosesLocations: string[];
+    cekSelesaiCount?: number;
+    cekSelesaiLuas?: number;
+    cekSelesaiLocations?: string[];
     selesaiCount: number;
     selesaiLuas?: number;
     selesaiLocations: string[];
@@ -1850,7 +1853,7 @@ export function RencanaRealisasiSection({ chartsData }: CommonChartProps) {
 }
 
 // =========================================================================
-// 3. PROSES TANAM & SELESAI TANAM PER WILAYAH
+// 3. PROSES TANAM, CEK SELESAI & SELESAI TANAM PER WILAYAH
 // =========================================================================
 export function ProsesTanamSection({
   chartsData,
@@ -1862,6 +1865,7 @@ export function ProsesTanamSection({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [hideProses, setHideProses] = useState(false);
+  const [hideCekSelesai, setHideCekSelesai] = useState(false);
   const [hideSelesai, setHideSelesai] = useState(false);
 
   // Defensive aggregation ensuring strictly W01-W07 unique regions
@@ -1874,6 +1878,9 @@ export function ProsesTanamSection({
         prosesCount: 0,
         prosesLuas: 0,
         prosesLocations: [] as string[],
+        cekSelesaiCount: 0,
+        cekSelesaiLuas: 0,
+        cekSelesaiLocations: [] as string[],
         selesaiCount: 0,
         selesaiLuas: 0,
         selesaiLocations: [] as string[],
@@ -1900,6 +1907,11 @@ export function ProsesTanamSection({
           map[code].prosesCount += item.prosesCount || 0;
           map[code].prosesLuas += item.prosesLuas || 0;
           map[code].prosesLocations.push(...(item.prosesLocations || []));
+
+          map[code].cekSelesaiCount += item.cekSelesaiCount || 0;
+          map[code].cekSelesaiLuas += item.cekSelesaiLuas || 0;
+          map[code].cekSelesaiLocations.push(...(item.cekSelesaiLocations || []));
+
           map[code].selesaiCount += item.selesaiCount || 0;
           map[code].selesaiLuas += item.selesaiLuas || 0;
           map[code].selesaiLocations.push(...(item.selesaiLocations || []));
@@ -1910,8 +1922,10 @@ export function ProsesTanamSection({
     return stdRegions.map((r) => ({
       ...map[r],
       prosesLuas: Math.round(map[r].prosesLuas * 100) / 100,
+      cekSelesaiLuas: Math.round(map[r].cekSelesaiLuas * 100) / 100,
       selesaiLuas: Math.round(map[r].selesaiLuas * 100) / 100,
       prosesLocations: Array.from(new Set(map[r].prosesLocations)),
+      cekSelesaiLocations: Array.from(new Set(map[r].cekSelesaiLocations)),
       selesaiLocations: Array.from(new Set(map[r].selesaiLocations)),
     }));
   }, [chartsData?.wilayahPositions]);
@@ -1922,145 +1936,83 @@ export function ProsesTanamSection({
 
   // Clicking W01..W07 below the chart cycles through hide legend
   const handleWilayahTickClick = (_wilayah: string) => {
-    if (!hideProses && !hideSelesai) {
-      // Hide Selesai Tanam -> only Proses Tanam visible
+    if (!hideProses && !hideCekSelesai && !hideSelesai) {
+      // Show only Proses
       setHideProses(false);
+      setHideCekSelesai(true);
       setHideSelesai(true);
-    } else if (!hideProses && hideSelesai) {
-      // Hide Proses Tanam -> only Selesai Tanam visible
+    } else if (!hideProses && hideCekSelesai && hideSelesai) {
+      // Show only Cek Selesai
       setHideProses(true);
+      setHideCekSelesai(false);
+      setHideSelesai(true);
+    } else if (hideProses && !hideCekSelesai && hideSelesai) {
+      // Show only Selesai
+      setHideProses(true);
+      setHideCekSelesai(true);
       setHideSelesai(false);
     } else {
-      // Unhide both -> Kedua-duanya visible
+      // Reset all to visible
       setHideProses(false);
+      setHideCekSelesai(false);
       setHideSelesai(false);
     }
   };
 
-  const handleToggleProses = () => {
-    if (hideProses) {
-      setHideProses(false);
-    } else {
-      if (hideSelesai) {
-        setHideProses(true);
-        setHideSelesai(false);
-      } else {
-        setHideProses(true);
-      }
-    }
-  };
+  const [hoveredWilayah, setHoveredWilayah] = useState<string | null>(null);
+  const [popupCoords, setPopupCoords] = useState<{ x: number; y: number } | null>(null);
+  const [isMouseOverPopup, setIsMouseOverPopup] = useState<boolean>(false);
+  const popupCloseTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleToggleSelesai = () => {
-    if (hideSelesai) {
-      setHideSelesai(false);
-    } else {
-      if (hideProses) {
-        setHideSelesai(true);
-        setHideProses(false);
-      } else {
-        setHideSelesai(true);
-      }
-    }
-  };
+  const handleToggleProses = () => setHideProses(!hideProses);
+  const handleToggleCekSelesai = () => setHideCekSelesai(!hideCekSelesai);
+  const handleToggleSelesai = () => setHideSelesai(!hideSelesai);
 
   const totalProses = displayData.reduce((acc, curr) => acc + curr.prosesCount, 0);
   const totalProsesLuas = Math.round(displayData.reduce((acc, curr) => acc + curr.prosesLuas, 0) * 100) / 100;
+  const totalCekSelesai = displayData.reduce((acc, curr) => acc + curr.cekSelesaiCount, 0);
+  const totalCekSelesaiLuas = Math.round(displayData.reduce((acc, curr) => acc + curr.cekSelesaiLuas, 0) * 100) / 100;
   const totalSelesai = displayData.reduce((acc, curr) => acc + curr.selesaiCount, 0);
   const totalSelesaiLuas = Math.round(displayData.reduce((acc, curr) => acc + curr.selesaiLuas, 0) * 100) / 100;
-  const totalTanamLokasi = totalProses + totalSelesai;
-  const totalTanamLuas = Math.round((totalProsesLuas + totalSelesaiLuas) * 100) / 100;
+  const totalTanamLokasi = totalProses + totalCekSelesai + totalSelesai;
+  const totalTanamLuas = Math.round((totalProsesLuas + totalCekSelesaiLuas + totalSelesaiLuas) * 100) / 100;
 
-  const CustomPlantingTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const item = displayData.find((w) => w.wilayah === label);
-      const prosesLocs = item?.prosesLocations || [];
-      const selesaiLocs = item?.selesaiLocations || [];
-      const prosesLuas = item?.prosesLuas || 0;
-      const selesaiLuas = item?.selesaiLuas || 0;
+  const activeItem = useMemo(() => {
+    if (!hoveredWilayah) return null;
+    return displayData.find((w) => w.wilayah === hoveredWilayah) || null;
+  }, [hoveredWilayah, displayData]);
 
-      return (
-        <div className="p-3.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl text-xs max-w-sm backdrop-blur-xl">
-          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2 mb-2">
-            <span className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 font-mono text-sm">
-              <MapPin className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" /> Wilayah {label}
-            </span>
-            <span className="text-[10px] font-semibold text-cyan-700 dark:text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
-              Total: {(item?.selesaiCount || 0) + (item?.prosesCount || 0)} Lokasi
-            </span>
-          </div>
+  const activeProsesLocs = activeItem?.prosesLocations || [];
+  const activeCekLocs = activeItem?.cekSelesaiLocations || [];
+  const activeSelesaiLocs = activeItem?.selesaiLocations || [];
+  const activeProsesLuas = activeItem?.prosesLuas || 0;
+  const activeCekLuas = activeItem?.cekSelesaiLuas || 0;
+  const activeSelesaiLuas = activeItem?.selesaiLuas || 0;
 
-          {/* Selesai */}
-          {!hideSelesai && (
-            <div className="mb-2">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" /> Selesai Tanam:
-                </span>
-                <div className="text-right">
-                  <strong className="text-slate-900 dark:text-slate-100 font-extrabold">{selesaiLocs.length} Lokasi</strong>
-                  {selesaiLuas > 0 && (
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1.5">({selesaiLuas.toFixed(2)} Ha)</span>
-                  )}
-                </div>
-              </div>
-              {selesaiLocs.length > 0 && (
-                <div className="max-h-24 overflow-y-auto mt-1.5 flex flex-wrap gap-1">
-                  {selesaiLocs.map((loc: string) => (
-                    <button
-                      key={loc}
-                      onClick={() => onSelectLand && onSelectLand(loc)}
-                      className="font-mono text-[9px] bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-500 hover:text-white dark:hover:text-slate-950 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded transition-all cursor-pointer"
-                    >
-                      {loc}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+  const activeTotalCount =
+    (!hideSelesai ? activeSelesaiLocs.length : 0) +
+    (!hideCekSelesai ? activeCekLocs.length : 0) +
+    (!hideProses ? activeProsesLocs.length : 0);
 
-          {/* Proses */}
-          {!hideProses && (
-            <div className={!hideSelesai ? 'border-t border-slate-200 dark:border-slate-800/80 pt-2' : ''}>
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-amber-700 dark:text-amber-400 font-bold flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> Proses Tanam:
-                </span>
-                <div className="text-right">
-                  <strong className="text-slate-900 dark:text-slate-100 font-extrabold">{prosesLocs.length} Lokasi</strong>
-                  {prosesLuas > 0 && (
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1.5">({prosesLuas.toFixed(2)} Ha)</span>
-                  )}
-                </div>
-              </div>
-              {prosesLocs.length > 0 && (
-                <div className="max-h-24 overflow-y-auto mt-1.5 flex flex-wrap gap-1">
-                  {prosesLocs.map((loc: string) => (
-                    <button
-                      key={loc}
-                      onClick={() => onSelectLand && onSelectLand(loc)}
-                      className="font-mono text-[9px] bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-500 hover:text-white dark:hover:text-slate-950 text-amber-800 dark:text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded transition-all cursor-pointer"
-                    >
-                      {loc}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      );
-    }
-    return null;
-  };
+  const isOnlyCekSelesai = !hideCekSelesai && hideSelesai && hideProses;
+  const isOnlyProses = !hideProses && hideSelesai && hideCekSelesai;
+  const isOnlySelesai = !hideSelesai && hideProses && hideCekSelesai;
 
-  // Helper render shape adaptif:
-  // - Jika batang berada di puncak teratas tiang (baik orange maupun hijau) -> sudut atas membulat [6, 6, 0, 0]
-  // - Jika batang berada di bagian bawah/tengah (ada data lain di atasnya) -> flat rata [0, 0, 0, 0] agar menyatu mulus tanpa celah
+  let activeBadgeText = `Total: ${activeTotalCount} Lokasi`;
+  if (isOnlyCekSelesai) {
+    activeBadgeText = `Cek Selesai: ${activeCekLocs.length} Lokasi`;
+  } else if (isOnlyProses) {
+    activeBadgeText = `Proses Tanam: ${activeProsesLocs.length} Lokasi`;
+  } else if (isOnlySelesai) {
+    activeBadgeText = `Selesai Tanam: ${activeSelesaiLocs.length} Lokasi`;
+  }
+
+  // Helper render shape adaptif untuk bar bertumpuk
   const renderCustomBar = (props: any) => {
     if (!props.height || props.height <= 0) return null;
     const totalCount =
       (hideProses ? 0 : props.payload?.prosesCount || 0) +
+      (hideCekSelesai ? 0 : props.payload?.cekSelesaiCount || 0) +
       (hideSelesai ? 0 : props.payload?.selesaiCount || 0);
 
     let isTop = true;
@@ -2074,7 +2026,7 @@ export function ProsesTanamSection({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors">
+    <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
@@ -2083,7 +2035,7 @@ export function ProsesTanamSection({
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                Proses Tanam & Selesai Tanam per Wilayah
+                Proses Tanam, Cek Selesai & Selesai Tanam per Wilayah
               </h3>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                 Total: {totalTanamLokasi} Lokasi ({totalTanamLuas.toLocaleString('id-ID')} Ha)
@@ -2093,17 +2045,38 @@ export function ProsesTanamSection({
         </div>
       </div>
 
-      <div className="h-80 w-full outline-none focus:outline-none select-none">
+      <div className="h-96 w-full outline-none focus:outline-none select-none relative">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={displayData}
-            margin={{ top: 10, right: 10, left: -20, bottom: 14 }}
+            margin={{ top: 12, right: 12, left: -20, bottom: 14 }}
             className="outline-none focus:outline-none"
+            onMouseMove={(state: any) => {
+              if (state && state.activeLabel) {
+                if (popupCloseTimerRef.current) clearTimeout(popupCloseTimerRef.current);
+                setHoveredWilayah(state.activeLabel);
+                if (state.activeCoordinate) {
+                  setPopupCoords({ x: state.activeCoordinate.x, y: state.activeCoordinate.y });
+                }
+              }
+            }}
+            onMouseLeave={() => {
+              // Grace period 350ms agar pengguna bisa dengan santai mengarahkan kursor masuk ke pop-up untuk scroll
+              popupCloseTimerRef.current = setTimeout(() => {
+                setHoveredWilayah((current) => {
+                  return isMouseOverPopup ? current : null;
+                });
+              }, 350);
+            }}
           >
             <defs>
               <linearGradient id="grad-proses-tanam" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#fb923c" stopOpacity={1} />
                 <stop offset="100%" stopColor="#ea580c" stopOpacity={0.95} />
+              </linearGradient>
+              <linearGradient id="grad-cek-selesai" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#818cf8" stopOpacity={1} />
+                <stop offset="100%" stopColor="#4f46e5" stopOpacity={0.95} />
               </linearGradient>
               <linearGradient id="grad-selesai-tanam" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#34d399" stopOpacity={1} />
@@ -2129,7 +2102,7 @@ export function ProsesTanamSection({
                     }}
                     className="group select-none"
                   >
-                    <title>{`Wilayah ${payload.value}: Klik untuk beralih tampilan (Semua / Proses / Selesai)`}</title>
+                    <title>{`Wilayah ${payload.value}: Klik untuk beralih tampilan`}</title>
                     <rect
                       x={-20}
                       y={4}
@@ -2159,9 +2132,13 @@ export function ProsesTanamSection({
               allowDecimals={false}
               tick={{ fill: isDark ? '#cbd5e1' : '#334155', fontSize: 10, fontWeight: 600 }}
             />
-            <Tooltip content={<CustomPlantingTooltip />} />
+            {/* Tooltip bawaan Recharts diabaikan agar tidak menghalangi kursor kearah popup interaktif */}
+            <Tooltip
+              content={() => null}
+              cursor={{ fill: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)' }}
+            />
 
-            {/* Interactive Legend - gaya Monitoring Tanam (tombol selalu tampil, jika disembunyikan menjadi redup/grayscale) */}
+            {/* Interactive Legend */}
             <Legend
               verticalAlign="bottom"
               height={52}
@@ -2172,47 +2149,54 @@ export function ProsesTanamSection({
                     <button
                       type="button"
                       onClick={handleToggleProses}
-                      className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-2xs active:scale-95 ${
+                      className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-2xs active:scale-95 ${
                         hideProses
                           ? 'opacity-40 grayscale hover:opacity-75 bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700'
                           : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30 ring-1 ring-amber-500/20'
                       }`}
-                      title={
-                        hideProses
-                          ? 'Klik untuk menampilkan grafik Proses Tanam'
-                          : 'Klik untuk menyembunyikan grafik Proses Tanam'
-                      }
+                      title={hideProses ? 'Tampilkan grafik Proses Tanam' : 'Sembunyikan grafik Proses Tanam'}
                     >
                       <span
                         className={`w-3 h-3 rounded-xs shrink-0 ${
-                          hideProses
-                            ? 'bg-slate-400 dark:bg-slate-500'
-                            : 'bg-gradient-to-b from-[#fb923c] to-[#ea580c]'
+                          hideProses ? 'bg-slate-400 dark:bg-slate-500' : 'bg-gradient-to-b from-[#fb923c] to-[#ea580c]'
                         }`}
                       />
                       <span>Proses Tanam (Lokasi)</span>
                     </button>
 
-                    {/* 2. Selesai Tanam (Lokasi) */}
+                    {/* 2. Cek Selesai (Lokasi) */}
+                    <button
+                      type="button"
+                      onClick={handleToggleCekSelesai}
+                      className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-2xs active:scale-95 ${
+                        hideCekSelesai
+                          ? 'opacity-40 grayscale hover:opacity-75 bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700'
+                          : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-indigo-500/30 ring-1 ring-indigo-500/20'
+                      }`}
+                      title={hideCekSelesai ? 'Tampilkan grafik Cek Selesai' : 'Sembunyikan grafik Cek Selesai'}
+                    >
+                      <span
+                        className={`w-3 h-3 rounded-xs shrink-0 ${
+                          hideCekSelesai ? 'bg-slate-400 dark:bg-slate-500' : 'bg-gradient-to-b from-[#818cf8] to-[#4f46e5]'
+                        }`}
+                      />
+                      <span>Cek Selesai (Lokasi)</span>
+                    </button>
+
+                    {/* 3. Selesai Tanam (Lokasi) */}
                     <button
                       type="button"
                       onClick={handleToggleSelesai}
-                      className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-2xs active:scale-95 ${
+                      className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-2xs active:scale-95 ${
                         hideSelesai
                           ? 'opacity-40 grayscale hover:opacity-75 bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700'
                           : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 ring-1 ring-emerald-500/20'
                       }`}
-                      title={
-                        hideSelesai
-                          ? 'Klik untuk menampilkan grafik Selesai Tanam'
-                          : 'Klik untuk menyembunyikan grafik Selesai Tanam'
-                      }
+                      title={hideSelesai ? 'Tampilkan grafik Selesai Tanam' : 'Sembunyikan grafik Selesai Tanam'}
                     >
                       <span
                         className={`w-3 h-3 rounded-xs shrink-0 ${
-                          hideSelesai
-                            ? 'bg-slate-400 dark:bg-slate-500'
-                            : 'bg-gradient-to-b from-[#34d399] to-[#059669]'
+                          hideSelesai ? 'bg-slate-400 dark:bg-slate-500' : 'bg-gradient-to-b from-[#34d399] to-[#059669]'
                         }`}
                       />
                       <span>Selesai Tanam (Lokasi)</span>
@@ -2227,8 +2211,19 @@ export function ProsesTanamSection({
                 dataKey="prosesCount"
                 name="Proses Tanam (Lokasi)"
                 fill="url(#grad-proses-tanam)"
-                stackId={!hideSelesai ? 'tanam' : undefined}
+                stackId="tanam"
                 shape={renderCustomBar}
+                maxBarSize={48}
+              />
+            )}
+            {!hideCekSelesai && (
+              <Bar
+                dataKey="cekSelesaiCount"
+                name="Cek Selesai (Lokasi)"
+                fill="url(#grad-cek-selesai)"
+                stackId="tanam"
+                shape={renderCustomBar}
+                maxBarSize={48}
               />
             )}
             {!hideSelesai && (
@@ -2236,12 +2231,146 @@ export function ProsesTanamSection({
                 dataKey="selesaiCount"
                 name="Selesai Tanam (Lokasi)"
                 fill="url(#grad-selesai-tanam)"
-                stackId={!hideProses ? 'tanam' : undefined}
+                stackId="tanam"
                 shape={renderCustomBar}
+                maxBarSize={48}
               />
             )}
           </BarChart>
         </ResponsiveContainer>
+
+        {/* Pop-up Interaktif yang Tidak Hilang Saat Kursor Bergerak untuk Scroll */}
+        {hoveredWilayah && activeItem && popupCoords && (
+          <div
+            onMouseEnter={() => {
+              if (popupCloseTimerRef.current) clearTimeout(popupCloseTimerRef.current);
+              setIsMouseOverPopup(true);
+            }}
+            onMouseLeave={() => {
+              setIsMouseOverPopup(false);
+              popupCloseTimerRef.current = setTimeout(() => {
+                setHoveredWilayah(null);
+              }, 250);
+            }}
+            style={{
+              position: 'absolute',
+              left: popupCoords.x > 320 ? Math.max(10, popupCoords.x - 365) : popupCoords.x + 20,
+              top: Math.max(20, Math.min(popupCoords.y - 20, 150)),
+              zIndex: 60,
+            }}
+            className="p-4 bg-white/95 dark:bg-slate-950/95 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl backdrop-blur-xl text-xs w-[350px] min-w-[340px] pointer-events-auto select-auto animate-in fade-in zoom-in-95 duration-150"
+          >
+            {/* Header Pop-up: Wilayah & Total Badges */}
+            <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-slate-100 font-mono text-sm">
+                <MapPin className="w-4 h-4 text-cyan-600 dark:text-cyan-400 shrink-0" />
+                <span>Wilayah {hoveredWilayah}</span>
+              </div>
+              <span className="text-[11px] font-bold text-cyan-700 dark:text-cyan-300 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20 whitespace-nowrap">
+                {activeBadgeText}
+              </span>
+            </div>
+
+            {/* Section 1: Selesai Tanam */}
+            {!hideSelesai && activeSelesaiLocs.length > 0 && (
+              <div className="space-y-1.5 pb-2.5 mb-2.5 border-b border-slate-100 dark:border-slate-800/70 last:border-0 last:pb-0 last:mb-0">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1.5 whitespace-nowrap">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <span>Selesai Tanam</span>
+                  </span>
+                  <div className="flex items-center gap-1 tabular-nums text-right whitespace-nowrap shrink-0">
+                    <strong className="text-slate-900 dark:text-slate-100 font-extrabold">{activeSelesaiLocs.length} Lokasi</strong>
+                    {activeSelesaiLuas > 0 && (
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 ml-1">
+                        ({activeSelesaiLuas.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 2 })} Ha)
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div
+                  className="max-h-28 overflow-y-auto pr-1 grid grid-cols-4 gap-1.5 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 overscroll-contain"
+                  onWheel={(e) => e.stopPropagation()}
+                >
+                  {activeSelesaiLocs.map((loc: string) => (
+                    <div
+                      key={loc}
+                      className="w-full text-center py-1 px-1 font-mono text-[10.5px] font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 rounded-md shadow-2xs select-none truncate"
+                    >
+                      {loc}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Section 2: Cek Selesai */}
+            {!hideCekSelesai && activeCekLocs.length > 0 && (
+              <div className="space-y-1.5 pb-2.5 mb-2.5 border-b border-slate-100 dark:border-slate-800/70 last:border-0 last:pb-0 last:mb-0">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-indigo-700 dark:text-indigo-400 font-bold flex items-center gap-1.5 whitespace-nowrap">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                    <span>Cek Selesai</span>
+                  </span>
+                  <div className="flex items-center gap-1 tabular-nums text-right whitespace-nowrap shrink-0">
+                    <strong className="text-slate-900 dark:text-slate-100 font-extrabold">{activeCekLocs.length} Lokasi</strong>
+                    {activeCekLuas > 0 && (
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 ml-1">
+                        ({activeCekLuas.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 2 })} Ha)
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div
+                  className="max-h-24 overflow-y-auto pr-1 grid grid-cols-4 gap-1.5 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 overscroll-contain"
+                  onWheel={(e) => e.stopPropagation()}
+                >
+                  {activeCekLocs.map((loc: string) => (
+                    <div
+                      key={loc}
+                      className="w-full text-center py-1 px-1 font-mono text-[10.5px] font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border border-indigo-500/30 rounded-md shadow-2xs select-none truncate"
+                    >
+                      {loc}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Section 3: Proses Tanam */}
+            {!hideProses && activeProsesLocs.length > 0 && (
+              <div className="space-y-1.5 pb-2.5 mb-2.5 border-b border-slate-100 dark:border-slate-800/70 last:border-0 last:pb-0 last:mb-0">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-amber-700 dark:text-amber-400 font-bold flex items-center gap-1.5 whitespace-nowrap">
+                    <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span>Proses Tanam</span>
+                  </span>
+                  <div className="flex items-center gap-1 tabular-nums text-right whitespace-nowrap shrink-0">
+                    <strong className="text-slate-900 dark:text-slate-100 font-extrabold">{activeProsesLocs.length} Lokasi</strong>
+                    {activeProsesLuas > 0 && (
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 ml-1">
+                        ({activeProsesLuas.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 2 })} Ha)
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div
+                  className="max-h-24 overflow-y-auto pr-1 grid grid-cols-4 gap-1.5 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 overscroll-contain"
+                  onWheel={(e) => e.stopPropagation()}
+                >
+                  {activeProsesLocs.map((loc: string) => (
+                    <div
+                      key={loc}
+                      className="w-full text-center py-1 px-1 font-mono text-[10.5px] font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-500/30 rounded-md shadow-2xs select-none truncate"
+                    >
+                      {loc}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Status bar */}
@@ -2251,6 +2380,13 @@ export function ProsesTanamSection({
             Selesai Tanam:{' '}
             <strong className="text-emerald-700 dark:text-emerald-400 font-bold">
               {totalSelesai} Lokasi ({totalSelesaiLuas.toLocaleString('id-ID')} Ha)
+            </strong>
+          </span>
+          <span>•</span>
+          <span>
+            Cek Selesai:{' '}
+            <strong className="text-indigo-700 dark:text-indigo-400 font-bold">
+              {totalCekSelesai} Lokasi ({totalCekSelesaiLuas.toLocaleString('id-ID')} Ha)
             </strong>
           </span>
           <span>•</span>

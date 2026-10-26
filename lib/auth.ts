@@ -36,7 +36,7 @@ export const DEFAULT_USERS: Array<AuthUser & { password: string }> = [
   },
   {
     id: 4,
-    name: 'Operator & User GGF',
+    name: 'User GGF',
     email: 'user@ggf.co.id',
     password: 'user123',
     role: 'user',

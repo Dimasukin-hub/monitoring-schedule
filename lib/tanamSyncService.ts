@@ -4,7 +4,7 @@ export interface SyncTanamResult {
   lokasi: string;
   status: string;
   progress: number;
-  category: 'PROSES' | 'SELESAI';
+  category: 'PROSES' | 'CEK_SELESAI' | 'SELESAI';
   updatedLand: boolean;
   updatedMaster: boolean;
 }
@@ -217,7 +217,7 @@ export async function syncPlantingToStokLahan(lokasi: string): Promise<SyncTanam
   // Tentukan label kategori untuk StokLahanMaster & Land
   const isSelesai = status === 'SELESAI';
   const isCekSelesai = status === 'CEK SELESAI';
-  const category = isSelesai ? 'SELESAI' : 'PROSES';
+  const category = isSelesai ? 'SELESAI' : isCekSelesai ? 'CEK_SELESAI' : 'PROSES';
   const aplikasiTerakhir = isSelesai
     ? 'Selesai Tanam'
     : isCekSelesai
@@ -229,22 +229,50 @@ export async function syncPlantingToStokLahan(lokasi: string): Promise<SyncTanam
     ? 'Cek Selesai'
     : '23.Proses Tnm';
 
-  // Update StokLahanMaster jika ada
+  // Update atau Buat StokLahanMaster agar selalu sinkron
   let updatedMaster = false;
   const existingMaster = await prisma.stokLahanMaster.findFirst({
     where: { lokasi: cleanLokasi },
   });
 
   if (existingMaster) {
+    const updateData: any = {
+      category,
+      luasNetto: luas > 0 ? luas : existingMaster.luasNetto,
+      progressTanam: progress,
+      aplikasiTerakhir,
+      statusAplikasi,
+      ...(planting.awalTanam && !existingMaster.realMulaiTanam ? { realMulaiTanam: planting.awalTanam } : {}),
+      realSelesaiTanam: isSelesai ? (planting.estSelesai || planting.awalTanam || null) : null,
+    };
+    if (
+      ['PROSES', 'CEK SELESAI', 'SELESAI', 'BELUM TANAM'].includes((existingMaster.status || '').toUpperCase())
+    ) {
+      const ld = await prisma.land.findFirst({ where: { lokasi: cleanLokasi } });
+      if (ld?.status) updateData.status = ld.status.replace(/\d+/g, '').trim();
+    }
     await prisma.stokLahanMaster.update({
       where: { id: existingMaster.id },
+      data: updateData,
+    });
+    updatedMaster = true;
+  } else {
+    const ld = await prisma.land.findFirst({
+      where: { lokasi: cleanLokasi },
+    });
+    await prisma.stokLahanMaster.create({
       data: {
+        lokasi: cleanLokasi,
+        wilayah: ld?.wilayah || 'W01',
+        luasBruto: ld?.luasBruto || luas,
+        luasNetto: luas > 0 ? luas : (ld?.luasNetto || 0),
+        status: ld?.status ? ld.status.replace(/\d+/g, '').trim() : 'NSSC',
         category,
         progressTanam: progress,
         aplikasiTerakhir,
         statusAplikasi,
-        ...(planting.awalTanam && !existingMaster.realMulaiTanam ? { realMulaiTanam: planting.awalTanam } : {}),
-        ...(isSelesai && (planting.estSelesai || planting.awalTanam) ? { realSelesaiTanam: planting.estSelesai || planting.awalTanam } : {}),
+        realMulaiTanam: planting.awalTanam || null,
+        realSelesaiTanam: isSelesai ? (planting.estSelesai || planting.awalTanam || null) : null,
       },
     });
     updatedMaster = true;
@@ -264,7 +292,7 @@ export async function syncPlantingToStokLahan(lokasi: string): Promise<SyncTanam
         aplikasiTerakhir,
         statusAplikasi,
         ...(planting.awalTanam && !existingLand.realMulaiTanam ? { realMulaiTanam: planting.awalTanam } : {}),
-        ...(isSelesai && (planting.estSelesai || planting.awalTanam) ? { realSelesaiTanam: planting.estSelesai || planting.awalTanam } : {}),
+        realSelesaiTanam: isSelesai ? (planting.estSelesai || planting.awalTanam || null) : null,
       },
     });
     updatedLand = true;
@@ -322,4 +350,197 @@ export async function syncAllPlantingsToStokLahan(): Promise<{ synced: number; f
   }
 
   return { synced, fixedSisa };
+}
+
+/**
+ * Sinkronisasi data transaksi lapangan (PlantingDetail) ke master Real Tanam Nanas (Planting).
+ * Menghitung ulang realTanam, sisa, progress, status, awalTanam, estSelesai, leadtime,
+ * serta memastikan urutan running total akumTanam & % Tanam di baris transaksi tetap akurat.
+ * Kemudian meneruskan sinkronisasi otomatis ke StokLahanMaster dan Land.
+ */
+export async function syncRawTransactionToPlanting(lokasi: string) {
+  const cleanLokasi = lokasi.trim();
+  if (!cleanLokasi) return null;
+
+  // 1. Ambil seluruh transaksi beraktivitas tanam untuk lokasi ini
+  const tanamTxs = await prisma.plantingDetail.findMany({
+    where: {
+      lokasi: { equals: cleanLokasi, mode: 'insensitive' },
+      aktivitas: { contains: 'tanam', mode: 'insensitive' },
+    },
+    orderBy: [
+      { tanggalDate: 'asc' },
+      { id: 'asc' },
+    ],
+  });
+
+  // 2. Hitung total real tanam
+  const sumRealTanam = Number(
+    tanamTxs.reduce((sum, t) => sum + (t.total || 0), 0).toFixed(2)
+  );
+
+  // 3. Ambil master Planting jika ada
+  let planting = await prisma.planting.findFirst({
+    where: { lokasi: { equals: cleanLokasi, mode: 'insensitive' } },
+  });
+
+  // Fallback targetLuas: Jika belum ada di master Planting, cari di Land atau dari baris transaksi
+  let targetLuas = planting?.luas || 0;
+  if (!targetLuas) {
+    const land = await prisma.land.findFirst({
+      where: { lokasi: { equals: cleanLokasi, mode: 'insensitive' } },
+      select: { luasNetto: true, luasBruto: true },
+    });
+    if (land) {
+      targetLuas = land.luasNetto || land.luasBruto || 0;
+    } else if (tanamTxs.length > 0 && tanamTxs[0].luasNetto) {
+      targetLuas = tanamTxs[0].luasNetto || 0;
+    }
+  }
+
+  // 4. Hitung progress (%)
+  let progress = targetLuas > 0 ? Number(((sumRealTanam / targetLuas) * 100).toFixed(1)) : (sumRealTanam > 0 ? 100 : 0);
+
+  // 5. Tentukan Status Standar (SELESAI >= 100%, CEK SELESAI > 95%, PROSES <= 95%, BELUM TANAM = 0)
+  let status = 'BELUM TANAM';
+  if (progress >= 100 || (targetLuas > 0 && sumRealTanam >= targetLuas) || (targetLuas > 0 && Math.abs(sumRealTanam - targetLuas) <= 0.05 && sumRealTanam > 0)) {
+    status = 'SELESAI';
+    progress = 100;
+  } else if (progress > 95) {
+    status = 'CEK SELESAI';
+  } else if (sumRealTanam > 0 || progress > 0) {
+    status = 'PROSES';
+  }
+
+  // 6. Hitung sisa (SELESAI = 0, PROSES / CEK SELESAI = Math.max(0, targetLuas - sumRealTanam))
+  const sisa = status === 'SELESAI' ? 0 : Math.max(0, Number((targetLuas - sumRealTanam).toFixed(2)));
+
+  // 7. Tentukan awal tanam
+  let awalTanam = planting?.awalTanam || null;
+  if (!awalTanam && tanamTxs.length > 0) {
+    const firstTx = tanamTxs[0];
+    if (firstTx.awalTanam) {
+      awalTanam = firstTx.awalTanam;
+    } else if (firstTx.tanggalDate) {
+      awalTanam = formatDateString(new Date(firstTx.tanggalDate));
+    } else if (firstTx.tanggal) {
+      awalTanam = firstTx.tanggal;
+    }
+  }
+
+  // 8. Tentukan jenis bibit & kelas bibit jika belum ada
+  let jenisBibit = planting?.jenisBibit || null;
+  let kelasBibit = planting?.kelasBibit || null;
+  if (!jenisBibit && tanamTxs.length > 0) {
+    let crownHa = 0;
+    let suckerHa = 0;
+    for (const tx of tanamTxs) {
+      const j = (tx.jenisBibit || '').toLowerCase();
+      if (j.includes('crown')) crownHa += tx.total || 0;
+      else if (j.includes('sucker')) suckerHa += tx.total || 0;
+    }
+    jenisBibit = crownHa >= suckerHa ? 'Crown' : 'Sucker';
+  }
+  if (!kelasBibit && tanamTxs.length > 0) {
+    let maxVol = 0;
+    let bestKelas = 'Standar';
+    const classes = [
+      { name: 'Standar', vol: tanamTxs.reduce((s, t) => s + (t.standar || 0), 0) },
+      { name: 'Besar', vol: tanamTxs.reduce((s, t) => s + (t.besar || 0), 0) },
+      { name: 'Sedang', vol: tanamTxs.reduce((s, t) => s + (t.sedang || 0), 0) },
+      { name: 'Kecil', vol: tanamTxs.reduce((s, t) => s + (t.kecil || 0), 0) },
+      { name: 'Extra Kecil', vol: tanamTxs.reduce((s, t) => s + (t.extraKecil || 0), 0) },
+    ];
+    for (const c of classes) {
+      if (c.vol > maxVol) {
+        maxVol = c.vol;
+        bestKelas = c.name;
+      }
+    }
+    if (maxVol > 0) kelasBibit = bestKelas;
+  }
+
+  // 9. Hitung Est. Selesai dan Leadtime
+  const { estSelesai, leadtime } = await calculateEstSelesaiAndLeadtime({
+    lokasi: cleanLokasi,
+    sisa,
+    status,
+    awalTanam,
+    existingEstSelesai: planting?.estSelesai,
+    jenisBibit,
+  });
+
+  // 10. Simpan pembaruan ke tabel Planting
+  let updatedPlanting = null;
+  if (planting) {
+    updatedPlanting = await prisma.planting.update({
+      where: { id: planting.id },
+      data: {
+        realTanam: sumRealTanam,
+        luas: targetLuas,
+        sisa,
+        progress,
+        status,
+        awalTanam,
+        estSelesai,
+        leadtime,
+        ...(jenisBibit && !planting.jenisBibit ? { jenisBibit } : {}),
+        ...(kelasBibit && !planting.kelasBibit ? { kelasBibit } : {}),
+      },
+    });
+  } else if (targetLuas > 0 || sumRealTanam > 0) {
+    // Jika belum ada di master Planting, otomatis buatkan record
+    updatedPlanting = await prisma.planting.create({
+      data: {
+        lokasi: cleanLokasi,
+        luas: targetLuas || sumRealTanam,
+        realTanam: sumRealTanam,
+        sisa,
+        progress,
+        status,
+        awalTanam,
+        estSelesai,
+        leadtime,
+        jenisBibit: jenisBibit || 'Crown',
+        kelasBibit: kelasBibit || 'Standar',
+      },
+    });
+  }
+
+  // 11. Perbarui akumulasi dan persentase berurutan di baris transaksi PlantingDetail
+  let runningAkum = 0;
+  for (const tx of tanamTxs) {
+    runningAkum = Number((runningAkum + (tx.total || 0)).toFixed(2));
+    const runningPersen = targetLuas > 0 ? Number(((runningAkum / targetLuas) * 100).toFixed(1)) : 0;
+    if (tx.akumTanam !== runningAkum || tx.persenTanam !== runningPersen || (tx.luasNetto !== targetLuas && targetLuas > 0)) {
+      await prisma.plantingDetail.update({
+        where: { id: tx.id },
+        data: {
+          akumTanam: runningAkum,
+          persenTanam: runningPersen,
+          ...(tx.luasNetto !== targetLuas && targetLuas > 0 ? { luasNetto: targetLuas } : {}),
+        },
+      });
+    }
+  }
+
+  // 12. Teruskan sinkronisasi real-time ke StokLahanMaster dan Land
+  try {
+    await syncPlantingToStokLahan(cleanLokasi);
+  } catch (syncErr) {
+    console.error(`Error syncing planting to stok lahan for ${cleanLokasi}:`, syncErr);
+  }
+
+  return {
+    lokasi: cleanLokasi,
+    realTanam: sumRealTanam,
+    targetLuas,
+    progress,
+    status,
+    sisa,
+    awalTanam,
+    estSelesai,
+    leadtime,
+    updatedPlanting,
+  };
 }

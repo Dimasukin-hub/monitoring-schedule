@@ -16,6 +16,7 @@ import {
   Trash2,
   RotateCcw,
   XCircle,
+  Lock,
 } from 'lucide-react';
 
 interface QuickUpdateTanamLog {
@@ -23,7 +24,7 @@ interface QuickUpdateTanamLog {
   landId: number;
   lokasi: string;
   wilayah: string;
-  activityKey: 'prosesTanam' | 'selesaiTanam';
+  activityKey: 'prosesTanam' | 'cekSelesai' | 'selesaiTanam';
   activityName: string;
   jenisBibit?: string | null;
   kelasBibit?: string | null;
@@ -75,7 +76,7 @@ interface QuickUpdateTanamViewProps {
 const JENIS_BIBIT_OPTIONS = ['Crown', 'Sucker', 'Nanas', 'MD2', 'GP3'];
 const KELAS_BIBIT_OPTIONS = ['Besar', 'Sedang', 'Kecil', 'Extra Kecil'];
 
-export default function QuickUpdateTanamView({ onDataChanged, isAdmin = true }: QuickUpdateTanamViewProps) {
+export default function QuickUpdateTanamView({ onDataChanged, isAdmin = false }: QuickUpdateTanamViewProps) {
   const [lands, setLands] = useState<any[]>([]);
   const [availableYears, setAvailableYears] = useState<number[]>([2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028]);
   const [availableWilayahs, setAvailableWilayahs] = useState<string[]>(['W01', 'W02', 'W03', 'W04', 'W05', 'W06', 'W07']);
@@ -92,7 +93,7 @@ export default function QuickUpdateTanamView({ onDataChanged, isAdmin = true }: 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Form Fields
-  const [selectedStage, setSelectedStage] = useState<'prosesTanam' | 'selesaiTanam' | null>(null);
+  const [selectedStage, setSelectedStage] = useState<'prosesTanam' | 'cekSelesai' | 'selesaiTanam' | null>(null);
   const [selectedJenisBibit, setSelectedJenisBibit] = useState<string>('');
   const [selectedKelasBibit, setSelectedKelasBibit] = useState<string>('');
   const [realDateInput, setRealDateInput] = useState<string>('');
@@ -280,7 +281,12 @@ export default function QuickUpdateTanamView({ onDataChanged, isAdmin = true }: 
         throw new Error(json.error || 'Gagal menyimpan pembaruan tanam');
       }
 
-      const stageName = selectedStage === 'prosesTanam' ? 'Mulai / Proses Tanam' : 'Selesai Tanam';
+      const stageName =
+        selectedStage === 'prosesTanam'
+          ? 'Proses Tanam'
+          : selectedStage === 'cekSelesai'
+          ? 'Cek Selesai'
+          : 'Selesai Tanam';
 
       setFeedback({
         type: 'success',
@@ -325,6 +331,7 @@ export default function QuickUpdateTanamView({ onDataChanged, isAdmin = true }: 
 
   // Undo / Revert log action
   const handleUndoLog = async (logItem: QuickUpdateTanamLog) => {
+    if (!isAdmin) return;
     if (!confirm(`Batalkan pembaruan ${logItem.activityName} pada petak ${logItem.lokasi}?`)) return;
 
     try {
@@ -577,6 +584,8 @@ export default function QuickUpdateTanamView({ onDataChanged, isAdmin = true }: 
                                   ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800'
                                   : l.category === 'PROSES'
                                   ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800'
+                                  : l.category === 'CEK_SELESAI'
+                                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 border-indigo-300 dark:border-indigo-800'
                                   : l.category === 'SELESAI'
                                   ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-800'
                                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
@@ -615,9 +624,11 @@ export default function QuickUpdateTanamView({ onDataChanged, isAdmin = true }: 
                       <span className="text-slate-400 block text-[10px]">Status Tanam:</span>
                       <span className="font-bold text-emerald-700 dark:text-emerald-400">
                         {currentLand.realSelesaiTanam
-                          ? 'Selesai Tanam (100%)'
+                          ? 'Selesai Tanam'
+                          : currentLand.category === 'CEK_SELESAI' || currentLand.status === 'CEK SELESAI'
+                          ? 'Cek Selesai'
                           : currentLand.realMulaiTanam
-                          ? 'Proses Tanam (50%)'
+                          ? 'Proses Tanam'
                           : 'Siap Tanam / Belum'}
                       </span>
                     </div>
@@ -644,23 +655,43 @@ export default function QuickUpdateTanamView({ onDataChanged, isAdmin = true }: 
                 Aktivitas
               </label>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button
                   type="button"
                   onClick={() => setSelectedStage(selectedStage === 'prosesTanam' ? null : 'prosesTanam')}
-                  className={`py-2.5 px-3.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                  className={`py-2.5 px-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
                     selectedStage === 'prosesTanam'
                       ? 'border-amber-500 bg-amber-50/70 dark:bg-amber-950/40 ring-2 ring-amber-500/20'
                       : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
                   }`}
                 >
                   <span className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                    Mulai / Proses Tanam
+                    <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                    Proses Tanam
                   </span>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
-                      50%
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 shrink-0">
+                      Proses
+                    </span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedStage(selectedStage === 'cekSelesai' ? null : 'cekSelesai')}
+                  className={`py-2.5 px-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                    selectedStage === 'cekSelesai'
+                      ? 'border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 ring-2 ring-indigo-500/20'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
+                  }`}
+                >
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                    Cek Selesai
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-300 shrink-0">
+                      Cek
                     </span>
                   </div>
                 </button>
@@ -668,19 +699,19 @@ export default function QuickUpdateTanamView({ onDataChanged, isAdmin = true }: 
                 <button
                   type="button"
                   onClick={() => setSelectedStage(selectedStage === 'selesaiTanam' ? null : 'selesaiTanam')}
-                  className={`py-2.5 px-3.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                  className={`py-2.5 px-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
                     selectedStage === 'selesaiTanam'
                       ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 ring-2 ring-emerald-500/20'
                       : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
                   }`}
                 >
                   <span className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     Selesai Tanam
                   </span>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300">
-                      100%
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 shrink-0">
+                      Selesai
                     </span>
                   </div>
                 </button>
@@ -995,9 +1026,9 @@ export default function QuickUpdateTanamView({ onDataChanged, isAdmin = true }: 
             <div className="pt-2">
               <button
                 type="submit"
-                disabled={submitting || !selectedLandId}
+                disabled={submitting || !selectedLandId || !isAdmin}
                 className={`w-full py-3 px-4 rounded-2xl font-bold text-xs tracking-wide text-white transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer ${
-                  submitting || !selectedLandId
+                  submitting || !selectedLandId || !isAdmin
                     ? 'bg-slate-300 dark:bg-slate-800 text-slate-500 cursor-not-allowed shadow-none'
                     : 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 shadow-emerald-500/20 active:scale-[0.99]'
                 }`}
@@ -1006,6 +1037,11 @@ export default function QuickUpdateTanamView({ onDataChanged, isAdmin = true }: 
                   <>
                     <Loader2 className="w-4 h-4 animate-spin text-white" />
                     <span>Menyimpan...</span>
+                  </>
+                ) : !isAdmin ? (
+                  <>
+                    <Lock className="w-4 h-4 text-slate-400" />
+                    <span>Simpan (Khusus Akses Administrator)</span>
                   </>
                 ) : (
                   <>
@@ -1092,14 +1128,16 @@ export default function QuickUpdateTanamView({ onDataChanged, isAdmin = true }: 
                       <div className="text-[10px] text-slate-400">{log.timestamp}</div>
                     </div>
 
-                    <button
-                      type="button"
-                      title="Batalkan perubahan ini"
-                      onClick={() => handleUndoLog(log)}
-                      className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-rose-50 hover:border-rose-300 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer shrink-0"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                    </button>
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        title="Batalkan perubahan ini"
+                        onClick={() => handleUndoLog(log)}
+                        className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-rose-50 hover:border-rose-300 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer shrink-0"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

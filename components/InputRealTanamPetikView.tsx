@@ -14,10 +14,13 @@ import {
   Check,
   Loader2,
   Plus,
+  Trash2,
+  Undo2,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import TableDatePicker from '@/components/TableDatePicker';
 import AddPlantingTransactionModal from '@/components/AddPlantingTransactionModal';
+import { useAuth } from '@/components/AuthProvider';
 
 interface TransactionItem {
   id: number;
@@ -70,7 +73,18 @@ const WILAYAH_LIST = [
 const AKTIVITAS_LIST = ['Tanam Bibit', 'Petik Bibit'];
 const JENIS_BIBIT_LIST = ['Crown', 'Sucker'];
 
-export default function InputRealTanamPetikView() {
+interface InputRealTanamPetikViewProps {
+  isAdmin?: boolean;
+  onDataChanged?: () => void;
+}
+
+export default function InputRealTanamPetikView({
+  isAdmin: propIsAdmin,
+  onDataChanged,
+}: InputRealTanamPetikViewProps = {}) {
+  const { isAdmin: authIsAdmin } = useAuth();
+  const isAdmin = propIsAdmin !== undefined ? propIsAdmin : authIsAdmin;
+
   const [data, setData] = useState<TransactionItem[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(1);
@@ -101,8 +115,21 @@ export default function InputRealTanamPetikView() {
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(50);
   const [isLimitOpen, setIsLimitOpen] = useState<boolean>(false);
+  const limitRef = useRef<HTMLDivElement>(null);
   const [sortField, setSortField] = useState<string>('tanggalDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Close limit dropdown on outside click
+  useEffect(() => {
+    if (!isLimitOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (limitRef.current && !limitRef.current.contains(e.target as Node)) {
+        setIsLimitOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isLimitOpen]);
 
   // Inline Editing States
   const [editingCell, setEditingCell] = useState<{ id: number; field: string } | null>(null);
@@ -110,6 +137,37 @@ export default function InputRealTanamPetikView() {
   const [savingCell, setSavingCell] = useState<{ id: number; field: string } | null>(null);
   const [savedSuccessCell, setSavedSuccessCell] = useState<{ id: number; field: string } | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Hover pop up on No column
+  const [hoveredNoId, setHoveredNoId] = useState<number | null>(null);
+  const noHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Undo history stack per-item (Ctrl+Z feature)
+  const undoHistoryRef = useRef<Record<number, TransactionItem[]>>({});
+  const initialDataRef = useRef<Record<number, TransactionItem>>({});
+  const recentEditedIdsRef = useRef<number[]>([]);
+  const [, setUndoVersion] = useState(0);
+
+  // Modal hapus transaksi
+  const [txToDelete, setTxToDelete] = useState<{ id: number; lokasi: string; aktivitas: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
+  const handleNoMouseEnter = (id: number) => {
+    if (noHoverTimeoutRef.current) {
+      clearTimeout(noHoverTimeoutRef.current);
+      noHoverTimeoutRef.current = null;
+    }
+    setHoveredNoId(id);
+  };
+
+  const handleNoMouseLeave = () => {
+    if (noHoverTimeoutRef.current) {
+      clearTimeout(noHoverTimeoutRef.current);
+    }
+    noHoverTimeoutRef.current = setTimeout(() => {
+      setHoveredNoId(null);
+    }, 300);
+  };
 
   // Auto-focus input when cell editing starts
   useEffect(() => {
@@ -171,6 +229,14 @@ export default function InputRealTanamPetikView() {
         setData(json.data || []);
         setTotal(json.total || 0);
         setTotalPages(json.totalPages || 1);
+
+        if (json.data && Array.isArray(json.data)) {
+          json.data.forEach((row: TransactionItem) => {
+            if (!initialDataRef.current[row.id]) {
+              initialDataRef.current[row.id] = JSON.parse(JSON.stringify(row));
+            }
+          });
+        }
       } else {
         setError(json.error || 'Gagal memuat data transaksi');
       }
@@ -198,6 +264,7 @@ export default function InputRealTanamPetikView() {
 
   // Start cell editing
   const startEdit = (item: TransactionItem, field: string) => {
+    if (!isAdmin) return;
     if (field === 'lokasi') return; // Lokasi is read-only
     setEditingCell({ id: item.id, field });
     const rawVal = item[field as keyof TransactionItem];
@@ -209,11 +276,197 @@ export default function InputRealTanamPetikView() {
     setEditValue('');
   };
 
+  const pushUndoSnapshot = (id: number) => {
+    const current = data.find((row) => row.id === id);
+    if (!current) return;
+    if (!undoHistoryRef.current[id]) {
+      undoHistoryRef.current[id] = [];
+    }
+    undoHistoryRef.current[id].push(JSON.parse(JSON.stringify(current)));
+    if (undoHistoryRef.current[id].length > 20) {
+      undoHistoryRef.current[id].shift();
+    }
+    recentEditedIdsRef.current.push(id);
+    setUndoVersion((v) => v + 1);
+  };
+
+  const isModifiedFromOriginal = (id: number) => {
+    const current = data.find((row) => row.id === id);
+    const initial = initialDataRef.current[id];
+    if (!current || !initial) return false;
+    return (
+      current.tanggal !== initial.tanggal ||
+      current.luasNetto !== initial.luasNetto ||
+      current.aktivitas !== initial.aktivitas ||
+      current.standar !== initial.standar ||
+      current.besar !== initial.besar ||
+      current.sedang !== initial.sedang ||
+      current.kecil !== initial.kecil ||
+      current.extraKecil !== initial.extraKecil ||
+      current.total !== initial.total ||
+      current.jenisBibit !== initial.jenisBibit ||
+      current.wilayah !== initial.wilayah ||
+      current.awalTanam !== initial.awalTanam ||
+      current.selesaiTanam !== initial.selesaiTanam ||
+      current.akumTanam !== initial.akumTanam ||
+      current.persenTanam !== initial.persenTanam ||
+      current.petikKe !== initial.petikKe
+    );
+  };
+
+  // Tombol Panah Kembali: Langsung mengembalikan ke data paling awal / data aslinya
+  const handleResetToOriginal = async (id: number) => {
+    const initialSnapshot = initialDataRef.current[id];
+    if (!initialSnapshot) return;
+
+    setData((prev) => prev.map((row) => (row.id === id ? { ...initialSnapshot } : row)));
+    undoHistoryRef.current[id] = [];
+    setUndoVersion((v) => v + 1);
+
+    try {
+      const payload: any = {
+        transactionId: initialSnapshot.id,
+        tanggal: initialSnapshot.tanggal,
+        luasNetto: initialSnapshot.luasNetto,
+        aktivitas: initialSnapshot.aktivitas,
+        standar: initialSnapshot.standar,
+        besar: initialSnapshot.besar,
+        sedang: initialSnapshot.sedang,
+        kecil: initialSnapshot.kecil,
+        extraKecil: initialSnapshot.extraKecil,
+        total: initialSnapshot.total,
+        jenisBibit: initialSnapshot.jenisBibit,
+        wilayah: initialSnapshot.wilayah,
+        awalTanam: initialSnapshot.awalTanam,
+        selesaiTanam: initialSnapshot.selesaiTanam,
+        akumTanam: initialSnapshot.akumTanam,
+        persenTanam: initialSnapshot.persenTanam,
+        petikKe: initialSnapshot.petikKe,
+      };
+
+      const res = await fetch('/api/planting/detail', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (json.success && json.updatedTransaction) {
+        setData((prev) =>
+          prev.map((row) => (row.id === id ? { ...row, ...json.updatedTransaction } : row))
+        );
+      }
+      onDataChanged?.();
+    } catch (err: any) {
+      console.error('Error resetting transaction to original:', err);
+      alert(`Gagal mengembalikan ke data asli: ${err.message}`);
+      fetchData();
+    }
+  };
+
+  // Ctrl + Z: Mundur selangkah demi selangkah ke perubahan sebelumnya
+  const handleUndoStep = async (id: number) => {
+    const history = undoHistoryRef.current[id];
+    let snapshotToRestore = null;
+    if (history && history.length > 0) {
+      snapshotToRestore = history.pop();
+    } else if (initialDataRef.current[id]) {
+      snapshotToRestore = initialDataRef.current[id];
+    }
+    if (!snapshotToRestore) return;
+
+    setData((prev) => prev.map((row) => (row.id === id ? { ...snapshotToRestore } : row)));
+    setUndoVersion((v) => v + 1);
+
+    try {
+      const payload: any = {
+        transactionId: snapshotToRestore.id,
+        tanggal: snapshotToRestore.tanggal,
+        luasNetto: snapshotToRestore.luasNetto,
+        aktivitas: snapshotToRestore.aktivitas,
+        standar: snapshotToRestore.standar,
+        besar: snapshotToRestore.besar,
+        sedang: snapshotToRestore.sedang,
+        kecil: snapshotToRestore.kecil,
+        extraKecil: snapshotToRestore.extraKecil,
+        total: snapshotToRestore.total,
+        jenisBibit: snapshotToRestore.jenisBibit,
+        wilayah: snapshotToRestore.wilayah,
+        awalTanam: snapshotToRestore.awalTanam,
+        selesaiTanam: snapshotToRestore.selesaiTanam,
+        akumTanam: snapshotToRestore.akumTanam,
+        persenTanam: snapshotToRestore.persenTanam,
+        petikKe: snapshotToRestore.petikKe,
+      };
+
+      const res = await fetch('/api/planting/detail', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (json.success && json.updatedTransaction) {
+        setData((prev) =>
+          prev.map((row) => (row.id === id ? { ...row, ...json.updatedTransaction } : row))
+        );
+      }
+      onDataChanged?.();
+    } catch (err: any) {
+      console.error('Error undoing transaction item:', err);
+      fetchData();
+    }
+  };
+
+  // Global Ctrl + Z shortcut listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        const target = e.target as HTMLElement;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+          return;
+        }
+        e.preventDefault();
+        const lastId = recentEditedIdsRef.current.pop();
+        if (lastId !== undefined) {
+          handleUndoStep(lastId);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [data]);
+
+  const handleDeleteTransaction = async () => {
+    if (!txToDelete) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/planting/detail?id=${txToDelete.id}`, {
+        method: 'DELETE',
+      });
+      const json = await res.json();
+      if (json.success) {
+        setData((prev) => prev.filter((r) => r.id !== txToDelete.id));
+        setTotal((prev) => Math.max(0, prev - 1));
+        setTxToDelete(null);
+        onDataChanged?.();
+      } else {
+        alert(json.error || 'Gagal menghapus transaksi');
+      }
+    } catch (err: any) {
+      console.error('Error deleting transaction:', err);
+      alert(`Gagal menghapus transaksi: ${err.message}`);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // Save cell edit to database
   const handleSaveEdit = async (item: TransactionItem, field: string, val: any) => {
+    if (!isAdmin) return;
     setEditingCell(null);
     const existingVal = item[field as keyof TransactionItem];
     if (existingVal == val) return;
+
+    pushUndoSnapshot(item.id);
 
     setSavingCell({ id: item.id, field });
     try {
@@ -243,6 +496,9 @@ export default function InputRealTanamPetikView() {
         setData((prev) =>
           prev.map((row) => (row.id === item.id ? { ...row, [field]: payload[field] } : row))
         );
+
+        // Beritahu sistem bahwa data telah berubah agar summary & grafik ikut dihitung ulang secara real-time
+        onDataChanged?.();
       } else {
         alert(json.error || 'Gagal menyimpan perubahan.');
       }
@@ -917,15 +1173,17 @@ export default function InputRealTanamPetikView() {
               Tabel Input Real Tanam &amp; Petik Nanas
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() => setIsAddTxModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs transition-all shadow-sm shadow-emerald-600/20 cursor-pointer"
-            title="Tambah Data Transaksi Baru"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Tambah Data</span>
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setIsAddTxModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs transition-all shadow-sm shadow-emerald-600/20 cursor-pointer"
+              title="Tambah Data Transaksi Baru"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Tambah Data</span>
+            </button>
+          )}
         </div>
 
         <div className="overflow-x-auto max-h-[68vh] overflow-y-auto">
@@ -1189,9 +1447,61 @@ export default function InputRealTanamPetikView() {
                       key={item.id}
                       className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors whitespace-nowrap group"
                     >
-                      {/* 1. NO (Sticky left-0, 100% Solid Background) */}
-                      <td className="py-2 px-1.5 text-center font-mono text-[11px] text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200 sticky left-0 z-20 w-[50px] min-w-[50px] max-w-[50px] bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700">
-                        {rowNumber}
+                      {/* 1. NO (Sticky left-0, 100% Solid Background) with Floating Action Popup on Hover */}
+                      <td
+                        className={`py-2 px-1.5 text-center font-mono text-[11px] text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200 sticky left-0 w-[50px] min-w-[50px] max-w-[50px] bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700 overflow-visible relative transition-colors ${
+                          hoveredNoId === item.id ? 'z-40' : 'z-20'
+                        }`}
+                        onMouseEnter={() => handleNoMouseEnter(item.id)}
+                        onMouseLeave={handleNoMouseLeave}
+                      >
+                        <div className="relative flex items-center justify-center w-full h-full min-h-[20px]">
+                          <span className="select-none font-medium">
+                            {rowNumber}
+                          </span>
+
+                          {/* Floating Action Popup on Hover (Undo / Ctrl+Z & Hapus) */}
+                          {isAdmin && hoveredNoId === item.id && (
+                            <div
+                              className="absolute left-[36px] top-1/2 -translate-y-1/2 z-50 flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-lg px-1.5 py-1 select-none animate-in fade-in zoom-in-95 duration-150 before:content-[''] before:absolute before:-left-3 before:top-0 before:w-3 before:h-full cursor-default"
+                              onMouseEnter={() => handleNoMouseEnter(item.id)}
+                              onMouseLeave={handleNoMouseLeave}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {/* Tombol Panah Kembali: Langsung mengembalikan ke data paling awal / data aslinya */}
+                              <button
+                                type="button"
+                                onClick={() => handleResetToOriginal(item.id)}
+                                disabled={!isModifiedFromOriginal(item.id)}
+                                title={
+                                  isModifiedFromOriginal(item.id)
+                                    ? 'Kembalikan ke data asli / awal'
+                                    : 'Data masih asli (belum ada perubahan)'
+                                }
+                                className={`p-1 rounded-md transition-all ${
+                                  isModifiedFromOriginal(item.id)
+                                    ? 'text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/50 cursor-pointer hover:scale-110 active:scale-95'
+                                    : 'text-slate-300 dark:text-slate-600 cursor-not-allowed opacity-40'
+                                }`}
+                              >
+                                <Undo2 className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* Separator */}
+                              <div className="w-[1px] h-3.5 bg-slate-200 dark:bg-slate-700" />
+
+                              {/* Tombol Tempat Sampah (Hapus) */}
+                              <button
+                                type="button"
+                                onClick={() => setTxToDelete({ id: item.id, lokasi: item.lokasi, aktivitas: item.aktivitas || 'Transaksi' })}
+                                title={`Hapus transaksi ${item.lokasi}`}
+                                className="p-1 rounded-md text-rose-500 dark:text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer hover:scale-110 active:scale-95 transition-all"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </td>
 
                       {/* 2. TANGGAL (Sticky left-[50px], Editable via TableDatePicker) */}
@@ -1581,30 +1891,40 @@ export default function InputRealTanamPetikView() {
           <div className="flex items-center gap-3 text-slate-600 dark:text-slate-400">
             <div className="flex items-center gap-1.5">
               <span>Tampilkan per halaman:</span>
-              <div className="relative inline-flex items-center">
-                <select
-                  value={limit}
-                  onFocus={() => setIsLimitOpen(true)}
-                  onBlur={() => setIsLimitOpen(false)}
-                  onChange={(e) => {
-                    setLimit(Number(e.target.value));
-                    setPage(1);
-                    setIsLimitOpen(false);
-                    (e.target as HTMLElement).blur();
-                  }}
-                  className="appearance-none pl-2.5 pr-7 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
+              <div className="relative inline-flex items-center" ref={limitRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsLimitOpen(!isLimitOpen)}
+                  className="inline-flex items-center justify-between gap-2 pl-2.5 pr-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer hover:border-slate-400 dark:hover:border-slate-600 transition-colors shadow-2xs"
+                  title="Pilih jumlah data per halaman"
                 >
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                  <option value={200}>200</option>
-                  <option value={500}>500</option>
-                </select>
-                <ChevronDown
-                  className={`w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 transition-transform duration-200 ${
-                    isLimitOpen ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : 'rotate-0'
-                  }`}
-                />
+                  <span>{limit}</span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                      isLimitOpen ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : 'rotate-0'
+                    }`}
+                  />
+                </button>
+                {isLimitOpen && (
+                  <div className="absolute bottom-full mb-1 left-0 z-50 min-w-[68px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 text-xs animate-in fade-in zoom-in-95 duration-100">
+                    {[25, 50, 100, 200, 500].map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => {
+                          setLimit(opt);
+                          setPage(1);
+                          setIsLimitOpen(false);
+                        }}
+                        className={`w-full text-center py-1 font-semibold hover:bg-emerald-50 dark:hover:bg-slate-800 transition-colors cursor-pointer ${
+                          limit === opt ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 font-bold' : 'text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1642,8 +1962,58 @@ export default function InputRealTanamPetikView() {
         onClose={() => setIsAddTxModalOpen(false)}
         onSuccess={() => {
           fetchData();
+          onDataChanged?.();
         }}
       />
+
+      {/* Modal Konfirmasi Hapus Transaksi */}
+      {txToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl scale-100 animate-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mb-4 mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-bold text-center text-slate-900 dark:text-white mb-2">
+              Hapus Data Transaksi?
+            </h3>
+            <p className="text-sm text-center text-slate-500 dark:text-slate-400 mb-6">
+              Apakah Anda yakin ingin menghapus data transaksi{' '}
+              <strong className="text-rose-600 dark:text-rose-400 font-mono text-sm">
+                {txToDelete.aktivitas} (Lokasi: {txToDelete.lokasi})
+              </strong>
+              ? Data master planting dan stok lahan akan dihitung ulang secara otomatis.
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setTxToDelete(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteTransaction}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 shadow-md shadow-rose-600/20 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Menghapus...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Ya, Hapus Data</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

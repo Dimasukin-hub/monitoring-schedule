@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { syncPlantingToStokLahan } from '@/lib/tanamSyncService';
+import { syncPlantingToStokLahan, syncRawTransactionToPlanting, parseDateString } from '@/lib/tanamSyncService';
 
 export async function GET(request: Request) {
   try {
@@ -525,7 +525,10 @@ export async function PUT(request: Request) {
     if (sedang !== undefined) updateData.sedang = Number(parseFloat(sedang) || 0);
     if (kecil !== undefined) updateData.kecil = Number(parseFloat(kecil) || 0);
     if (extraKecil !== undefined) updateData.extraKecil = Number(parseFloat(extraKecil) || 0);
-    if (tanggal !== undefined) updateData.tanggal = tanggal && String(tanggal).trim() !== '' && String(tanggal).trim() !== 'null' ? String(tanggal).trim() : null;
+    if (tanggal !== undefined) {
+      updateData.tanggal = tanggal && String(tanggal).trim() !== '' && String(tanggal).trim() !== 'null' ? String(tanggal).trim() : null;
+      updateData.tanggalDate = parseDateString(updateData.tanggal);
+    }
     if (aktivitas !== undefined) updateData.aktivitas = aktivitas && String(aktivitas).trim() !== '' ? String(aktivitas).trim() : null;
     if (luasNetto !== undefined) updateData.luasNetto = Number(parseFloat(luasNetto) || 0);
     if (jenisBibit !== undefined) updateData.jenisBibit = jenisBibit && String(jenisBibit).trim() !== '' ? String(jenisBibit).trim() : null;
@@ -541,86 +544,66 @@ export async function PUT(request: Request) {
       data: updateData,
     });
 
-    // 3. Recalculate: Jumlahkan seluruh transaksi beraktivitas Tanam Bibit untuk lokasi ini
-    const tanamTxs = await prisma.plantingDetail.findMany({
-      where: {
-        lokasi: { equals: lokasi, mode: 'insensitive' },
-        aktivitas: { contains: 'tanam', mode: 'insensitive' },
-      },
-    });
-
-    const newRealTanam = Number(
-      tanamTxs.reduce((sum, t) => sum + (t.total || 0), 0).toFixed(2)
-    );
-
-    // 4. Update data master Planting
-    const plantingMaster = await prisma.planting.findFirst({
-      where: { lokasi: { equals: lokasi, mode: 'insensitive' } },
-    });
-
-    let updatedMaster: any = null;
-    if (plantingMaster) {
-      const targetLuas = plantingMaster.luas || 0;
-      const newProgress =
-        targetLuas > 0 ? Number(((newRealTanam / targetLuas) * 100).toFixed(1)) : 0;
-      let newStatus = 'BELUM TANAM';
-      if (newProgress >= 100 || (targetLuas > 0 && newRealTanam >= targetLuas)) {
-        newStatus = 'SELESAI';
-      } else if (newProgress > 95) {
-        newStatus = 'CEK SELESAI';
-      } else if (newRealTanam > 0) {
-        newStatus = 'PROSES';
-      }
-      const newSisa = newStatus === 'SELESAI' ? 0 : Number(Math.max(0, targetLuas - newRealTanam).toFixed(2));
-
-      // Auto-fallback jenisBibit & kelasBibit jika di master masih null
-      const updateData: any = {
-        realTanam: newRealTanam,
-        sisa: newSisa,
-        progress: newProgress,
-        status: newStatus,
-      };
-
-      if (!plantingMaster.jenisBibit) {
-        const bibitFromTx = tanamTxs.find((t) => t.jenisBibit)?.jenisBibit || null;
-        if (bibitFromTx) updateData.jenisBibit = bibitFromTx;
-      }
-      if (!plantingMaster.kelasBibit) {
-        let kelasFromTx: string | null = null;
-        if (tanamTxs.some((t) => (t.extraKecil || 0) > 0)) kelasFromTx = 'Extra Kecil';
-        else if (tanamTxs.some((t) => (t.kecil || 0) > 0)) kelasFromTx = 'Kecil';
-        else if (tanamTxs.some((t) => (t.sedang || 0) > 0)) kelasFromTx = 'Sedang';
-        else if (tanamTxs.some((t) => (t.besar || 0) > 0)) kelasFromTx = 'Besar';
-        else if (tanamTxs.some((t) => (t.standar || 0) > 0)) kelasFromTx = 'Standar';
-        if (kelasFromTx) updateData.kelasBibit = kelasFromTx;
-      }
-
-      updatedMaster = await prisma.planting.update({
-        where: { id: plantingMaster.id },
-        data: updateData,
-      });
-
-      // Sinkronisasi otomatis ke StokLahanMaster dan Land
-      await syncPlantingToStokLahan(lokasi);
-    }
-    // Note: Jika lokasi tidak terdaftar di master Planting (Sheet RTN), 
-    // sistem TIDAK membuat record master baru agar tabel Real Tanam Nanas 
-    // selalu 100% konsisten dengan sheet RTN resmi.
+    // Otomatis recalculate master Planting, running total baris transaksi, dan sync ke StokLahanMaster & Land
+    const syncResult = await syncRawTransactionToPlanting(lokasi);
 
     return NextResponse.json({
       success: true,
-      message: 'Transaksi berhasil disimpan dan data Planting telah dihitung ulang.',
+      message: 'Transaksi berhasil disimpan dan data Planting telah dihitung ulang secara otomatis.',
       updatedTransaction: updatedTx,
-      updatedMaster,
-      recalculated: {
-        realTanam: newRealTanam,
-        lokasi,
-      },
+      syncResult,
     });
   } catch (error: any) {
     console.error('Error updating transaction & recalculating:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Gagal menyimpan transaksi.' },
+      { status: 500 }
+    );
+  }
+}
+
+// Handler DELETE: Hapus Transaksi Sumber -> Otomatis Recalculate Master Planting & Stok Lahan
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const transactionId = searchParams.get('id') || searchParams.get('transactionId');
+
+    if (!transactionId) {
+      return NextResponse.json(
+        { success: false, error: 'transactionId wajib disertakan.' },
+        { status: 400 }
+      );
+    }
+
+    const existingTx = await prisma.plantingDetail.findUnique({
+      where: { id: Number(transactionId) },
+    });
+
+    if (!existingTx) {
+      return NextResponse.json(
+        { success: false, error: 'Transaksi tidak ditemukan.' },
+        { status: 404 }
+      );
+    }
+
+    const lokasi = existingTx.lokasi;
+
+    await prisma.plantingDetail.delete({
+      where: { id: Number(transactionId) },
+    });
+
+    // Otomatis recalculate master Planting dan Stok Lahan
+    const syncResult = await syncRawTransactionToPlanting(lokasi);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Transaksi berhasil dihapus dan data Planting telah dihitung ulang secara otomatis.',
+      syncResult,
+    });
+  } catch (error: any) {
+    console.error('Error deleting transaction & recalculating:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Gagal menghapus transaksi.' },
       { status: 500 }
     );
   }

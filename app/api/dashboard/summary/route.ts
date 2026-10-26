@@ -285,11 +285,14 @@ export async function GET(request: Request) {
       monthName: `${currentMonthAbbr}-${String(currentYear).slice(-2)}`,
     };
 
-    // 2. Proses Tanam Summary dari Tabel Real Tanam Nanas (Planting)
-    // Rumus: Sisa = Luas (Ha) - Real Tanam (Ha) khusus untuk lokasi yang berstatus PROSES & CEK SELESAI
-    const [plantingProsesRows, plantingSelesaiRows] = await Promise.all([
+    // 2. Proses Tanam & Cek Selesai Summary dari Tabel Real Tanam Nanas (Planting)
+    const [plantingProsesRows, plantingCekSelesaiRows, plantingSelesaiRows] = await Promise.all([
       prisma.planting.findMany({
-        where: { status: { in: ['PROSES', 'CEK SELESAI'] } },
+        where: { status: 'PROSES' },
+        select: { lokasi: true, luas: true, realTanam: true, sisa: true },
+      }),
+      prisma.planting.findMany({
+        where: { status: 'CEK SELESAI' },
         select: { lokasi: true, luas: true, realTanam: true, sisa: true },
       }),
       prisma.planting.findMany({
@@ -306,6 +309,10 @@ export async function GET(request: Request) {
       ? plantingProsesRows.filter((p) => activeLocations.has(p.lokasi))
       : plantingProsesRows;
 
+    const filteredCekSelesai = activeLocations
+      ? plantingCekSelesaiRows.filter((p) => activeLocations.has(p.lokasi))
+      : plantingCekSelesaiRows;
+
     const filteredSelesai = activeLocations
       ? plantingSelesaiRows.filter((p) => activeLocations.has(p.lokasi))
       : plantingSelesaiRows;
@@ -318,6 +325,14 @@ export async function GET(request: Request) {
       prosesSisaHa += sisa;
     });
 
+    let cekSelesaiSisaHa = 0;
+    filteredCekSelesai.forEach((p) => {
+      const luas = p.luas || 0;
+      const real = p.realTanam || 0;
+      const sisa = Math.max(0, Number((luas - real).toFixed(2)));
+      cekSelesaiSisaHa += sisa;
+    });
+
     let selesaiTanamHa = 0;
     filteredSelesai.forEach((p) => {
       selesaiTanamHa += (p.realTanam || p.luas || 0);
@@ -326,6 +341,8 @@ export async function GET(request: Request) {
     const prosesTanamSummary = {
       prosesHa: Math.round(prosesSisaHa * 100) / 100,
       prosesCount: filteredProses.length,
+      cekSelesaiHa: Math.round(cekSelesaiSisaHa * 100) / 100,
+      cekSelesaiCount: filteredCekSelesai.length,
       selesaiHa: Math.round(selesaiTanamHa * 100) / 100,
       selesaiCount: filteredSelesai.length,
       totalLuasNetto: Math.round(totalLuasNetto * 100) / 100,

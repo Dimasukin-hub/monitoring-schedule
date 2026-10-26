@@ -13,10 +13,13 @@ import {
 import TableDatePicker from '@/components/TableDatePicker';
 import AddPlantingTransactionModal from '@/components/AddPlantingTransactionModal';
 
+import { useAuth } from '@/components/AuthProvider';
+
 export interface PlantingDetailDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   lokasi: string | null;
+  isAdmin?: boolean;
   onTransactionSaved?: () => void;
 }
 
@@ -76,8 +79,12 @@ export default function PlantingDetailDrawer({
   isOpen,
   onClose,
   lokasi,
+  isAdmin: propIsAdmin,
   onTransactionSaved,
 }: PlantingDetailDrawerProps) {
+  const { isAdmin: authIsAdmin } = useAuth();
+  const isAdmin = propIsAdmin !== undefined ? propIsAdmin : authIsAdmin;
+
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -159,6 +166,7 @@ export default function PlantingDetailDrawer({
 
   // Inline Editing Handlers
   const startEdit = (tx: TransactionItem, field: string) => {
+    if (!isAdmin) return;
     if (editingCell?.id === tx.id && editingCell?.field === field) {
       return;
     }
@@ -173,6 +181,7 @@ export default function PlantingDetailDrawer({
   };
 
   const saveInlineEdit = async (tx: TransactionItem, field: string, val: any) => {
+    if (!isAdmin) return;
     setEditingCell(null);
     const existingVal = tx[field as keyof TransactionItem];
     if (existingVal == val) return;
@@ -347,15 +356,17 @@ export default function PlantingDetailDrawer({
               <div className="space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsAddTxModalOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
-                      title={`Tambah Data baru untuk petak ${master?.lokasi || lokasi}`}
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Tambah Data</span>
-                    </button>
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => setIsAddTxModalOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                        title={`Tambah Data baru untuk petak ${master?.lokasi || lokasi}`}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Tambah Data</span>
+                      </button>
+                    )}
                   </div>
 
                   {/* Filter Tabs Aktivitas */}

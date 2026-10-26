@@ -193,6 +193,7 @@ export async function POST(request: Request) {
         isBajak?: boolean;
         isSn?: boolean;
         isTanamMulai?: boolean;
+        isCekSelesai?: boolean;
         isTanamSelesai?: boolean;
       }
     > = {
@@ -225,7 +226,8 @@ export async function POST(request: Request) {
       siapTanam: { name: 'Siap Tanam', code: '22.SIAP_TANAM', detailsRealKey: 'realSiapTanam', detailsRencKey: 'siapTanam', isSn: true },
 
       // Tanam
-      prosesTanam: { name: 'Mulai / Proses Tanam', code: '23.PROSES_TNM', detailsRealKey: 'realMulaiTanam', detailsRencKey: 'rencMulaiTanam', landRealCol: 'realMulaiTanam', landRencCol: 'rencMulaiTanam', isTanamMulai: true },
+      prosesTanam: { name: 'Proses Tanam', code: '23.PROSES_TNM', detailsRealKey: 'realMulaiTanam', detailsRencKey: 'rencMulaiTanam', landRealCol: 'realMulaiTanam', landRencCol: 'rencMulaiTanam', isTanamMulai: true },
+      cekSelesai: { name: 'Cek Selesai', code: '23.CEK_SELESAI', detailsRealKey: 'realCekSelesai', detailsRencKey: 'rencCekSelesai', isCekSelesai: true },
       selesaiTanam: { name: 'Selesai Tanam', code: '24.SLS_TANAM', detailsRealKey: 'realSelesaiTanam', detailsRencKey: 'rencSelesaiTanam', landRealCol: 'realSelesaiTanam', landRencCol: 'rencSelesaiTanam', isTanamSelesai: true },
     };
 
@@ -263,6 +265,17 @@ export async function POST(request: Request) {
           if (!existingLand.realSelesaiTanam) updateData.progressTanam = progressTanam ? Number(progressTanam) : 50;
         } else {
           updateData.progressTanam = existingLand.realSelesaiTanam ? 100 : 0;
+        }
+      }
+      if (def.isCekSelesai) {
+        if (finalRealDate) {
+          updateData.progressTanam = progressTanam ? Number(progressTanam) : 96.0;
+          updateData.status = 'CEK SELESAI';
+          updateData.statusAplikasi = 'Cek Selesai';
+        } else {
+          updateData.progressTanam = (updateData.realMulaiTanam || existingLand.realMulaiTanam) ? 50 : 0;
+          updateData.status = (updateData.realMulaiTanam || existingLand.realMulaiTanam) ? 'PROSES' : 'BELUM TANAM';
+          updateData.statusAplikasi = (updateData.realMulaiTanam || existingLand.realMulaiTanam) ? '23.Proses Tnm' : null;
         }
       }
       if (def.isTanamSelesai) {
@@ -352,7 +365,7 @@ export async function POST(request: Request) {
       await syncStokLahanMasterForLand(existingLand.id);
 
       // Sync Planting table and create PlantingDetail transaction if this is a planting activity
-      if (def.isTanamMulai || def.isTanamSelesai) {
+      if (def.isTanamMulai || def.isTanamSelesai || def.isCekSelesai) {
         const pRecord = await prisma.planting.findFirst({
           where: { lokasi: existingLand.lokasi },
         });
@@ -446,11 +459,21 @@ export async function POST(request: Request) {
           const sumDetail = allDetailsForLoc.reduce((acc, d) => acc + (d.total || 0), 0);
           realTanamVal = Math.round(sumDetail * 100) / 100;
           finalProgress = luasVal > 0 ? Number(((realTanamVal / luasVal) * 100).toFixed(1)) : (effectiveSelesai ? 100 : 50);
-          finalStatus = (effectiveSelesai || finalProgress >= 100) ? 'SELESAI' : (realTanamVal > 0 ? 'PROSES' : 'BELUM');
+          if (def.isCekSelesai) {
+            finalStatus = 'CEK SELESAI';
+            if (finalProgress < 96) finalProgress = 96.0;
+          } else {
+            finalStatus = (effectiveSelesai || finalProgress >= 100) ? 'SELESAI' : (finalProgress > 95 ? 'CEK SELESAI' : (realTanamVal > 0 ? 'PROSES' : 'BELUM'));
+          }
         } else {
           finalProgress = updateData.progressTanam !== undefined ? updateData.progressTanam : (existingLand.progressTanam ?? 0);
-          realTanamVal = finalProgress === 100 ? luasVal : (finalProgress === 50 ? Math.round(luasVal * 0.5 * 100) / 100 : 0);
-          finalStatus = effectiveSelesai ? 'SELESAI' : (effectiveMulai ? 'PROSES' : 'BELUM');
+          realTanamVal = finalProgress === 100 ? luasVal : (finalProgress >= 95 ? Math.round(luasVal * 0.96 * 100) / 100 : (finalProgress === 50 ? Math.round(luasVal * 0.5 * 100) / 100 : 0));
+          if (def.isCekSelesai) {
+            finalStatus = 'CEK SELESAI';
+            if (finalProgress < 96) finalProgress = 96.0;
+          } else {
+            finalStatus = effectiveSelesai ? 'SELESAI' : (finalProgress > 95 ? 'CEK SELESAI' : (effectiveMulai ? 'PROSES' : 'BELUM'));
+          }
         }
 
         const sisaVal = Math.max(0, Math.round((luasVal - realTanamVal) * 100) / 100);

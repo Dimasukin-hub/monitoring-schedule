@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { syncPlantingToStokLahan, parseDateString } from '@/lib/tanamSyncService';
+import { syncPlantingToStokLahan, syncRawTransactionToPlanting, parseDateString } from '@/lib/tanamSyncService';
 
 export async function GET(request: Request) {
   try {
@@ -265,26 +265,10 @@ export async function POST(request: Request) {
       },
     });
 
-    // Jika aktivitas Tanam Bibit, recalculate realTanam di Planting master
+    // Jika aktivitas Tanam Bibit, otomatis recalculate Real Tanam Nanas & sync ke Stok Lahan
     if (cleanAktivitas.toLowerCase().includes('tanam')) {
-      const tanamTxs = await prisma.plantingDetail.findMany({
-        where: {
-          lokasi: { equals: cleanLokasi, mode: 'insensitive' },
-          aktivitas: { contains: 'tanam', mode: 'insensitive' },
-        },
-      });
-      const newRealTanam = Number(tanamTxs.reduce((sum, t) => sum + (t.total || 0), 0).toFixed(2));
-
-      if (pMaster) {
-        await prisma.planting.update({
-          where: { id: pMaster.id },
-          data: { realTanam: newRealTanam },
-        });
-      }
-
-      // Sinkronisasi Est. Selesai, Leadtime, Sisa, Progress, Status otomatis
       try {
-        await syncPlantingToStokLahan(cleanLokasi);
+        await syncRawTransactionToPlanting(cleanLokasi);
       } catch (syncErr) {
         console.error('Error syncing planting after creating transaction:', syncErr);
       }

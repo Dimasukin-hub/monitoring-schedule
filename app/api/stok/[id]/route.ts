@@ -59,3 +59,42 @@ export async function PUT(
     );
   }
 }
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const landId = parseInt(id, 10);
+
+    let target: any;
+    if (!isNaN(landId)) {
+      target = await prisma.stokLahanMaster.findUnique({ where: { id: landId } });
+    }
+    if (!target) {
+      target = await prisma.stokLahanMaster.findFirst({ where: { lokasi: id } });
+    }
+
+    if (!target) {
+      return NextResponse.json({ success: false, error: 'Data stok lahan tidak ditemukan' }, { status: 404 });
+    }
+
+    await prisma.stokLahanMaster.delete({ where: { id: target.id } });
+
+    // Also remove from Land if it exists
+    await prisma.land.deleteMany({ where: { lokasi: target.lokasi } });
+
+    return NextResponse.json({
+      success: true,
+      message: `Data stok lokasi ${target.lokasi} berhasil dihapus`,
+    });
+  } catch (error: any) {
+    console.error('Error deleting StokLahanMaster:', error);
+    return NextResponse.json(
+      { success: false, error: 'Gagal menghapus data stok lahan', details: error.message },
+      { status: 500 }
+    );
+  }
+}
+

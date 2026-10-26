@@ -20,6 +20,8 @@ import {
   X,
   Check,
   Loader2,
+  Trash2,
+  Undo2,
 } from 'lucide-react';
 
 import { PosisiLahanSection } from '@/components/ChartsSection';
@@ -199,6 +201,19 @@ export default function ListStokLahanView({
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(15);
   const [isLimitOpen, setIsLimitOpen] = useState<boolean>(false);
+  const limitRef = useRef<HTMLDivElement>(null);
+
+  // Close limit dropdown on outside click
+  useEffect(() => {
+    if (!isLimitOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (limitRef.current && !limitRef.current.contains(e.target as Node)) {
+        setIsLimitOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isLimitOpen]);
   const [sortBy, setSortBy] = useState<string>('no');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [lands, setLands] = useState<any[]>([]);
@@ -208,6 +223,7 @@ export default function ListStokLahanView({
     BJK: { count: 0, totalNetto: 0 },
     SN: { count: 0, totalNetto: 0 },
     PROSES: { count: 0, totalNetto: 0 },
+    CEK_SELESAI: { count: 0, totalNetto: 0 },
     SELESAI: { count: 0, totalNetto: 0 },
   });
   const [loading, setLoading] = useState<boolean>(true);
@@ -220,6 +236,37 @@ export default function ListStokLahanView({
   // Cell save states for visual feedback
   const [savingCells, setSavingCells] = useState<Record<string, boolean>>({});
   const [savedCells, setSavedCells] = useState<Record<string, boolean>>({});
+
+  // Baseline and undo history tracking for reset to original & Ctrl+Z
+  const initialLandsRef = useRef<Record<string | number, any>>({});
+  const undoHistoryRef = useRef<Record<string | number, any[]>>({});
+  const recentEditedLandIdsRef = useRef<(string | number)[]>([]);
+  const [, setUndoVersion] = useState(0);
+
+  // Hover state for No column floating popup
+  const [hoveredNoLandId, setHoveredNoLandId] = useState<number | string | null>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Delete modal state
+  const [landToDelete, setLandToDelete] = useState<{ id: number | string; lokasi: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
+  const handleNoMouseEnter = (landId: number | string) => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setHoveredNoLandId(landId);
+  };
+
+  const handleNoMouseLeave = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredNoLandId(null);
+    }, 120);
+  };
 
   useEffect(() => {
     fetch('/api/lands?limit=1')
@@ -263,6 +310,13 @@ export default function ListStokLahanView({
       pillBg: 'bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 border-cyan-500/30',
     },
     {
+      id: 'CEK_SELESAI',
+      label: 'Cek Selesai',
+      color: 'text-indigo-600 dark:text-indigo-400',
+      activeBorder: 'border-indigo-500 ring-1 ring-indigo-500/40 bg-indigo-50/80 dark:bg-slate-900',
+      pillBg: 'bg-indigo-500/15 text-indigo-800 dark:text-indigo-300 border-indigo-500/30',
+    },
+    {
       id: 'SELESAI',
       label: 'Selesai Tanam',
       color: 'text-emerald-700 dark:text-emerald-400',
@@ -289,6 +343,11 @@ export default function ListStokLahanView({
       .then((res) => {
         if (res.success) {
           setLands(res.data);
+          res.data.forEach((l: any) => {
+            if (!initialLandsRef.current[l.id]) {
+              initialLandsRef.current[l.id] = JSON.parse(JSON.stringify(l));
+            }
+          });
           setPagination(res.pagination);
           if (res.categoryStats) {
             setCategoryStats(res.categoryStats);
@@ -299,12 +358,168 @@ export default function ListStokLahanView({
       .finally(() => setLoading(false));
   };
 
+  const pushUndoSnapshot = (landId: number | string) => {
+    const current = lands.find((l) => l.id === landId);
+    if (!current) return;
+    if (!undoHistoryRef.current[landId]) {
+      undoHistoryRef.current[landId] = [];
+    }
+    undoHistoryRef.current[landId].push(JSON.parse(JSON.stringify(current)));
+    if (undoHistoryRef.current[landId].length > 20) {
+      undoHistoryRef.current[landId].shift();
+    }
+    recentEditedLandIdsRef.current.push(landId);
+    setUndoVersion((v) => v + 1);
+  };
+
+  const isModifiedFromOriginal = (landId: number | string) => {
+    const current = lands.find((l) => l.id === landId);
+    const initial = initialLandsRef.current[landId];
+    if (!current || !initial) return false;
+    return (
+      current.wilayah !== initial.wilayah ||
+      current.luasBruto !== initial.luasBruto ||
+      current.luasNetto !== initial.luasNetto ||
+      current.status !== initial.status ||
+      current.eks !== initial.eks ||
+      current.sejarah !== initial.sejarah ||
+      current.jenisBibit !== initial.jenisBibit ||
+      current.kelasBibit !== initial.kelasBibit ||
+      current.bulanTanam !== initial.bulanTanam ||
+      current.phBk !== initial.phBk ||
+      current.phSn !== initial.phSn
+    );
+  };
+
+  // Tombol Panah Kembali: Langsung mengembalikan ke data paling awal / data aslinya
+  const handleResetToOriginalLand = async (landId: number | string) => {
+    const initialSnapshot = initialLandsRef.current[landId];
+    if (!initialSnapshot) return;
+
+    // Optimistic UI update
+    setLands((prev) => prev.map((l) => (l.id === landId ? { ...initialSnapshot } : l)));
+    undoHistoryRef.current[landId] = [];
+    setUndoVersion((v) => v + 1);
+
+    try {
+      const payload: any = {
+        wilayah: initialSnapshot.wilayah,
+        lokasi: initialSnapshot.lokasi,
+        luasBruto: initialSnapshot.luasBruto,
+        luasNetto: initialSnapshot.luasNetto,
+        status: initialSnapshot.status,
+        eks: initialSnapshot.eks,
+        sejarah: initialSnapshot.sejarah,
+        jenisBibit: initialSnapshot.jenisBibit,
+        kelasBibit: initialSnapshot.kelasBibit,
+        bulanTanam: initialSnapshot.bulanTanam,
+        phBk: initialSnapshot.phBk,
+        phSn: initialSnapshot.phSn,
+      };
+
+      const res = await fetch(`/api/stok/${landId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error('Gagal mereset data ke awal');
+      const resData = await res.json();
+      if (resData.success && resData.data) {
+        setLands((prev) => prev.map((l) => (l.id === landId ? { ...l, ...resData.data } : l)));
+      }
+    } catch (err: any) {
+      console.error('Error resetting land to original:', err);
+      alert(`Gagal mengembalikan ke data asli: ${err.message}`);
+      fetchStok();
+    }
+  };
+
+  // Ctrl + Z: Mundur selangkah demi selangkah ke perubahan sebelumnya
+  const handleUndoStep = async (landId: number | string) => {
+    const history = undoHistoryRef.current[landId];
+    let snapshotToRestore = null;
+    if (history && history.length > 0) {
+      snapshotToRestore = history.pop();
+    } else if (initialLandsRef.current[landId]) {
+      snapshotToRestore = initialLandsRef.current[landId];
+    }
+    if (!snapshotToRestore) return;
+
+    setLands((prev) => prev.map((l) => (l.id === landId ? { ...snapshotToRestore } : l)));
+    setUndoVersion((v) => v + 1);
+
+    try {
+      const payload: any = {
+        wilayah: snapshotToRestore.wilayah,
+        lokasi: snapshotToRestore.lokasi,
+        luasBruto: snapshotToRestore.luasBruto,
+        luasNetto: snapshotToRestore.luasNetto,
+        status: snapshotToRestore.status,
+        eks: snapshotToRestore.eks,
+        sejarah: snapshotToRestore.sejarah,
+        jenisBibit: snapshotToRestore.jenisBibit,
+        kelasBibit: snapshotToRestore.kelasBibit,
+        bulanTanam: snapshotToRestore.bulanTanam,
+        phBk: snapshotToRestore.phBk,
+        phSn: snapshotToRestore.phSn,
+      };
+
+      await fetch(`/api/stok/${landId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } catch (err: any) {
+      console.error('Error undoing land:', err);
+      fetchStok();
+    }
+  };
+
+  // Global Ctrl + Z shortcut listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        const target = e.target as HTMLElement;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+          return;
+        }
+        e.preventDefault();
+        const lastLandId = recentEditedLandIdsRef.current.pop();
+        if (lastLandId !== undefined) {
+          handleUndoStep(lastLandId);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lands]);
+
+  const handleDeleteLand = async () => {
+    if (!landToDelete) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/stok/${landToDelete.id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Gagal menghapus data stok lahan');
+      }
+      setLands((prev) => prev.filter((l) => l.id !== landToDelete.id));
+      setLandToDelete(null);
+    } catch (err: any) {
+      alert(`Gagal menghapus: ${err.message}`);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleCellSave = async (
     landId: number,
     field: string,
     newValue: any,
     oldValue: any
   ) => {
+    pushUndoSnapshot(landId);
     const cellKey = `${landId}-${field}`;
     setSavingCells((prev) => ({ ...prev, [cellKey]: true }));
 
@@ -549,13 +764,13 @@ export default function ListStokLahanView({
           <div className={`min-w-12 h-12 px-3.5 rounded-xl border flex items-center justify-center font-black text-xs sm:text-sm tracking-wide whitespace-nowrap shrink-0 shadow-xs ${
             categories.find(c => c.id === activeCategory)?.pillBg || 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30'
           }`}>
-            {activeCategory}
+            {categories.find((c) => c.id === activeCategory)?.label || activeCategory.replace(/_/g, ' ')}
           </div>
         </div>
       </div>
 
-      {/* Category Tabs: BK, BJK, SN, Proses Tanam, Selesai Tanam (Warna GGF Logo) */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      {/* Category Tabs: BK, BJK, SN, Proses Tanam, Cek Selesai, Selesai Tanam (6 Kategori Mandiri) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {categories.map((cat) => {
           const isActive = activeCategory === cat.id;
           const stats = categoryStats[cat.id] || { count: 0, totalNetto: 0 };
@@ -628,7 +843,7 @@ export default function ListStokLahanView({
             <div className="flex items-center gap-3">
               <span className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Layers className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                Tabel Stok: <span className="text-amber-600 dark:text-amber-400">{activeCategory}</span>
+                Tabel Stok: <span className="text-amber-600 dark:text-amber-400">{categories.find((c) => c.id === activeCategory)?.label || activeCategory.replace(/_/g, ' ')}</span>
               </span>
               <span className="text-xs text-slate-500 dark:text-slate-400">
                 ({pagination.total} lokasi ditemukan)
@@ -675,24 +890,6 @@ export default function ListStokLahanView({
                 <Download className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
                 <span>{isDownloading ? 'Mengekspor...' : 'Export Excel'}</span>
               </button>
-
-              {/* Upload Excel Button */}
-              <label
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-300 border border-blue-500/30 text-xs font-semibold transition-all cursor-pointer shadow-2xs ${
-                  isUploading ? 'opacity-50 pointer-events-none' : ''
-                }`}
-                title="Upload file Excel untuk memperbarui data lahan"
-              >
-                <Upload className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
-                <span>{isUploading ? 'Memproses...' : 'Upload Excel'}</span>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".xlsx, .xls"
-                  onChange={handleUploadExcel}
-                  className="hidden"
-                />
-              </label>
             </div>
           </div>
 
@@ -1015,8 +1212,60 @@ export default function ListStokLahanView({
                       className="hover:bg-cyan-50/40 dark:hover:bg-slate-800/40 transition-colors group"
                     >
                       {/* 0. NO (Sticky Freeze Column left-0) */}
-                      <td className="sticky left-0 z-10 py-2 px-2 text-center font-mono text-[11px] text-slate-500 dark:text-slate-400 border-r border-b border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900 group-hover:bg-cyan-50/80 dark:group-hover:bg-slate-800 transition-colors w-[55px] min-w-[55px] max-w-[55px] overflow-hidden">
-                        {rowNumber}
+                      <td
+                        className={`sticky left-0 py-2 px-2 text-center font-mono text-[11px] text-slate-500 dark:text-slate-400 border-r border-b border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900 group-hover:bg-cyan-50/80 dark:group-hover:bg-slate-800 transition-colors w-[55px] min-w-[55px] max-w-[55px] overflow-visible relative ${
+                          hoveredNoLandId === land.id ? 'z-40' : 'z-10'
+                        }`}
+                        onMouseEnter={() => handleNoMouseEnter(land.id)}
+                        onMouseLeave={handleNoMouseLeave}
+                      >
+                        <div className="relative flex items-center justify-center w-full h-full min-h-[20px]">
+                          <span className="select-none font-medium text-slate-600 dark:text-slate-400">
+                            {rowNumber}
+                          </span>
+
+                          {/* Floating Action Popup on Hover (Undo / Reset & Hapus) */}
+                          {hoveredNoLandId === land.id && (
+                            <div
+                              className="absolute left-[36px] top-1/2 -translate-y-1/2 z-50 flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-lg px-1.5 py-1 select-none animate-in fade-in zoom-in-95 duration-150 before:content-[''] before:absolute before:-left-3 before:top-0 before:w-3 before:h-full cursor-default"
+                              onMouseEnter={() => handleNoMouseEnter(land.id)}
+                              onMouseLeave={handleNoMouseLeave}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {/* Tombol Panah Kembali: Langsung mengembalikan ke data paling awal / data aslinya */}
+                              <button
+                                type="button"
+                                onClick={() => handleResetToOriginalLand(land.id)}
+                                disabled={!isModifiedFromOriginal(land.id)}
+                                title={
+                                  isModifiedFromOriginal(land.id)
+                                    ? 'Kembalikan ke data asli / awal'
+                                    : 'Data masih asli (belum ada perubahan)'
+                                }
+                                className={`p-1 rounded-md transition-all ${
+                                  isModifiedFromOriginal(land.id)
+                                    ? 'text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/50 cursor-pointer hover:scale-110 active:scale-95'
+                                    : 'text-slate-300 dark:text-slate-600 cursor-not-allowed opacity-40'
+                                }`}
+                              >
+                                <Undo2 className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* Separator */}
+                              <div className="w-[1px] h-3.5 bg-slate-200 dark:bg-slate-700" />
+
+                              {/* Tombol Tempat Sampah (Hapus) */}
+                              <button
+                                type="button"
+                                onClick={() => setLandToDelete({ id: land.id, lokasi: land.lokasi })}
+                                title={`Hapus data lokasi ${land.lokasi}`}
+                                className="p-1 rounded-md text-rose-500 dark:text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer hover:scale-110 active:scale-95 transition-all"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </td>
 
                       {/* 1. WIL (Sticky Freeze Column left-[55px]) */}
@@ -1084,18 +1333,6 @@ export default function ListStokLahanView({
                           isSaving={savingCells[`${land.id}-status`]}
                           isSaved={savedCells[`${land.id}-status`]}
                         />
-                        {activeCategory === 'PROSES' && land.progressTanam !== null && land.progressTanam !== undefined && (
-                          <div className="mt-1 flex flex-col items-center gap-0.5">
-                            <span className="font-mono text-[10px] font-bold text-cyan-600 dark:text-cyan-400">
-                              {land.progressTanam}%
-                            </span>
-                            {(land.progressTanam > 95 || land.statusAplikasi === 'Cek Selesai') && (
-                              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 uppercase tracking-wider">
-                                Cek Selesai
-                              </span>
-                            )}
-                          </div>
-                        )}
                       </td>
 
                       {/* 6. Eks (Directly Editable) */}
@@ -1168,29 +1405,40 @@ export default function ListStokLahanView({
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
               <span>Tampilkan per halaman:</span>
-              <div className="relative inline-flex items-center">
-                <select
-                  value={limit}
-                  onFocus={() => setIsLimitOpen(true)}
-                  onBlur={() => setIsLimitOpen(false)}
-                  onChange={(e) => {
-                    setLimit(parseInt(e.target.value, 10));
-                    setPage(1);
-                    setIsLimitOpen(false);
-                    (e.target as HTMLElement).blur();
-                  }}
-                  className="appearance-none pl-2.5 pr-7 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              <div className="relative inline-flex items-center" ref={limitRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsLimitOpen(!isLimitOpen)}
+                  className="inline-flex items-center justify-between gap-2 pl-2.5 pr-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer text-xs hover:border-slate-400 dark:hover:border-slate-700 transition-colors shadow-2xs"
+                  title="Pilih jumlah data per halaman"
                 >
-                  <option value="15">15</option>
-                  <option value="30">30</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
-                </select>
-                <ChevronDown
-                  className={`w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 transition-transform duration-200 ${
-                    isLimitOpen ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : 'rotate-0'
-                  }`}
-                />
+                  <span>{limit}</span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                      isLimitOpen ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : 'rotate-0'
+                    }`}
+                  />
+                </button>
+                {isLimitOpen && (
+                  <div className="absolute bottom-full mb-1 left-0 z-50 min-w-[68px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg py-1 text-xs animate-in fade-in zoom-in-95 duration-100">
+                    {[15, 30, 50, 100].map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => {
+                          setLimit(opt);
+                          setPage(1);
+                          setIsLimitOpen(false);
+                        }}
+                        className={`w-full text-center py-1 font-semibold hover:bg-emerald-50 dark:hover:bg-slate-800 transition-colors cursor-pointer ${
+                          limit === opt ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 font-bold' : 'text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             <span className="text-slate-300 dark:text-slate-700">|</span>
@@ -1218,6 +1466,48 @@ export default function ListStokLahanView({
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {landToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-white text-base">Hapus Data Lokasi</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Tindakan ini tidak dapat dibatalkan.</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              Apakah Anda yakin ingin menghapus data stok lahan untuk lokasi{' '}
+              <strong className="text-rose-600 dark:text-rose-400 font-mono text-sm">{landToDelete.lokasi}</strong>?
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setLandToDelete(null)}
+                disabled={isDeleting}
+                className="px-3 py-1.5 text-xs font-semibold rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteLand}
+                disabled={isDeleting}
+                className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                <span>{isDeleting ? 'Menghapus...' : 'Ya, Hapus'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,10 +2,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { Sun, Moon, LogOut, ShieldCheck, Eye, ChevronDown, User, UserCog } from 'lucide-react';
+import { Sun, Moon, LogOut, ShieldCheck, ChevronDown, Camera, Trash2 } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAuth } from '@/components/AuthProvider';
-import EditProfileModal from './EditProfileModal';
 
 export interface MainMenuItem {
   id: string;
@@ -17,6 +16,7 @@ export const MAIN_MENU_ITEMS: MainMenuItem[] = [
   { id: 'pengolahan_lahan_bibit_tanam', label: 'Pengolahan Lahan' },
   { id: 'planting', label: 'Planting' },
   { id: 'update', label: 'Update' },
+  { id: 'user_management', label: 'Manajemen User' },
 ];
 
 export interface SubMenuItem {
@@ -94,6 +94,15 @@ export const MENU_THEMES: Record<string, MenuThemeConfig> = {
     subActiveLine: 'bg-amber-600 dark:bg-amber-400',
     subHoverText: 'hover:text-amber-600 dark:hover:text-amber-300',
   },
+  user_management: {
+    activeText: 'text-indigo-700 dark:text-indigo-300',
+    activeLine: 'bg-indigo-600 dark:bg-indigo-400',
+    hoverText: 'hover:text-indigo-600 dark:hover:text-indigo-300',
+    hoverLine: 'bg-indigo-500/40',
+    subActiveText: 'text-indigo-700 dark:text-indigo-300',
+    subActiveLine: 'bg-indigo-600 dark:bg-indigo-400',
+    subHoverText: 'hover:text-indigo-600 dark:hover:text-indigo-300',
+  },
 };
 
 interface HeaderProps {
@@ -137,16 +146,28 @@ export default function Header({
   const { theme, toggleTheme } = useTheme();
   const { user, isAdmin, logout, setUserDirectly } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [showPhotoMenu, setShowPhotoMenu] = useState(false);
+  const [isUpdatingPhoto, setIsUpdatingPhoto] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const currentSubTab = pengolahanSubTab || overviewSubTab || 'list_stok_lahan';
   const handleSetSubTab = setPengolahanSubTab || setOverviewSubTab;
   const currentTheme = MENU_THEMES[activeTab] || MENU_THEMES.executive_summary;
+
+  // Filter menu: Menu 'Update' dan 'Manajemen User' hanya muncul ketika sudah login sebagai Admin
+  const displayedMenuItems = MAIN_MENU_ITEMS.filter((item) => {
+    if (item.id === 'update' || item.id === 'user_management') {
+      return Boolean(user && isAdmin);
+    }
+    return true;
+  });
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
         setIsProfileOpen(false);
+        setShowPhotoMenu(false);
       }
     };
     if (isProfileOpen) {
@@ -157,15 +178,91 @@ export default function Header({
     };
   }, [isProfileOpen]);
 
+  // Handler Upload Foto Profil (Ganti Foto Profil)
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUpdatingPhoto(true);
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = reader.result as string;
+        // Resize ringan via canvas untuk performa maksimal
+        const img = new Image();
+        img.onload = async () => {
+          const canvas = document.createElement('canvas');
+          const maxDim = 400;
+          let width = img.width;
+          let height = img.height;
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          const resizedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+
+          const res = await fetch('/api/auth/profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: user?.id, avatar: resizedBase64 }),
+          });
+          const data = await res.json();
+          if (data.success && data.user) {
+            setUserDirectly(data.user);
+          }
+          setIsUpdatingPhoto(false);
+          setShowPhotoMenu(false);
+        };
+        img.src = base64;
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Failed to upload avatar:', err);
+      setIsUpdatingPhoto(false);
+    }
+  };
+
+  // Handler Hapus Foto Profil
+  const handleRemovePhoto = async () => {
+    try {
+      setIsUpdatingPhoto(true);
+      const res = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: user?.id, avatar: null }),
+      });
+      const data = await res.json();
+      if (data.success && data.user) {
+        setUserDirectly(data.user);
+      }
+      setIsUpdatingPhoto(false);
+      setShowPhotoMenu(false);
+    } catch (err) {
+      console.error('Failed to remove avatar:', err);
+      setIsUpdatingPhoto(false);
+    }
+  };
+
   return (
     <header className="flex flex-col shrink-0 select-none bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 transition-colors duration-200 shadow-2xs">
-      {/* Header Paling Atas (Row 1): Logo GGF, Menu Utama, Theme Toggle & Menu Profil Terpadu */}
+      {/* Header Paling Atas (Row 1): Logo GGF, Menu Utama, & Tombol Admin / Profil */}
       <div className="px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
         {/* Sisi Kiri: Logo GGF Kotak Putih */}
         <div className="flex items-center shrink-0">
           <Link
             href="/"
-            title="Ke Portal Halaman Depan"
+            title="Ke Dashboard Utama"
             className="w-9 h-9 rounded-xl overflow-hidden bg-white border border-slate-200/90 dark:border-slate-700/80 flex items-center justify-center p-1 shadow-xs hover:ring-2 hover:ring-emerald-400/40 transition-all cursor-pointer"
           >
             <img
@@ -176,9 +273,9 @@ export default function Header({
           </Link>
         </div>
 
-        {/* Sisi Tengah: Menu Utama (3 Menu: Executive Summary, Pengolahan Lahan Bibit Tanam, Planting) */}
+        {/* Sisi Tengah: Menu Utama (Menu Update hanya muncul setelah Login Admin) */}
         <nav className="flex-1 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth px-2">
-          {MAIN_MENU_ITEMS.map((item) => {
+          {displayedMenuItems.map((item) => {
             const isActive = activeTab === item.id;
             const itemTheme = MENU_THEMES[item.id] || MENU_THEMES.executive_summary;
             return (
@@ -216,88 +313,202 @@ export default function Header({
           })}
         </nav>
 
-        {/* Sisi Kanan: Theme Toggle & Menu Profil Terpadu (Menyatukan Role Admin & Keluar/Logout) */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleTheme}
-            title={theme === 'dark' ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}
-            aria-label="Toggle Theme"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-amber-500 dark:hover:text-amber-400 transition-all cursor-pointer shadow-2xs"
-          >
-            {theme === 'dark' ? (
-              <Sun className="w-4 h-4 text-amber-400" />
-            ) : (
-              <Moon className="w-4 h-4 text-indigo-600" />
-            )}
-          </button>
-
-          {/* Profil Button & Dropdown */}
+        {/* Sisi Kanan: Tombol Admin (Sebelum Login) ATAU Profil Avatar + Nama (Setelah Login) */}
+        <div className="flex items-center gap-3 shrink-0">
           {user ? (
-            <div className="relative" ref={profileRef}>
-              {/* Profil Button (Hanya Ikon Lingkaran) */}
+            <div className="relative flex items-center gap-2" ref={profileRef}>
+              {/* Foto Profil Bulat (Sebelah Kiri) Berdiri Sendiri Tanpa Kotak Oval Pembungkus */}
               <button
                 type="button"
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className={`w-9 h-9 rounded-full border-2 transition-all cursor-pointer shadow-xs overflow-hidden flex items-center justify-center shrink-0 ${
-                  isProfileOpen
-                    ? 'border-emerald-500 ring-2 ring-emerald-500/30'
-                    : 'border-emerald-500/40 hover:border-emerald-500'
+                onClick={() => {
+                  setIsProfileOpen((prev) => !prev);
+                  setShowPhotoMenu(false);
+                }}
+                className={`w-8 h-8 rounded-full overflow-hidden flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700 text-white text-xs font-bold uppercase shadow-2xs hover:ring-2 transition-all cursor-pointer ${
+                  isAdmin ? 'bg-emerald-600 hover:ring-emerald-400/40' : 'bg-sky-600 hover:ring-sky-400/40'
                 }`}
-                title={user.name || 'Profil Akun'}
-                aria-label="Menu Profil"
+                title={`Profil ${isAdmin ? 'Admin' : 'User'}`}
+                aria-label="Profil Pengguna"
               >
                 {user.avatar ? (
                   <img
                     src={user.avatar}
-                    alt={user.name || 'Avatar'}
+                    alt={user.name || 'User'}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold uppercase">
-                    {user.name ? user.name.charAt(0) : 'A'}
-                  </div>
+                  <span>{user.name ? user.name.charAt(0) : isAdmin ? 'A' : 'U'}</span>
                 )}
               </button>
 
-              {/* Dropdown Menu Popover */}
-              {isProfileOpen && (
-                <div className="absolute right-0 top-full mt-2 min-w-[145px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-1">
-                  {/* Tombol Edit Profil */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsProfileOpen(false);
-                      setIsEditProfileOpen(true);
-                    }}
-                    className="w-full flex items-center justify-start gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                  >
-                    <UserCog className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                    <span>Edit Profil</span>
-                  </button>
+              {/* Sebelah Kanan Foto Profil: Tulisan Admin / Nama Pengguna & Tanda Panah Dropdown */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsProfileOpen((prev) => !prev);
+                  setShowPhotoMenu(false);
+                }}
+                className="flex items-center gap-1.5 py-1 px-1 text-xs font-bold text-slate-800 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer select-none group"
+                title="Buka Menu Profil"
+                aria-label="Buka Menu Profil"
+              >
+                <span>{isAdmin ? 'Admin' : user.name || user.email}</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-slate-400 dark:text-slate-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-transform duration-200 ${
+                    isProfileOpen ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : ''
+                  }`}
+                />
+              </button>
 
-                  {/* Tombol Logout */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsProfileOpen(false);
-                      logout();
-                    }}
-                    className="w-full flex items-center justify-start gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span>Logout</span>
-                  </button>
+              {/* Popover Dropdown Profil Terpadu */}
+              {isProfileOpen && (
+                <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-4 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-3.5">
+                  {/* WhatsApp Style Profile Avatar & Info */}
+                  <div className="flex flex-col items-center text-center pb-3 border-b border-slate-100 dark:border-slate-800 relative">
+                    {/* Hidden file input */}
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept="image/*"
+                      className="hidden"
+                    />
+
+                    {/* WhatsApp Profile Circle with Camera Button & Hover */}
+                    <div className="relative group mb-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setShowPhotoMenu((prev) => !prev)}
+                        className={`w-16 h-16 rounded-full overflow-hidden border-2 shadow-md relative cursor-pointer flex items-center justify-center text-white text-xl font-bold uppercase transition-transform group-hover:scale-105 ${
+                          isAdmin ? 'border-emerald-500 bg-emerald-600' : 'border-sky-500 bg-sky-600'
+                        }`}
+                        title="Klik untuk opsi foto profil"
+                      >
+                        {user.avatar ? (
+                          <img
+                            src={user.avatar}
+                            alt={user.name || 'User'}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span>{user.name ? user.name.charAt(0) : isAdmin ? 'A' : 'U'}</span>
+                        )}
+
+                        {/* Overlay Camera on Hover */}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white">
+                          <Camera className="w-5 h-5 drop-shadow" />
+                          <span className="text-[9px] font-semibold mt-0.5">Ubah</span>
+                        </div>
+                      </button>
+
+                      {/* Small Camera Badge */}
+                      <button
+                        type="button"
+                        onClick={() => setShowPhotoMenu((prev) => !prev)}
+                        className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full text-white border-2 border-white dark:border-slate-900 flex items-center justify-center shadow-xs cursor-pointer transition-transform hover:scale-110 ${
+                          isAdmin ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-sky-600 hover:bg-sky-700'
+                        }`}
+                        title="Ubah Foto Profil"
+                      >
+                        <Camera className="w-3 h-3" />
+                      </button>
+
+                      {/* WhatsApp-style Popover Menu: Ganti Foto Profil & Hapus Foto Profil */}
+                      {showPhotoMenu && (
+                        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-1.5 z-60 animate-in fade-in zoom-in-95 duration-150 text-left">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowPhotoMenu(false);
+                              fileInputRef.current?.click();
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors text-left cursor-pointer"
+                          >
+                            <Camera className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                            <span>Ganti Foto Profil</span>
+                          </button>
+
+                          {user.avatar && (
+                            <button
+                              type="button"
+                              onClick={handleRemovePhoto}
+                              disabled={isUpdatingPhoto}
+                              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors text-left cursor-pointer border-t border-slate-100 dark:border-slate-700/60"
+                            >
+                              <Trash2 className="w-4 h-4 text-rose-500" />
+                              <span>Hapus Foto Profil</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Di dalam Popover: Badge Role */}
+                    {isAdmin ? (
+                      <div className="inline-flex items-center gap-1 mt-1 px-3 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold shadow-2xs">
+                        Admin
+                      </div>
+                    ) : (
+                      <div className="inline-flex items-center gap-1 mt-1 px-3 py-0.5 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 text-[11px] font-bold shadow-2xs">
+                        User
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Mode Gelap / Terang di dalam Profil */}
+                  <div className="flex items-center justify-between px-2 py-1">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      {theme === 'dark' ? (
+                        <Moon className="w-4 h-4 text-indigo-400" />
+                      ) : (
+                        <Sun className="w-4 h-4 text-amber-500" />
+                      )}
+                      <span>{theme === 'dark' ? 'Mode Gelap' : 'Mode Terang'}</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={toggleTheme}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        theme === 'dark' ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'
+                      }`}
+                      title={theme === 'dark' ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                          theme === 'dark' ? 'translate-x-4' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Logout */}
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileOpen(false);
+                        logout();
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
           ) : (
+            /* Sebelum Login: Tombol Bertuliskan Admin saja (tanpa foto profil, tanpa info user only) */
             <Link
               href="/login"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs transition-colors"
+              title="Masuk sebagai Admin"
+              aria-label="Login Admin"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white text-xs font-bold tracking-wide transition-all shadow-xs hover:shadow-sm active:scale-95 cursor-pointer"
             >
-              <User className="w-3.5 h-3.5" />
-              <span>Masuk</span>
+              <ShieldCheck className="w-4 h-4 text-emerald-400 dark:text-white" />
+              <span>Admin</span>
             </Link>
           )}
         </div>
@@ -363,7 +574,7 @@ export default function Header({
         </div>
       )}
 
-      {/* Row 2: Sub Menu untuk Planting (Real Tanam Nanas, Proses Tanam & Selesai Tanam) */}
+      {/* Row 2: Sub Menu untuk Planting (Real Tanam Nanas, Input Real Tanam & Petik Nanas, Proses Tanam & Selesai Tanam) */}
       {activeTab === 'planting' && (
         <div className="px-6 py-1.5 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
           {PLANTING_SUB_MENUS.map((item) => {
@@ -393,8 +604,8 @@ export default function Header({
         </div>
       )}
 
-      {/* Row 2: Sub Menu untuk Update (Tanam) */}
-      {activeTab === 'update' && (
+      {/* Row 2: Sub Menu untuk Update (Tanam) - Hanya tampil jika user adalah admin */}
+      {activeTab === 'update' && user && isAdmin && (
         <div className="px-6 py-1.5 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
           {UPDATE_SUB_MENUS.map((item) => {
             const isActive = (updateSubTab || 'tanam') === item.id;
@@ -422,16 +633,7 @@ export default function Header({
           })}
         </div>
       )}
-
-      {/* Modal Edit Profil */}
-      <EditProfileModal
-        isOpen={isEditProfileOpen}
-        onClose={() => setIsEditProfileOpen(false)}
-        user={user}
-        onProfileUpdated={(updated) => {
-          setUserDirectly(updated);
-        }}
-      />
     </header>
   );
 }
+

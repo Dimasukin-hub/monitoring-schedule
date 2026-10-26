@@ -5,7 +5,8 @@ import { StokCategory } from '@/lib/landClassification';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const category = (searchParams.get('category')?.toUpperCase() || 'BK') as StokCategory; // 'BK' | 'BJK' | 'SN' | 'PROSES' | 'SELESAI'
+    const rawCat = searchParams.get('category')?.toUpperCase().replace(/\s+/g, '_') || 'BK';
+    const category = (rawCat === 'CEK_SELESAI' ? 'CEK_SELESAI' : rawCat) as StokCategory;
     const wilayah = searchParams.get('wilayah') || 'ALL';
     const status = searchParams.get('status') || 'ALL';
     const search = searchParams.get('search')?.trim() || '';
@@ -62,6 +63,7 @@ export async function GET(request: Request) {
       BJK: [],
       SN: [],
       PROSES: [],
+      CEK_SELESAI: [],
       SELESAI: [],
     };
 
@@ -70,6 +72,7 @@ export async function GET(request: Request) {
       BJK: { count: 0, totalNetto: 0 },
       SN: { count: 0, totalNetto: 0 },
       PROSES: { count: 0, totalNetto: 0 },
+      CEK_SELESAI: { count: 0, totalNetto: 0 },
       SELESAI: { count: 0, totalNetto: 0 },
     };
 

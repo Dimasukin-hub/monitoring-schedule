@@ -24,6 +24,8 @@ import {
   XCircle,
   X,
   Plus,
+  Trash2,
+  Undo2,
 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import PlantingDetailDrawer from '@/components/PlantingDetailDrawer';
@@ -111,7 +113,7 @@ function formatToRtnDate(d: Date): string {
 export default function PlantingView({
   onOpenLand,
   refreshTrigger = 0,
-  isAdmin = true,
+  isAdmin = false,
   initialSearch = '',
   onSearchChange,
   onDataChanged,
@@ -171,11 +173,17 @@ export default function PlantingView({
   const [selectedJenis, setSelectedJenis] = useState<string[]>([]);
   const [selectedKelas, setSelectedKelas] = useState<string[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
+
+  // Default query menampilkan 'PROSES' jika selectedStatus kosong, tanpa perlu mencentang checkbox proses
+  const isStatusFiltered = selectedStatus.length > 0;
+  const totalActiveFilters = selectedJenis.length + selectedKelas.length + selectedStatus.length;
+
   const [sortBy, setSortBy] = useState<string>('leadtime');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(15);
   const [isLimitOpen, setIsLimitOpen] = useState<boolean>(false);
+  const limitRef = useRef<HTMLDivElement>(null);
   const [pagination, setPagination] = useState<{ total: number; totalPages: number }>({
     total: 0,
     totalPages: 1,
@@ -239,6 +247,37 @@ export default function PlantingView({
   // Modal Detail State (jika klik badge lokasi)
   const [selectedItem, setSelectedItem] = useState<PlantingItem | null>(null);
 
+  // Baseline and undo history tracking for reset to original & Ctrl+Z
+  const initialDataRef = useRef<Record<number, PlantingItem>>({});
+  const undoHistoryRef = useRef<Record<number, PlantingItem[]>>({});
+  const recentEditedIdsRef = useRef<number[]>([]);
+  const [, setUndoVersion] = useState(0);
+
+  // Hover state for No column floating popup
+  const [hoveredNoId, setHoveredNoId] = useState<number | null>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Delete modal state
+  const [itemToDelete, setItemToDelete] = useState<{ id: number; lokasi: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
+  const handleNoMouseEnter = (id: number) => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setHoveredNoId(id);
+  };
+
+  const handleNoMouseLeave = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredNoId(null);
+    }, 120);
+  };
+
   const inputRef = useRef<HTMLInputElement | HTMLSelectElement | null>(null);
 
   // Auto-focus input saat inline edit aktif
@@ -265,6 +304,18 @@ export default function PlantingView({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [openDropdown]);
 
+  // Close limit dropdown on outside click
+  useEffect(() => {
+    if (!isLimitOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (limitRef.current && !limitRef.current.contains(e.target as Node)) {
+        setIsLimitOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isLimitOpen]);
+
   // Fetch API Function
   const fetchPlantingData = async () => {
     setLoading(true);
@@ -275,7 +326,7 @@ export default function PlantingView({
         search,
         jenisBibit: selectedJenis.length > 0 ? selectedJenis.join(',') : 'ALL',
         kelasBibit: selectedKelas.length > 0 ? selectedKelas.join(',') : 'ALL',
-        status: selectedStatus.length > 0 ? selectedStatus.join(',') : 'ALL',
+        status: selectedStatus.length > 0 ? selectedStatus.join(',') : 'PROSES',
         sortBy,
         sortOrder,
       });
@@ -285,6 +336,11 @@ export default function PlantingView({
 
       if (json.success) {
         setData(json.data || []);
+        (json.data || []).forEach((item: PlantingItem) => {
+          if (!initialDataRef.current[item.id]) {
+            initialDataRef.current[item.id] = JSON.parse(JSON.stringify(item));
+          }
+        });
         if (json.summary) setSummary(json.summary);
         if (json.pagination) {
           setPagination({
@@ -297,6 +353,146 @@ export default function PlantingView({
       console.error('Failed to load planting data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const pushUndoSnapshot = (id: number) => {
+    const current = data.find((row) => row.id === id);
+    if (!current) return;
+    if (!undoHistoryRef.current[id]) {
+      undoHistoryRef.current[id] = [];
+    }
+    undoHistoryRef.current[id].push(JSON.parse(JSON.stringify(current)));
+    if (undoHistoryRef.current[id].length > 20) {
+      undoHistoryRef.current[id].shift();
+    }
+    recentEditedIdsRef.current.push(id);
+    setUndoVersion((v) => v + 1);
+  };
+
+  const isModifiedFromOriginal = (id: number) => {
+    const current = data.find((row) => row.id === id);
+    const initial = initialDataRef.current[id];
+    if (!current || !initial) return false;
+    return (
+      current.luas !== initial.luas ||
+      current.realTanam !== initial.realTanam ||
+      current.jenisBibit !== initial.jenisBibit ||
+      current.kelasBibit !== initial.kelasBibit ||
+      current.awalTanam !== initial.awalTanam ||
+      current.estSelesai !== initial.estSelesai
+    );
+  };
+
+  // Tombol Panah Kembali: Langsung mengembalikan ke data paling awal / data aslinya
+  const handleResetToOriginal = async (id: number) => {
+    const initialSnapshot = initialDataRef.current[id];
+    if (!initialSnapshot) return;
+
+    setData((prev) => prev.map((row) => (row.id === id ? { ...initialSnapshot } : row)));
+    undoHistoryRef.current[id] = [];
+    setUndoVersion((v) => v + 1);
+
+    try {
+      const payload = {
+        id: initialSnapshot.id,
+        luas: initialSnapshot.luas,
+        realTanam: initialSnapshot.realTanam,
+        jenisBibit: initialSnapshot.jenisBibit,
+        kelasBibit: initialSnapshot.kelasBibit,
+        awalTanam: initialSnapshot.awalTanam,
+        estSelesai: initialSnapshot.estSelesai,
+      };
+
+      const res = await fetch('/api/planting', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setData((prev) => prev.map((row) => (row.id === id ? { ...row, ...json.data } : row)));
+      }
+      onDataChanged?.();
+    } catch (err: any) {
+      console.error('Error resetting planting item to original:', err);
+      alert(`Gagal mengembalikan ke data asli: ${err.message}`);
+      fetchPlantingData();
+    }
+  };
+
+  // Ctrl + Z: Mundur selangkah demi selangkah ke perubahan sebelumnya
+  const handleUndoStep = async (id: number) => {
+    const history = undoHistoryRef.current[id];
+    let snapshotToRestore = null;
+    if (history && history.length > 0) {
+      snapshotToRestore = history.pop();
+    } else if (initialDataRef.current[id]) {
+      snapshotToRestore = initialDataRef.current[id];
+    }
+    if (!snapshotToRestore) return;
+
+    setData((prev) => prev.map((row) => (row.id === id ? { ...snapshotToRestore } : row)));
+    setUndoVersion((v) => v + 1);
+
+    try {
+      const payload = {
+        id: snapshotToRestore.id,
+        luas: snapshotToRestore.luas,
+        realTanam: snapshotToRestore.realTanam,
+        jenisBibit: snapshotToRestore.jenisBibit,
+        kelasBibit: snapshotToRestore.kelasBibit,
+        awalTanam: snapshotToRestore.awalTanam,
+        estSelesai: snapshotToRestore.estSelesai,
+      };
+
+      await fetch('/api/planting', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      onDataChanged?.();
+    } catch (err: any) {
+      console.error('Error undoing planting item:', err);
+      fetchPlantingData();
+    }
+  };
+
+  // Global Ctrl + Z shortcut listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        const target = e.target as HTMLElement;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+          return;
+        }
+        e.preventDefault();
+        const lastId = recentEditedIdsRef.current.pop();
+        if (lastId !== undefined) {
+          handleUndoStep(lastId);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [data]);
+
+  const handleDeleteItem = async () => {
+    if (!itemToDelete) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/planting?id=${itemToDelete.id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Gagal menghapus data tanam');
+      }
+      setData((prev) => prev.filter((r) => r.id !== itemToDelete.id));
+      setItemToDelete(null);
+      onDataChanged?.();
+    } catch (err: any) {
+      alert(`Gagal menghapus: ${err.message}`);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -370,6 +566,8 @@ export default function PlantingView({
       cancelEdit();
       return;
     }
+
+    pushUndoSnapshot(item.id);
 
     setSavingId(item.id);
     cancelEdit();
@@ -472,7 +670,7 @@ export default function PlantingView({
         search,
         jenisBibit: selectedJenis.length > 0 ? selectedJenis.join(',') : 'ALL',
         kelasBibit: selectedKelas.length > 0 ? selectedKelas.join(',') : 'ALL',
-        status: selectedStatus.length > 0 ? selectedStatus.join(',') : 'ALL',
+        status: selectedStatus.length > 0 ? selectedStatus.join(',') : 'PROSES',
         sortBy,
         sortOrder,
       });
@@ -778,12 +976,14 @@ export default function PlantingView({
           <div className="mt-1 text-xs text-slate-400">Realisasi tahun 2026</div>
         </div>
 
-        {/* 3. Proses Tanam (Sebelumnya Sisa Tanam) */}
+        {/* 3. Proses Tanam (Khusus Petak Proses Tanam) */}
         <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
               <span>Proses Tanam</span>
-              <AlertCircle className="w-4 h-4 text-amber-500" />
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                {summary.prosesCount} Lokasi
+              </span>
             </div>
             <div className="mt-2 text-2xl font-black text-amber-600 dark:text-amber-400">
               {summary.totalSisa.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
@@ -791,7 +991,7 @@ export default function PlantingView({
             </div>
           </div>
           <div className="mt-1 text-xs text-slate-400">
-            Sisa luasan proses tanam
+            Sisa luasan proses tanam ({summary.prosesCount} lokasi)
           </div>
         </div>
 
@@ -1038,13 +1238,13 @@ export default function PlantingView({
               type="button"
               onClick={() => setOpenDropdown(openDropdown === 'status' ? null : 'status')}
               className={`inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border transition-all ${
-                selectedStatus.length > 0
+                isStatusFiltered
                   ? 'border-emerald-500 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
                   : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200'
               }`}
             >
               <span>Status</span>
-              {selectedStatus.length > 0 && (
+              {isStatusFiltered && (
                 <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
               )}
               <ChevronDownIcon
@@ -1125,14 +1325,14 @@ export default function PlantingView({
       </div>
 
         {/* Active Filter Badges */}
-        {(selectedJenis.length > 0 || selectedKelas.length > 0 || selectedStatus.length > 0) && (
+        {totalActiveFilters > 0 && (
           <div className="pt-2.5 mt-1 border-t border-dashed border-slate-200 dark:border-slate-800/80 space-y-2 animate-in fade-in duration-150">
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 leading-none">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
                 <span>Data Difilter:</span>
                 <span className="text-[11px] font-normal text-slate-400 dark:text-slate-500">
-                  ({selectedJenis.length + selectedKelas.length + selectedStatus.length} filter aktif)
+                  ({totalActiveFilters} filter aktif)
                 </span>
               </div>
 
@@ -1199,7 +1399,16 @@ export default function PlantingView({
 
               {/* Status badges */}
               {selectedStatus.map((st) => {
-                const label = st === 'SELESAI' ? 'Selesai' : st === 'PROSES' ? 'Proses' : st === 'BELUM TANAM' ? 'Belum Tanam' : st;
+                const label =
+                  st === 'SELESAI'
+                    ? 'Selesai'
+                    : st === 'CEK SELESAI'
+                    ? 'Cek Selesai'
+                    : st === 'PROSES'
+                    ? 'Proses'
+                    : st === 'BELUM TANAM'
+                    ? 'Belum Tanam'
+                    : st;
                 return (
                   <span
                     key={`st-${st}`}
@@ -1241,15 +1450,17 @@ export default function PlantingView({
               </span>
             )}
           </div>
-          <button
-            type="button"
-            onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs transition-all shadow-sm shadow-emerald-600/20 cursor-pointer"
-            title="Tambah Data Petak Baru"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Tambah Data</span>
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setIsAddModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs transition-all shadow-sm shadow-emerald-600/20 cursor-pointer"
+              title="Tambah Data Petak Baru"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Tambah Data</span>
+            </button>
+          )}
         </div>
 
         {/* Tabel Freeze Panes (Header Kolom NO sampai STATUS Tetap Membeku di Atas) */}
@@ -1445,8 +1656,60 @@ export default function PlantingView({
                       }`}
                     >
                       {/* 1. NO */}
-                      <td className="py-3 px-3 text-center text-slate-400 font-mono text-[11px] whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800">
-                        {rowNumber}
+                      <td
+                        className={`py-3 px-3 text-center text-slate-400 font-mono text-[11px] whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800 overflow-visible relative ${
+                          hoveredNoId === item.id ? 'z-40' : 'z-10'
+                        }`}
+                        onMouseEnter={() => handleNoMouseEnter(item.id)}
+                        onMouseLeave={handleNoMouseLeave}
+                      >
+                        <div className="relative flex items-center justify-center w-full h-full min-h-[20px]">
+                          <span className="select-none font-medium text-slate-600 dark:text-slate-400">
+                            {rowNumber}
+                          </span>
+
+                          {/* Floating Action Popup on Hover (Undo / Reset & Hapus) */}
+                          {hoveredNoId === item.id && (
+                            <div
+                              className="absolute left-[32px] top-1/2 -translate-y-1/2 z-50 flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-lg px-1.5 py-1 select-none animate-in fade-in zoom-in-95 duration-150 before:content-[''] before:absolute before:-left-3 before:top-0 before:w-3 before:h-full cursor-default"
+                              onMouseEnter={() => handleNoMouseEnter(item.id)}
+                              onMouseLeave={handleNoMouseLeave}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {/* Tombol Panah Kembali: Langsung mengembalikan ke data paling awal / data aslinya */}
+                              <button
+                                type="button"
+                                onClick={() => handleResetToOriginal(item.id)}
+                                disabled={!isModifiedFromOriginal(item.id)}
+                                title={
+                                  isModifiedFromOriginal(item.id)
+                                    ? 'Kembalikan ke data asli / awal'
+                                    : 'Data masih asli (belum ada perubahan)'
+                                }
+                                className={`p-1 rounded-md transition-all ${
+                                  isModifiedFromOriginal(item.id)
+                                    ? 'text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/50 cursor-pointer hover:scale-110 active:scale-95'
+                                    : 'text-slate-300 dark:text-slate-600 cursor-not-allowed opacity-40'
+                                }`}
+                              >
+                                <Undo2 className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* Separator */}
+                              <div className="w-[1px] h-3.5 bg-slate-200 dark:bg-slate-700" />
+
+                              {/* Tombol Tempat Sampah (Hapus) */}
+                              <button
+                                type="button"
+                                onClick={() => setItemToDelete({ id: item.id, lokasi: item.lokasi })}
+                                title={`Hapus data lokasi ${item.lokasi}`}
+                                className="p-1 rounded-md text-rose-500 dark:text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer hover:scale-110 active:scale-95 transition-all"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </td>
 
                       {/* 2. Lokasi */}
@@ -1857,29 +2120,40 @@ export default function PlantingView({
           <div className="flex items-center gap-3 text-slate-600 dark:text-slate-400">
             <div className="flex items-center gap-1.5">
               <span>Tampilkan per halaman:</span>
-              <div className="relative inline-flex items-center">
-                <select
-                  value={limit}
-                  onFocus={() => setIsLimitOpen(true)}
-                  onBlur={() => setIsLimitOpen(false)}
-                  onChange={(e) => {
-                    setLimit(Number(e.target.value));
-                    setPage(1);
-                    setIsLimitOpen(false);
-                    (e.target as HTMLElement).blur();
-                  }}
-                  className="appearance-none pl-2.5 pr-7 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
+              <div className="relative inline-flex items-center" ref={limitRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsLimitOpen(!isLimitOpen)}
+                  className="inline-flex items-center justify-between gap-2 pl-2.5 pr-2 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer text-xs hover:border-slate-400 dark:hover:border-slate-600 transition-colors shadow-2xs"
+                  title="Pilih jumlah data per halaman"
                 >
-                  <option value={15}>15</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-                <ChevronDown
-                  className={`w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 transition-transform duration-200 ${
-                    isLimitOpen ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : 'rotate-0'
-                  }`}
-                />
+                  <span>{limit}</span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                      isLimitOpen ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : 'rotate-0'
+                    }`}
+                  />
+                </button>
+                {isLimitOpen && (
+                  <div className="absolute bottom-full mb-1 left-0 z-50 min-w-[68px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 text-xs animate-in fade-in zoom-in-95 duration-100">
+                    {[15, 25, 50, 100].map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => {
+                          setLimit(opt);
+                          setPage(1);
+                          setIsLimitOpen(false);
+                        }}
+                        className={`w-full text-center py-1 font-semibold hover:bg-emerald-50 dark:hover:bg-slate-800 transition-colors cursor-pointer ${
+                          limit === opt ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 font-bold' : 'text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1919,6 +2193,7 @@ export default function PlantingView({
         isOpen={!!selectedItem}
         onClose={() => setSelectedItem(null)}
         lokasi={selectedItem?.lokasi || null}
+        isAdmin={isAdmin}
         onTransactionSaved={() => {
           fetchPlantingData();
           onDataChanged?.();
@@ -1936,6 +2211,48 @@ export default function PlantingView({
           setTimeout(() => setToastMessage(null), 3000);
         }}
       />
+
+      {/* Delete Confirmation Modal */}
+      {itemToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-white text-base">Hapus Data Tanam</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Tindakan ini tidak dapat dibatalkan.</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              Apakah Anda yakin ingin menghapus data Real Tanam Nanas untuk lokasi{' '}
+              <strong className="text-rose-600 dark:text-rose-400 font-mono text-sm">{itemToDelete.lokasi}</strong>?
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setItemToDelete(null)}
+                disabled={isDeleting}
+                className="px-3 py-1.5 text-xs font-semibold rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteItem}
+                disabled={isDeleting}
+                className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isDeleting ? <Clock className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                <span>{isDeleting ? 'Menghapus...' : 'Ya, Hapus'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

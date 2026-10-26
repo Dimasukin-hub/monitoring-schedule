@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { computeAktivitasTerakhir, computeRencanaBeroBongkar } from '@/lib/landActivityUtils';
-import { calculateCascadeRencanaDates } from '@/lib/planScheduleCascade';
+import { calculateCascadeRencanaDates, calculateLandPlanSchedule } from '@/lib/planScheduleCascade';
 import { recalculateAndPersistStageStocks, syncStokLahanMasterForLand, parseDateVal } from '@/lib/stageStockCalculator';
 import lands2026BaselinesJson from '@/lib/lands2026Baselines.json';
 
@@ -58,8 +58,30 @@ export async function GET(
       ? (land.aplikasiDetails as any)
       : {};
     const emptyAct = { rencana: null, real: null, status: 'PENDING' };
+    const rencanaBero = app.rencanaBero !== undefined && app.rencanaBero !== null && app.rencanaBero !== ''
+      ? Number(app.rencanaBero)
+      : null;
 
-    const jalanSalReal = app.jalanSal || app.realJalanSal || actDict['22.JALAN_SAL']?.real || null;
+    const schedule = calculateLandPlanSchedule({
+      rencanaChopper: actDict['01.CHOPPER']?.rencana || app.chopper || null,
+      rencanaBero,
+      realChopper: actDict['01.CHOPPER']?.real || app.realChopper || null,
+      realMb5Btr: app.realBajakAwalMb5Btr || actDict['11.BAJAK_AWAL']?.real || land.realBajak || null,
+      realSs1: app.realSubsoilerSs1 || actDict['17.SUBSOILER']?.real || null,
+      realRotaryFh1: app.realFinishingRotaryFh1 || actDict['19.FINISHING_ROTARY']?.real || null,
+      realJalanSal: app.realJalanSal || actDict['22.JALAN_SAL']?.real || null,
+      existingRencanaJalanSal: actDict['22.JALAN_SAL']?.rencana || app.jalanSal || null,
+      existingRencanaRidger: actDict['21.RIDGER']?.rencana || app.ridger || null,
+      existingRencanaRotaryFh1: actDict['19.FINISHING_ROTARY']?.rencana || app.finishingRotaryFh1 || null,
+      existingRencanaDolomit: actDict['05.DOLOMIT']?.rencana || app.dolomit || null,
+      existingRencanaMb5Btr: actDict['11.BAJAK_AWAL']?.rencana || app.rencAwalMb5Btr || app.bajakAwalMb5Btr || land.rencBajak || null,
+      existingRencanaSs1: actDict['17.SUBSOILER']?.rencana || app.subsoilerSs1 || null,
+    });
+
+    const beroBongkar = computeRencanaBeroBongkar(land);
+    const effectiveBeroBongkar = schedule.rencanaBeroBongkar !== null ? schedule.rencanaBeroBongkar : beroBongkar.hari;
+
+    const jalanSalReal = app.realJalanSal || actDict['22.JALAN_SAL']?.real || null;
     const siapTanam = actDict['22.SIAP_TANAM']?.real || app.realSiapTanam || null;
     const prosesTanam = actDict['23.PROSES_TNM']?.real || land.realMulaiTanam || null;
     const selesaiTanam = actDict['24.SLS_TANAM']?.real || land.realSelesaiTanam || null;
@@ -73,18 +95,26 @@ export async function GET(
         preparationProgress,
         completedActivitiesCount: completedCount,
         totalActivitiesCount: totalActivities,
+        rencanaBero,
+        rencanaBeroBongkar: effectiveBeroBongkar,
+        kondisiBeroBongkar: beroBongkar.kondisi,
+        keteranganBeroBongkar: beroBongkar.keterangan,
+        tglAwalBkrBero: beroBongkar.tglAwalBkr,
+        tglSiapTanamBero: beroBongkar.tglSiapTanam,
+        hasBeroWarning: schedule.hasBeroWarning,
+        beroWarningMessage: schedule.beroWarningMessage,
         chopper: actDict['01.CHOPPER'] ? { rencana: actDict['01.CHOPPER'].rencana, real: actDict['01.CHOPPER'].real, status: actDict['01.CHOPPER'].status } : emptyAct,
-        chopperLu: actDict['02.CHOPPER_LU'] ? { rencana: actDict['02.CHOPPER_LU'].rencana, real: actDict['02.CHOPPER_LU'].real, status: actDict['02.CHOPPER_LU'].status } : emptyAct,
-        rh1: actDict['03.RH1'] ? { rencana: actDict['03.RH1'].rencana, real: actDict['03.RH1'].real, status: actDict['03.RH1'].status } : emptyAct,
-        cuttingBanana: actDict['04.CUTTING_BANANA'] ? { rencana: actDict['04.CUTTING_BANANA'].rencana, real: actDict['04.CUTTING_BANANA'].real, status: actDict['04.CUTTING_BANANA'].status } : emptyAct,
-        dolomit: actDict['05.DOLOMIT'] ? { rencana: actDict['05.DOLOMIT'].rencana, real: actDict['05.DOLOMIT'].real, status: actDict['05.DOLOMIT'].status } : emptyAct,
+        chopperLu: actDict['02.CHOPPER_LU'] ? { rencana: actDict['02.CHOPPER_LU'].rencana ?? app.chopperLu ?? null, real: actDict['02.CHOPPER_LU'].real, status: actDict['02.CHOPPER_LU'].status } : emptyAct,
+        rh1: actDict['03.RH1'] ? { rencana: actDict['03.RH1'].rencana ?? app.rh1 ?? null, real: actDict['03.RH1'].real, status: actDict['03.RH1'].status } : emptyAct,
+        cuttingBanana: actDict['04.CUTTING_BANANA'] ? { rencana: actDict['04.CUTTING_BANANA'].rencana ?? app.cuttingBanana ?? null, real: actDict['04.CUTTING_BANANA'].real, status: actDict['04.CUTTING_BANANA'].status } : emptyAct,
+        dolomit: actDict['05.DOLOMIT'] ? { rencana: actDict['05.DOLOMIT'].rencana ?? app.dolomit ?? null, real: actDict['05.DOLOMIT'].real, status: actDict['05.DOLOMIT'].status } : emptyAct,
         ridger: {
-          rencana: actDict['21.RIDGER']?.rencana || app.ridger || null,
+          rencana: actDict['21.RIDGER']?.rencana ?? app.ridger ?? null,
           real: actDict['21.RIDGER']?.real || app.realRidger || null,
           status: actDict['21.RIDGER']?.status || 'PENDING',
         },
         jalanSal: {
-          rencana: actDict['22.JALAN_SAL']?.rencana || app.jalanSal || null,
+          rencana: actDict['22.JALAN_SAL']?.rencana ?? app.jalanSal ?? null,
           real: jalanSalReal,
           status: actDict['22.JALAN_SAL']?.status || 'PENDING',
         },
@@ -186,8 +216,12 @@ export async function PUT(
     };
 
     const DETAILS_REAL_TO_CODE: Record<string, string> = {};
+    const DETAILS_RENC_TO_CODE: Record<string, string> = {};
     for (const [code, info] of Object.entries(ACTIVITY_SYNC_MAP)) {
       DETAILS_REAL_TO_CODE[info.detailsRealKey] = code;
+      if (info.detailsRencKey) {
+        DETAILS_RENC_TO_CODE[info.detailsRencKey] = code;
+      }
     }
     // Additional aliases in aplikasiDetails
     DETAILS_REAL_TO_CODE['realBajakAwalMb5Btr'] = '11.BAJAK_AWAL';
@@ -197,6 +231,11 @@ export async function PUT(
     DETAILS_REAL_TO_CODE['realHrEksMb'] = '11.BAJAK_AWAL';
     DETAILS_REAL_TO_CODE['realSubsoilerSs2'] = '17.SUBSOILER';
     DETAILS_REAL_TO_CODE['realFinishingFhkRent'] = '19.FINISHING_ROTARY';
+
+    DETAILS_RENC_TO_CODE['rencAwalMb5Btr'] = '11.BAJAK_AWAL';
+    DETAILS_RENC_TO_CODE['bajakAwalMb5Btr'] = '11.BAJAK_AWAL';
+    DETAILS_RENC_TO_CODE['subsoilerSs1'] = '17.SUBSOILER';
+    DETAILS_RENC_TO_CODE['finishingRotaryFh1'] = '19.FINISHING_ROTARY';
 
     let mergedDetails: any = { ...existingDetails };
     if (body.aplikasiDetails !== undefined && typeof body.aplikasiDetails === 'object' && body.aplikasiDetails !== null) {
@@ -217,59 +256,99 @@ export async function PUT(
       }
     }
 
-    // Auto-cascade planned dates when Rencana Chopper is updated
+    // Track explicitly cleared dates in the request
+    const explicitlyClearedRencanaCodes = new Set<string>();
+    const explicitlyClearedRealCodes = new Set<string>();
+
+    if (Array.isArray(body.activities)) {
+      for (const act of body.activities) {
+        if (!act.code) continue;
+        if (act.rencanaDate === null || act.rencanaDate === '' || act.rencanaDate === '-') {
+          explicitlyClearedRencanaCodes.add(act.code);
+        }
+        if (act.realisasiDate === null || act.realisasiDate === '' || act.realisasiDate === '-') {
+          explicitlyClearedRealCodes.add(act.code);
+        }
+      }
+    }
+
+    if (body.aplikasiDetails !== undefined && typeof body.aplikasiDetails === 'object' && body.aplikasiDetails !== null) {
+      for (const [key, val] of Object.entries(body.aplikasiDetails)) {
+        const isValEmpty = val === null || val === '' || val === '-';
+        if (isValEmpty) {
+          const rencCode = DETAILS_RENC_TO_CODE[key];
+          if (rencCode) explicitlyClearedRencanaCodes.add(rencCode);
+          const realCode = DETAILS_REAL_TO_CODE[key];
+          if (realCode) explicitlyClearedRealCodes.add(realCode);
+        }
+      }
+    }
+
+    // Auto-cascade planned dates when Rencana Chopper is updated or cleared
     let chopperRencDate: string | null = null;
+    let isChopperRencExplicitlyProvided = false;
     if (Array.isArray(body.activities)) {
       const chAct = body.activities.find((a: any) => a.code === '01.CHOPPER' && a.rencanaDate !== undefined);
-      if (chAct) chopperRencDate = chAct.rencanaDate ? String(chAct.rencanaDate).trim() : null;
+      if (chAct) {
+        isChopperRencExplicitlyProvided = true;
+        chopperRencDate = chAct.rencanaDate && chAct.rencanaDate !== '-' && chAct.rencanaDate !== '0' ? String(chAct.rencanaDate).trim() : null;
+      }
     }
-    if (!chopperRencDate && body.rencBkr !== undefined) {
-      chopperRencDate = body.rencBkr ? String(body.rencBkr).trim() : null;
+    if (!isChopperRencExplicitlyProvided && body.rencBkr !== undefined) {
+      isChopperRencExplicitlyProvided = true;
+      chopperRencDate = body.rencBkr && body.rencBkr !== '-' && body.rencBkr !== '0' ? String(body.rencBkr).trim() : null;
     }
-    if (!chopperRencDate && body.aplikasiDetails?.chopper !== undefined) {
-      chopperRencDate = body.aplikasiDetails.chopper ? String(body.aplikasiDetails.chopper).trim() : null;
+    if (!isChopperRencExplicitlyProvided && body.aplikasiDetails?.chopper !== undefined) {
+      isChopperRencExplicitlyProvided = true;
+      const chVal = body.aplikasiDetails.chopper;
+      chopperRencDate = chVal && chVal !== '-' && chVal !== '0' ? String(chVal).trim() : null;
     }
 
-    if (chopperRencDate) {
-      const cascade = calculateCascadeRencanaDates(chopperRencDate);
-      if (cascade) {
+    if (isChopperRencExplicitlyProvided) {
+      if (chopperRencDate) {
         mergedDetails.chopper = chopperRencDate;
-        mergedDetails.dolomit = cascade.dolomit;
-        mergedDetails.chopperLu = cascade.chopperLu;
-        mergedDetails.rh1 = cascade.rh1;
-        mergedDetails.rencAwalMb5Btr = cascade.bajakMb5Btr;
-        mergedDetails.bajakAwalMb5Btr = cascade.bajakMb5Btr;
-        mergedDetails.subsoilerSs1 = cascade.subsoilerSs1;
-        mergedDetails.finishingRotaryFh1 = cascade.finishingRotaryFh1;
-        mergedDetails.ridger = cascade.ridger;
-        mergedDetails.jalanSal = cascade.jalanSal;
-
         updateData.rencBkr = chopperRencDate;
-        updateData.rencBajak = cascade.bajakMb5Btr;
+      } else {
+        // Chopper Rencana explicitly cleared!
+        mergedDetails.chopper = null;
+        updateData.rencBkr = null;
 
-        const cascadeActMap: Record<string, string> = {
-          '02.CHOPPER_LU': cascade.chopperLu,
-          '03.RH1': cascade.rh1,
-          '05.DOLOMIT': cascade.dolomit,
-          '11.BAJAK_AWAL': cascade.bajakMb5Btr,
-          '17.SUBSOILER': cascade.subsoilerSs1,
-          '19.FINISHING_ROTARY': cascade.finishingRotaryFh1,
-          '21.RIDGER': cascade.ridger,
-          '22.JALAN_SAL': cascade.jalanSal,
-        };
+        const hasRealChopper = mergedDetails.realChopper && mergedDetails.realChopper !== '-' && mergedDetails.realChopper !== '0';
+        if (!hasRealChopper) {
+          mergedDetails.dolomit = null;
+          mergedDetails.rencAwalMb5Btr = null;
+          mergedDetails.bajakAwalMb5Btr = null;
+          mergedDetails.subsoilerSs1 = null;
+          updateData.rencBajak = null;
+        }
+        mergedDetails.chopperLu = null;
+        mergedDetails.rh1 = null;
+        mergedDetails.jalanSal = null;
+        mergedDetails.ridger = null;
+        mergedDetails.finishingRotaryFh1 = null;
+
+        const clearCodes = [
+          '02.CHOPPER_LU',
+          '03.RH1',
+          '19.FINISHING_ROTARY',
+          '21.RIDGER',
+          '22.JALAN_SAL',
+          ...(!hasRealChopper ? ['05.DOLOMIT', '11.BAJAK_AWAL', '17.SUBSOILER'] : []),
+        ];
 
         if (!Array.isArray(body.activities)) {
           body.activities = [];
         }
 
-        for (const [code, rencDate] of Object.entries(cascadeActMap)) {
+        for (const code of clearCodes) {
+          explicitlyClearedRencanaCodes.add(code);
           const existingInBody = body.activities.find((a: any) => a.code === code);
           if (existingInBody) {
-            existingInBody.rencanaDate = rencDate;
+            existingInBody.rencanaDate = null;
           } else {
             body.activities.push({
               code,
-              rencanaDate: rencDate,
+              rencanaDate: null,
             });
           }
         }
@@ -308,6 +387,103 @@ export async function PUT(
     }
     if (body.realSelesaiTanam !== undefined) {
       mergedDetails.realSelesaiTanam = body.realSelesaiTanam ? String(body.realSelesaiTanam).trim() : null;
+    }
+
+    if (body.rencanaBero !== undefined) {
+      mergedDetails.rencanaBero = body.rencanaBero !== null && body.rencanaBero !== '' && !isNaN(Number(body.rencanaBero))
+        ? Number(body.rencanaBero)
+        : null;
+    }
+
+    // Dynamic schedule cascade calculation based on SOP Excel Simulasi Rencana Lahan
+    const effectiveRencBero = mergedDetails.rencanaBero !== undefined && mergedDetails.rencanaBero !== null && mergedDetails.rencanaBero !== ''
+      ? Number(mergedDetails.rencanaBero)
+      : null;
+
+    const preSchedule = calculateLandPlanSchedule({
+      rencanaChopper: mergedDetails.chopper || null,
+      rencanaBero: effectiveRencBero,
+      realChopper: mergedDetails.realChopper || null,
+      realMb5Btr: mergedDetails.realBajakAwalMb5Btr || mergedDetails.realBajak || existingLand?.realBajak || existingLand?.activities?.find((a: any) => a.code === '11.BAJAK_AWAL')?.realisasiDate || null,
+      realSs1: mergedDetails.realSubsoilerSs1 || mergedDetails.realSs1 || existingLand?.activities?.find((a: any) => a.code === '17.SUBSOILER')?.realisasiDate || null,
+      realRotaryFh1: mergedDetails.realFinishingRotaryFh1 || mergedDetails.realRotaryFh1 || existingLand?.activities?.find((a: any) => a.code === '19.FINISHING_ROTARY')?.realisasiDate || null,
+      realJalanSal: mergedDetails.realJalanSal || existingLand?.activities?.find((a: any) => a.code === '22.JALAN_SAL')?.realisasiDate || null,
+      existingRencanaJalanSal: explicitlyClearedRencanaCodes.has('22.JALAN_SAL') ? null : (mergedDetails.jalanSal || null),
+      existingRencanaRidger: explicitlyClearedRencanaCodes.has('21.RIDGER') ? null : (mergedDetails.ridger || null),
+      existingRencanaRotaryFh1: explicitlyClearedRencanaCodes.has('19.FINISHING_ROTARY') ? null : (mergedDetails.finishingRotaryFh1 || null),
+      existingRencanaDolomit: explicitlyClearedRencanaCodes.has('05.DOLOMIT') ? null : (mergedDetails.dolomit || null),
+      existingRencanaMb5Btr: explicitlyClearedRencanaCodes.has('11.BAJAK_AWAL') ? null : (mergedDetails.rencAwalMb5Btr || mergedDetails.bajakAwalMb5Btr || null),
+      existingRencanaSs1: explicitlyClearedRencanaCodes.has('17.SUBSOILER') ? null : (mergedDetails.subsoilerSs1 || null),
+    });
+
+    if (!explicitlyClearedRencanaCodes.has('22.JALAN_SAL')) {
+      if (preSchedule.rencanaJalanSal) mergedDetails.jalanSal = preSchedule.rencanaJalanSal;
+      else if (!mergedDetails.chopper && !mergedDetails.realChopper) mergedDetails.jalanSal = null;
+    }
+    if (!explicitlyClearedRencanaCodes.has('05.DOLOMIT')) {
+      if (preSchedule.rencanaDolomit) mergedDetails.dolomit = preSchedule.rencanaDolomit;
+      else if (!mergedDetails.chopper && !mergedDetails.realChopper) mergedDetails.dolomit = null;
+    }
+    if (!explicitlyClearedRencanaCodes.has('11.BAJAK_AWAL')) {
+      if (preSchedule.rencanaMb5Btr) {
+        mergedDetails.rencAwalMb5Btr = preSchedule.rencanaMb5Btr;
+        mergedDetails.bajakAwalMb5Btr = preSchedule.rencanaMb5Btr;
+        updateData.rencBajak = preSchedule.rencanaMb5Btr;
+      } else if (!mergedDetails.chopper && !mergedDetails.realChopper) {
+        mergedDetails.rencAwalMb5Btr = null;
+        mergedDetails.bajakAwalMb5Btr = null;
+        updateData.rencBajak = null;
+      }
+    }
+    if (!explicitlyClearedRencanaCodes.has('17.SUBSOILER')) {
+      if (preSchedule.rencanaSs1) mergedDetails.subsoilerSs1 = preSchedule.rencanaSs1;
+      else if (!mergedDetails.chopper && !mergedDetails.realChopper && !mergedDetails.realBajakAwalMb5Btr) mergedDetails.subsoilerSs1 = null;
+    }
+    if (!explicitlyClearedRencanaCodes.has('21.RIDGER')) {
+      if (preSchedule.rencanaRidger) mergedDetails.ridger = preSchedule.rencanaRidger;
+      else if (!mergedDetails.chopper && !mergedDetails.realChopper) mergedDetails.ridger = null;
+    }
+    if (!explicitlyClearedRencanaCodes.has('19.FINISHING_ROTARY')) {
+      if (preSchedule.rencanaRotaryFh1) mergedDetails.finishingRotaryFh1 = preSchedule.rencanaRotaryFh1;
+      else if (!mergedDetails.chopper && !mergedDetails.realChopper) mergedDetails.finishingRotaryFh1 = null;
+    }
+    if (!explicitlyClearedRencanaCodes.has('02.CHOPPER_LU')) {
+      if (preSchedule.rencanaChopperLu) mergedDetails.chopperLu = preSchedule.rencanaChopperLu;
+      else if (!mergedDetails.chopper) mergedDetails.chopperLu = null;
+    }
+    if (!explicitlyClearedRencanaCodes.has('03.RH1')) {
+      if (preSchedule.rencanaRh1) mergedDetails.rh1 = preSchedule.rencanaRh1;
+      else if (!mergedDetails.chopper) mergedDetails.rh1 = null;
+    }
+
+    // Sync dynamic dates to body.activities as well so they are updated in LandActivity table
+    const dynamicCascadeActMap: Record<string, string | null> = {
+      '02.CHOPPER_LU': preSchedule.rencanaChopperLu,
+      '03.RH1': preSchedule.rencanaRh1,
+      '05.DOLOMIT': preSchedule.rencanaDolomit,
+      '11.BAJAK_AWAL': preSchedule.rencanaMb5Btr,
+      '17.SUBSOILER': preSchedule.rencanaSs1,
+      '19.FINISHING_ROTARY': preSchedule.rencanaRotaryFh1,
+      '21.RIDGER': preSchedule.rencanaRidger,
+      '22.JALAN_SAL': preSchedule.rencanaJalanSal,
+    };
+
+    if (!Array.isArray(body.activities)) {
+      body.activities = [];
+    }
+
+    for (const [code, rencDate] of Object.entries(dynamicCascadeActMap)) {
+      if (explicitlyClearedRencanaCodes.has(code)) continue;
+      if (!rencDate) continue;
+      const existingInBody = body.activities.find((a: any) => a.code === code);
+      if (existingInBody) {
+        existingInBody.rencanaDate = rencDate;
+      } else {
+        body.activities.push({
+          code,
+          rencanaDate: rencDate,
+        });
+      }
     }
 
     // 2. Sync direct Land columns from mergedDetails if not explicitly provided
@@ -450,18 +626,40 @@ export async function PUT(
     // Sync any updated fields in aplikasiDetails to LandActivity as well
     if (body.aplikasiDetails !== undefined && typeof body.aplikasiDetails === 'object' && body.aplikasiDetails !== null) {
       for (const [key, val] of Object.entries(body.aplikasiDetails)) {
-        const code = DETAILS_REAL_TO_CODE[key];
-        if (code) {
-          const cleanReal = val && val !== '-' && val !== '0' ? String(val).trim() : null;
+        const isValEmpty = val === null || val === '' || val === '-' || val === '0';
+        const cleanVal = isValEmpty ? null : String(val).trim();
+
+        // 1. Check if key is a Real date
+        const realCode = DETAILS_REAL_TO_CODE[key];
+        if (realCode) {
           const existingAct = await prisma.landActivity.findFirst({
-            where: { landId: currentId, code },
+            where: { landId: currentId, code: realCode },
           });
           if (existingAct) {
+            const effectiveRenc = existingAct.rencanaDate;
             await prisma.landActivity.update({
               where: { id: existingAct.id },
               data: {
-                realisasiDate: cleanReal,
-                status: cleanReal ? 'COMPLETED' : (existingAct.rencanaDate ? 'IN_PROGRESS' : 'PENDING'),
+                realisasiDate: cleanVal,
+                status: cleanVal ? 'COMPLETED' : (effectiveRenc ? 'IN_PROGRESS' : 'PENDING'),
+              },
+            });
+          }
+        }
+
+        // 2. Check if key is a Rencana date
+        const rencCode = DETAILS_RENC_TO_CODE[key];
+        if (rencCode) {
+          const existingAct = await prisma.landActivity.findFirst({
+            where: { landId: currentId, code: rencCode },
+          });
+          if (existingAct) {
+            const effectiveReal = existingAct.realisasiDate;
+            await prisma.landActivity.update({
+              where: { id: existingAct.id },
+              data: {
+                rencanaDate: cleanVal,
+                status: effectiveReal ? 'COMPLETED' : (cleanVal ? 'IN_PROGRESS' : 'PENDING'),
               },
             });
           }
@@ -518,7 +716,28 @@ export async function PUT(
       : {};
 
     const emptyAct = { rencana: null, real: null, status: 'PENDING' };
+    const rencanaBero = app.rencanaBero !== undefined && app.rencanaBero !== null && app.rencanaBero !== ''
+      ? Number(app.rencanaBero)
+      : null;
+
+    const schedule = calculateLandPlanSchedule({
+      rencanaChopper: actDict['01.CHOPPER']?.rencanaDate || app.chopper || freshLand.rencBkr || null,
+      rencanaBero,
+      realChopper: actDict['01.CHOPPER']?.realisasiDate || app.realChopper || freshLand.realBkr || null,
+      realMb5Btr: app.realBajakAwalMb5Btr || app.realBajak || actDict['11.BAJAK_AWAL']?.realisasiDate || freshLand.realBajak || null,
+      realSs1: app.realSubsoilerSs1 || app.realSs1 || actDict['17.SUBSOILER']?.realisasiDate || null,
+      realRotaryFh1: app.realFinishingRotaryFh1 || app.realRotaryFh1 || actDict['19.FINISHING_ROTARY']?.realisasiDate || null,
+      realJalanSal: app.realJalanSal || actDict['22.JALAN_SAL']?.realisasiDate || null,
+      existingRencanaJalanSal: actDict['22.JALAN_SAL']?.rencanaDate || app.jalanSal || null,
+      existingRencanaRidger: actDict['21.RIDGER']?.rencanaDate || app.ridger || null,
+      existingRencanaRotaryFh1: actDict['19.FINISHING_ROTARY']?.rencanaDate || app.finishingRotaryFh1 || null,
+      existingRencanaDolomit: actDict['05.DOLOMIT']?.rencanaDate || app.dolomit || null,
+      existingRencanaMb5Btr: actDict['11.BAJAK_AWAL']?.rencanaDate || app.rencAwalMb5Btr || app.bajakAwalMb5Btr || freshLand.rencBajak || null,
+      existingRencanaSs1: actDict['17.SUBSOILER']?.rencanaDate || app.subsoilerSs1 || null,
+    });
+
     const beroBongkar = computeRencanaBeroBongkar(freshLand);
+    const effectiveBeroBongkar = schedule.rencanaBeroBongkar !== null ? schedule.rencanaBeroBongkar : beroBongkar.hari;
 
     return NextResponse.json({
       success: true,
@@ -526,11 +745,14 @@ export async function PUT(
       data: {
         ...freshLand,
         aktivitasTerakhir: newAktivitasTerakhir,
-        rencanaBeroBongkar: beroBongkar.hari,
+        rencanaBero,
+        rencanaBeroBongkar: effectiveBeroBongkar,
         kondisiBeroBongkar: beroBongkar.kondisi,
         keteranganBeroBongkar: beroBongkar.keterangan,
         tglAwalBkrBero: beroBongkar.tglAwalBkr,
         tglSiapTanamBero: beroBongkar.tglSiapTanam,
+        hasBeroWarning: schedule.hasBeroWarning,
+        beroWarningMessage: schedule.beroWarningMessage,
         chopper: actDict['01.CHOPPER'] ? { rencana: actDict['01.CHOPPER'].rencanaDate, real: actDict['01.CHOPPER'].realisasiDate, status: actDict['01.CHOPPER'].status } : emptyAct,
         chopperLu: actDict['02.CHOPPER_LU'] ? { rencana: actDict['02.CHOPPER_LU'].rencanaDate, real: actDict['02.CHOPPER_LU'].realisasiDate, status: actDict['02.CHOPPER_LU'].status } : emptyAct,
         rh1: actDict['03.RH1'] ? { rencana: actDict['03.RH1'].rencanaDate, real: actDict['03.RH1'].realisasiDate, status: actDict['03.RH1'].status } : emptyAct,
@@ -545,15 +767,16 @@ export async function PUT(
         subsoiler: actDict['17.SUBSOILER'] ? { rencana: actDict['17.SUBSOILER'].rencanaDate, real: actDict['17.SUBSOILER'].realisasiDate, status: actDict['17.SUBSOILER'].status } : emptyAct,
         finishingHarrow: actDict['18.FINISHING_HARROW'] ? { rencana: actDict['18.FINISHING_HARROW'].rencanaDate, real: actDict['18.FINISHING_HARROW'].realisasiDate, status: actDict['18.FINISHING_HARROW'].status } : emptyAct,
         finishingRotary: actDict['19.FINISHING_ROTARY'] ? { rencana: actDict['19.FINISHING_ROTARY'].rencanaDate, real: actDict['19.FINISHING_ROTARY'].realisasiDate, status: actDict['19.FINISHING_ROTARY'].status } : emptyAct,
+        finishingRotaryFh1: actDict['19.FINISHING_ROTARY']?.rencanaDate ?? (app.finishingRotaryFh1 ?? null),
         rotaryFh2: actDict['20.ROTARY_FH2'] ? { rencana: actDict['20.ROTARY_FH2'].rencanaDate, real: actDict['20.ROTARY_FH2'].realisasiDate, status: actDict['20.ROTARY_FH2'].status } : emptyAct,
         ridger: {
-          rencana: actDict['21.RIDGER']?.rencanaDate || app.ridger || null,
-          real: actDict['21.RIDGER']?.realisasiDate || app.realRidger || null,
+          rencana: actDict['21.RIDGER']?.rencanaDate ?? (app.ridger ?? null),
+          real: actDict['21.RIDGER']?.realisasiDate ?? (app.realRidger ?? null),
           status: actDict['21.RIDGER']?.status || 'PENDING',
         },
         jalanSal: {
-          rencana: actDict['22.JALAN_SAL']?.rencanaDate || app.jalanSal || null,
-          real: actDict['22.JALAN_SAL']?.realisasiDate || app.realJalanSal || null,
+          rencana: actDict['22.JALAN_SAL']?.rencanaDate ?? (app.jalanSal ?? null),
+          real: actDict['22.JALAN_SAL']?.realisasiDate ?? (app.realJalanSal ?? null),
           status: actDict['22.JALAN_SAL']?.status || 'PENDING',
         },
         siapTanam: actDict['22.SIAP_TANAM']?.realisasiDate || app.realSiapTanam || null,

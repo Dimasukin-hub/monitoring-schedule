@@ -59,6 +59,8 @@ export default function LandEditModal({ landId, onClose, onSaved }: LandEditModa
     deviasiMonth: '',
     aplikasiTerakhir: '',
     statusAplikasi: '',
+    // Rencana Bero
+    rencanaBero: '',
     // 22 Aplikasi
     aplikasiDetails: {},
     // 10 key activities
@@ -168,6 +170,7 @@ export default function LandEditModal({ landId, onClose, onSaved }: LandEditModa
               prosesTanam: l.prosesTanam || l.aplikasiDetails?.prosesTanam || '',
               selesaiTanam: l.selesaiTanam || l.aplikasiDetails?.selesaiTanam || '',
             },
+            rencanaBero: l.rencanaBero ?? l.aplikasiDetails?.rencanaBero ?? '',
             activities: mappedActivities,
           });
         } else {
@@ -505,6 +508,17 @@ export default function LandEditModal({ landId, onClose, onSaved }: LandEditModa
                         onChange={(e) => handleInputChange('bulanSn', e.target.value)}
                         placeholder="Contoh: Mei-26"
                         className="w-full bg-slate-50/70 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 font-mono shadow-xs transition-colors"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-amber-800 dark:text-amber-400 block mb-1">Rencana Bero (Hari)</label>
+                      <input
+                        type="number"
+                        value={formData.rencanaBero ?? ''}
+                        onChange={(e) => handleInputChange('rencanaBero', e.target.value ? parseInt(e.target.value, 10) : '')}
+                        placeholder="Contoh: 150"
+                        className="w-full bg-slate-50/70 dark:bg-slate-950 border border-amber-300 dark:border-amber-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 font-mono shadow-xs transition-colors"
                       />
                     </div>
                   </div>

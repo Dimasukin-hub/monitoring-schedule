@@ -14,7 +14,7 @@ import realTanamBibitDonutJson from '@/lib/realTanamBibitDonut.json';
 import sebaranBibitBulanJson from '@/lib/sebaranBibitBulan.json';
 import listLokasiSelesaiTanamJson from '@/lib/listLokasiSelesaiTanam.json';
 import listLokasiProsesTanamJson from '@/lib/listLokasiProsesTanam.json';
-import { getDynamicProsesTanamList, getDynamicTanamChartsData } from '@/lib/dynamicTanamCharts';
+import { getDynamicProsesTanamList, getDynamicCekSelesaiList, getDynamicSelesaiTanamList, getDynamicTanamChartsData } from '@/lib/dynamicTanamCharts';
 
 const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
@@ -189,6 +189,8 @@ export async function GET(request: Request) {
         snLuas: number;
         prosesLocations: string[];
         prosesLuas: number;
+        cekSelesaiLocations: string[];
+        cekSelesaiLuas: number;
         selesaiLocations: string[];
         selesaiLuas: number;
       }
@@ -223,21 +225,18 @@ export async function GET(request: Request) {
         snLuas: 0,
         prosesLocations: [],
         prosesLuas: 0,
+        cekSelesaiLocations: [],
+        cekSelesaiLuas: 0,
         selesaiLocations: [],
         selesaiLuas: 0,
       };
     }
 
-    const dynamicSelesaiTanamList: Array<{
-      wilayah: string;
-      lokasi: string;
-      jenisBibit: string;
-      kelasBibit: string;
-      bibit: string;
-      tanggalSelesai: string;
-      luasHa: number;
-      progress: number;
-    }> = [];
+    const [dynamicSelesaiTanamList, dynamicProsesList, dynamicCekSelesaiList] = await Promise.all([
+      getDynamicSelesaiTanamList(),
+      getDynamicProsesTanamList(),
+      getDynamicCekSelesaiList(),
+    ]);
 
     // Grouping by Month of Planting for Tanam distribution
     const monthPlantingMap: Record<string, { totalLahan: number; totalLuasNetto: number }> = {};
@@ -255,6 +254,8 @@ export async function GET(request: Request) {
           snLuas: 0,
           prosesLocations: [],
           prosesLuas: 0,
+          cekSelesaiLocations: [],
+          cekSelesaiLuas: 0,
           selesaiLocations: [],
           selesaiLuas: 0,
         };
@@ -267,54 +268,32 @@ export async function GET(request: Request) {
         monthPlantingMap[l.bulanTanam].totalLahan += 1;
         monthPlantingMap[l.bulanTanam].totalLuasNetto += l.luasNetto || 0;
       }
+    }
 
-      const actReal: Record<string, string> = {};
-      for (const a of l.activities) {
-        if (a.realisasiDate && a.realisasiDate !== '-' && a.realisasiDate !== '0') {
-          actReal[a.code] = a.realisasiDate;
-        }
-      }
-
-      // Cek kolom Selesai Tanam (Realisasi) dari Data Lahan tahun 2026
-      const act24 = l.activities.find((a) => a.code === '24.SLS_TANAM');
-      const details = (typeof l.aplikasiDetails === 'object' && l.aplikasiDetails !== null) ? (l.aplikasiDetails as any) : {};
-      const selesaiDate = act24?.realisasiDate || l.realSelesaiTanam || details.realSelesaiTanam || details.selesaiTanam || null;
-      const hasSelesai = Boolean(
-        selesaiDate &&
-        String(selesaiDate).trim() !== '' &&
-        String(selesaiDate).trim() !== '-' &&
-        String(selesaiDate).trim() !== '0'
-      );
-
-      const luas = l.luasNetto || 0;
-
-      if (hasSelesai) {
-        posMap[w].selesaiLocations.push(l.lokasi);
-        posMap[w].selesaiLuas += luas;
-        dynamicSelesaiTanamList.push({
-          wilayah: w,
-          lokasi: l.lokasi,
-          jenisBibit: l.jenisBibit || 'Crown',
-          kelasBibit: l.kelasBibit || '',
-          bibit: l.kelasBibit ? `${l.jenisBibit || 'Crown'} (${l.kelasBibit})` : (l.jenisBibit || 'Crown'),
-          tanggalSelesai: formatToDayMmmYy(String(selesaiDate)),
-          luasHa: Math.round(luas * 100) / 100,
-          progress: 100,
-        });
-      } else {
-        const cat = getLandStokCategory(l);
-        if (cat === 'PROSES') {
-          posMap[w].prosesLocations.push(l.lokasi);
-          posMap[w].prosesLuas += luas;
-        }
+    // Posisi Lahan Selesai Tanam & Proses Tanam per Wilayah mengikuti data Real Tanam Nanas (Planting)
+    for (const item of dynamicSelesaiTanamList) {
+      const w = item.wilayah;
+      if (posMap[w]) {
+        posMap[w].selesaiLocations.push(item.lokasi);
+        posMap[w].selesaiLuas = Number((posMap[w].selesaiLuas + item.luasHa).toFixed(2));
       }
     }
 
-    dynamicSelesaiTanamList.sort((a, b) => {
-      const wCmp = a.wilayah.localeCompare(b.wilayah, undefined, { numeric: true });
-      if (wCmp !== 0) return wCmp;
-      return a.lokasi.localeCompare(b.lokasi, undefined, { numeric: true });
-    });
+    for (const item of dynamicProsesList) {
+      const w = item.wilayah;
+      if (posMap[w]) {
+        posMap[w].prosesLocations.push(item.lokasi);
+        posMap[w].prosesLuas = Number((posMap[w].prosesLuas + item.luasHa).toFixed(2));
+      }
+    }
+
+    for (const item of dynamicCekSelesaiList) {
+      const w = item.wilayah;
+      if (posMap[w]) {
+        posMap[w].cekSelesaiLocations.push(item.lokasi);
+        posMap[w].cekSelesaiLuas = Number((posMap[w].cekSelesaiLuas + item.luasHa).toFixed(2));
+      }
+    }
 
     // 4b. Posisi Lahan BK, BJK, SN per Wilayah (Kasus A: Aktivitas Bulanan Terpilih per Wilayah)
     const MONTH_INDEX_MAP: Record<string, number> = {
@@ -811,17 +790,24 @@ export async function GET(request: Request) {
     const yearlySiapTanam = aggregateYearly(monthlySiapTanam);
 
     // 6. Seed Summaries
-    const [seedSummaries, dynamicProsesList, dynamicTanamCharts] = await Promise.all([
+    const [seedSummaries, dynamicTanamCharts] = await Promise.all([
       prisma.seedSummary.findMany({
         orderBy: { id: 'asc' },
       }),
-      getDynamicProsesTanamList(),
       getDynamicTanamChartsData(),
     ]);
 
     const filteredDynamicProses = (wilayahFilter && wilayahFilter !== 'ALL')
       ? dynamicProsesList.filter((item) => targetWilayahList.includes(item.wilayah))
       : dynamicProsesList;
+
+    const filteredDynamicCekSelesai = (wilayahFilter && wilayahFilter !== 'ALL')
+      ? dynamicCekSelesaiList.filter((item) => targetWilayahList.includes(item.wilayah))
+      : dynamicCekSelesaiList;
+
+    const filteredDynamicSelesai = (wilayahFilter && wilayahFilter !== 'ALL')
+      ? dynamicSelesaiTanamList.filter((item) => targetWilayahList.includes(item.wilayah))
+      : dynamicSelesaiTanamList;
 
     return NextResponse.json({
       success: true,
@@ -862,6 +848,9 @@ export async function GET(request: Request) {
           prosesCount: wp.prosesLocations.length,
           prosesLuas: Math.round(wp.prosesLuas * 100) / 100,
           prosesLocations: wp.prosesLocations,
+          cekSelesaiCount: wp.cekSelesaiLocations.length,
+          cekSelesaiLuas: Math.round(wp.cekSelesaiLuas * 100) / 100,
+          cekSelesaiLocations: wp.cekSelesaiLocations,
           selesaiCount: wp.selesaiLocations.length,
           selesaiLuas: Math.round(wp.selesaiLuas * 100) / 100,
           selesaiLocations: wp.selesaiLocations,
@@ -889,8 +878,9 @@ export async function GET(request: Request) {
         realTanamKemarin: dynamicTanamCharts.realTanamKemarin || realTanamKemarinJson,
         realTanamBibitDonut: dynamicTanamCharts.realTanamBibitDonut || realTanamBibitDonutJson,
         sebaranBibitBulan: dynamicTanamCharts.sebaranBibitBulan || sebaranBibitBulanJson,
-        listLokasiSelesaiTanam: dynamicSelesaiTanamList,
+        listLokasiSelesaiTanam: filteredDynamicSelesai,
         listLokasiProsesTanam: filteredDynamicProses,
+        listLokasiCekSelesai: filteredDynamicCekSelesai,
       },
     });
   } catch (error: any) {

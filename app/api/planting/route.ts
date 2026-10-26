@@ -236,11 +236,10 @@ export async function GET(request: Request) {
         totalRealTanam += item.realTanam || 0;
       }
 
-      const cleanSisa = item.status === 'SELESAI' ? 0 : Math.max(0, Number(((item.luas || 0) - (item.realTanam || 0)).toFixed(2)));
-      totalSisa += cleanSisa;
-
-      // Poin 4: Rerata progress hanya untuk yang statusnya masih proses (PROSES / CEK SELESAI / < 100%)
-      if (item.status === 'PROSES' || item.status === 'CEK SELESAI' || (item.progress > 0 && item.progress < 100)) {
+      // Kalkulasi sisa dan rerata progress: khusus petak proses tanam saja (cukup yang proses)
+      if (item.status === 'PROSES') {
+        const cleanSisa = Math.max(0, Number(((item.luas || 0) - (item.realTanam || 0)).toFixed(2)));
+        totalSisa += cleanSisa;
         prosesProgressSum += item.progress || 0;
         prosesProgressCount++;
       }
@@ -369,6 +368,12 @@ export async function PATCH(request: Request) {
     // Auto-sync real-time ke StokLahanMaster dan Land
     try {
       await syncPlantingToStokLahan(existing.lokasi);
+      if (finalLuas !== existing.luas) {
+        await prisma.plantingDetail.updateMany({
+          where: { lokasi: { equals: existing.lokasi, mode: 'insensitive' } },
+          data: { luasNetto: finalLuas },
+        });
+      }
     } catch (syncErr) {
       console.error('Error syncing planting to stok lahan:', syncErr);
     }
@@ -460,3 +465,41 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const idParam = searchParams.get('id');
+    const id = idParam ? parseInt(idParam, 10) : NaN;
+
+    let target: any = null;
+    if (!isNaN(id)) {
+      target = await prisma.planting.findUnique({ where: { id } });
+    }
+
+    if (!target) {
+      return NextResponse.json({ success: false, error: 'Data tanam tidak ditemukan' }, { status: 404 });
+    }
+
+    const lokasi = target.lokasi;
+
+    // Delete record
+    await prisma.planting.delete({ where: { id: target.id } });
+
+    // Sync to StokLahanMaster and Land
+    try {
+      await syncPlantingToStokLahan(lokasi);
+    } catch (syncErr) {
+      console.error('Error syncing after deleting planting:', syncErr);
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Data lokasi ${lokasi} berhasil dihapus dari Real Tanam Nanas.`,
+    });
+  } catch (error: any) {
+    console.error('Error deleting planting record:', error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+

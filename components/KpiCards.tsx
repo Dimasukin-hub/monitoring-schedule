@@ -59,6 +59,8 @@ interface KpiData {
   prosesTanamSummary?: {
     prosesHa: number;
     prosesCount: number;
+    cekSelesaiHa?: number;
+    cekSelesaiCount?: number;
     selesaiHa: number;
     selesaiCount: number;
     totalLuasNetto: number;
@@ -1155,14 +1157,14 @@ export default function KpiCards({
                   PROSES TANAM
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 whitespace-nowrap shrink-0">
-                  {data.prosesTanamSummary?.prosesCount ?? 10} Lokasi
+                  {data.prosesTanamSummary?.prosesCount ?? 9} Lokasi
                 </span>
               </div>
 
               <div>
                 <div className="flex items-baseline gap-1">
                   <span className="text-2xl lg:text-3xl font-black tracking-tight text-amber-600 dark:text-amber-400">
-                    {(data.prosesTanamSummary?.prosesHa ?? 0).toLocaleString('id-ID', {
+                    {(data.prosesTanamSummary?.prosesHa ?? 58.56).toLocaleString('id-ID', {
                       minimumFractionDigits: 1,
                       maximumFractionDigits: 2,
                     })}
@@ -1173,11 +1175,11 @@ export default function KpiCards({
                 {/* Spacer bar agar tinggi dan margin kartu persis sejajar */}
                 <div className="mt-2.5 h-1.5" />
 
-                <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60">
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60 text-[11px]">
+                  <span className="text-slate-500 dark:text-slate-400">
                     Selesai:{' '}
                     <strong className="font-semibold text-slate-700 dark:text-slate-300">
-                      {(data.prosesTanamSummary?.selesaiHa ?? 2524.28).toLocaleString('id-ID', {
+                      {(data.prosesTanamSummary?.selesaiHa ?? 2518.61).toLocaleString('id-ID', {
                         minimumFractionDigits: 1,
                         maximumFractionDigits: 1,
                       })}{' '}
@@ -1185,7 +1187,7 @@ export default function KpiCards({
                     </strong>
                   </span>
                   <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                    {data.prosesTanamSummary?.selesaiCount ?? 353} Selesai
+                    {data.prosesTanamSummary?.selesaiCount ?? 352} Selesai
                   </span>
                 </div>
               </div>

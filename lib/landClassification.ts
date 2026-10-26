@@ -7,7 +7,7 @@
  * 5. SELESAI (Selesai Tanam): Kolom 24. Sls Tanam
  */
 
-export type StokCategory = 'BK' | 'BJK' | 'SN' | 'PROSES' | 'SELESAI';
+export type StokCategory = 'BK' | 'BJK' | 'SN' | 'PROSES' | 'CEK_SELESAI' | 'SELESAI';
 
 export interface LandLike {
   aplikasiTerakhir?: string | null;
@@ -28,12 +28,20 @@ export function getLandStokCategory(land: LandLike): StokCategory {
   if (
     land.progressTanam === 100 ||
     (land.realSelesaiTanam && land.realSelesaiTanam !== '-' && land.realSelesaiTanam !== '0') ||
-    (app.includes('24.Sls Tanam') && (land.progressTanam ?? 0) >= 50) ||
+    (app.includes('24.Sls Tanam') && (land.progressTanam ?? 0) >= 100) ||
     land.activities?.some(
       (a) => a.code === '24.SLS_TANAM' && a.realisasiDate && a.realisasiDate !== '-' && a.realisasiDate !== '0'
     )
   ) {
     return 'SELESAI';
+  }
+
+  // 1.5 Cek Selesai: progress > 95% s/d < 100%, atau status Cek Selesai
+  if (
+    (land.progressTanam && land.progressTanam > 95 && land.progressTanam < 100) ||
+    appLower.includes('cek selesai')
+  ) {
+    return 'CEK_SELESAI';
   }
 
   // 2. Proses Tanam: 50% progress, atau realisasi mulai tanam tanpa selesai tanam, atau kolom 23. Proses Tnm

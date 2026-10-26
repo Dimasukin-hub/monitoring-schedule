@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { computeAktivitasTerakhir, sortAktivitasTerakhirList, computeRencanaBeroBongkar } from '@/lib/landActivityUtils';
-import { calculateCascadeRencanaDates } from '@/lib/planScheduleCascade';
+import { calculateCascadeRencanaDates, calculateLandPlanSchedule } from '@/lib/planScheduleCascade';
 
 function parseParamArray(searchParams: URLSearchParams, key: string): string[] {
   const all = searchParams.getAll(key);
@@ -539,8 +539,33 @@ export async function GET(request: Request) {
           ? computed
           : (land.aplikasiTerakhir && land.aplikasiTerakhir !== '-' ? land.aplikasiTerakhir : computed);
 
+      const appDetails = (typeof land.aplikasiDetails === 'object' && land.aplikasiDetails !== null)
+        ? (land.aplikasiDetails as any)
+        : {};
+      const rencanaBero = appDetails.rencanaBero !== undefined && appDetails.rencanaBero !== null && appDetails.rencanaBero !== ''
+        ? Number(appDetails.rencanaBero)
+        : null;
+
+      // Hitung jadwal rencana & bero dinamis sesuai rumus simulasi SOP Excel
+      const schedule = calculateLandPlanSchedule({
+        rencanaChopper: actDict['01.CHOPPER']?.rencana || appDetails.chopper || null,
+        rencanaBero,
+        realChopper: actDict['01.CHOPPER']?.real || appDetails.realChopper || null,
+        realMb5Btr: appDetails.realBajakAwalMb5Btr || appDetails.realBajak || actDict['11.BAJAK_AWAL']?.real || land.realBajak || null,
+        realSs1: appDetails.realSubsoilerSs1 || appDetails.realSs1 || actDict['17.SUBSOILER']?.real || null,
+        realRotaryFh1: appDetails.realFinishingRotaryFh1 || appDetails.realRotaryFh1 || actDict['19.FINISHING_ROTARY']?.real || null,
+        realJalanSal: appDetails.realJalanSal || actDict['22.JALAN_SAL']?.real || null,
+        existingRencanaJalanSal: actDict['22.JALAN_SAL']?.rencana || appDetails.jalanSal || null,
+        existingRencanaRidger: actDict['21.RIDGER']?.rencana || appDetails.ridger || null,
+        existingRencanaRotaryFh1: actDict['19.FINISHING_ROTARY']?.rencana || appDetails.finishingRotaryFh1 || null,
+        existingRencanaDolomit: actDict['05.DOLOMIT']?.rencana || appDetails.dolomit || null,
+        existingRencanaMb5Btr: actDict['11.BAJAK_AWAL']?.rencana || appDetails.rencAwalMb5Btr || appDetails.bajakAwalMb5Btr || land.rencBajak || null,
+        existingRencanaSs1: actDict['17.SUBSOILER']?.rencana || appDetails.subsoilerSs1 || null,
+      });
+
       // Hitung Rencana Bero Bongkar (Excel Sheet Master Kolom BE)
       const beroBongkar = computeRencanaBeroBongkar(land);
+      const effectiveBeroBongkar = schedule.rencanaBeroBongkar !== null ? schedule.rencanaBeroBongkar : beroBongkar.hari;
 
       return {
         id: land.id,
@@ -555,89 +580,94 @@ export async function GET(request: Request) {
         jenisBibit: land.jenisBibit,
         kelasBibit: land.kelasBibit,
         bulanTanam: land.bulanTanam,
-        rencanaBeroBongkar: beroBongkar.hari,
+        rencanaBero,
+        rencanaBeroBongkar: effectiveBeroBongkar,
         kondisiBeroBongkar: beroBongkar.kondisi,
         keteranganBeroBongkar: beroBongkar.keterangan,
         tglAwalBkrBero: beroBongkar.tglAwalBkr,
         tglSiapTanamBero: beroBongkar.tglSiapTanam,
+        hasBeroWarning: schedule.hasBeroWarning,
+        beroWarningMessage: schedule.beroWarningMessage,
         aktivitasTerakhir,
         aplikasiDetails: land.aplikasiDetails || {},
         ...(typeof land.aplikasiDetails === 'object' && land.aplikasiDetails !== null ? land.aplikasiDetails : {}),
         // All 10 activities Bongkar (Chopper s/d Kompos) with both rencana & real
         chopper: {
-          rencana: actDict['01.CHOPPER']?.rencana || (land.aplikasiDetails as any)?.chopper || null,
-          real: actDict['01.CHOPPER']?.real || (land.aplikasiDetails as any)?.realChopper || null,
-          status: actDict['01.CHOPPER']?.status || ((land.aplikasiDetails as any)?.realChopper ? 'COMPLETED' : 'PENDING'),
+          rencana: actDict['01.CHOPPER']?.rencana || appDetails.chopper || null,
+          real: actDict['01.CHOPPER']?.real || appDetails.realChopper || null,
+          status: actDict['01.CHOPPER']?.status || (appDetails.realChopper ? 'COMPLETED' : 'PENDING'),
         },
         chopperLu: {
-          rencana: actDict['02.CHOPPER_LU']?.rencana || (land.aplikasiDetails as any)?.chopperLu || null,
-          real: actDict['02.CHOPPER_LU']?.real || (land.aplikasiDetails as any)?.realChopperLu || null,
-          status: actDict['02.CHOPPER_LU']?.status || ((land.aplikasiDetails as any)?.realChopperLu ? 'COMPLETED' : 'PENDING'),
+          rencana: actDict['02.CHOPPER_LU']?.rencana ?? appDetails.chopperLu ?? null,
+          real: actDict['02.CHOPPER_LU']?.real || appDetails.realChopperLu || null,
+          status: actDict['02.CHOPPER_LU']?.status || (appDetails.realChopperLu ? 'COMPLETED' : 'PENDING'),
         },
         rh1: {
-          rencana: actDict['03.RH1']?.rencana || (land.aplikasiDetails as any)?.rh1 || null,
-          real: actDict['03.RH1']?.real || (land.aplikasiDetails as any)?.realRh1 || null,
-          status: actDict['03.RH1']?.status || ((land.aplikasiDetails as any)?.realRh1 ? 'COMPLETED' : 'PENDING'),
+          rencana: actDict['03.RH1']?.rencana ?? appDetails.rh1 ?? null,
+          real: actDict['03.RH1']?.real || appDetails.realRh1 || null,
+          status: actDict['03.RH1']?.status || (appDetails.realRh1 ? 'COMPLETED' : 'PENDING'),
         },
         cuttingBanana: {
-          rencana: actDict['04.CUTTING_BANANA']?.rencana || (land.aplikasiDetails as any)?.cuttingBanana || null,
-          real: actDict['04.CUTTING_BANANA']?.real || (land.aplikasiDetails as any)?.realCuttingBanana || null,
-          status: actDict['04.CUTTING_BANANA']?.status || ((land.aplikasiDetails as any)?.realCuttingBanana ? 'COMPLETED' : 'PENDING'),
+          rencana: actDict['04.CUTTING_BANANA']?.rencana || appDetails.cuttingBanana || null,
+          real: actDict['04.CUTTING_BANANA']?.real || appDetails.realCuttingBanana || null,
+          status: actDict['04.CUTTING_BANANA']?.status || (appDetails.realCuttingBanana ? 'COMPLETED' : 'PENDING'),
         },
         dolomit: {
-          rencana: actDict['05.DOLOMIT']?.rencana || (land.aplikasiDetails as any)?.dolomit || null,
-          real: actDict['05.DOLOMIT']?.real || (land.aplikasiDetails as any)?.realDolomit || null,
-          status: actDict['05.DOLOMIT']?.status || ((land.aplikasiDetails as any)?.realDolomit ? 'COMPLETED' : 'PENDING'),
+          rencana: actDict['05.DOLOMIT']?.rencana ?? appDetails.dolomit ?? null,
+          real: actDict['05.DOLOMIT']?.real || appDetails.realDolomit || null,
+          status: actDict['05.DOLOMIT']?.status || (appDetails.realDolomit ? 'COMPLETED' : 'PENDING'),
         },
         dp1: {
-          rencana: actDict['06.DP1']?.rencana || (land.aplikasiDetails as any)?.dp1 || null,
-          real: actDict['06.DP1']?.real || (land.aplikasiDetails as any)?.realDp1 || null,
-          status: actDict['06.DP1']?.status || ((land.aplikasiDetails as any)?.realDp1 ? 'COMPLETED' : 'PENDING'),
+          rencana: actDict['06.DP1']?.rencana || appDetails.dp1 || null,
+          real: actDict['06.DP1']?.real || appDetails.realDp1 || null,
+          status: actDict['06.DP1']?.status || (appDetails.realDp1 ? 'COMPLETED' : 'PENDING'),
         },
         dpCross: {
-          rencana: actDict['07.DP_CROSS']?.rencana || (land.aplikasiDetails as any)?.dpCross || null,
-          real: actDict['07.DP_CROSS']?.real || (land.aplikasiDetails as any)?.realDpCross || null,
-          status: actDict['07.DP_CROSS']?.status || ((land.aplikasiDetails as any)?.realDpCross ? 'COMPLETED' : 'PENDING'),
+          rencana: actDict['07.DP_CROSS']?.rencana || appDetails.dpCross || null,
+          real: actDict['07.DP_CROSS']?.real || appDetails.realDpCross || null,
+          status: actDict['07.DP_CROSS']?.status || (appDetails.realDpCross ? 'COMPLETED' : 'PENDING'),
         },
         dp2: {
-          rencana: actDict['08.DP2']?.rencana || (land.aplikasiDetails as any)?.dp2 || null,
-          real: actDict['08.DP2']?.real || (land.aplikasiDetails as any)?.realDp2 || null,
-          status: actDict['08.DP2']?.status || ((land.aplikasiDetails as any)?.realDp2 ? 'COMPLETED' : 'PENDING'),
+          rencana: actDict['08.DP2']?.rencana || appDetails.dp2 || null,
+          real: actDict['08.DP2']?.real || appDetails.realDp2 || null,
+          status: actDict['08.DP2']?.status || (appDetails.realDp2 ? 'COMPLETED' : 'PENDING'),
         },
         belerang: {
-          rencana: actDict['09.BELERANG']?.rencana || (land.aplikasiDetails as any)?.belerang || null,
-          real: actDict['09.BELERANG']?.real || (land.aplikasiDetails as any)?.realBelerang || null,
-          status: actDict['09.BELERANG']?.status || ((land.aplikasiDetails as any)?.realBelerang ? 'COMPLETED' : 'PENDING'),
+          rencana: actDict['09.BELERANG']?.rencana || appDetails.belerang || null,
+          real: actDict['09.BELERANG']?.real || appDetails.realBelerang || null,
+          status: actDict['09.BELERANG']?.status || (appDetails.realBelerang ? 'COMPLETED' : 'PENDING'),
         },
         kompos: {
-          rencana: actDict['10.KOMPOS']?.rencana || (land.aplikasiDetails as any)?.kompos || null,
-          real: actDict['10.KOMPOS']?.real || (land.aplikasiDetails as any)?.realKompos || null,
-          status: actDict['10.KOMPOS']?.status || ((land.aplikasiDetails as any)?.realKompos ? 'COMPLETED' : 'PENDING'),
+          rencana: actDict['10.KOMPOS']?.rencana || appDetails.kompos || null,
+          real: actDict['10.KOMPOS']?.real || appDetails.realKompos || null,
+          status: actDict['10.KOMPOS']?.status || (appDetails.realKompos ? 'COMPLETED' : 'PENDING'),
         },
         bajakAwal: actDict['11.BAJAK_AWAL'] || emptyAct,
         subsoiler: actDict['17.SUBSOILER'] || emptyAct,
         finishingHarrow: actDict['18.FINISHING_HARROW'] || emptyAct,
         finishingRotary: actDict['19.FINISHING_ROTARY'] || emptyAct,
+        finishingRotaryFh1: actDict['19.FINISHING_ROTARY']?.rencana || appDetails.finishingRotaryFh1 || null,
         rotaryFh2: actDict['20.ROTARY_FH2'] || emptyAct,
-        siapTanam: actDict['22.SIAP_TANAM']?.real || (land.aplikasiDetails as any)?.siapTanam || (land.aplikasiDetails as any)?.realSiapTanam || null,
+        siapTanam: actDict['22.SIAP_TANAM']?.real || appDetails.siapTanam || appDetails.realSiapTanam || null,
         prosesTanam:
           activityType === 'rencana'
-            ? actDict['23.PROSES_TNM']?.rencana || land.rencMulaiTanam || (land.aplikasiDetails as any)?.rencMulaiTanam || null
-            : actDict['23.PROSES_TNM']?.real || land.realMulaiTanam || (land.aplikasiDetails as any)?.realMulaiTanam || (land.aplikasiDetails as any)?.prosesTanam || null,
+            ? actDict['23.PROSES_TNM']?.rencana || land.rencMulaiTanam || appDetails.rencMulaiTanam || null
+            : actDict['23.PROSES_TNM']?.real || land.realMulaiTanam || appDetails.realMulaiTanam || appDetails.prosesTanam || null,
         selesaiTanam:
           activityType === 'rencana'
-            ? actDict['24.SLS_TANAM']?.rencana || land.rencSelesaiTanam || (land.aplikasiDetails as any)?.rencSelesaiTanam || null
-            : actDict['24.SLS_TANAM']?.real || land.realSelesaiTanam || (land.aplikasiDetails as any)?.realSelesaiTanam || (land.aplikasiDetails as any)?.selesaiTanam || null,
+            ? actDict['24.SLS_TANAM']?.rencana || land.rencSelesaiTanam || appDetails.rencSelesaiTanam || null
+            : actDict['24.SLS_TANAM']?.real || land.realSelesaiTanam || appDetails.realSelesaiTanam || appDetails.selesaiTanam || null,
         ridger: {
-          rencana: actDict['21.RIDGER']?.rencana || (land.aplikasiDetails as any)?.ridger || null,
-          real: actDict['21.RIDGER']?.real || (land.aplikasiDetails as any)?.realRidger || null,
+          rencana: actDict['21.RIDGER']?.rencana ?? appDetails.ridger ?? null,
+          real: actDict['21.RIDGER']?.real || appDetails.realRidger || null,
           status: actDict['21.RIDGER']?.status || 'PENDING',
         },
         jalanSal: {
-          rencana: actDict['22.JALAN_SAL']?.rencana || (land.aplikasiDetails as any)?.jalanSal || null,
-          real: actDict['22.JALAN_SAL']?.real || (land.aplikasiDetails as any)?.realJalanSal || null,
+          rencana: actDict['22.JALAN_SAL']?.rencana ?? appDetails.jalanSal ?? null,
+          real: actDict['22.JALAN_SAL']?.real || appDetails.realJalanSal || null,
           status: actDict['22.JALAN_SAL']?.status || 'PENDING',
         },
+        activities: land.activities || [],
       };
     });
 
@@ -787,8 +817,11 @@ export async function POST(request: Request) {
       );
     }
 
+    const rawRencBero = body.rencanaBero ?? body.aplikasiDetails?.rencanaBero;
+    const rencanaBero = rawRencBero !== undefined && rawRencBero !== null && rawRencBero !== '' ? Number(rawRencBero) : null;
+
     // Calculate cascade dates if Rencana Bongkar (Chopper) is provided
-    const cascade = calculateCascadeRencanaDates(cleanRencBkr);
+    const cascade = calculateCascadeRencanaDates(cleanRencBkr, rencanaBero);
 
     // Standard 20 activity pipeline with auto-cascade dates
     const activitiesConfig = [
@@ -815,6 +848,9 @@ export async function POST(request: Request) {
     ];
 
     const aplikasiDetails: Record<string, any> = {};
+    if (rencanaBero !== null) {
+      aplikasiDetails.rencanaBero = rencanaBero;
+    }
     if (cleanRencBkr) {
       aplikasiDetails.chopper = cleanRencBkr;
     }

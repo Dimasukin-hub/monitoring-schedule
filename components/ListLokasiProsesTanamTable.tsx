@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Clock, Search, Sprout, XCircle } from 'lucide-react';
+import { Clock, Search, Sprout, XCircle, CheckCircle2 } from 'lucide-react';
 import listLokasiProsesTanamDefault from '@/lib/listLokasiProsesTanam.json';
 
 export interface ProsesTanamItem {
@@ -29,17 +29,25 @@ export default function ListLokasiProsesTanamTable({
 }: ListLokasiProsesTanamTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Tampilkan murni data proses tanam saja (tanpa Cek Selesai)
+  const prosesData = useMemo(() => {
+    return (data || []).filter((item) => {
+      const s = (item.status || '').toUpperCase();
+      return s !== 'CEK SELESAI';
+    });
+  }, [data]);
+
   // Filter pencarian berdasarkan lokasi (atau wilayah/bibit)
   const filteredData = useMemo(() => {
-    if (!searchQuery.trim()) return data;
+    if (!searchQuery.trim()) return prosesData;
     const q = searchQuery.toLowerCase().trim();
-    return data.filter(
+    return prosesData.filter(
       (item) =>
         item.lokasi.toLowerCase().includes(q) ||
         item.wilayah.toLowerCase().includes(q) ||
         (item.bibit && item.bibit.toLowerCase().includes(q))
     );
-  }, [data, searchQuery]);
+  }, [prosesData, searchQuery]);
 
   // Helper formatting angka
   const fmt = (val: number | null | undefined) => {
@@ -64,7 +72,7 @@ export default function ListLokasiProsesTanamTable({
             </h3>
           </div>
 
-          {/* Badge Total Lokasi Proses */}
+          {/* Badge Total Lokasi Proses Tanam */}
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shadow-2xs self-start sm:self-center">
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
             <span>Total: {filteredData.length} Lokasi</span>
@@ -96,7 +104,7 @@ export default function ListLokasiProsesTanamTable({
         </div>
       </div>
 
-      {/* 2. Tabel Data dengan Scroll Bar Vertikal & Sudut Kotak (Semua 10 Data Langsung dalam 1 Halaman) */}
+      {/* 2. Tabel Data dengan Scroll Bar Vertikal & Sudut Kotak */}
       <div className="h-[340px] max-h-[340px] overflow-y-auto overflow-x-auto rounded-none border border-slate-300 dark:border-slate-700 shadow-2xs custom-scrollbar relative z-10">
         <table className="w-full text-xs text-center border-separate border-spacing-0">
           <thead>
@@ -200,35 +208,22 @@ export default function ListLokasiProsesTanamTable({
                       </span>
                     </td>
 
-                    {/* % Progress (Bar & Angka & Status) */}
+                    {/* % Progress (Bar & Angka) */}
                     <td className="px-3 py-2 text-center border-b border-r first:border-l border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
-                      <div className="flex flex-col items-center justify-center gap-1">
-                        <div className="flex items-center justify-center gap-2">
-                          {/* Mini Progress Bar */}
-                          <div className="w-16 h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden shrink-0">
-                            <div
-                              className={`h-full rounded-full transition-all duration-300 ${
-                                row.status === 'CEK SELESAI' || prog > 95 ? 'bg-purple-500' : progColor
-                              }`}
-                              style={{ width: `${Math.min(100, Math.max(0, prog))}%` }}
-                            />
-                          </div>
-                          {/* Badge Angka % */}
-                          <span
-                            className={`font-mono text-[11px] font-bold px-1.5 py-0.5 rounded border min-w-[48px] text-center ${
-                              row.status === 'CEK SELESAI' || prog > 95
-                                ? 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30'
-                                : badgeBg
-                            }`}
-                          >
-                            {fmt(prog)}%
-                          </span>
+                      <div className="flex items-center justify-center gap-2">
+                        {/* Mini Progress Bar */}
+                        <div className="w-16 h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden shrink-0">
+                          <div
+                            className={`h-full rounded-full transition-all duration-300 ${progColor}`}
+                            style={{ width: `${Math.min(100, Math.max(0, prog))}%` }}
+                          />
                         </div>
-                        {(row.status === 'CEK SELESAI' || prog > 95) && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-purple-50 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-2xs">
-                            Cek Selesai
-                          </span>
-                        )}
+                        {/* Badge Angka % */}
+                        <span
+                          className={`font-mono text-[11px] font-bold px-1.5 py-0.5 rounded border min-w-[48px] text-center ${badgeBg}`}
+                        >
+                          {fmt(prog)}%
+                        </span>
                       </div>
                     </td>
                   </tr>

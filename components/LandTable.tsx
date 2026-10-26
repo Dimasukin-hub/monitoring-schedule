@@ -17,13 +17,15 @@ import {
   XCircle,
   Plus,
   Trash2,
+  AlertTriangle,
+  Undo2,
 } from 'lucide-react';
 import TableDatePicker from '@/components/TableDatePicker';
 import MultiSelectDropdown, { FilterGroup } from '@/components/MultiSelectDropdown';
 import { PIPELINE_ORDER, computeAktivitasTerakhir, computeRencanaBeroBongkar, isValidDate } from '@/lib/landActivityUtils';
 import { useAuth } from '@/components/AuthProvider';
 import AddLandModal from '@/components/AddLandModal';
-import { calculateCascadeRencanaDates } from '@/lib/planScheduleCascade';
+import { calculateCascadeRencanaDates, calculateLandPlanSchedule } from '@/lib/planScheduleCascade';
 
 export const REAL_MASTER_STATUSES = [
   'JBBK', 'NRBB', 'NRST', 'NSBB', 'NSBK', 'NSCL', 'NSFC', 'NSSC', 'NSST',
@@ -43,6 +45,7 @@ interface InlineCellProps {
   displayFormatter?: (val: any) => React.ReactNode;
   onSave: (val: any) => void;
   disabled?: boolean;
+  allowNull?: boolean;
 }
 
 function InlineCell({
@@ -57,6 +60,7 @@ function InlineCell({
   displayFormatter,
   onSave,
   disabled,
+  allowNull = false,
 }: InlineCellProps) {
   const { isAdmin } = useAuth();
   const isDisabled = disabled !== undefined ? disabled : !isAdmin;
@@ -82,9 +86,10 @@ function InlineCell({
     let finalVal: any = val.trim();
     if (type === 'number') {
       if (finalVal === '' || finalVal === '-') {
-        finalVal = 0;
+        finalVal = allowNull ? null : 0;
       } else {
-        finalVal = parseFloat(finalVal) || 0;
+        const parsed = parseFloat(finalVal);
+        finalVal = isNaN(parsed) ? (allowNull ? null : 0) : parsed;
       }
     } else {
       if (finalVal === '' || finalVal === '-') {
@@ -269,8 +274,8 @@ const getFieldRencanaReal = (land: any, fieldKey: string): { rencana: string | n
       };
     case 'finishingRotaryFh1':
       return {
-        rencana: app.finishingRotaryFh1 || land.finishingRotaryFh1 || null,
-        real: app.realFinishingRotaryFh1 || null,
+        rencana: app.finishingRotaryFh1 || land.finishingRotaryFh1 || (typeof land.finishingRotary === 'object' ? land.finishingRotary?.rencana : null) || null,
+        real: app.realFinishingRotaryFh1 || app.realRotaryFh1 || (typeof land.finishingRotary === 'object' ? land.finishingRotary?.real : null) || null,
       };
     case 'finishingRotaryFh2':
       return {
@@ -664,6 +669,247 @@ export default function LandTable({
   });
   const [limit, setLimit] = useState(15);
   const [isLimitOpen, setIsLimitOpen] = useState(false);
+  const limitRef = useRef<HTMLDivElement>(null);
+
+  // Close limit dropdown on outside click
+  useEffect(() => {
+    if (!isLimitOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (limitRef.current && !limitRef.current.contains(e.target as Node)) {
+        setIsLimitOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isLimitOpen]);
+
+  // Hover pop up on No column
+  const [hoveredNoLandId, setHoveredNoLandId] = useState<number | string | null>(null);
+  const noHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Undo history stack per-land (Ctrl+Z feature)
+  const undoHistoryRef = useRef<Record<string | number, any[]>>({});
+  const initialLandsRef = useRef<Record<string | number, any>>({});
+  const recentEditedLandIdsRef = useRef<(number | string)[]>([]);
+  const [, setUndoVersion] = useState(0);
+
+  const handleNoMouseEnter = (id: number | string) => {
+    if (noHoverTimeoutRef.current) {
+      clearTimeout(noHoverTimeoutRef.current);
+      noHoverTimeoutRef.current = null;
+    }
+    setHoveredNoLandId(id);
+  };
+
+  const handleNoMouseLeave = () => {
+    if (noHoverTimeoutRef.current) {
+      clearTimeout(noHoverTimeoutRef.current);
+    }
+    noHoverTimeoutRef.current = setTimeout(() => {
+      setHoveredNoLandId(null);
+    }, 300);
+  };
+
+  const pushUndoSnapshot = (landId: number | string) => {
+    const current = lands.find((l) => l.id === landId);
+    if (!current) return;
+    if (!undoHistoryRef.current[landId]) {
+      undoHistoryRef.current[landId] = [];
+    }
+    undoHistoryRef.current[landId].push(JSON.parse(JSON.stringify(current)));
+    if (undoHistoryRef.current[landId].length > 20) {
+      undoHistoryRef.current[landId].shift();
+    }
+    recentEditedLandIdsRef.current.push(landId);
+    setUndoVersion((v) => v + 1);
+  };
+
+  const isModifiedFromOriginal = (landId: number | string) => {
+    const current = lands.find((l) => l.id === landId);
+    const initial = initialLandsRef.current[landId];
+    if (!current || !initial) return false;
+    return (
+      current.luasBruto !== initial.luasBruto ||
+      current.luasNetto !== initial.luasNetto ||
+      current.wilayah !== initial.wilayah ||
+      current.status !== initial.status ||
+      current.eks !== initial.eks ||
+      current.sejarah !== initial.sejarah ||
+      current.jenisBibit !== initial.jenisBibit ||
+      current.kelasBibit !== initial.kelasBibit ||
+      current.bulanTanam !== initial.bulanTanam ||
+      current.rencanaBero !== initial.rencanaBero ||
+      JSON.stringify(current.chopper || {}) !== JSON.stringify(initial.chopper || {}) ||
+      JSON.stringify(current.dolomit || {}) !== JSON.stringify(initial.dolomit || {}) ||
+      JSON.stringify(current.aplikasiDetails || {}) !== JSON.stringify(initial.aplikasiDetails || {})
+    );
+  };
+
+  // Tombol Panah Kembali: Langsung mengembalikan ke data paling awal / data aslinya
+  const handleResetToOriginalLand = async (landId: number | string) => {
+    const initialSnapshot = initialLandsRef.current[landId];
+    if (!initialSnapshot) return;
+
+    // Optimistic UI update ke data asli
+    setLands((prev) =>
+      prev.map((l) => (l.id === landId ? { ...initialSnapshot } : l))
+    );
+    // Kosongkan undo history karena data sudah di-reset kembali ke asli
+    undoHistoryRef.current[landId] = [];
+    setUndoVersion((v) => v + 1);
+
+    try {
+      const payload: any = {
+        wilayah: initialSnapshot.wilayah,
+        lokasi: initialSnapshot.lokasi,
+        luasBruto: initialSnapshot.luasBruto,
+        luasNetto: initialSnapshot.luasNetto,
+        status: initialSnapshot.status,
+        eks: initialSnapshot.eks,
+        sejarah: initialSnapshot.sejarah,
+        jenisBibit: initialSnapshot.jenisBibit,
+        kelasBibit: initialSnapshot.kelasBibit,
+        bulanTanam: initialSnapshot.bulanTanam,
+        rencanaBero: initialSnapshot.rencanaBero ?? initialSnapshot.aplikasiDetails?.rencanaBero ?? null,
+        aplikasiDetails: initialSnapshot.aplikasiDetails || {},
+      };
+
+      if (Array.isArray(initialSnapshot.activities) && initialSnapshot.activities.length > 0) {
+        payload.activities = initialSnapshot.activities;
+      } else {
+        const actPayloadList: any[] = [];
+        const codeKeys: [string, string][] = [
+          ['01.CHOPPER', 'chopper'],
+          ['02.CHOPPER_LU', 'chopperLu'],
+          ['03.RH1', 'rh1'],
+          ['04.CUTTING_BANANA', 'cuttingBanana'],
+          ['05.DOLOMIT', 'dolomit'],
+          ['06.DP1', 'dp1'],
+          ['07.DP_CROSS', 'dpCross'],
+          ['08.DP2', 'dp2'],
+          ['09.BELERANG', 'belerang'],
+          ['10.KOMPOS', 'kompos'],
+          ['21.RIDGER', 'ridger'],
+          ['22.JALAN_SAL', 'jalanSal'],
+        ];
+        for (const [code, key] of codeKeys) {
+          const item = initialSnapshot[key];
+          if (item && typeof item === 'object') {
+            actPayloadList.push({
+              code,
+              rencanaDate: item.rencana || null,
+              realisasiDate: item.real || null,
+            });
+          }
+        }
+        payload.activities = actPayloadList;
+      }
+
+      const res = await fetch(`/api/lands/${landId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        throw new Error('Gagal mereset data ke awal');
+      }
+
+      const resData = await res.json();
+      if (resData.success && resData.data) {
+        setLands((prev) =>
+          prev.map((l) => (l.id === landId ? { ...l, ...resData.data } : l))
+        );
+      }
+      onDataChanged?.();
+    } catch (err: any) {
+      console.error('Error resetting land to original:', err);
+      alert(`Gagal mengembalikan ke data asli: ${err.message}`);
+      fetchLands();
+    }
+  };
+
+  // Ctrl + Z: Mundur selangkah demi selangkah ke perubahan sebelumnya
+  const handleUndoStep = async (landId: number | string) => {
+    const history = undoHistoryRef.current[landId];
+    let snapshotToRestore = null;
+    if (history && history.length > 0) {
+      snapshotToRestore = history.pop();
+    } else if (initialLandsRef.current[landId]) {
+      snapshotToRestore = initialLandsRef.current[landId];
+    }
+
+    if (!snapshotToRestore) return;
+
+    // Optimistic UI update mundur 1 langkah
+    setLands((prev) =>
+      prev.map((l) => (l.id === landId ? { ...snapshotToRestore } : l))
+    );
+    setUndoVersion((v) => v + 1);
+
+    try {
+      const payload: any = {
+        wilayah: snapshotToRestore.wilayah,
+        lokasi: snapshotToRestore.lokasi,
+        luasBruto: snapshotToRestore.luasBruto,
+        luasNetto: snapshotToRestore.luasNetto,
+        status: snapshotToRestore.status,
+        eks: snapshotToRestore.eks,
+        sejarah: snapshotToRestore.sejarah,
+        jenisBibit: snapshotToRestore.jenisBibit,
+        kelasBibit: snapshotToRestore.kelasBibit,
+        bulanTanam: snapshotToRestore.bulanTanam,
+        rencanaBero: snapshotToRestore.rencanaBero ?? snapshotToRestore.aplikasiDetails?.rencanaBero ?? null,
+        aplikasiDetails: snapshotToRestore.aplikasiDetails || {},
+      };
+
+      if (Array.isArray(snapshotToRestore.activities)) {
+        payload.activities = snapshotToRestore.activities;
+      }
+
+      const res = await fetch(`/api/lands/${landId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        throw new Error('Gagal mengembalikan perubahan');
+      }
+
+      const resData = await res.json();
+      if (resData.success && resData.data) {
+        setLands((prev) =>
+          prev.map((l) => (l.id === landId ? { ...l, ...resData.data } : l))
+        );
+      }
+      onDataChanged?.();
+    } catch (err: any) {
+      console.error('Error undoing step:', err);
+      alert(`Gagal mengembalikan perubahan: ${err.message}`);
+      fetchLands();
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        const target = e.target as HTMLElement;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+          return;
+        }
+        e.preventDefault();
+        const lastLandId = recentEditedLandIdsRef.current.pop();
+        if (lastLandId !== undefined) {
+          handleUndoStep(lastLandId);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lands]);
+
   const [sortBy, setSortBy] = useState('lokasi');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
@@ -845,6 +1091,15 @@ export default function LandTable({
           setPagination(res.pagination);
           if (res.filters) {
             setFilters(res.filters);
+          }
+          if (Array.isArray(res.data)) {
+            const initialMap: Record<string | number, any> = { ...initialLandsRef.current };
+            res.data.forEach((l: any) => {
+              if (l && l.id && !initialMap[l.id]) {
+                initialMap[l.id] = JSON.parse(JSON.stringify(l));
+              }
+            });
+            initialLandsRef.current = initialMap;
           }
         }
       })
@@ -1195,6 +1450,7 @@ export default function LandTable({
   };
 
   const handleUpdateField = async (landId: number, fieldName: string, value: any) => {
+    pushUndoSnapshot(landId);
     // Optimistic UI update
     setLands((prev) =>
       prev.map((l) => {
@@ -1265,6 +1521,7 @@ export default function LandTable({
   };
 
   const handleUpdateBibitKelas = async (landId: number, rawValue: string | null) => {
+    pushUndoSnapshot(landId);
     const { jenisBibit, kelasBibit } = parseBibitKelas(rawValue);
     // Optimistic UI update
     setLands((prev) =>
@@ -1299,6 +1556,142 @@ export default function LandTable({
     }
   };
 
+  const handleUpdateRencanaBero = async (landId: number, val: any) => {
+    pushUndoSnapshot(landId);
+    const numVal = val !== null && val !== undefined && val !== '' && val !== '-' && val !== 0 && !isNaN(Number(val)) ? Number(val) : null;
+
+    // Optimistic UI update with dynamic schedule recalculation
+    setLands((prev) =>
+      prev.map((l) => {
+        if (l.id !== landId) return l;
+        const currentDetails = l.aplikasiDetails || {};
+        const updatedDetails = {
+          ...currentDetails,
+          rencanaBero: numVal,
+        };
+
+        const schedule = calculateLandPlanSchedule({
+          rencanaChopper: l.chopper?.rencana || currentDetails.chopper || l.rencBkr || null,
+          rencanaBero: numVal,
+          realChopper: l.chopper?.real || currentDetails.realChopper || l.realBkr || null,
+          realMb5Btr: currentDetails.realBajakAwalMb5Btr || l.realBajak || null,
+          realSs1: currentDetails.realSubsoilerSs1 || null,
+          realRotaryFh1: currentDetails.realFinishingRotaryFh1 || currentDetails.realRotaryFh1 || (typeof l.finishingRotary === 'object' ? l.finishingRotary?.real : null) || null,
+          realJalanSal: currentDetails.realJalanSal || (typeof l.jalanSal === 'object' ? l.jalanSal?.real : null) || null,
+          existingRencanaJalanSal: numVal === null ? null : (typeof l.jalanSal === 'object' ? l.jalanSal?.rencana : currentDetails.jalanSal),
+          existingRencanaRidger: numVal === null ? null : (typeof l.ridger === 'object' ? l.ridger?.rencana : currentDetails.ridger),
+          existingRencanaRotaryFh1: numVal === null ? null : currentDetails.finishingRotaryFh1,
+          existingRencanaDolomit: l.dolomit?.rencana || currentDetails.dolomit,
+          existingRencanaMb5Btr: currentDetails.rencAwalMb5Btr || currentDetails.bajakAwalMb5Btr || l.rencBajak,
+          existingRencanaSs1: currentDetails.subsoilerSs1,
+        });
+
+        updatedDetails.jalanSal = schedule.rencanaJalanSal || null;
+        updatedDetails.ridger = schedule.rencanaRidger || null;
+        updatedDetails.finishingRotaryFh1 = schedule.rencanaRotaryFh1 || null;
+        if (schedule.rencanaDolomit) updatedDetails.dolomit = schedule.rencanaDolomit;
+        if (schedule.rencanaMb5Btr) {
+          updatedDetails.rencAwalMb5Btr = schedule.rencanaMb5Btr;
+          updatedDetails.bajakAwalMb5Btr = schedule.rencanaMb5Btr;
+        }
+        if (schedule.rencanaSs1) updatedDetails.subsoilerSs1 = schedule.rencanaSs1;
+
+        const bero = computeRencanaBeroBongkar({ ...l, aplikasiDetails: updatedDetails });
+
+        return {
+          ...l,
+          rencanaBero: numVal,
+          aplikasiDetails: updatedDetails,
+          rencanaBeroBongkar: schedule.rencanaBeroBongkar !== null ? schedule.rencanaBeroBongkar : bero.hari,
+          hasBeroWarning: schedule.hasBeroWarning,
+          beroWarningMessage: schedule.beroWarningMessage,
+          jalanSal: {
+            ...(typeof l.jalanSal === 'object' ? l.jalanSal : {}),
+            rencana: schedule.rencanaJalanSal || null,
+          },
+          ridger: {
+            ...(typeof l.ridger === 'object' ? l.ridger : {}),
+            rencana: schedule.rencanaRidger || null,
+          },
+          finishingRotary: {
+            ...(typeof l.finishingRotary === 'object' ? l.finishingRotary : {}),
+            rencana: schedule.rencanaRotaryFh1 || null,
+          },
+          finishingRotaryFh1: schedule.rencanaRotaryFh1 || null,
+          dolomit: {
+            ...(typeof l.dolomit === 'object' ? l.dolomit : {}),
+            rencana: schedule.rencanaDolomit ?? (typeof l.dolomit === 'object' ? l.dolomit?.rencana : null),
+          },
+        };
+      })
+    );
+
+    try {
+      const currentLand = lands.find((l) => l.id === landId);
+      const currentDetails = (currentLand?.aplikasiDetails || {}) as any;
+      const schedule = calculateLandPlanSchedule({
+        rencanaChopper: currentLand?.chopper?.rencana || currentDetails.chopper || currentLand?.rencBkr || null,
+        rencanaBero: numVal,
+        realChopper: currentLand?.chopper?.real || currentDetails.realChopper || currentLand?.realBkr || null,
+        realMb5Btr: currentDetails.realBajakAwalMb5Btr || currentLand?.realBajak || null,
+        realSs1: currentDetails.realSubsoilerSs1 || null,
+        realRotaryFh1: currentDetails.realFinishingRotaryFh1 || currentDetails.realRotaryFh1 || (typeof currentLand?.finishingRotary === 'object' ? currentLand?.finishingRotary?.real : null) || null,
+        realJalanSal: currentDetails.realJalanSal || (typeof currentLand?.jalanSal === 'object' ? currentLand?.jalanSal?.real : null) || null,
+        existingRencanaJalanSal: numVal === null ? null : (typeof currentLand?.jalanSal === 'object' ? currentLand?.jalanSal?.rencana : currentDetails.jalanSal),
+        existingRencanaRidger: numVal === null ? null : (typeof currentLand?.ridger === 'object' ? currentLand?.ridger?.rencana : currentDetails.ridger),
+        existingRencanaRotaryFh1: numVal === null ? null : currentDetails.finishingRotaryFh1,
+        existingRencanaDolomit: currentLand?.dolomit?.rencana || currentDetails.dolomit,
+        existingRencanaMb5Btr: currentDetails.rencAwalMb5Btr || currentDetails.bajakAwalMb5Btr || currentLand?.rencBajak,
+        existingRencanaSs1: currentDetails.subsoilerSs1,
+      });
+
+      const res = await fetch(`/api/lands/${landId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rencanaBero: numVal,
+          aplikasiDetails: {
+            rencanaBero: numVal,
+            jalanSal: schedule.rencanaJalanSal || null,
+            ridger: schedule.rencanaRidger || null,
+            finishingRotaryFh1: schedule.rencanaRotaryFh1 || null,
+          },
+          activities: [
+            { code: '22.JALAN_SAL', rencanaDate: schedule.rencanaJalanSal || null },
+            { code: '21.RIDGER', rencanaDate: schedule.rencanaRidger || null },
+            { code: '19.FINISHING_ROTARY', rencanaDate: schedule.rencanaRotaryFh1 || null },
+          ],
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Gagal menyimpan Rencana Bero');
+      }
+      const resData = await res.json();
+      if (resData.success && resData.data) {
+        setLands((prev) =>
+          prev.map((l) =>
+            l.id === landId
+              ? {
+                  ...l,
+                  ...resData.data,
+                  rencanaBero: resData.data.rencanaBero ?? numVal,
+                  rencanaBeroBongkar: resData.data.rencanaBeroBongkar ?? l.rencanaBeroBongkar,
+                  hasBeroWarning: resData.data.hasBeroWarning ?? l.hasBeroWarning,
+                  beroWarningMessage: resData.data.beroWarningMessage ?? l.beroWarningMessage,
+                }
+              : l
+          )
+        );
+      }
+      onDataChanged?.();
+    } catch (err: any) {
+      console.error('Error updating rencana bero:', err);
+      alert(`Gagal memperbarui Rencana Bero: ${err.message}`);
+      fetchLands();
+    }
+  };
+
   const handleUpdateActivityDate = async (
     landId: number,
     actKey: string,
@@ -1324,7 +1717,8 @@ export default function LandTable({
       ridger: { realKey: 'realRidger', rencKey: 'ridger' },
     };
     const detailsInfo = ACT_KEY_TO_DETAILS[actKey];
-    const cascade = actKey === 'chopper' && type === 'rencana' ? calculateCascadeRencanaDates(cleanDate) : null;
+
+    pushUndoSnapshot(landId);
 
     // Optimistic UI update
     setLands((prev) =>
@@ -1344,44 +1738,114 @@ export default function LandTable({
           ...(detailsInfo ? { [type === 'real' ? detailsInfo.realKey : detailsInfo.rencKey]: cleanDate } : {}),
         };
 
-        if (cascade) {
-          updatedDetails.chopper = cleanDate;
-          updatedDetails.dolomit = cascade.dolomit;
-          updatedDetails.chopperLu = cascade.chopperLu;
-          updatedDetails.rh1 = cascade.rh1;
-          updatedDetails.rencAwalMb5Btr = cascade.bajakMb5Btr;
-          updatedDetails.bajakAwalMb5Btr = cascade.bajakMb5Btr;
-          updatedDetails.subsoilerSs1 = cascade.subsoilerSs1;
-          updatedDetails.finishingRotaryFh1 = cascade.finishingRotaryFh1;
-          updatedDetails.ridger = cascade.ridger;
-          updatedDetails.jalanSal = cascade.jalanSal;
-        }
+        const effectiveRencBero = updatedDetails.rencanaBero !== undefined && updatedDetails.rencanaBero !== null && updatedDetails.rencanaBero !== ''
+          ? Number(updatedDetails.rencanaBero)
+          : (l.rencanaBero ?? null);
+
+        const isClearingChopperRencana = actKey === 'chopper' && type === 'rencana' && !cleanDate;
+        const schedule = calculateLandPlanSchedule({
+          rencanaChopper: actKey === 'chopper' && type === 'rencana' ? cleanDate : (l.chopper?.rencana || updatedDetails.chopper || null),
+          rencanaBero: effectiveRencBero,
+          realChopper: actKey === 'chopper' && type === 'real' ? cleanDate : (l.chopper?.real || updatedDetails.realChopper || null),
+          realMb5Btr: updatedDetails.realBajakAwalMb5Btr || l.realBajak || null,
+          realSs1: updatedDetails.realSubsoilerSs1 || null,
+          realRotaryFh1: updatedDetails.realFinishingRotaryFh1 || updatedDetails.realRotaryFh1 || (typeof l.finishingRotary === 'object' ? l.finishingRotary?.real : null) || null,
+          realJalanSal: updatedDetails.realJalanSal || (typeof l.jalanSal === 'object' ? l.jalanSal?.real : null) || null,
+          existingRencanaJalanSal: isClearingChopperRencana || (actKey === 'jalanSal' && type === 'rencana' && !cleanDate) ? null : (typeof l.jalanSal === 'object' ? l.jalanSal?.rencana : updatedDetails.jalanSal),
+          existingRencanaRidger: isClearingChopperRencana || (actKey === 'ridger' && type === 'rencana' && !cleanDate) ? null : (typeof l.ridger === 'object' ? l.ridger?.rencana : updatedDetails.ridger),
+          existingRencanaRotaryFh1: isClearingChopperRencana ? null : updatedDetails.finishingRotaryFh1,
+          existingRencanaDolomit: isClearingChopperRencana || (actKey === 'dolomit' && type === 'rencana' && !cleanDate) ? null : (updatedDetails.dolomit ?? (typeof l.dolomit === 'object' ? l.dolomit?.rencana : null)),
+          existingRencanaMb5Btr: isClearingChopperRencana ? null : (updatedDetails.rencAwalMb5Btr || updatedDetails.bajakAwalMb5Btr || l.rencBajak),
+          existingRencanaSs1: isClearingChopperRencana ? null : updatedDetails.subsoilerSs1,
+        });
 
         const updatedLand: any = {
           ...l,
           [actKey]: updatedAct,
           aplikasiDetails: updatedDetails,
+          hasBeroWarning: schedule.hasBeroWarning,
+          beroWarningMessage: schedule.beroWarningMessage,
         };
 
-        if (cascade) {
-          updatedLand.dolomit = { ...(l.dolomit || {}), rencana: cascade.dolomit, status: l.dolomit?.real ? 'COMPLETED' : 'IN_PROGRESS' };
-          updatedLand.chopperLu = { ...(l.chopperLu || {}), rencana: cascade.chopperLu, status: l.chopperLu?.real ? 'COMPLETED' : 'IN_PROGRESS' };
-          updatedLand.rh1 = { ...(l.rh1 || {}), rencana: cascade.rh1, status: l.rh1?.real ? 'COMPLETED' : 'IN_PROGRESS' };
-          updatedLand.rencBajak = cascade.bajakMb5Btr;
-          updatedLand.rencBkr = cleanDate;
-          updatedLand.ridger = typeof l.ridger === 'object' && l.ridger !== null
-            ? { ...l.ridger, rencana: cascade.ridger }
-            : cascade.ridger;
-          updatedLand.jalanSal = typeof l.jalanSal === 'object' && l.jalanSal !== null
-            ? { ...l.jalanSal, rencana: cascade.jalanSal }
-            : cascade.jalanSal;
+        if (actKey === 'chopper') {
+          if (isClearingChopperRencana) {
+            updatedDetails.chopper = null;
+            updatedDetails.dolomit = null;
+            updatedDetails.rencAwalMb5Btr = null;
+            updatedDetails.bajakAwalMb5Btr = null;
+            updatedDetails.subsoilerSs1 = null;
+            updatedDetails.chopperLu = null;
+            updatedDetails.rh1 = null;
+            updatedDetails.ridger = null;
+            updatedDetails.finishingRotaryFh1 = null;
+            updatedDetails.jalanSal = null;
+            updatedLand.rencBkr = null;
+            updatedLand.rencBajak = null;
+            updatedLand.chopper = { ...(l.chopper || {}), rencana: null, status: l.chopper?.real ? 'COMPLETED' : 'PENDING' };
+            updatedLand.dolomit = { ...(l.dolomit || {}), rencana: null, status: l.dolomit?.real ? 'COMPLETED' : 'PENDING' };
+            updatedLand.chopperLu = { ...(l.chopperLu || {}), rencana: null, status: l.chopperLu?.real ? 'COMPLETED' : 'PENDING' };
+            updatedLand.rh1 = { ...(l.rh1 || {}), rencana: null, status: l.rh1?.real ? 'COMPLETED' : 'PENDING' };
+            updatedLand.ridger = typeof l.ridger === 'object' && l.ridger !== null ? { ...l.ridger, rencana: null } : null;
+            updatedLand.jalanSal = typeof l.jalanSal === 'object' && l.jalanSal !== null ? { ...l.jalanSal, rencana: null } : null;
+          } else {
+            updatedDetails.dolomit = schedule.rencanaDolomit || null;
+            updatedLand.dolomit = {
+              ...(l.dolomit || {}),
+              rencana: schedule.rencanaDolomit || null,
+              status: l.dolomit?.real ? 'COMPLETED' : (schedule.rencanaDolomit ? 'IN_PROGRESS' : 'PENDING'),
+            };
+
+            updatedDetails.rencAwalMb5Btr = schedule.rencanaMb5Btr || null;
+            updatedDetails.bajakAwalMb5Btr = schedule.rencanaMb5Btr || null;
+            updatedLand.rencBajak = schedule.rencanaMb5Btr || null;
+
+            updatedDetails.subsoilerSs1 = schedule.rencanaSs1 || null;
+
+            if (type === 'rencana') {
+              updatedLand.rencBkr = cleanDate;
+              updatedDetails.chopper = cleanDate;
+
+              updatedDetails.chopperLu = schedule.rencanaChopperLu || null;
+              updatedLand.chopperLu = {
+                ...(l.chopperLu || {}),
+                rencana: schedule.rencanaChopperLu || null,
+                status: l.chopperLu?.real ? 'COMPLETED' : (schedule.rencanaChopperLu ? 'IN_PROGRESS' : 'PENDING'),
+              };
+
+              updatedDetails.rh1 = schedule.rencanaRh1 || null;
+              updatedLand.rh1 = {
+                ...(l.rh1 || {}),
+                rencana: schedule.rencanaRh1 || null,
+                status: l.rh1?.real ? 'COMPLETED' : (schedule.rencanaRh1 ? 'IN_PROGRESS' : 'PENDING'),
+              };
+
+              updatedDetails.ridger = schedule.rencanaRidger || null;
+              updatedLand.ridger = typeof l.ridger === 'object' && l.ridger !== null
+                ? { ...l.ridger, rencana: schedule.rencanaRidger || null }
+                : (schedule.rencanaRidger || null);
+
+              updatedDetails.finishingRotaryFh1 = schedule.rencanaRotaryFh1 || null;
+              updatedLand.finishingRotary = typeof l.finishingRotary === 'object' && l.finishingRotary !== null
+                ? { ...l.finishingRotary, rencana: schedule.rencanaRotaryFh1 || null }
+                : (schedule.rencanaRotaryFh1 || null);
+              updatedLand.finishingRotaryFh1 = schedule.rencanaRotaryFh1 || null;
+
+              updatedDetails.jalanSal = schedule.rencanaJalanSal || null;
+              updatedLand.jalanSal = typeof l.jalanSal === 'object' && l.jalanSal !== null
+                ? { ...l.jalanSal, rencana: schedule.rencanaJalanSal || null }
+                : (schedule.rencanaJalanSal || null);
+            } else if (type === 'real') {
+              updatedLand.realBkr = cleanDate;
+              updatedDetails.realChopper = cleanDate;
+            }
+          }
         }
 
         const bero = computeRencanaBeroBongkar(updatedLand);
         return {
           ...updatedLand,
           aktivitasTerakhir: computeAktivitasTerakhir(updatedLand),
-          rencanaBeroBongkar: bero.hari,
+          rencanaBeroBongkar: schedule.rencanaBeroBongkar !== null ? schedule.rencanaBeroBongkar : bero.hari,
           kondisiBeroBongkar: bero.kondisi,
           keteranganBeroBongkar: bero.keterangan,
           tglAwalBkrBero: bero.tglAwalBkr,
@@ -1392,32 +1856,96 @@ export default function LandTable({
 
     try {
       let bodyPayload: any;
-      if (cascade) {
-        bodyPayload = {
-          activities: [
-            { code: '01.CHOPPER', rencanaDate: cleanDate },
-            { code: '02.CHOPPER_LU', rencanaDate: cascade.chopperLu },
-            { code: '03.RH1', rencanaDate: cascade.rh1 },
-            { code: '05.DOLOMIT', rencanaDate: cascade.dolomit },
-            { code: '11.BAJAK_AWAL', rencanaDate: cascade.bajakMb5Btr },
-            { code: '17.SUBSOILER', rencanaDate: cascade.subsoilerSs1 },
-            { code: '19.FINISHING_ROTARY', rencanaDate: cascade.finishingRotaryFh1 },
-            { code: '21.RIDGER', rencanaDate: cascade.ridger },
-            { code: '22.JALAN_SAL', rencanaDate: cascade.jalanSal },
-          ],
-          aplikasiDetails: {
-            chopper: cleanDate,
-            dolomit: cascade.dolomit,
-            chopperLu: cascade.chopperLu,
-            rh1: cascade.rh1,
-            rencAwalMb5Btr: cascade.bajakMb5Btr,
-            bajakAwalMb5Btr: cascade.bajakMb5Btr,
-            subsoilerSs1: cascade.subsoilerSs1,
-            finishingRotaryFh1: cascade.finishingRotaryFh1,
-            ridger: cascade.ridger,
-            jalanSal: cascade.jalanSal,
-          },
-        };
+      if (actKey === 'chopper') {
+        const isClearingChopperRencana = type === 'rencana' && !cleanDate;
+        if (isClearingChopperRencana) {
+          bodyPayload = {
+            rencBkr: null,
+            rencBajak: null,
+            activities: [
+              { code: '01.CHOPPER', rencanaDate: null },
+              { code: '02.CHOPPER_LU', rencanaDate: null },
+              { code: '03.RH1', rencanaDate: null },
+              { code: '05.DOLOMIT', rencanaDate: null },
+              { code: '11.BAJAK_AWAL', rencanaDate: null },
+              { code: '17.SUBSOILER', rencanaDate: null },
+              { code: '19.FINISHING_ROTARY', rencanaDate: null },
+              { code: '21.RIDGER', rencanaDate: null },
+              { code: '22.JALAN_SAL', rencanaDate: null },
+            ],
+            aplikasiDetails: {
+              chopper: null,
+              chopperLu: null,
+              rh1: null,
+              dolomit: null,
+              rencAwalMb5Btr: null,
+              bajakAwalMb5Btr: null,
+              subsoilerSs1: null,
+              finishingRotaryFh1: null,
+              ridger: null,
+              jalanSal: null,
+            },
+          };
+        } else {
+          const currentLand = lands.find((l) => l.id === landId);
+          const currentDetails = (currentLand?.aplikasiDetails || {}) as any;
+          const effectiveRencBero = currentDetails.rencanaBero !== undefined && currentDetails.rencanaBero !== null && currentDetails.rencanaBero !== ''
+            ? Number(currentDetails.rencanaBero)
+            : null;
+          const schedule = calculateLandPlanSchedule({
+            rencanaChopper: type === 'rencana' ? cleanDate : (currentDetails.chopper || null),
+            rencanaBero: effectiveRencBero,
+            realChopper: type === 'real' ? cleanDate : (currentDetails.realChopper || null),
+            realMb5Btr: currentDetails.realBajakAwalMb5Btr || currentLand?.realBajak || null,
+            realSs1: currentDetails.realSubsoilerSs1 || null,
+            realRotaryFh1: currentDetails.realFinishingRotaryFh1 || currentDetails.realRotaryFh1 || (typeof currentLand?.finishingRotary === 'object' ? currentLand?.finishingRotary?.real : null) || null,
+            realJalanSal: currentDetails.realJalanSal || null,
+            existingRencanaJalanSal: currentDetails.jalanSal || null,
+            existingRencanaRidger: currentDetails.ridger || null,
+            existingRencanaRotaryFh1: currentDetails.finishingRotaryFh1 || null,
+            existingRencanaDolomit: currentDetails.dolomit || null,
+            existingRencanaMb5Btr: currentDetails.rencAwalMb5Btr || currentDetails.bajakAwalMb5Btr || null,
+            existingRencanaSs1: currentDetails.subsoilerSs1 || null,
+          });
+
+          bodyPayload = {
+            activities: [
+              {
+                code: '01.CHOPPER',
+                rencanaDate: type === 'rencana' ? cleanDate : undefined,
+                realisasiDate: type === 'real' ? cleanDate : undefined,
+              },
+              { code: '05.DOLOMIT', rencanaDate: schedule.rencanaDolomit || null },
+              { code: '11.BAJAK_AWAL', rencanaDate: schedule.rencanaMb5Btr || null },
+              { code: '17.SUBSOILER', rencanaDate: schedule.rencanaSs1 || null },
+              ...(type === 'rencana'
+                ? [
+                    { code: '22.JALAN_SAL', rencanaDate: schedule.rencanaJalanSal || null },
+                    { code: '21.RIDGER', rencanaDate: schedule.rencanaRidger || null },
+                    { code: '19.FINISHING_ROTARY', rencanaDate: schedule.rencanaRotaryFh1 || null },
+                    { code: '02.CHOPPER_LU', rencanaDate: schedule.rencanaChopperLu || null },
+                    { code: '03.RH1', rencanaDate: schedule.rencanaRh1 || null },
+                  ]
+                : []),
+            ],
+            aplikasiDetails: {
+              ...(type === 'real' ? { realChopper: cleanDate } : { chopper: cleanDate }),
+              dolomit: schedule.rencanaDolomit || null,
+              rencAwalMb5Btr: schedule.rencanaMb5Btr || null,
+              bajakAwalMb5Btr: schedule.rencanaMb5Btr || null,
+              subsoilerSs1: schedule.rencanaSs1 || null,
+              ...(type === 'rencana'
+                ? {
+                    jalanSal: schedule.rencanaJalanSal || null,
+                    ridger: schedule.rencanaRidger || null,
+                    finishingRotaryFh1: schedule.rencanaRotaryFh1 || null,
+                    chopperLu: schedule.rencanaChopperLu || null,
+                    rh1: schedule.rencanaRh1 || null,
+                  }
+                : {}),
+            },
+          };
+        }
       } else {
         const actPayload = {
           code,
@@ -1452,11 +1980,14 @@ export default function LandTable({
                   ...resData.data,
                   aktivitasTerakhir: resData.data.aktivitasTerakhir || l.aktivitasTerakhir,
                   aplikasiDetails: resData.data.aplikasiDetails || l.aplikasiDetails,
+                  rencanaBero: resData.data.rencanaBero ?? l.rencanaBero,
                   rencanaBeroBongkar: resData.data.rencanaBeroBongkar ?? l.rencanaBeroBongkar,
                   kondisiBeroBongkar: resData.data.kondisiBeroBongkar ?? l.kondisiBeroBongkar,
                   keteranganBeroBongkar: resData.data.keteranganBeroBongkar ?? l.keteranganBeroBongkar,
                   tglAwalBkrBero: resData.data.tglAwalBkrBero ?? l.tglAwalBkrBero,
                   tglSiapTanamBero: resData.data.tglSiapTanamBero ?? l.tglSiapTanamBero,
+                  hasBeroWarning: resData.data.hasBeroWarning ?? l.hasBeroWarning,
+                  beroWarningMessage: resData.data.beroWarningMessage ?? l.beroWarningMessage,
                 }
               : l
           )
@@ -1514,6 +2045,8 @@ export default function LandTable({
       jalanSal: '22.JALAN_SAL',
     };
 
+    pushUndoSnapshot(landId);
+
     setLands((prev) =>
       prev.map((l) => {
         if (l.id !== landId) return l;
@@ -1562,15 +2095,51 @@ export default function LandTable({
           if (type === 'real') updatedLand.realJalanSal = cleanDate;
         }
 
+        const effectiveRencBero = updatedDetails.rencanaBero !== undefined && updatedDetails.rencanaBero !== null && updatedDetails.rencanaBero !== ''
+          ? Number(updatedDetails.rencanaBero)
+          : (l.rencanaBero ?? null);
+
+        const schedule = calculateLandPlanSchedule({
+          rencanaChopper: l.chopper?.rencana || updatedDetails.chopper || null,
+          rencanaBero: effectiveRencBero,
+          realChopper: updatedDetails.realChopper || null,
+          realMb5Btr: fieldKey === 'bajakAwalMb5Btr' && type === 'real' ? cleanDate : (updatedDetails.realBajakAwalMb5Btr || l.realBajak || null),
+          realSs1: fieldKey === 'subsoilerSs1' && type === 'real' ? cleanDate : (updatedDetails.realSubsoilerSs1 || null),
+          realRotaryFh1: fieldKey === 'finishingRotaryFh1' && type === 'real' ? cleanDate : (updatedDetails.realFinishingRotaryFh1 || updatedDetails.realRotaryFh1 || (typeof l.finishingRotary === 'object' ? l.finishingRotary?.real : null) || null),
+          realJalanSal: fieldKey === 'jalanSal' && type === 'real' ? cleanDate : (updatedDetails.realJalanSal || (typeof l.jalanSal === 'object' ? l.jalanSal?.real : null) || null),
+          existingRencanaJalanSal: fieldKey === 'jalanSal' && type === 'rencana' ? cleanDate : (typeof l.jalanSal === 'object' ? l.jalanSal?.rencana : updatedDetails.jalanSal),
+          existingRencanaRidger: fieldKey === 'ridger' && type === 'rencana' ? cleanDate : (typeof l.ridger === 'object' ? l.ridger?.rencana : updatedDetails.ridger),
+          existingRencanaRotaryFh1: fieldKey === 'finishingRotaryFh1' && type === 'rencana' ? cleanDate : updatedDetails.finishingRotaryFh1,
+          existingRencanaDolomit: updatedDetails.dolomit ?? (typeof l.dolomit === 'object' ? l.dolomit?.rencana : null),
+          existingRencanaMb5Btr: fieldKey === 'bajakAwalMb5Btr' && type === 'rencana' ? cleanDate : (updatedDetails.rencAwalMb5Btr || updatedDetails.bajakAwalMb5Btr || l.rencBajak),
+          existingRencanaSs1: fieldKey === 'subsoilerSs1' && type === 'rencana' ? cleanDate : updatedDetails.subsoilerSs1,
+        });
+
+        if (fieldKey === 'bajakAwalMb5Btr' && type === 'real') {
+          if (schedule.rencanaSs1) {
+            updatedDetails.subsoilerSs1 = schedule.rencanaSs1;
+          }
+        } else if (fieldKey === 'finishingRotaryFh1' && type === 'real') {
+          if (schedule.rencanaRidger) {
+            updatedDetails.ridger = schedule.rencanaRidger;
+            updatedLand.ridger = typeof l.ridger === 'object' && l.ridger !== null ? { ...l.ridger, rencana: schedule.rencanaRidger } : schedule.rencanaRidger;
+          }
+          if (schedule.rencanaRotaryFh1) {
+            updatedDetails.finishingRotaryFh1 = schedule.rencanaRotaryFh1;
+          }
+        }
+
         const bero = computeRencanaBeroBongkar(updatedLand);
         return {
           ...updatedLand,
           aktivitasTerakhir: computeAktivitasTerakhir(updatedLand),
-          rencanaBeroBongkar: bero.hari,
+          rencanaBeroBongkar: schedule.rencanaBeroBongkar !== null ? schedule.rencanaBeroBongkar : bero.hari,
           kondisiBeroBongkar: bero.kondisi,
           keteranganBeroBongkar: bero.keterangan,
           tglAwalBkrBero: bero.tglAwalBkr,
           tglSiapTanamBero: bero.tglSiapTanam,
+          hasBeroWarning: schedule.hasBeroWarning,
+          beroWarningMessage: schedule.beroWarningMessage,
         };
       })
     );
@@ -1579,7 +2148,10 @@ export default function LandTable({
       const bodyPayload: any = {
         aplikasiDetails: {
           [detailsProp]: cleanDate,
+          ...(fieldKey === 'jalanSal' ? (type === 'real' ? { realJalanSal: cleanDate } : { jalanSal: cleanDate }) : {}),
+          ...(fieldKey === 'ridger' ? (type === 'real' ? { realRidger: cleanDate } : { ridger: cleanDate }) : {}),
         },
+        ...(fieldKey === 'bajakAwalMb5Btr' && type === 'rencana' ? { rencBajak: cleanDate } : {}),
       };
 
       const actCode = actCodeMap[fieldKey];
@@ -1623,11 +2195,14 @@ export default function LandTable({
               ...resData.data,
               aktivitasTerakhir: resData.data.aktivitasTerakhir || l.aktivitasTerakhir,
               aplikasiDetails: resData.data.aplikasiDetails || l.aplikasiDetails,
+              rencanaBero: resData.data.rencanaBero ?? l.rencanaBero,
               rencanaBeroBongkar: resData.data.rencanaBeroBongkar ?? l.rencanaBeroBongkar,
               kondisiBeroBongkar: resData.data.kondisiBeroBongkar ?? l.kondisiBeroBongkar,
               keteranganBeroBongkar: resData.data.keteranganBeroBongkar ?? l.keteranganBeroBongkar,
               tglAwalBkrBero: resData.data.tglAwalBkrBero ?? l.tglAwalBkrBero,
               tglSiapTanamBero: resData.data.tglSiapTanamBero ?? l.tglSiapTanamBero,
+              hasBeroWarning: resData.data.hasBeroWarning ?? l.hasBeroWarning,
+              beroWarningMessage: resData.data.beroWarningMessage ?? l.beroWarningMessage,
             };
           })
         );
@@ -2392,6 +2967,22 @@ export default function LandTable({
                 </div>
               </th>
 
+              {/* Rencana Bero (Input Manual Kolom Baru) */}
+              <th
+                rowSpan={hasAnyTier3Subcolumn ? 3 : 2}
+                onClick={() => handleSort('rencanaBero')}
+                className="w-[84px] min-w-[84px] max-w-[84px] overflow-hidden py-2 px-1 cursor-pointer hover:text-slate-900 dark:hover:text-slate-200 border-r border-b border-amber-200 dark:border-amber-900 bg-amber-50/70 dark:bg-amber-950/60 text-amber-950 dark:text-amber-100 align-middle text-center font-bold text-[9.5px] transition-colors"
+                title="Rencana Bero: Target hari bero (input manual) yang digunakan untuk menghitung Rencana Jalan & Sal"
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <div className="flex flex-col items-center justify-center leading-tight text-center">
+                    <span className="whitespace-nowrap text-[8px] text-amber-700 dark:text-amber-400 font-semibold uppercase tracking-wider">Rencana</span>
+                    <span className="whitespace-nowrap font-bold">Bero</span>
+                  </div>
+                  {renderSortArrows('rencanaBero')}
+                </div>
+              </th>
+
               {/* Rencana Bero Bongkar (Excel Sheet Master Kolom BE) */}
               <th
                 rowSpan={hasAnyTier3Subcolumn ? 3 : 2}
@@ -2777,22 +3368,59 @@ export default function LandTable({
                     className="hover:bg-slate-100/70 dark:hover:bg-slate-800/40 transition-colors group"
                   >
                     {/* 0. NO */}
-                    <td className="sticky left-0 z-10 w-[50px] min-w-[50px] max-w-[50px] overflow-hidden py-1 px-0.5 font-mono text-[10px] text-slate-400 dark:text-slate-500 border-r border-b border-slate-200 dark:border-slate-800/60 text-center align-middle bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors relative group/no">
+                    <td
+                      className={`sticky left-0 w-[50px] min-w-[50px] max-w-[50px] overflow-visible py-1 px-0.5 font-mono text-[10px] text-slate-400 dark:text-slate-500 border-r border-b border-slate-200 dark:border-slate-800/60 text-center align-middle bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors relative ${
+                        hoveredNoLandId === land.id ? 'z-40' : 'z-10'
+                      }`}
+                      onMouseEnter={() => handleNoMouseEnter(land.id)}
+                      onMouseLeave={handleNoMouseLeave}
+                    >
                       <div className="relative flex items-center justify-center w-full h-full min-h-[20px]">
-                        <span className="group-hover/no:opacity-0 transition-opacity select-none">
+                        <span className="select-none font-medium text-slate-600 dark:text-slate-400">
                           {rowNumber}
                         </span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setLandToDelete({ id: land.id, lokasi: land.lokasi });
-                          }}
-                          title={`Hapus data lahan ${land.lokasi}`}
-                          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/no:opacity-100 text-rose-500 hover:text-rose-600 transition-all cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 text-rose-500 hover:scale-110 active:scale-90 transition-transform" />
-                        </button>
+
+                        {/* Floating Action Popup on Hover (Undo / Ctrl+Z & Hapus) */}
+                        {hoveredNoLandId === land.id && (
+                          <div
+                            className="absolute left-[36px] top-1/2 -translate-y-1/2 z-50 flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-lg px-1.5 py-1 select-none animate-in fade-in zoom-in-95 duration-150 before:content-[''] before:absolute before:-left-3 before:top-0 before:w-3 before:h-full cursor-default"
+                            onMouseEnter={() => handleNoMouseEnter(land.id)}
+                            onMouseLeave={handleNoMouseLeave}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {/* Tombol Panah Kembali: Langsung mengembalikan ke data paling awal / data aslinya */}
+                            <button
+                              type="button"
+                              onClick={() => handleResetToOriginalLand(land.id)}
+                              disabled={!isModifiedFromOriginal(land.id)}
+                              title={
+                                isModifiedFromOriginal(land.id)
+                                  ? 'Kembalikan ke data asli / awal'
+                                  : 'Data masih asli (belum ada perubahan)'
+                              }
+                              className={`p-1 rounded-md transition-all ${
+                                isModifiedFromOriginal(land.id)
+                                  ? 'text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/50 cursor-pointer hover:scale-110 active:scale-95'
+                                  : 'text-slate-300 dark:text-slate-600 cursor-not-allowed opacity-40'
+                              }`}
+                            >
+                              <Undo2 className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Separator */}
+                            <div className="w-[1px] h-3.5 bg-slate-200 dark:bg-slate-700" />
+
+                            {/* Tombol Tempat Sampah (Hapus) */}
+                            <button
+                              type="button"
+                              onClick={() => setLandToDelete({ id: land.id, lokasi: land.lokasi })}
+                              title={`Hapus data lahan ${land.lokasi}`}
+                              className="p-1 rounded-md text-rose-500 dark:text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer hover:scale-110 active:scale-95 transition-all"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </td>
 
@@ -2813,10 +3441,18 @@ export default function LandTable({
                     </td>
 
                     {/* 2. Lokasi (Read-only, fitur edit dihilangkan) */}
-                    <td className="sticky left-[104px] z-10 w-[68px] min-w-[68px] max-w-[68px] overflow-hidden py-1 px-0.5 font-bold text-emerald-600 dark:text-emerald-400 font-mono tracking-wide border-r border-b border-slate-200 dark:border-slate-800/60 text-center align-middle bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors text-[10.5px]">
-                      <span className="truncate block" title={land.lokasi}>
+                    <td className="sticky left-[104px] z-10 w-[68px] min-w-[68px] max-w-[68px] overflow-visible py-1 px-0.5 font-bold text-emerald-600 dark:text-emerald-400 font-mono tracking-wide border-r border-b border-slate-200 dark:border-slate-800/60 text-center align-middle bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors text-[10.5px] relative">
+                      <span className="w-full block text-center truncate" title={land.lokasi}>
                         {land.lokasi || '-'}
                       </span>
+                      {land.hasBeroWarning && (
+                        <span
+                          className="absolute right-0.5 top-1/2 -translate-y-1/2 text-amber-500 dark:text-amber-400 animate-pulse cursor-help"
+                          title={land.beroWarningMessage || 'Peringatan: Penyesuaian Rencana Bero (Tgl Rencana Rotary FH 1 < Tgl Real SS1)'}
+                        >
+                          <AlertTriangle className="w-2.5 h-2.5" />
+                        </span>
+                      )}
                     </td>
 
                     {/* 3. Bruto */}
@@ -2937,6 +3573,20 @@ export default function LandTable({
                           -
                         </span>
                       )}
+                    </td>
+
+                    {/* 10b. Rencana Bero (Input Manual Kolom Baru) */}
+                    <td className="w-[84px] min-w-[84px] max-w-[84px] overflow-hidden py-1 px-1 border-r border-b border-amber-200 dark:border-amber-900/60 text-center align-middle bg-amber-50/20 dark:bg-amber-950/15 group-hover:bg-amber-50/50 dark:group-hover:bg-amber-950/30 transition-colors">
+                      <InlineCell
+                        type="number"
+                        allowNull={true}
+                        value={land.rencanaBero ?? land.aplikasiDetails?.rencanaBero ?? null}
+                        onSave={(newVal) => handleUpdateRencanaBero(land.id, newVal)}
+                        placeholder="Hari"
+                        align="center"
+                        className="font-mono font-bold text-slate-800 dark:text-slate-100 text-[10.5px]"
+                        displayFormatter={(v) => (v !== null && v !== undefined && v !== '' && v !== '-' && v !== 0 ? `${v} hr` : '-')}
+                      />
                     </td>
 
                     {/* 11. Rencana Bero Bongkar (Excel Sheet Master Kolom BE) */}
@@ -3227,29 +3877,40 @@ export default function LandTable({
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
             <span>Tampilkan per halaman:</span>
-            <div className="relative inline-flex items-center">
-              <select
-                value={limit}
-                onFocus={() => setIsLimitOpen(true)}
-                onBlur={() => setIsLimitOpen(false)}
-                onChange={(e) => {
-                  setLimit(parseInt(e.target.value, 10));
-                  setPage(1);
-                  setIsLimitOpen(false);
-                  (e.target as HTMLElement).blur();
-                }}
-                className="appearance-none pl-2.5 pr-7 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+            <div className="relative inline-flex items-center" ref={limitRef}>
+              <button
+                type="button"
+                onClick={() => setIsLimitOpen(!isLimitOpen)}
+                className="inline-flex items-center justify-between gap-2 pl-2.5 pr-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer text-xs hover:border-slate-400 dark:hover:border-slate-700 transition-colors shadow-2xs"
+                title="Pilih jumlah data per halaman"
               >
-                <option value="15">15</option>
-                <option value="30">30</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-              <ChevronDown
-                className={`w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 transition-transform duration-200 ${
-                  isLimitOpen ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : 'rotate-0'
-                }`}
-              />
+                <span>{limit}</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                    isLimitOpen ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : 'rotate-0'
+                  }`}
+                />
+              </button>
+              {isLimitOpen && (
+                <div className="absolute bottom-full mb-1 left-0 z-50 min-w-[68px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg py-1 text-xs animate-in fade-in zoom-in-95 duration-100">
+                  {[15, 30, 50, 100].map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => {
+                        setLimit(opt);
+                        setPage(1);
+                        setIsLimitOpen(false);
+                      }}
+                      className={`w-full text-center py-1 font-semibold hover:bg-emerald-50 dark:hover:bg-slate-800 transition-colors cursor-pointer ${
+                        limit === opt ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 font-bold' : 'text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <span className="text-slate-300 dark:text-slate-700">|</span>
