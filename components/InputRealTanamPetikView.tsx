@@ -17,7 +17,6 @@ import {
   Trash2,
   Undo2,
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import TableDatePicker from '@/components/TableDatePicker';
 import AddPlantingTransactionModal from '@/components/AddPlantingTransactionModal';
 import { useAuth } from '@/components/AuthProvider';
@@ -559,12 +558,11 @@ export default function InputRealTanamPetikView({
     );
   };
 
-  // Export to Excel function (matching updated column order)
+  // Export to Excel function (using ExcelJS backend endpoint with styling)
   const handleExportExcel = async () => {
     try {
       setIsExporting(true);
       const params = new URLSearchParams({
-        all: 'true',
         sortField,
         sortOrder,
       });
@@ -575,63 +573,19 @@ export default function InputRealTanamPetikView({
       if (selectedAktivitas.length > 0) params.set('aktivitas', selectedAktivitas.join(','));
       if (selectedJenisBibit.length > 0) params.set('jenisBibit', selectedJenisBibit.join(','));
 
-      const res = await fetch(`/api/planting/transactions?${params.toString()}`);
-      const json = await res.json();
+      const res = await fetch(`/api/planting/transactions/export?${params.toString()}`);
+      if (!res.ok) throw new Error('Gagal mengunduh file Excel.');
 
-      if (!json.success || !json.data) {
-        alert('Gagal mengambil data untuk export Excel.');
-        return;
-      }
-
-      // Order matching Excel Monitor Siap Nanas Update
-      const rows = json.data.map((item: TransactionItem, idx: number) => ({
-        No: idx + 1,
-        Tanggal: item.tanggal || '',
-        Lokasi: item.lokasi || '',
-        'Luas Netto (Ha)': item.luasNetto !== null ? Number(item.luasNetto.toFixed(2)) : '',
-        Aktivitas: item.aktivitas || '',
-        'Standar (Ha)': item.standar !== null ? Number(item.standar.toFixed(2)) : 0,
-        'Besar (Ha)': item.besar !== null ? Number(item.besar.toFixed(2)) : 0,
-        'Sedang (Ha)': item.sedang !== null ? Number(item.sedang.toFixed(2)) : 0,
-        'Kecil (Ha)': item.kecil !== null ? Number(item.kecil.toFixed(2)) : 0,
-        'Extra Kecil (Ha)': item.extraKecil !== null ? Number(item.extraKecil.toFixed(2)) : 0,
-        'Total (Ha)': Number(item.total.toFixed(2)),
-        'Jenis Bibit': item.jenisBibit || '',
-        Wilayah: item.wilayah || '',
-        'Awal Tanam': item.awalTanam || '',
-        'Selesai Tanam': item.selesaiTanam || '',
-        'Akum Tanam (Ha)': item.akumTanam !== null ? Number(item.akumTanam.toFixed(2)) : '',
-        '% Tanam': item.persenTanam !== null ? `${(item.persenTanam * 100).toFixed(1)}%` : '',
-        'Petik Ke': item.petikKe || '',
-      }));
-
-      const ws = XLSX.utils.json_to_sheet(rows);
-      ws['!cols'] = [
-        { wch: 6 },
-        { wch: 14 },
-        { wch: 12 },
-        { wch: 14 },
-        { wch: 14 },
-        { wch: 12 },
-        { wch: 12 },
-        { wch: 12 },
-        { wch: 12 },
-        { wch: 12 },
-        { wch: 14 },
-        { wch: 12 },
-        { wch: 12 },
-        { wch: 14 },
-        { wch: 14 },
-        { wch: 14 },
-        { wch: 10 },
-        { wch: 10 },
-      ];
-
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Input Real Tanam & Petik');
-
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
       const dateStr = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `Input_Real_Tanam_Petik_Nanas_${dateStr}.xlsx`);
+      a.download = `Input_Real_Tanam_Petik_Nanas_${dateStr}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     } catch (err: any) {
       console.error('Export error:', err);
       alert('Terjadi kesalahan saat export data ke Excel.');
@@ -1452,7 +1406,7 @@ export default function InputRealTanamPetikView({
                         className={`py-2 px-1.5 text-center font-mono text-[11px] text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200 sticky left-0 w-[50px] min-w-[50px] max-w-[50px] bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 border-r border-b border-slate-300 dark:border-slate-700 overflow-visible relative transition-colors ${
                           hoveredNoId === item.id ? 'z-40' : 'z-20'
                         }`}
-                        onMouseEnter={() => handleNoMouseEnter(item.id)}
+                        onMouseEnter={() => isAdmin && handleNoMouseEnter(item.id)}
                         onMouseLeave={handleNoMouseLeave}
                       >
                         <div className="relative flex items-center justify-center w-full h-full min-h-[20px]">
@@ -1966,8 +1920,8 @@ export default function InputRealTanamPetikView({
         }}
       />
 
-      {/* Modal Konfirmasi Hapus Transaksi */}
-      {txToDelete && (
+      {/* Modal Konfirmasi Hapus Transaksi - Khusus Admin */}
+      {isAdmin && txToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl scale-100 animate-in zoom-in-95 duration-150">
             <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mb-4 mx-auto">

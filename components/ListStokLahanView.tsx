@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 
 import { PosisiLahanSection } from '@/components/ChartsSection';
+import { useAuth } from '@/components/AuthProvider';
 
 interface ListStokLahanViewProps {
   onSelectLand: (landId: number | string) => void;
@@ -32,6 +33,7 @@ interface ListStokLahanViewProps {
   initialCategory?: string;
   refreshTrigger?: number;
   chartsData?: any;
+  isAdmin?: boolean;
 }
 
 // Inline Editable Cell Component
@@ -48,6 +50,7 @@ interface EditableCellProps {
   onSave: (landId: number, field: string, newValue: any, oldValue: any) => Promise<void>;
   isSaving?: boolean;
   isSaved?: boolean;
+  readOnly?: boolean;
 }
 
 function EditableCell({
@@ -63,6 +66,7 @@ function EditableCell({
   onSave,
   isSaving = false,
   isSaved = false,
+  readOnly = false,
 }: EditableCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [val, setVal] = useState<string>(value !== null && value !== undefined ? String(value) : '');
@@ -76,6 +80,7 @@ function EditableCell({
   }, [value, isEditing]);
 
   const handleStartEdit = (e: React.MouseEvent) => {
+    if (readOnly) return;
     e.stopPropagation();
     setIsEditing(true);
     setTimeout(() => {
@@ -115,14 +120,18 @@ function EditableCell({
   return (
     <div
       onClick={handleStartEdit}
-      className={`relative group/cell px-1.5 py-1 rounded-md transition-all cursor-text min-h-[28px] flex items-center ${
+      className={`relative group/cell px-1.5 py-1 rounded-md transition-all ${
+        readOnly
+          ? 'cursor-default select-text'
+          : 'cursor-text hover:bg-amber-500/10 dark:hover:bg-amber-500/15 border border-transparent hover:border-amber-500/30'
+      } min-h-[28px] flex items-center ${
         align === 'right' ? 'justify-end' : align === 'left' ? 'justify-start' : 'justify-center'
       } ${
         isEditing
           ? 'bg-white dark:bg-slate-900 ring-2 ring-amber-500 shadow-xs'
-          : 'hover:bg-amber-500/10 dark:hover:bg-amber-500/15 border border-transparent hover:border-amber-500/30'
+          : ''
       } ${className}`}
-      title="Klik untuk langsung mengedit sel ini"
+      title={readOnly ? undefined : "Klik untuk langsung mengedit sel ini"}
     >
       {isEditing ? (
         <input
@@ -171,7 +180,11 @@ export default function ListStokLahanView({
   initialCategory = 'BK',
   refreshTrigger = 0,
   chartsData,
+  isAdmin: propIsAdmin,
 }: ListStokLahanViewProps) {
+  const { isAdmin: authIsAdmin } = useAuth();
+  const isAdmin = propIsAdmin !== undefined ? propIsAdmin : authIsAdmin;
+
   const [activeCategory, setActiveCategory] = useState<string>(initialCategory);
   const [chartStage, setChartStage] = useState<'BK' | 'BJK' | 'SN' | 'ALL'>('ALL');
   const [internalChartsData, setInternalChartsData] = useState<any>(chartsData || null);
@@ -1216,7 +1229,7 @@ export default function ListStokLahanView({
                         className={`sticky left-0 py-2 px-2 text-center font-mono text-[11px] text-slate-500 dark:text-slate-400 border-r border-b border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900 group-hover:bg-cyan-50/80 dark:group-hover:bg-slate-800 transition-colors w-[55px] min-w-[55px] max-w-[55px] overflow-visible relative ${
                           hoveredNoLandId === land.id ? 'z-40' : 'z-10'
                         }`}
-                        onMouseEnter={() => handleNoMouseEnter(land.id)}
+                        onMouseEnter={() => isAdmin && handleNoMouseEnter(land.id)}
                         onMouseLeave={handleNoMouseLeave}
                       >
                         <div className="relative flex items-center justify-center w-full h-full min-h-[20px]">
@@ -1224,8 +1237,8 @@ export default function ListStokLahanView({
                             {rowNumber}
                           </span>
 
-                          {/* Floating Action Popup on Hover (Undo / Reset & Hapus) */}
-                          {hoveredNoLandId === land.id && (
+                          {/* Floating Action Popup on Hover (Undo / Reset & Hapus) - Khusus Admin */}
+                          {isAdmin && hoveredNoLandId === land.id && (
                             <div
                               className="absolute left-[36px] top-1/2 -translate-y-1/2 z-50 flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-lg px-1.5 py-1 select-none animate-in fade-in zoom-in-95 duration-150 before:content-[''] before:absolute before:-left-3 before:top-0 before:w-3 before:h-full cursor-default"
                               onMouseEnter={() => handleNoMouseEnter(land.id)}
@@ -1275,6 +1288,7 @@ export default function ListStokLahanView({
                           field="wilayah"
                           value={land.wilayah}
                           align="center"
+                          readOnly={!isAdmin}
                           onSave={handleCellSave}
                           isSaving={savingCells[`${land.id}-wilayah`]}
                           isSaved={savedCells[`${land.id}-wilayah`]}
@@ -1299,6 +1313,7 @@ export default function ListStokLahanView({
                           type="number"
                           step="0.01"
                           align="center"
+                          readOnly={!isAdmin}
                           formatDisplay={(val) => (val !== null && val !== undefined && val !== '' ? Number(val).toFixed(2) : '-')}
                           onSave={handleCellSave}
                           isSaving={savingCells[`${land.id}-luasBruto`]}
@@ -1315,6 +1330,7 @@ export default function ListStokLahanView({
                           type="number"
                           step="0.01"
                           align="center"
+                          readOnly={!isAdmin}
                           formatDisplay={(val) => (val !== null && val !== undefined && val !== '' ? Number(val).toFixed(2) : '-')}
                           onSave={handleCellSave}
                           isSaving={savingCells[`${land.id}-luasNetto`]}
@@ -1329,6 +1345,7 @@ export default function ListStokLahanView({
                           field="status"
                           value={land.status}
                           align="center"
+                          readOnly={!isAdmin}
                           onSave={handleCellSave}
                           isSaving={savingCells[`${land.id}-status`]}
                           isSaved={savedCells[`${land.id}-status`]}
@@ -1342,6 +1359,7 @@ export default function ListStokLahanView({
                           field="eks"
                           value={land.eks}
                           align="center"
+                          readOnly={!isAdmin}
                           onSave={handleCellSave}
                           isSaving={savingCells[`${land.id}-eks`]}
                           isSaved={savedCells[`${land.id}-eks`]}
@@ -1355,6 +1373,7 @@ export default function ListStokLahanView({
                           field="sejarah"
                           value={land.sejarah}
                           align="center"
+                          readOnly={!isAdmin}
                           onSave={handleCellSave}
                           isSaving={savingCells[`${land.id}-sejarah`]}
                           isSaved={savedCells[`${land.id}-sejarah`]}
@@ -1370,6 +1389,7 @@ export default function ListStokLahanView({
                           type="number"
                           step="0.01"
                           align="center"
+                          readOnly={!isAdmin}
                           formatDisplay={(val) => (val !== null && val !== undefined && val !== '' ? String(val) : '-')}
                           onSave={handleCellSave}
                           isSaving={savingCells[`${land.id}-phBk`]}
@@ -1386,6 +1406,7 @@ export default function ListStokLahanView({
                           type="number"
                           step="0.01"
                           align="center"
+                          readOnly={!isAdmin}
                           formatDisplay={(val) => (val !== null && val !== undefined && val !== '' ? String(val) : '-')}
                           onSave={handleCellSave}
                           isSaving={savingCells[`${land.id}-phSn`]}
@@ -1467,8 +1488,8 @@ export default function ListStokLahanView({
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {landToDelete && (
+      {/* Delete Confirmation Modal - Khusus Admin */}
+      {isAdmin && landToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 space-y-4">
             <div className="flex items-center gap-3">

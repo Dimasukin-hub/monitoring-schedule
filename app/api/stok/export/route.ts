@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import * as xlsx from 'xlsx';
+import ExcelJS from 'exceljs';
 
 export async function GET(request: Request) {
   try {
@@ -50,47 +50,105 @@ export async function GET(request: Request) {
       SELESAI: 'Selesai Tanam',
     };
 
-    const rows: any[] = allLands.map((l, idx) => ({
-      'NO': idx + 1,
-      'Wilayah': l.wilayah,
-      'Lokasi': l.lokasi,
-      'Luas Bruto (Ha)': l.luasBruto ? Number(l.luasBruto.toFixed(2)) : 0,
-      'Luas Netto (Ha)': l.luasNetto ? Number(l.luasNetto.toFixed(2)) : 0,
-      'Status': l.status ? l.status.replace(/\d+/g, '').trim() : '',
-      'Eks': l.eks || '',
-      'Sejarah': l.sejarah || '',
-      'pH BK': l.phBk ?? '',
-      'pH SN': l.phSn ?? '',
-      'Aktivitas Terakhir': l.aplikasiTerakhir || 'Tahap Bongkar',
-      'Kategori Stok': catLabelMap[l.category || 'BK'] || l.category || 'BK',
-    }));
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(`Stok Lahan ${category}`, {
+      views: [{ state: 'frozen', ySplit: 1 }],
+    });
 
-    const worksheet = xlsx.utils.json_to_sheet(rows);
-    const workbook = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(workbook, worksheet, `Stok Lahan ${category}`);
-
-    // Auto column widths
-    const colWidths = [
-      { wch: 6 },  // NO
-      { wch: 10 }, // Wilayah
-      { wch: 12 }, // Lokasi
-      { wch: 16 }, // Luas Bruto
-      { wch: 16 }, // Luas Netto
-      { wch: 12 }, // Status
-      { wch: 10 }, // Eks
-      { wch: 22 }, // Sejarah
-      { wch: 10 }, // pH BK
-      { wch: 10 }, // pH SN
-      { wch: 22 }, // Aktivitas Terakhir
-      { wch: 26 }, // Kategori Stok
+    const columns = [
+      { header: 'No', key: 'no' },
+      { header: 'Wilayah', key: 'wilayah' },
+      { header: 'Lokasi', key: 'lokasi' },
+      { header: 'Luas Bruto (Ha)', key: 'luasBruto' },
+      { header: 'Luas Netto (Ha)', key: 'luasNetto' },
+      { header: 'Status', key: 'status' },
+      { header: 'Eks', key: 'eks' },
+      { header: 'Sejarah', key: 'sejarah' },
+      { header: 'pH BK', key: 'phBk' },
+      { header: 'pH SN', key: 'phSn' },
+      { header: 'Aktivitas Terakhir', key: 'aplikasiTerakhir' },
+      { header: 'Kategori Stok', key: 'category' },
     ];
-    worksheet['!cols'] = colWidths;
 
-    const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    worksheet.columns = columns;
 
+    // Header styling
+    const headerRow = worksheet.getRow(1);
+    headerRow.height = 26;
+    headerRow.eachCell((cell) => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFD9E1F2' }, // Soft Corporate Light Blue
+      };
+      cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF1F4E79' } };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FF9CB4D8' } },
+        bottom: { style: 'medium', color: { argb: 'FF5B84B1' } },
+        left: { style: 'thin', color: { argb: 'FF9CB4D8' } },
+        right: { style: 'thin', color: { argb: 'FF9CB4D8' } },
+      };
+    });
+
+    // Populate data rows
+    allLands.forEach((l, idx) => {
+      const row = worksheet.addRow({
+        no: idx + 1,
+        wilayah: l.wilayah,
+        lokasi: l.lokasi,
+        luasBruto: l.luasBruto ? parseFloat(l.luasBruto.toFixed(2)) : 0,
+        luasNetto: l.luasNetto ? parseFloat(l.luasNetto.toFixed(2)) : 0,
+        status: l.status ? l.status.replace(/\d+/g, '').trim() : '',
+        eks: l.eks || '-',
+        sejarah: l.sejarah || '-',
+        phBk: l.phBk ?? '-',
+        phSn: l.phSn ?? '-',
+        aplikasiTerakhir: l.aplikasiTerakhir || 'Tahap Bongkar',
+        category: catLabelMap[l.category || 'BK'] || l.category || 'BK',
+      });
+      row.height = 20;
+
+      const isOdd = idx % 2 === 1;
+      row.eachCell((cell) => {
+        cell.font = { name: 'Calibri', size: 9.5 };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        };
+        if (isOdd) {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF8FAFC' },
+          };
+        }
+      });
+    });
+
+    // AutoFilter
+    worksheet.autoFilter = {
+      from: { row: 1, column: 1 },
+      to: { row: allLands.length + 1, column: columns.length },
+    };
+
+    // Auto-fit column width
+    worksheet.columns.forEach((column) => {
+      let maxLen = 0;
+      column.eachCell?.({ includeEmpty: true }, (cell) => {
+        const val = cell.value ? String(cell.value) : '';
+        if (val.length > maxLen) maxLen = val.length;
+      });
+      column.width = Math.min(Math.max(maxLen + 3, 9), 28);
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
     const filename = `Stok_Lahan_${category}_${new Date().toISOString().slice(0, 10)}.xlsx`;
 
-    return new NextResponse(buffer, {
+    return new NextResponse(Buffer.from(buffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

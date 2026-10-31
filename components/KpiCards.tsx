@@ -419,18 +419,30 @@ export default function KpiCards({
         const targetMonths = selectedMonths.length === 0 ? [currentMonthName] : selectedMonths;
 
         if (internalMonthStr === 'ALL') {
-          const decRecord = breakdown.find((r) => r.monthIndex === 12) || breakdown[breakdown.length - 1];
           let totalBongkar = 0;
           let totalBajak = 0;
           let totalSn = 0;
           let totalTanam = 0;
+          let sumStokBongkar = 0;
+          let sumStokBajak = 0;
+          let sumStokSN = 0;
+
           for (const r of breakdown) {
             totalBongkar += r.bongkar;
             totalBajak += r.bajak;
             totalSn += r.sn;
             totalTanam += r.tanam;
+            sumStokBongkar += r.stokBongkar;
+            sumStokBajak += r.stokBajak;
+            sumStokSN += r.stokSN;
           }
+
+          sumStokBongkar = Math.round(sumStokBongkar * 100) / 100;
+          sumStokBajak = Math.round(sumStokBajak * 100) / 100;
+          sumStokSN = Math.round(sumStokSN * 100) / 100;
+          const sumTotalStok = Math.round((sumStokBongkar + sumStokBajak + sumStokSN) * 100) / 100;
           const totalLahan = totalBongkar + totalBajak + totalSn + totalTanam;
+
           return {
             year: internalYear,
             month: 'ALL',
@@ -445,10 +457,22 @@ export default function KpiCards({
                 tanam: Math.round(totalTanam * 100) / 100,
               },
             },
-            stokBongkar: { value: decRecord.stokBongkar, formula: decRecord.stokBongkarFormula || '' },
-            stokBajak: { value: decRecord.stokBajak, formula: decRecord.stokBajakFormula || '' },
-            stokSN: { value: decRecord.stokSN, formula: decRecord.stokSNFormula || '' },
-            totalStok: { value: decRecord.totalStok, formula: '' },
+            stokBongkar: {
+              value: sumStokBongkar,
+              formula: `Akumulasi Stok Bongkar (Jan - Des): ${sumStokBongkar.toFixed(2)} Ha`,
+            },
+            stokBajak: {
+              value: sumStokBajak,
+              formula: `Akumulasi Stok Bajak (Jan - Des): ${sumStokBajak.toFixed(2)} Ha`,
+            },
+            stokSN: {
+              value: sumStokSN,
+              formula: `Akumulasi Stok Siap Tanam (Jan - Des): ${sumStokSN.toFixed(2)} Ha`,
+            },
+            totalStok: {
+              value: sumTotalStok,
+              formula: `Bongkar (${sumStokBongkar.toFixed(2)}) + Bajak (${sumStokBajak.toFixed(2)}) + SN (${sumStokSN.toFixed(2)})`,
+            },
             monthlyBreakdown: breakdown,
             availableYears: AVAILABLE_STOK_YEARS,
             availableMonths: ALL_MONTH_NAMES,
@@ -458,11 +482,12 @@ export default function KpiCards({
         const filtered = breakdown.filter((r) => targetMonths.includes(r.month));
         if (filtered.length > 0) {
           filtered.sort((a, b) => a.monthIndex - b.monthIndex);
-          const latestItem = filtered[filtered.length - 1];
+
           let totalBongkar = 0;
           let totalBajak = 0;
           let totalSn = 0;
           let totalTanam = 0;
+
           for (const item of filtered) {
             totalBongkar += item.bongkar;
             totalBajak += item.bajak;
@@ -470,10 +495,53 @@ export default function KpiCards({
             totalTanam += item.tanam;
           }
           const totalMonthLahan = totalBongkar + totalBajak + totalSn + totalTanam;
+
+          if (filtered.length === 1) {
+            const singleItem = filtered[0];
+            return {
+              year: internalYear,
+              month: targetMonths.join(','),
+              monthLabel: `${singleItem.month} ${internalYear}`,
+              stokLahan: {
+                value: Math.round(totalMonthLahan * 100) / 100,
+                formula: `Bongkar (${totalBongkar.toFixed(2)}) + Bajak (${totalBajak.toFixed(2)}) + SN (${totalSn.toFixed(2)}) + Tanam (${totalTanam.toFixed(2)})`,
+                details: {
+                  bongkar: Math.round(totalBongkar * 100) / 100,
+                  bajak: Math.round(totalBajak * 100) / 100,
+                  sn: Math.round(totalSn * 100) / 100,
+                  tanam: Math.round(totalTanam * 100) / 100,
+                },
+              },
+              stokBongkar: { value: singleItem.stokBongkar, formula: singleItem.stokBongkarFormula || '' },
+              stokBajak: { value: singleItem.stokBajak, formula: singleItem.stokBajakFormula || '' },
+              stokSN: { value: singleItem.stokSN, formula: singleItem.stokSNFormula || '' },
+              totalStok: { value: singleItem.totalStok, formula: '' },
+              monthlyBreakdown: breakdown,
+              availableYears: AVAILABLE_STOK_YEARS,
+              availableMonths: ALL_MONTH_NAMES,
+            };
+          }
+
+          // Multi-month selection (filtered.length > 1)
+          let sumStokBongkar = 0;
+          let sumStokBajak = 0;
+          let sumStokSN = 0;
+
+          for (const item of filtered) {
+            sumStokBongkar += item.stokBongkar;
+            sumStokBajak += item.stokBajak;
+            sumStokSN += item.stokSN;
+          }
+
+          sumStokBongkar = Math.round(sumStokBongkar * 100) / 100;
+          sumStokBajak = Math.round(sumStokBajak * 100) / 100;
+          sumStokSN = Math.round(sumStokSN * 100) / 100;
+          const sumTotalStok = Math.round((sumStokBongkar + sumStokBajak + sumStokSN) * 100) / 100;
+
           return {
             year: internalYear,
             month: targetMonths.join(','),
-            monthLabel: filtered.length === 1 ? `${filtered[0].month} ${internalYear}` : `${filtered.length} Bulan`,
+            monthLabel: `${filtered.length} Bulan`,
             stokLahan: {
               value: Math.round(totalMonthLahan * 100) / 100,
               formula: `Bongkar (${totalBongkar.toFixed(2)}) + Bajak (${totalBajak.toFixed(2)}) + SN (${totalSn.toFixed(2)}) + Tanam (${totalTanam.toFixed(2)})`,
@@ -484,10 +552,22 @@ export default function KpiCards({
                 tanam: Math.round(totalTanam * 100) / 100,
               },
             },
-            stokBongkar: { value: latestItem.stokBongkar, formula: latestItem.stokBongkarFormula || '' },
-            stokBajak: { value: latestItem.stokBajak, formula: latestItem.stokBajakFormula || '' },
-            stokSN: { value: latestItem.stokSN, formula: latestItem.stokSNFormula || '' },
-            totalStok: { value: latestItem.totalStok, formula: '' },
+            stokBongkar: {
+              value: sumStokBongkar,
+              formula: `Akumulasi Stok Bongkar (${filtered.length} Bulan): ${sumStokBongkar.toFixed(2)} Ha`,
+            },
+            stokBajak: {
+              value: sumStokBajak,
+              formula: `Akumulasi Stok Bajak (${filtered.length} Bulan): ${sumStokBajak.toFixed(2)} Ha`,
+            },
+            stokSN: {
+              value: sumStokSN,
+              formula: `Akumulasi Stok Siap Tanam (${filtered.length} Bulan): ${sumStokSN.toFixed(2)} Ha`,
+            },
+            totalStok: {
+              value: sumTotalStok,
+              formula: `Bongkar (${sumStokBongkar.toFixed(2)}) + Bajak (${sumStokBajak.toFixed(2)}) + SN (${sumStokSN.toFixed(2)})`,
+            },
             monthlyBreakdown: breakdown,
             availableYears: AVAILABLE_STOK_YEARS,
             availableMonths: ALL_MONTH_NAMES,

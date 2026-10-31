@@ -241,3 +241,125 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// ==========================================
+// MODUL GORONG-GORONG & MASTER DATA TERPADU
+// ==========================================
+
+model MasterStatusLokasi {
+  id               Int       @id @default(autoincrement())
+  lokasi           String    @unique
+  wil              String?
+  strucPlant       String?
+  statusLengkap    String?
+  status           String?   // LEFT(statusLengkap, 4)
+  luasBruto        Float?
+  luasAktif        Float?
+  luasNetto        Float?
+  bibit            String?
+  kelas            String?   // dari Jenis & Kelas.xlsx (S, M, K, dll.)
+  jenis            String?   // dari Jenis & Kelas.xlsx (SC, CR, dll.)
+  perubahanSts     String?
+  tglRawat         DateTime?
+  hari             Int?
+  bulan            Int?
+  umurRawat        Int?      // = umurBulan
+  umurBulan        Int?
+  forcingStd       DateTime? // tglRawat + hariForcing
+  forcingProd2026  DateTime? // dari Update Produksi 2026 Kolom V
+  forcing2027      DateTime? // dari update prod 2027 Kolom S
+  ketForcing2027   String?   // dari update prod 2027 Kolom O: 'real' | 'rcn'
+  fixForcing       DateTime? // IF(forcingProd2026 != null, forcingProd2026, forcingStd)
+  forcingGabungan  DateTime? // IF(forcing2027 != null, forcing2027, forcingProd2026)
+  umurFStd         Int?
+  umurFProd        Int?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([wil])
+  @@index([status])
+  @@index([bibit])
+  @@index([kelas])
+  @@index([jenis])
+}
+
+model MasterWaterlogging {
+  id         Int      @id @default(autoincrement())
+  no         Int?
+  pg         String?  @default("PG1")
+  wilayah    String?
+  lokasi     String
+  luasHa     Float?
+  komoditas  String?
+  bulanDsmBk String?
+  tahunDsmBk Int?
+  dsmbkPlot  String?  // Kolom J Monitor Gorong2 (DSM BK)
+  dryBk      String?
+  bulanDsmSt String?
+  tahunDsmSt Int?
+  dsmPlot    String?  // Kolom K Monitor Gorong2 (DSM ST)
+  drySt      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([lokasi])
+  @@index([wilayah])
+  @@index([dsmbkPlot])
+  @@index([dsmPlot])
+}
+
+model MasterSapGorongGorong {
+  id                Int      @id @default(autoincrement())
+  lokasi            String   // Kolom A / Kolom S
+  wilayahSap        String?  // Kolom B (AP1, dll.)
+  plantCostCenter   String?  // Kolom C (PSALPG1)
+  statusTanaman     String?  // Kolom D (SLDA)
+  spkId             String?  // Kolom E (SPK007978176)
+  pasDocument       String?  // Kolom F (LKB001086070)
+  tanggalRealisasi  DateTime // Kolom G (Tanggal)
+  deskripsiKegiatan String?  // Kolom H (Bantu pasang gorong2)
+  deskripsiBahan    String   // Kolom I (GORONG-GORONG;Ø40CM...)
+  jenisData         String?  // Kolom J (Material)
+  kodeBahan         String?  // Kolom K (SSPA0204162)
+  qty               Int      @default(0) // Kolom L (Jumlah terpasang)
+  hasilEfektif      Float?   // Kolom M (0.4)
+  totalBiaya        Float?   // Kolom N (4150000)
+  penanggungJawab   String?  // Kolom O (Wilayah 4)
+  waktuPelaksanaan  Float?   // Kolom P (Time)
+  air               Float?   @default(0) // Kolom Q
+  jumlahAir         Float?   @default(0) // Kolom R
+  referensiLokasi   String?  // Kolom S (048G2)
+  diameter          Int      // Helper auto-detect: 40, 60, 80, 100
+  fileName          String?
+  uploadedBy        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([lokasi])
+  @@index([diameter])
+  @@index([spkId])
+  @@index([pasDocument])
+  @@index([tanggalRealisasi])
+}
+
+model TransaksiGorongGorong {
+  id             Int      @id @default(autoincrement())
+  jenisTransaksi String   // "ORDER" | "DROP" | "PASANG_MANUAL"
+  lokasi         String
+  wilayah        String?
+  tanggal        DateTime @default(now())
+  qtyD40         Int      @default(0) // Max 3 digit: 0-999
+  qtyD60         Int      @default(0) // Max 3 digit: 0-999
+  qtyD80         Int      @default(0) // Max 3 digit: 0-999
+  qtyD100        Int      @default(0) // Max 3 digit: 0-999
+  keterangan     String?
+  createdBy      String?  // Username penginput
+  userRole       String?  // "USER_WILAYAH" | "ADMIN"
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([lokasi])
+  @@index([jenisTransaksi])
+  @@index([tanggal])
+  @@index([wilayah])
+}

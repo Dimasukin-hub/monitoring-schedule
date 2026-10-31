@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import * as xlsx from 'xlsx';
+import ExcelJS from 'exceljs';
 import { computeAktivitasTerakhir, computeRencanaBeroBongkar } from '@/lib/landActivityUtils';
 
 function parseParamArray(searchParams: URLSearchParams, key: string): string[] {
@@ -496,66 +496,82 @@ export async function GET(request: Request) {
       });
     }
 
-    const worksheet = xlsx.utils.json_to_sheet(rows);
-
-    // Auto-calculate generous column widths so data and headers are completely neat & not truncated
     const colKeys = Object.keys(rows[0] || {});
-    const colWidths = colKeys.map((key) => {
-      let maxLen = key.length;
-      for (const row of rows) {
-        const val = row[key];
-        if (val !== null && val !== undefined) {
-          const str = String(val);
-          if (str.length > maxLen) maxLen = str.length;
-        }
-      }
-      // Give comfortable padding for filter arrows and numbers
-      return { wch: Math.max(maxLen + 4, 12) };
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Data Lahan', {
+      views: [{ state: 'frozen', ySplit: 1 }],
     });
-    worksheet['!cols'] = colWidths;
 
-    // Enable Excel AutoFilter dropdown on the header row
-    if (worksheet['!ref']) {
-      worksheet['!autofilter'] = { ref: worksheet['!ref'] };
-    }
+    worksheet.columns = colKeys.map((key) => ({
+      header: key,
+      key,
+    }));
 
-    // Freeze header row and freeze Wilayah & Lokasi columns (state: frozen)
-    worksheet['!views'] = [
-      { state: 'frozen', xSplit: 2, ySplit: 1, topLeftCell: 'C2', activeCell: 'A1' },
-    ];
+    // Header styling: Background Biru Muda (#D9E1F2), Bold, Center Alignment
+    const headerRow = worksheet.getRow(1);
+    headerRow.height = 26;
+    headerRow.eachCell((cell) => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFD9E1F2' }, // Soft Corporate Light Blue
+      };
+      cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF1F4E79' } };
+      cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FF9CB4D8' } },
+        bottom: { style: 'medium', color: { argb: 'FF5B84B1' } },
+        left: { style: 'thin', color: { argb: 'FF9CB4D8' } },
+        right: { style: 'thin', color: { argb: 'FF9CB4D8' } },
+      };
+    });
 
-    // Format header row height and data row heights
-    worksheet['!rows'] = [{ hpt: 26 }];
+    // Populate data rows with center alignment and clean borders
+    rows.forEach((rowData, idx) => {
+      const row = worksheet.addRow(rowData);
+      row.height = 20;
 
-    // Format number cells (Luas & pH with 2 decimal places, Progress with %)
-    if (worksheet['!ref']) {
-      const range = xlsx.utils.decode_range(worksheet['!ref']);
-      for (let C = range.s.c; C <= range.e.c; ++C) {
-        const colHeader = colKeys[C];
-        for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-          const cellAddress = xlsx.utils.encode_cell({ r: R, c: C });
-          const cell = worksheet[cellAddress];
-          if (!cell) continue;
-          if (colHeader && (colHeader.includes('Luas') || colHeader.includes('pH'))) {
-            if (cell.t === 'n') {
-              cell.z = '0.00';
-            }
-          } else if (colHeader && colHeader.includes('Progress')) {
-            if (cell.t === 'n') {
-              cell.z = '0"%"';
-            }
-          }
+      const isOdd = idx % 2 === 1;
+      row.eachCell((cell) => {
+        cell.font = { name: 'Calibri', size: 9.5 };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        };
+        if (isOdd) {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF8FAFC' },
+          };
         }
-      }
-    }
+      });
+    });
 
-    const workbook = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(workbook, worksheet, 'Data Lahan');
+    // Aktifkan Filter Otomatis
+    worksheet.autoFilter = {
+      from: { row: 1, column: 1 },
+      to: { row: rows.length + 1, column: colKeys.length },
+    };
 
-    const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    // Sesuaikan ukuran lebar kolom dengan isian selnya
+    worksheet.columns.forEach((column) => {
+      let maxLen = 0;
+      column.eachCell?.({ includeEmpty: true }, (cell) => {
+        const val = cell.value !== null && cell.value !== undefined ? String(cell.value) : '';
+        if (val.length > maxLen) maxLen = val.length;
+      });
+      column.width = Math.min(Math.max(maxLen + 3, 10), 30);
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
     const filename = `Data_Lahan_${new Date().toISOString().slice(0, 10)}.xlsx`;
 
-    return new NextResponse(buffer, {
+    return new NextResponse(Buffer.from(buffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

@@ -11,6 +11,8 @@ import {
   Menu,
   ChevronRight,
   CalendarCheck,
+  ClipboardList,
+  Database,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -60,6 +62,20 @@ export default function Sidebar({
       icon: CalendarCheck,
       desc: 'Real Tanam Nanas & Proses Tanam',
       colorTheme: 'green',
+    },
+    {
+      id: 'order_wilayah',
+      label: 'Order Wilayah',
+      icon: ClipboardList,
+      desc: 'Order Gorong-Gorong & Sulam Bibit',
+      colorTheme: 'orange',
+    },
+    {
+      id: 'master_data',
+      label: 'Master Data',
+      icon: Database,
+      desc: 'Status Lokasi, Waterlogging, Realisasi SAP',
+      colorTheme: 'blue',
     },
   ];
 

@@ -629,6 +629,9 @@ export default function LandTable({
   selectedPeriod,
   searchQuery,
 }: LandTableProps) {
+  const { isAdmin: authIsAdmin } = useAuth();
+  const isAdmin = propIsAdmin !== undefined ? propIsAdmin : authIsAdmin;
+
   const [lands, setLands] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
@@ -3372,7 +3375,7 @@ export default function LandTable({
                       className={`sticky left-0 w-[50px] min-w-[50px] max-w-[50px] overflow-visible py-1 px-0.5 font-mono text-[10px] text-slate-400 dark:text-slate-500 border-r border-b border-slate-200 dark:border-slate-800/60 text-center align-middle bg-white dark:bg-slate-900 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors relative ${
                         hoveredNoLandId === land.id ? 'z-40' : 'z-10'
                       }`}
-                      onMouseEnter={() => handleNoMouseEnter(land.id)}
+                      onMouseEnter={() => isAdmin && handleNoMouseEnter(land.id)}
                       onMouseLeave={handleNoMouseLeave}
                     >
                       <div className="relative flex items-center justify-center w-full h-full min-h-[20px]">
@@ -3380,8 +3383,8 @@ export default function LandTable({
                           {rowNumber}
                         </span>
 
-                        {/* Floating Action Popup on Hover (Undo / Ctrl+Z & Hapus) */}
-                        {hoveredNoLandId === land.id && (
+                        {/* Floating Action Popup on Hover (Undo / Ctrl+Z & Hapus) - Khusus Admin */}
+                        {isAdmin && hoveredNoLandId === land.id && (
                           <div
                             className="absolute left-[36px] top-1/2 -translate-y-1/2 z-50 flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-lg px-1.5 py-1 select-none animate-in fade-in zoom-in-95 duration-150 before:content-[''] before:absolute before:-left-3 before:top-0 before:w-3 before:h-full cursor-default"
                             onMouseEnter={() => handleNoMouseEnter(land.id)}
@@ -3951,8 +3954,8 @@ export default function LandTable({
         availableBulanTanams={filters.bulanTanam}
       />
 
-      {/* Modal Konfirmasi Hapus Data Lahan */}
-      {landToDelete && (
+      {/* Modal Konfirmasi Hapus Data Lahan - Khusus Admin */}
+      {isAdmin && landToDelete && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150"
           onClick={() => !isDeleting && setLandToDelete(null)}

@@ -22,14 +22,57 @@ import ListLokasiProsesTanamTable from '@/components/ListLokasiProsesTanamTable'
 import QuickUpdateTanamView from '@/components/QuickUpdateTanamView';
 import InputRealTanamPetikView from '@/components/InputRealTanamPetikView';
 import UserManagementView from '@/components/UserManagementView';
+import MonitorGorongGorongView from '@/components/MonitorGorongGorongView';
+import FormOrderGorongGorongView from '@/components/FormOrderGorongGorongView';
+import OrderSulamBibitView from '@/components/OrderSulamBibitView';
+import MasterStatusLokasiView from '@/components/MasterStatusLokasiView';
+import MasterWaterloggingView from '@/components/MasterWaterloggingView';
+import MasterSapUploadView from '@/components/MasterSapUploadView';
+import PortalLandingView from '@/components/PortalLandingView';
 import { useAuth } from '@/components/AuthProvider';
 
 export default function DashboardPage() {
   const { user, isAdmin, isUser } = useAuth();
+
+  // Portal State: 'landing' (pilih portal), 'labita' (Portal Labita), atau 'gorong_gorong' (Portal Gorong-Gorong)
+  const [selectedPortal, setSelectedPortal] = useState<'landing' | 'labita' | 'gorong_gorong'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('ggf_selected_portal');
+      if (saved === 'labita' || saved === 'gorong_gorong') return saved;
+    }
+    return 'landing';
+  });
+
+  const handleSelectPortal = (portal: 'labita' | 'gorong_gorong') => {
+    setSelectedPortal(portal);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('ggf_selected_portal', portal);
+    }
+    if (portal === 'labita') {
+      setActiveTab('executive_summary');
+    } else {
+      setActiveTab('monitor_gorong_gorong');
+    }
+  };
+
+  const handleSwitchPortal = (target: 'labita' | 'gorong_gorong' | 'landing') => {
+    setSelectedPortal(target);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('ggf_selected_portal', target);
+    }
+    if (target === 'labita') {
+      setActiveTab('executive_summary');
+    } else if (target === 'gorong_gorong') {
+      setActiveTab('monitor_gorong_gorong');
+    }
+  };
+
   const [activeTab, setActiveTab] = useState<string>('executive_summary');
   const [executiveSubTab, setExecutiveSubTab] = useState<string>('pengolahan_lahan');
   const [pengolahanSubTab, setPengolahanSubTab] = useState<string>('list_stok_lahan');
   const [plantingSubTab, setPlantingSubTab] = useState<string>('real_tanam_nanas');
+  const [orderWilayahSubTab, setOrderWilayahSubTab] = useState<string>('order_gorong_gorong');
+  const [masterDataSubTab, setMasterDataSubTab] = useState<string>('master_status_lokasi');
   const [selectedWilayah, setSelectedWilayah] = useState<string>('ALL');
   const [prosesTanamWilayah, setProsesTanamWilayah] = useState<string>('ALL');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('LATEST');
@@ -127,7 +170,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!isAdmin) {
-      if (activeTab === 'user_management') {
+      if (activeTab === 'user_management' || activeTab === 'master_data') {
         setActiveTab('executive_summary');
       }
       if (activeTab === 'planting' && plantingSubTab === 'update') {
@@ -164,6 +207,25 @@ export default function DashboardPage() {
         const sub = subTitles[plantingSubTab];
         return sub ? `Planting • ${sub}` : 'Planting';
       }
+      case 'monitor_gorong_gorong':
+        return 'Monitor Gorong-Gorong PG1';
+      case 'order_wilayah': {
+        const subTitles: Record<string, string> = {
+          order_gorong_gorong: 'Order Gorong-Gorong',
+          order_sulam_bibit: 'Order Sulam Bibit',
+        };
+        const sub = subTitles[orderWilayahSubTab];
+        return sub ? `Order Wilayah • ${sub}` : 'Order Wilayah';
+      }
+      case 'master_data': {
+        const subTitles: Record<string, string> = {
+          master_status_lokasi: 'Master Status Lokasi',
+          master_waterlogging: 'Master Waterlogging',
+          master_sap: 'Upload Realisasi SAP',
+        };
+        const sub = subTitles[masterDataSubTab];
+        return sub ? `Master Data • ${sub}` : 'Master Data';
+      }
       case 'user_management':
         return 'Manajemen User';
       default:
@@ -171,10 +233,17 @@ export default function DashboardPage() {
     }
   };
 
+  // Jika sedang berada di Landing Page Pemilihan Portal
+  if (selectedPortal === 'landing') {
+    return <PortalLandingView onSelectPortal={handleSelectPortal} />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-700 dark:selection:text-emerald-200 transition-colors duration-200">
       {/* Top Header with Brand, Controls, Main Menu Navigation & Sub-Menu Navigation */}
       <Header
+        currentPortal={selectedPortal}
+        onSwitchPortal={handleSwitchPortal}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         executiveSubTab={executiveSubTab}
@@ -183,6 +252,10 @@ export default function DashboardPage() {
         setPengolahanSubTab={setPengolahanSubTab}
         plantingSubTab={plantingSubTab}
         setPlantingSubTab={setPlantingSubTab}
+        orderWilayahSubTab={orderWilayahSubTab}
+        setOrderWilayahSubTab={setOrderWilayahSubTab}
+        masterDataSubTab={masterDataSubTab}
+        setMasterDataSubTab={setMasterDataSubTab}
         activeTabTitle={getTabTitle()}
         selectedWilayah={selectedWilayah}
         setSelectedWilayah={setSelectedWilayah}
@@ -340,6 +413,13 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* ========================================================================= */}
+        {/* PORTAL MONITOR GORONG-GORONG (MENU MONITOR GORONG-GORONG)                */}
+        {/* ========================================================================= */}
+        <div className={activeTab === 'monitor_gorong_gorong' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
+          <MonitorGorongGorongView />
+        </div>
+
         {/* 3. MENU: PLANTING (Dengan 3 Sub-Menu: Real Tanam Nanas, Input Real Tanam Petik & Proses/Selesai Tanam) */}
         <div className={activeTab === 'planting' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
           {/* 3.1 SUB MENU: REAL TANAM NANAS (Keep-Alive agar tabel dan filter tidak reset saat berpindah sub-menu) */}
@@ -348,6 +428,7 @@ export default function DashboardPage() {
               onOpenLand={(lokasi) => setSelectedLandId(lokasi)}
               refreshTrigger={refreshLandTrigger}
               isAdmin={isAdmin}
+              isActive={plantingSubTab === 'real_tanam_nanas'}
               initialSearch={plantingSearchQuery}
               onDataChanged={handleSilentDataChanged}
               onSearchChange={(q) => {
@@ -384,7 +465,40 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* 5. MENU: MANAJEMEN USER (Khusus Admin) */}
+        {/* 4. MENU: ORDER WILAYAH (Order Gorong-Gorong & Order Sulam Bibit) */}
+        <div className={activeTab === 'order_wilayah' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
+          {/* 4.1 SUB MENU: ORDER GORONG-GORONG */}
+          <div className={orderWilayahSubTab === 'order_gorong_gorong' ? 'block' : 'hidden'}>
+            <FormOrderGorongGorongView />
+          </div>
+
+          {/* 4.2 SUB MENU: ORDER SULAM BIBIT */}
+          <div className={orderWilayahSubTab === 'order_sulam_bibit' ? 'block' : 'hidden'}>
+            <OrderSulamBibitView />
+          </div>
+        </div>
+
+        {/* 5. MENU: MASTER DATA (Khusus Admin - Master Status Lokasi, Master Waterlogging, Upload Data Realisasi SAP) */}
+        {isAdmin && (
+          <div className={activeTab === 'master_data' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
+            {/* 5.1 SUB MENU: MASTER STATUS LOKASI */}
+            <div className={masterDataSubTab === 'master_status_lokasi' ? 'block' : 'hidden'}>
+              <MasterStatusLokasiView />
+            </div>
+
+            {/* 5.2 SUB MENU: MASTER WATERLOGGING */}
+            <div className={masterDataSubTab === 'master_waterlogging' ? 'block' : 'hidden'}>
+              <MasterWaterloggingView />
+            </div>
+
+            {/* 5.3 SUB MENU: UPLOAD DATA REALISASI SAP */}
+            <div className={masterDataSubTab === 'master_sap' ? 'block' : 'hidden'}>
+              <MasterSapUploadView />
+            </div>
+          </div>
+        )}
+
+        {/* 6. MENU: MANAJEMEN USER (Khusus Admin) */}
         {isAdmin && (
           <div className={activeTab === 'user_management' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
             <UserManagementView />

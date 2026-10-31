@@ -276,3 +276,26 @@ svg.recharts-surface:focus-visible {
 .dark .custom-scrollbar {
   scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
 }
+
+/* =========================================================================
+   OVERRIDE BROWSER AUTOFILL (HILANGKAN KOTAK PUTIH PADA USERNAME & PASSWORD)
+   ========================================================================= */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #f0f5ff inset !important;
+  -webkit-text-fill-color: #0f172a !important;
+  caret-color: #0f172a !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
+.dark input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #1e293b inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  transition: background-color 5000s ease-in-out 0s;
+}

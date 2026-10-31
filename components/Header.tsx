@@ -11,11 +11,22 @@ export interface MainMenuItem {
   label: string;
 }
 
-export const MAIN_MENU_ITEMS: MainMenuItem[] = [
+export const LABITA_MAIN_MENU_ITEMS: MainMenuItem[] = [
   { id: 'executive_summary', label: 'Executive Summary' },
   { id: 'pengolahan_lahan_bibit_tanam', label: 'Pengolahan Lahan' },
   { id: 'planting', label: 'Planting' },
   { id: 'user_management', label: 'Manajemen User' },
+];
+
+export const GORONG_GORONG_MAIN_MENU_ITEMS: MainMenuItem[] = [
+  { id: 'monitor_gorong_gorong', label: 'Monitor Gorong-Gorong' },
+  { id: 'order_wilayah', label: 'Order Wilayah' },
+  { id: 'master_data', label: 'Master Data' },
+];
+
+export const MAIN_MENU_ITEMS: MainMenuItem[] = [
+  ...LABITA_MAIN_MENU_ITEMS,
+  ...GORONG_GORONG_MAIN_MENU_ITEMS,
 ];
 
 export interface SubMenuItem {
@@ -38,6 +49,17 @@ export const PLANTING_SUB_MENUS: SubMenuItem[] = [
   { id: 'input_real_tanam_petik', label: 'Input Real Tanam & Petik Nanas' },
   { id: 'proses_selesai_tanam', label: 'Proses Tanam & Selesai Tanam' },
   { id: 'update', label: 'Update' },
+];
+
+export const ORDER_WILAYAH_SUB_MENUS: SubMenuItem[] = [
+  { id: 'order_gorong_gorong', label: 'Order Gorong-Gorong' },
+  { id: 'order_sulam_bibit', label: 'Order Sulam Bibit' },
+];
+
+export const MASTER_DATA_SUB_MENUS: SubMenuItem[] = [
+  { id: 'master_status_lokasi', label: 'Master Status Lokasi' },
+  { id: 'master_waterlogging', label: 'Master Waterlogging' },
+  { id: 'master_sap', label: 'Upload Data Realisasi SAP' },
 ];
 
 // Fallback alias
@@ -99,9 +121,38 @@ export const MENU_THEMES: Record<string, MenuThemeConfig> = {
     subActiveLine: 'bg-indigo-600 dark:bg-indigo-400',
     subHoverText: 'hover:text-indigo-600 dark:hover:text-indigo-300',
   },
+  order_wilayah: {
+    activeText: 'text-amber-700 dark:text-amber-300',
+    activeLine: 'bg-amber-600 dark:bg-amber-400',
+    hoverText: 'hover:text-amber-600 dark:hover:text-amber-300',
+    hoverLine: 'bg-amber-500/40',
+    subActiveText: 'text-amber-700 dark:text-amber-300',
+    subActiveLine: 'bg-amber-600 dark:bg-amber-400',
+    subHoverText: 'hover:text-amber-600 dark:hover:text-amber-300',
+  },
+  master_data: {
+    activeText: 'text-violet-700 dark:text-violet-300',
+    activeLine: 'bg-violet-600 dark:bg-violet-400',
+    hoverText: 'hover:text-violet-600 dark:hover:text-violet-300',
+    hoverLine: 'bg-violet-500/40',
+    subActiveText: 'text-violet-700 dark:text-violet-300',
+    subActiveLine: 'bg-violet-600 dark:bg-violet-400',
+    subHoverText: 'hover:text-violet-600 dark:hover:text-violet-300',
+  },
+  monitor_gorong_gorong: {
+    activeText: 'text-blue-700 dark:text-blue-300',
+    activeLine: 'bg-blue-600 dark:bg-blue-400',
+    hoverText: 'hover:text-blue-600 dark:hover:text-blue-300',
+    hoverLine: 'bg-blue-500/40',
+    subActiveText: 'text-blue-700 dark:text-blue-300',
+    subActiveLine: 'bg-blue-600 dark:bg-blue-400',
+    subHoverText: 'hover:text-blue-600 dark:hover:text-blue-300',
+  },
 };
 
 interface HeaderProps {
+  currentPortal?: 'labita' | 'gorong_gorong' | 'landing';
+  onSwitchPortal?: (portal: 'labita' | 'gorong_gorong' | 'landing') => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
   activeTabTitle?: string;
@@ -120,10 +171,16 @@ interface HeaderProps {
   setOverviewSubTab?: (subTab: string) => void;
   plantingSubTab?: string;
   setPlantingSubTab?: (subTab: string) => void;
+  orderWilayahSubTab?: string;
+  setOrderWilayahSubTab?: (subTab: string) => void;
+  masterDataSubTab?: string;
+  setMasterDataSubTab?: (subTab: string) => void;
   totalLands?: number;
 }
 
 export default function Header({
+  currentPortal = 'labita',
+  onSwitchPortal,
   activeTab,
   setActiveTab,
   executiveSubTab,
@@ -134,6 +191,10 @@ export default function Header({
   setOverviewSubTab,
   plantingSubTab,
   setPlantingSubTab,
+  orderWilayahSubTab,
+  setOrderWilayahSubTab,
+  masterDataSubTab,
+  setMasterDataSubTab,
 }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const { user, isAdmin, logout, setUserDirectly } = useAuth();
@@ -147,9 +208,13 @@ export default function Header({
   const handleSetSubTab = setPengolahanSubTab || setOverviewSubTab;
   const currentTheme = MENU_THEMES[activeTab] || MENU_THEMES.executive_summary;
 
-  // Filter menu: Menu 'Manajemen User' hanya muncul ketika sudah login sebagai Admin
-  const displayedMenuItems = MAIN_MENU_ITEMS.filter((item) => {
-    if (item.id === 'user_management') {
+  // Filter menu berdasarkan portal aktif & hak akses
+  const baseItems = currentPortal === 'gorong_gorong'
+    ? GORONG_GORONG_MAIN_MENU_ITEMS
+    : LABITA_MAIN_MENU_ITEMS;
+
+  const displayedMenuItems = baseItems.filter((item) => {
+    if (item.id === 'user_management' || item.id === 'master_data') {
       return Boolean(user && isAdmin);
     }
     return true;
@@ -251,10 +316,11 @@ export default function Header({
       {/* Header Paling Atas (Row 1): Logo GGF, Menu Utama, & Tombol Admin / Profil */}
       <div className="px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
         {/* Sisi Kiri: Logo GGF Kotak Putih */}
-        <div className="flex items-center shrink-0">
-          <Link
-            href="/"
-            title="Ke Dashboard Utama"
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={() => onSwitchPortal?.('landing')}
+            title="Kembali ke Halaman Pilih Portal"
             className="w-9 h-9 rounded-xl overflow-hidden bg-white border border-slate-200/90 dark:border-slate-700/80 flex items-center justify-center p-1 shadow-xs hover:ring-2 hover:ring-emerald-400/40 transition-all cursor-pointer"
           >
             <img
@@ -262,7 +328,7 @@ export default function Header({
               alt="Great Giant Foods"
               className="w-full h-full object-contain"
             />
-          </Link>
+          </button>
         </div>
 
         {/* Sisi Tengah: Menu Utama (Menu Update hanya muncul setelah Login Admin) */}
@@ -578,6 +644,66 @@ export default function Header({
                 key={item.id}
                 type="button"
                 onClick={() => setPlantingSubTab?.(item.id)}
+                className={`relative py-1 px-1 text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
+                  isActive
+                    ? `${currentTheme.subActiveText} font-semibold`
+                    : `text-slate-500 dark:text-slate-400 ${currentTheme.subHoverText} font-normal`
+                }`}
+              >
+                <span>{item.label}</span>
+
+                {/* Active Underline Indicator Sub Menu */}
+                {isActive ? (
+                  <span className={`absolute -bottom-1 left-0 right-0 h-[2px] ${currentTheme.subActiveLine} rounded-full`} />
+                ) : (
+                  <span className={`absolute -bottom-1 left-0 right-0 h-[1.5px] ${currentTheme.hoverLine} rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-150`} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Row 2: Sub Menu untuk Order Wilayah (Order Gorong-Gorong, Order Sulam Bibit) */}
+      {activeTab === 'order_wilayah' && (
+        <div className="px-6 py-1.5 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
+          {ORDER_WILAYAH_SUB_MENUS.map((item) => {
+            const isActive = (orderWilayahSubTab || 'order_gorong_gorong') === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setOrderWilayahSubTab?.(item.id)}
+                className={`relative py-1 px-1 text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
+                  isActive
+                    ? `${currentTheme.subActiveText} font-semibold`
+                    : `text-slate-500 dark:text-slate-400 ${currentTheme.subHoverText} font-normal`
+                }`}
+              >
+                <span>{item.label}</span>
+
+                {/* Active Underline Indicator Sub Menu */}
+                {isActive ? (
+                  <span className={`absolute -bottom-1 left-0 right-0 h-[2px] ${currentTheme.subActiveLine} rounded-full`} />
+                ) : (
+                  <span className={`absolute -bottom-1 left-0 right-0 h-[1.5px] ${currentTheme.hoverLine} rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-150`} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Row 2: Sub Menu untuk Master Data (Master Status Lokasi, Master Waterlogging, Upload Data Realisasi SAP) */}
+      {activeTab === 'master_data' && (
+        <div className="px-6 py-1.5 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
+          {MASTER_DATA_SUB_MENUS.map((item) => {
+            const isActive = (masterDataSubTab || 'master_status_lokasi') === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setMasterDataSubTab?.(item.id)}
                 className={`relative py-1 px-1 text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
                   isActive
                     ? `${currentTheme.subActiveText} font-semibold`

@@ -100,6 +100,22 @@ export async function getDbStageStockSummary(
 
         const totalStokLahan = totalBongkar + totalBajak + totalSn + totalTanam;
 
+        // Hitung total akumulasi stok dari seluruh bulan dalam setahun
+        let sumStokBongkar = 0;
+        let sumStokBajak = 0;
+        let sumStokSN = 0;
+
+        for (const r of records) {
+          sumStokBongkar += r.stokBongkar;
+          sumStokBajak += r.stokBajak;
+          sumStokSN += r.stokSN;
+        }
+
+        sumStokBongkar = Math.round(sumStokBongkar * 100) / 100;
+        sumStokBajak = Math.round(sumStokBajak * 100) / 100;
+        sumStokSN = Math.round(sumStokSN * 100) / 100;
+        const sumTotalStok = Math.round((sumStokBongkar + sumStokBajak + sumStokSN) * 100) / 100;
+
         return {
           year: safeYear,
           month: 'ALL',
@@ -115,23 +131,23 @@ export async function getDbStageStockSummary(
             },
           },
           stokBongkar: {
-            value: decRecord.stokBongkar,
-            formula: decBreakdown.stokBongkarFormula ?? `${fmt(initial.bongkar)} (Stok Bongkar) + ${fmt(decRecord.bongkar)} (Bongkar) - ${fmt(decRecord.bajak)} (Bajak)`,
+            value: sumStokBongkar,
+            formula: `Akumulasi Stok Bongkar (Jan - Des): ${fmt(sumStokBongkar)} Ha`,
             initialCarryover: initial.bongkar,
           },
           stokBajak: {
-            value: decRecord.stokBajak,
-            formula: decBreakdown.stokBajakFormula ?? `${fmt(initial.bajak)} (Stok Bajak) + ${fmt(decRecord.bajak)} (Bajak) - ${fmt(decRecord.sn)} (SN)`,
+            value: sumStokBajak,
+            formula: `Akumulasi Stok Bajak (Jan - Des): ${fmt(sumStokBajak)} Ha`,
             initialCarryover: initial.bajak,
           },
           stokSN: {
-            value: decRecord.stokSN,
-            formula: decBreakdown.stokSNFormula ?? `${fmt(initial.sn)} (Stok SN) + ${fmt(decRecord.sn)} (SN) - ${fmt(decRecord.tanam)} (Tanam)`,
+            value: sumStokSN,
+            formula: `Akumulasi Stok Siap Tanam (Jan - Des): ${fmt(sumStokSN)} Ha`,
             initialCarryover: initial.sn,
           },
           totalStok: {
-            value: decRecord.totalStok,
-            formula: `Bongkar (${fmt(decRecord.stokBongkar)}) + Bajak (${fmt(decRecord.stokBajak)}) + SN (${fmt(decRecord.stokSN)})`,
+            value: sumTotalStok,
+            formula: `Bongkar (${fmt(sumStokBongkar)}) + Bajak (${fmt(sumStokBajak)}) + SN (${fmt(sumStokSN)})`,
           },
           monthlyBreakdown,
           availableYears: AVAILABLE_STOK_YEARS,
@@ -143,7 +159,6 @@ export async function getDbStageStockSummary(
       const selectedItems = monthlyBreakdown.filter((r) => monthList.includes(r.month));
       if (selectedItems.length > 0) {
         selectedItems.sort((a, b) => a.monthIndex - b.monthIndex);
-        const latestItem = selectedItems[selectedItems.length - 1];
 
         let totalBongkar = 0;
         let totalBajak = 0;
@@ -159,12 +174,64 @@ export async function getDbStageStockSummary(
 
         const totalMonthLahan = totalBongkar + totalBajak + totalSn + totalTanam;
 
+        if (selectedItems.length === 1) {
+          const singleItem = selectedItems[0];
+          return {
+            year: safeYear,
+            month: monthList.join(','),
+            monthLabel: `${singleItem.month} ${safeYear}`,
+            stokLahan: {
+              value: Math.round(totalMonthLahan * 100) / 100,
+              formula: `Bongkar (${fmt(totalBongkar)}) + Bajak (${fmt(totalBajak)}) + SN (${fmt(totalSn)}) + Tanam (${fmt(totalTanam)})`,
+              details: {
+                bongkar: Math.round(totalBongkar * 100) / 100,
+                bajak: Math.round(totalBajak * 100) / 100,
+                sn: Math.round(totalSn * 100) / 100,
+                tanam: Math.round(totalTanam * 100) / 100,
+              },
+            },
+            stokBongkar: {
+              value: singleItem.stokBongkar,
+              formula: singleItem.stokBongkarFormula!,
+            },
+            stokBajak: {
+              value: singleItem.stokBajak,
+              formula: singleItem.stokBajakFormula!,
+            },
+            stokSN: {
+              value: singleItem.stokSN,
+              formula: singleItem.stokSNFormula!,
+            },
+            totalStok: {
+              value: singleItem.totalStok,
+              formula: `Bongkar (${fmt(singleItem.stokBongkar)}) + Bajak (${fmt(singleItem.stokBajak)}) + SN (${fmt(singleItem.stokSN)})`,
+            },
+            monthlyBreakdown,
+            availableYears: AVAILABLE_STOK_YEARS,
+            availableMonths: ALL_MONTH_NAMES,
+          };
+        }
+
+        // Multi-month selection (selectedItems.length > 1)
+        let sumStokBongkar = 0;
+        let sumStokBajak = 0;
+        let sumStokSN = 0;
+
+        for (const item of selectedItems) {
+          sumStokBongkar += item.stokBongkar;
+          sumStokBajak += item.stokBajak;
+          sumStokSN += item.stokSN;
+        }
+
+        sumStokBongkar = Math.round(sumStokBongkar * 100) / 100;
+        sumStokBajak = Math.round(sumStokBajak * 100) / 100;
+        sumStokSN = Math.round(sumStokSN * 100) / 100;
+        const sumTotalStok = Math.round((sumStokBongkar + sumStokBajak + sumStokSN) * 100) / 100;
+
         const monthLabel =
-          selectedItems.length === 1
-            ? `${selectedItems[0].month} ${safeYear}`
-            : selectedItems.length <= 3
+          selectedItems.length <= 3
             ? `${selectedItems.map((r) => r.month).join(', ')} ${safeYear}`
-            : `${selectedItems.length} Bulan (${selectedItems[0].month} - ${latestItem.month}) ${safeYear}`;
+            : `${selectedItems.length} Bulan (${selectedItems[0].month} - ${selectedItems[selectedItems.length - 1].month}) ${safeYear}`;
 
         return {
           year: safeYear,
@@ -181,20 +248,20 @@ export async function getDbStageStockSummary(
             },
           },
           stokBongkar: {
-            value: latestItem.stokBongkar,
-            formula: latestItem.stokBongkarFormula!,
+            value: sumStokBongkar,
+            formula: `Akumulasi Stok Bongkar (${selectedItems.length} Bulan): ${fmt(sumStokBongkar)} Ha`,
           },
           stokBajak: {
-            value: latestItem.stokBajak,
-            formula: latestItem.stokBajakFormula!,
+            value: sumStokBajak,
+            formula: `Akumulasi Stok Bajak (${selectedItems.length} Bulan): ${fmt(sumStokBajak)} Ha`,
           },
           stokSN: {
-            value: latestItem.stokSN,
-            formula: latestItem.stokSNFormula!,
+            value: sumStokSN,
+            formula: `Akumulasi Stok Siap Tanam (${selectedItems.length} Bulan): ${fmt(sumStokSN)} Ha`,
           },
           totalStok: {
-            value: latestItem.totalStok,
-            formula: `Bongkar (${fmt(latestItem.stokBongkar)}) + Bajak (${fmt(latestItem.stokBajak)}) + SN (${fmt(latestItem.stokSN)})`,
+            value: sumTotalStok,
+            formula: `Bongkar (${fmt(sumStokBongkar)}) + Bajak (${fmt(sumStokBajak)}) + SN (${fmt(sumStokSN)})`,
           },
           monthlyBreakdown,
           availableYears: AVAILABLE_STOK_YEARS,

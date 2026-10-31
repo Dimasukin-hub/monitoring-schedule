@@ -30,6 +30,7 @@ import {
 import { useTheme } from './ThemeProvider';
 import PlantingDetailDrawer from '@/components/PlantingDetailDrawer';
 import AddPlantingModal from '@/components/AddPlantingModal';
+import { useAuth } from '@/components/AuthProvider';
 
 interface PlantingItem {
   id: number;
@@ -68,6 +69,7 @@ interface PlantingViewProps {
   initialSearch?: string;
   onSearchChange?: (search: string) => void;
   onDataChanged?: () => void;
+  isActive?: boolean;
 }
 
 const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -113,11 +115,15 @@ function formatToRtnDate(d: Date): string {
 export default function PlantingView({
   onOpenLand,
   refreshTrigger = 0,
-  isAdmin = false,
+  isAdmin: propIsAdmin,
   initialSearch = '',
   onSearchChange,
   onDataChanged,
+  isActive,
 }: PlantingViewProps) {
+  const { isAdmin: authIsAdmin } = useAuth();
+  const isAdmin = propIsAdmin !== undefined ? propIsAdmin : authIsAdmin;
+
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -500,6 +506,13 @@ export default function PlantingView({
     fetchPlantingData();
   }, [page, limit, search, selectedJenis, selectedKelas, selectedStatus, sortBy, sortOrder, refreshTrigger]);
 
+  // Re-fetch when switching back to Real Tanam Nanas tab
+  useEffect(() => {
+    if (isActive) {
+      fetchPlantingData();
+    }
+  }, [isActive]);
+
   // Handle Sort Toggle (Default: kecil ke besar (asc) -> besar ke kecil (desc))
   const handleSort = (field: string) => {
     if (sortBy === field) {
@@ -666,7 +679,6 @@ export default function PlantingView({
     setIsExporting(true);
     try {
       const params = new URLSearchParams({
-        all: 'true',
         search,
         jenisBibit: selectedJenis.length > 0 ? selectedJenis.join(',') : 'ALL',
         kelasBibit: selectedKelas.length > 0 ? selectedKelas.join(',') : 'ALL',
@@ -675,75 +687,19 @@ export default function PlantingView({
         sortOrder,
       });
 
-      const res = await fetch(`/api/planting?${params.toString()}`);
-      const json = await res.json();
+      const res = await fetch(`/api/planting/export?${params.toString()}`);
+      if (!res.ok) throw new Error('Gagal mengunduh file Excel.');
 
-      if (!json.success || !json.data || json.data.length === 0) {
-        alert('Tidak ada data untuk diekspor.');
-        return;
-      }
-
-      const allItems: PlantingItem[] = json.data;
-
-      const headers = [
-        'NO',
-        'LOKASI',
-        'JENIS BIBIT',
-        'KELAS BIBIT',
-        'STATUS',
-        'AWAL TANAM',
-        'EST. SELESAI',
-        'LEADTIME (HARI)',
-        'LUAS (HA)',
-        'REAL TANAM (HA)',
-        'SISA (HA)',
-        'PROGRESS (%)',
-      ];
-
-      const sheetData = [
-        headers,
-        ...allItems.map((item, idx) => [
-          idx + 1,
-          item.lokasi,
-          item.jenisBibit || '-',
-          item.kelasBibit || '-',
-          item.status || 'BELUM TANAM',
-          item.awalTanam || '-',
-          item.estSelesai || '-',
-          item.leadtime !== null ? item.leadtime : '-',
-          item.luas !== null ? Number(item.luas.toFixed(2)) : 0,
-          item.realTanam !== null ? Number(item.realTanam.toFixed(2)) : 0,
-          item.sisa !== null ? Number(item.sisa.toFixed(2)) : 0,
-          item.progress !== null ? `${item.progress}%` : '0%',
-        ]),
-      ];
-
-      const ws = XLSX.utils.aoa_to_sheet(sheetData);
-
-      ws['!cols'] = [
-        { wch: 6 },  // NO
-        { wch: 12 }, // LOKASI
-        { wch: 14 }, // JENIS BIBIT
-        { wch: 14 }, // KELAS BIBIT
-        { wch: 14 }, // STATUS
-        { wch: 15 }, // AWAL TANAM
-        { wch: 15 }, // EST. SELESAI
-        { wch: 16 }, // LEADTIME
-        { wch: 12 }, // LUAS
-        { wch: 16 }, // REAL TANAM
-        { wch: 12 }, // SISA
-        { wch: 14 }, // PROGRESS
-      ];
-
-      // Freeze Panes Baris Header (Kolom NO sampai STATUS)
-      ws['!views'] = [{ state: 'frozen', ySplit: 1 }];
-      ws['!freeze'] = { xSplit: 0, ySplit: 1, topLeftCell: 'A2', activePane: 'bottomLeft', state: 'frozen' };
-
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Real Tanam Nanas');
-
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
       const dateStr = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `Planting_Real_Tanam_Nanas_${dateStr}.xlsx`);
+      a.download = `Planting_Real_Tanam_Nanas_${dateStr}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     } catch (err) {
       console.error('Error exporting excel:', err);
       alert('Gagal mengekspor data ke Excel.');
@@ -1660,7 +1616,7 @@ export default function PlantingView({
                         className={`py-3 px-3 text-center text-slate-400 font-mono text-[11px] whitespace-nowrap border-b border-slate-200/80 dark:border-slate-800 overflow-visible relative ${
                           hoveredNoId === item.id ? 'z-40' : 'z-10'
                         }`}
-                        onMouseEnter={() => handleNoMouseEnter(item.id)}
+                        onMouseEnter={() => isAdmin && handleNoMouseEnter(item.id)}
                         onMouseLeave={handleNoMouseLeave}
                       >
                         <div className="relative flex items-center justify-center w-full h-full min-h-[20px]">
@@ -1668,8 +1624,8 @@ export default function PlantingView({
                             {rowNumber}
                           </span>
 
-                          {/* Floating Action Popup on Hover (Undo / Reset & Hapus) */}
-                          {hoveredNoId === item.id && (
+                          {/* Floating Action Popup on Hover (Undo / Reset & Hapus) - Khusus Admin */}
+                          {isAdmin && hoveredNoId === item.id && (
                             <div
                               className="absolute left-[32px] top-1/2 -translate-y-1/2 z-50 flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-lg px-1.5 py-1 select-none animate-in fade-in zoom-in-95 duration-150 before:content-[''] before:absolute before:-left-3 before:top-0 before:w-3 before:h-full cursor-default"
                               onMouseEnter={() => handleNoMouseEnter(item.id)}
@@ -2212,8 +2168,8 @@ export default function PlantingView({
         }}
       />
 
-      {/* Delete Confirmation Modal */}
-      {itemToDelete && (
+      {/* Delete Confirmation Modal - Khusus Admin */}
+      {isAdmin && itemToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 space-y-4">
             <div className="flex items-center gap-3">

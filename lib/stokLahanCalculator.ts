@@ -273,23 +273,48 @@ export function getStokLahanSummary(
         },
       },
       stokBongkar: {
-        value: decStok.bongkar,
-        formula: `${fmt(novStok.bongkar)} (Stok Bongkar) + ${fmt(decAct.bongkar)} (Bongkar) - ${fmt(decAct.bajak)} (Bajak)`,
+        value: (() => {
+          let s = 0;
+          for (const m of ALL_MONTH_NAMES) s += yearData.monthly[m]?.stok?.bongkar ?? 0;
+          return Math.round(s * 100) / 100;
+        })(),
+        formula: `Akumulasi Stok Bongkar (Jan - Des): ${fmt(
+          ALL_MONTH_NAMES.reduce((acc, m) => acc + (yearData.monthly[m]?.stok?.bongkar ?? 0), 0)
+        )} Ha`,
         initialCarryover: yearData.initialStok.bongkar,
       },
       stokBajak: {
-        value: decStok.bajak,
-        formula: `${fmt(novStok.bajak)} (Stok Bajak) + ${fmt(decAct.bajak)} (Bajak) - ${fmt(decAct.sn)} (SN)`,
+        value: (() => {
+          let s = 0;
+          for (const m of ALL_MONTH_NAMES) s += yearData.monthly[m]?.stok?.bajak ?? 0;
+          return Math.round(s * 100) / 100;
+        })(),
+        formula: `Akumulasi Stok Bajak (Jan - Des): ${fmt(
+          ALL_MONTH_NAMES.reduce((acc, m) => acc + (yearData.monthly[m]?.stok?.bajak ?? 0), 0)
+        )} Ha`,
         initialCarryover: yearData.initialStok.bajak,
       },
       stokSN: {
-        value: decStok.sn,
-        formula: `${fmt(novStok.sn)} (Stok SN) + ${fmt(decAct.sn)} (SN) - ${fmt(decAct.tanam)} (Tanam)`,
+        value: (() => {
+          let s = 0;
+          for (const m of ALL_MONTH_NAMES) s += yearData.monthly[m]?.stok?.sn ?? 0;
+          return Math.round(s * 100) / 100;
+        })(),
+        formula: `Akumulasi Stok Siap Tanam (Jan - Des): ${fmt(
+          ALL_MONTH_NAMES.reduce((acc, m) => acc + (yearData.monthly[m]?.stok?.sn ?? 0), 0)
+        )} Ha`,
         initialCarryover: yearData.initialStok.sn,
       },
       totalStok: {
-        value: decStok.total,
-        formula: `Bongkar (${fmt(decStok.bongkar)}) + Bajak (${fmt(decStok.bajak)}) + SN (${fmt(decStok.sn)})`,
+        value: (() => {
+          let s = 0;
+          for (const m of ALL_MONTH_NAMES) {
+            const st = yearData.monthly[m]?.stok;
+            s += (st?.bongkar ?? 0) + (st?.bajak ?? 0) + (st?.sn ?? 0);
+          }
+          return Math.round(s * 100) / 100;
+        })(),
+        formula: `Bongkar + Bajak + SN (Jan - Des)`,
       },
       availableYears: AVAILABLE_STOK_YEARS,
       availableMonths: ALL_MONTH_NAMES,
@@ -317,18 +342,71 @@ export function getStokLahanSummary(
     }
   }
 
-  const latestMonthName = selectedMonthNames[selectedMonthNames.length - 1];
-  const latestMonthData = yearData.monthly[latestMonthName];
-  const stok = latestMonthData ? latestMonthData.stok : { bongkar: 0, bajak: 0, sn: 0, total: 0 };
-
   const totalActLahan = totalBongkar + totalBajak + totalSn + totalTanam;
 
+  if (selectedMonthNames.length === 1) {
+    const singleMonthName = selectedMonthNames[0];
+    const singleMonthData = yearData.monthly[singleMonthName];
+    const stok = singleMonthData ? singleMonthData.stok : { bongkar: 0, bajak: 0, sn: 0, total: 0 };
+
+    return {
+      year: safeYear,
+      month: monthList.join(','),
+      monthLabel: `${singleMonthName} ${safeYear}`,
+      stokLahan: {
+        value: Math.round(totalActLahan * 100) / 100,
+        formula: `Bongkar (${fmt(totalBongkar)}) + Bajak (${fmt(totalBajak)}) + SN (${fmt(totalSn)}) + Tanam (${fmt(totalTanam)})`,
+        details: {
+          bongkar: totalBongkar,
+          bajak: totalBajak,
+          sn: totalSn,
+          tanam: totalTanam,
+        },
+      },
+      stokBongkar: {
+        value: stok.bongkar,
+        formula: `${fmt(stok.bongkar)} Ha`,
+      },
+      stokBajak: {
+        value: stok.bajak,
+        formula: `${fmt(stok.bajak)} Ha`,
+      },
+      stokSN: {
+        value: stok.sn,
+        formula: `${fmt(stok.sn)} Ha`,
+      },
+      totalStok: {
+        value: stok.total,
+        formula: `Bongkar (${fmt(stok.bongkar)}) + Bajak (${fmt(stok.bajak)}) + SN (${fmt(stok.sn)})`,
+      },
+      availableYears: AVAILABLE_STOK_YEARS,
+      availableMonths: ALL_MONTH_NAMES,
+    };
+  }
+
+  // Multi-month selection (selectedMonthNames.length > 1)
+  let sumStokBongkar = 0;
+  let sumStokBajak = 0;
+  let sumStokSN = 0;
+
+  for (const m of selectedMonthNames) {
+    const st = yearData.monthly[m]?.stok;
+    if (st) {
+      sumStokBongkar += st.bongkar;
+      sumStokBajak += st.bajak;
+      sumStokSN += st.sn;
+    }
+  }
+
+  sumStokBongkar = Math.round(sumStokBongkar * 100) / 100;
+  sumStokBajak = Math.round(sumStokBajak * 100) / 100;
+  sumStokSN = Math.round(sumStokSN * 100) / 100;
+  const sumTotalStok = Math.round((sumStokBongkar + sumStokBajak + sumStokSN) * 100) / 100;
+
   const monthLabel =
-    selectedMonthNames.length === 1
-      ? `${selectedMonthNames[0]} ${safeYear}`
-      : selectedMonthNames.length <= 3
+    selectedMonthNames.length <= 3
       ? `${selectedMonthNames.join(', ')} ${safeYear}`
-      : `${selectedMonthNames.length} Bulan (${selectedMonthNames[0]} - ${latestMonthName}) ${safeYear}`;
+      : `${selectedMonthNames.length} Bulan (${selectedMonthNames[0]} - ${selectedMonthNames[selectedMonthNames.length - 1]}) ${safeYear}`;
 
   return {
     year: safeYear,
@@ -345,20 +423,20 @@ export function getStokLahanSummary(
       },
     },
     stokBongkar: {
-      value: stok.bongkar,
-      formula: `${fmt(stok.bongkar)} Ha`,
+      value: sumStokBongkar,
+      formula: `Akumulasi Stok Bongkar (${selectedMonthNames.length} Bulan): ${fmt(sumStokBongkar)} Ha`,
     },
     stokBajak: {
-      value: stok.bajak,
-      formula: `${fmt(stok.bajak)} Ha`,
+      value: sumStokBajak,
+      formula: `Akumulasi Stok Bajak (${selectedMonthNames.length} Bulan): ${fmt(sumStokBajak)} Ha`,
     },
     stokSN: {
-      value: stok.sn,
-      formula: `${fmt(stok.sn)} Ha`,
+      value: sumStokSN,
+      formula: `Akumulasi Stok Siap Tanam (${selectedMonthNames.length} Bulan): ${fmt(sumStokSN)} Ha`,
     },
     totalStok: {
-      value: stok.total,
-      formula: `Bongkar (${fmt(stok.bongkar)}) + Bajak (${fmt(stok.bajak)}) + SN (${fmt(stok.sn)})`,
+      value: sumTotalStok,
+      formula: `Bongkar (${fmt(sumStokBongkar)}) + Bajak (${fmt(sumStokBajak)}) + SN (${fmt(sumStokSN)})`,
     },
     availableYears: AVAILABLE_STOK_YEARS,
     availableMonths: ALL_MONTH_NAMES,
