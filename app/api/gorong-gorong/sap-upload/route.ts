@@ -2,20 +2,30 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import * as XLSX from 'xlsx';
 
-function parseExcelDate(val: any): Date {
-  if (!val) return new Date();
-  if (val instanceof Date) return val;
+function parseExcelDate(val: any): Date | null {
+  if (!val) return null;
+  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
   const num = Number(val);
   if (!isNaN(num) && num > 20000 && num < 70000) {
     const utcDays = num - 25569;
     const d = new Date(Math.round(utcDays * 86400 * 1000));
-    return isNaN(d.getTime()) ? new Date() : d;
+    return isNaN(d.getTime()) ? null : d;
   }
   if (typeof val === 'string') {
-    const d = new Date(val);
-    return isNaN(d.getTime()) ? new Date() : d;
+    const trimmed = val.trim();
+    if (!trimmed) return null;
+    const dmyMatch = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+    if (dmyMatch) {
+      const day = parseInt(dmyMatch[1], 10);
+      const month = parseInt(dmyMatch[2], 10) - 1;
+      const year = parseInt(dmyMatch[3], 10);
+      const d = new Date(Date.UTC(year, month, day));
+      return isNaN(d.getTime()) ? null : d;
+    }
+    const d = new Date(trimmed);
+    return isNaN(d.getTime()) ? null : d;
   }
-  return new Date();
+  return null;
 }
 
 function detectDiameter(text: any): number {
@@ -33,6 +43,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search')?.trim().toUpperCase();
     const diameter = searchParams.get('diameter');
+    const bulan = searchParams.get('bulan');
     const page = parseInt(searchParams.get('page') || '1', 10);
     const pageSize = parseInt(searchParams.get('pageSize') || '50', 10);
 
@@ -51,6 +62,47 @@ export async function GET(request: NextRequest) {
         where.diameter = dList[0];
       } else if (dList.length > 1) {
         where.diameter = { in: dList };
+      }
+    }
+
+    if (bulan && bulan !== 'ALL') {
+      const bList = bulan.split(',').map((b) => b.trim()).filter(Boolean);
+      const dateFilters: any[] = [];
+      const curYear = new Date().getFullYear();
+
+      for (const b of bList) {
+        if (b.includes('-')) {
+          const [yStr, mStr] = b.split('-');
+          const y = parseInt(yStr, 10);
+          const m = parseInt(mStr, 10);
+          if (!isNaN(y) && !isNaN(m)) {
+            const startDate = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0));
+            const endDate = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
+            dateFilters.push({
+              tanggalRealisasi: { gte: startDate, lte: endDate },
+            });
+          }
+        } else {
+          const m = parseInt(b, 10);
+          if (!isNaN(m) && m >= 1 && m <= 12) {
+            const startDate = new Date(Date.UTC(curYear, m - 1, 1, 0, 0, 0));
+            const endDate = new Date(Date.UTC(curYear, m, 0, 23, 59, 59, 999));
+            dateFilters.push({
+              tanggalRealisasi: { gte: startDate, lte: endDate },
+            });
+          }
+        }
+      }
+
+      if (dateFilters.length === 1) {
+        where.tanggalRealisasi = dateFilters[0].tanggalRealisasi;
+      } else if (dateFilters.length > 1) {
+        if (where.OR) {
+          where.AND = [{ OR: where.OR }, { OR: dateFilters }];
+          delete where.OR;
+        } else {
+          where.OR = dateFilters;
+        }
       }
     }
 
@@ -83,7 +135,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST: Upload file Excel Form 630 SAP (19 Kolom)
+// POST: Upload file Excel Form 630 SAP (Mendukung 18 Kolom Standar SAP maupun 19 Kolom Modifikasi)
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -109,7 +161,91 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Ekstraksi seluruh 19 kolom
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
+
+    // 1. Deteksi Baris Header Secara Dinamis (Mencari baris 0..5 yang memiliki kata kunci kolom SAP)
+    let headerRowIndex = -1;
+    const colMap: Record<string, number> = {};
+
+    for (let r = range.s.r; r <= Math.min(range.s.r + 5, range.e.r); r++) {
+      let matches = 0;
+      const tempMap: Record<string, number> = {};
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const cell = ws[XLSX.utils.encode_cell({ r, c })];
+        if (!cell || cell.v === undefined || cell.v === null) continue;
+        const h = String(cell.v).trim().toLowerCase();
+
+        if (h.includes('referensi') || h === 'ref lokasi' || h === 'ref. lokasi') {
+          tempMap.referensiLokasi = c;
+          matches++;
+        } else if (h.includes('spk')) {
+          tempMap.spkId = c;
+          matches++;
+        } else if (h.includes('pas')) {
+          tempMap.pasDocument = c;
+          matches++;
+        } else if (h.includes('tanggal') || h.includes('tgl')) {
+          tempMap.tanggalRealisasi = c;
+          matches++;
+        } else if (h.includes('bahan') && (h.includes('deskripsi') || h.includes('nama'))) {
+          tempMap.deskripsiBahan = c;
+          matches++;
+        } else if (h.includes('resource') || h.includes('qty') || h.includes('jumlah bahan')) {
+          tempMap.qty = c;
+          matches++;
+        } else if (h.includes('biaya')) {
+          tempMap.totalBiaya = c;
+          matches++;
+        } else if (h.includes('penanggung') || h === 'pj') {
+          tempMap.penanggungJawab = c;
+          matches++;
+        } else if (h.includes('status') && (h.includes('tanam') || h.includes('tnm'))) {
+          tempMap.statusTanaman = c;
+          matches++;
+        } else if (h.includes('jenis')) {
+          tempMap.jenisData = c;
+          matches++;
+        } else if (h.includes('kode') && h.includes('bahan')) {
+          tempMap.kodeBahan = c;
+          matches++;
+        } else if (h.includes('hasil') && h.includes('efektif')) {
+          tempMap.hasilEfektif = c;
+          matches++;
+        } else if (h.includes('time') || h.includes('waktu')) {
+          tempMap.waktuPelaksanaan = c;
+          matches++;
+        } else if (h === 'air') {
+          tempMap.air = c;
+          matches++;
+        } else if (h.includes('jumlah air')) {
+          tempMap.jumlahAir = c;
+          matches++;
+        } else if (h === 'wilayah' || h.startsWith('wilayah')) {
+          tempMap.wilayahSap = c;
+          matches++;
+        } else if (h === 'lokasi' || h.includes('cost center') || h === 'plant') {
+          tempMap.plantCostCenter = c;
+          matches++;
+        } else if (h === 'deskripsi' || h.includes('kegiatan')) {
+          tempMap.deskripsiKegiatan = c;
+          matches++;
+        }
+      }
+
+      if (matches >= 4) {
+        headerRowIndex = r;
+        Object.assign(colMap, tempMap);
+        break;
+      }
+    }
+
+    if (headerRowIndex === -1) {
+      return NextResponse.json(
+        { success: false, message: 'Format kolom file Excel tidak dikenali sebagai Form 630 SAP.' },
+        { status: 400 }
+      );
+    }
+
     const sapList: any[] = [];
     let countD40 = 0;
     let countD60 = 0;
@@ -117,30 +253,46 @@ export async function POST(request: NextRequest) {
     let countD100 = 0;
     let totalBiayaSum = 0;
 
-    for (let r = 2; r <= 5000; r++) {
-      const cellA = ws['A' + r];
-      const cellS = ws['S' + r];
-      const lokasi = cellA && cellA.v ? String(cellA.v).trim().toUpperCase() : (cellS && cellS.v ? String(cellS.v).trim().toUpperCase() : null);
+    for (let r = headerRowIndex + 1; r <= range.e.r; r++) {
+      const getVal = (colIndex?: number) => {
+        if (colIndex === undefined) return null;
+        const cell = ws[XLSX.utils.encode_cell({ r, c: colIndex })];
+        return cell && cell.v !== undefined && cell.v !== null ? cell.v : null;
+      };
+
+      const refLokVal = getVal(colMap.referensiLokasi);
+      const extraColA = ws['A' + (r + 1)] ? ws['A' + (r + 1)].v : null;
+      const plantCostVal = getVal(colMap.plantCostCenter);
+
+      // Prioritas penentuan petak lokasi yang valid:
+      // 1. Kolom "Referensi Lokasi" (standar Form 630 SAP)
+      // 2. Jika kosong, cek Kolom A tambahan (pada file 19 kolom)
+      // 3. Fallback ke plantCostCenter
+      const rawRefLok = refLokVal ? String(refLokVal).trim().toUpperCase() : '';
+      const rawExtraA = extraColA ? String(extraColA).trim().toUpperCase() : '';
+      const rawPlant = plantCostVal ? String(plantCostVal).trim().toUpperCase() : '';
+
+      const lokasi = rawRefLok || (rawExtraA && rawExtraA !== 'WILAYAH' && rawExtraA !== 'AP1' ? rawExtraA : (rawPlant || null));
       if (!lokasi) continue;
 
-      const wilayahSap = ws['B' + r] ? String(ws['B' + r].v).trim() : null;
-      const plantCostCenter = ws['C' + r] ? String(ws['C' + r].v).trim() : null;
-      const statusTanaman = ws['D' + r] ? String(ws['D' + r].v).trim() : null;
-      const spkId = ws['E' + r] ? String(ws['E' + r].v).trim() : null;
-      const pasDocument = ws['F' + r] ? String(ws['F' + r].v).trim() : null;
-      const tanggalRealisasi = parseExcelDate(ws['G' + r] ? ws['G' + r].v : null);
-      const deskripsiKegiatan = ws['H' + r] ? String(ws['H' + r].v).trim() : null;
-      const deskripsiBahan = ws['I' + r] ? String(ws['I' + r].v).trim() : '';
-      const jenisData = ws['J' + r] ? String(ws['J' + r].v).trim() : null;
-      const kodeBahan = ws['K' + r] ? String(ws['K' + r].v).trim() : null;
-      const qty = ws['L' + r] ? Math.round(Number(ws['L' + r].v)) : 0;
-      const hasilEfektif = ws['M' + r] ? Number(ws['M' + r].v) : null;
-      const totalBiaya = ws['N' + r] ? Number(ws['N' + r].v) : null;
-      const penanggungJawab = ws['O' + r] ? String(ws['O' + r].v).trim() : null;
-      const waktuPelaksanaan = ws['P' + r] ? Number(ws['P' + r].v) : null;
-      const air = ws['Q' + r] ? Number(ws['Q' + r].v) : 0;
-      const jumlahAir = ws['R' + r] ? Number(ws['R' + r].v) : 0;
-      const referensiLokasi = cellS && cellS.v ? String(cellS.v).trim() : lokasi;
+      const wilayahSap = getVal(colMap.wilayahSap) ? String(getVal(colMap.wilayahSap)).trim() : null;
+      const plantCostCenter = plantCostVal ? String(plantCostVal).trim() : null;
+      const statusTanaman = getVal(colMap.statusTanaman) ? String(getVal(colMap.statusTanaman)).trim() : null;
+      const spkId = getVal(colMap.spkId) ? String(getVal(colMap.spkId)).trim() : null;
+      const pasDocument = getVal(colMap.pasDocument) ? String(getVal(colMap.pasDocument)).trim() : null;
+      const tanggalRealisasi = parseExcelDate(getVal(colMap.tanggalRealisasi)) || new Date();
+      const deskripsiKegiatan = getVal(colMap.deskripsiKegiatan) ? String(getVal(colMap.deskripsiKegiatan)).trim() : null;
+      const deskripsiBahan = getVal(colMap.deskripsiBahan) ? String(getVal(colMap.deskripsiBahan)).trim() : '';
+      const jenisData = getVal(colMap.jenisData) ? String(getVal(colMap.jenisData)).trim() : null;
+      const kodeBahan = getVal(colMap.kodeBahan) ? String(getVal(colMap.kodeBahan)).trim() : null;
+      const qty = Math.round(Number(getVal(colMap.qty)) || 0);
+      const hasilEfektif = getVal(colMap.hasilEfektif) ? Number(getVal(colMap.hasilEfektif)) : null;
+      const totalBiaya = getVal(colMap.totalBiaya) ? Number(getVal(colMap.totalBiaya)) : null;
+      const penanggungJawab = getVal(colMap.penanggungJawab) ? String(getVal(colMap.penanggungJawab)).trim() : null;
+      const waktuPelaksanaan = getVal(colMap.waktuPelaksanaan) ? Number(getVal(colMap.waktuPelaksanaan)) : null;
+      const air = getVal(colMap.air) ? Number(getVal(colMap.air)) : 0;
+      const jumlahAir = getVal(colMap.jumlahAir) ? Number(getVal(colMap.jumlahAir)) : 0;
+      const referensiLokasi = rawRefLok || lokasi;
       const diameter = detectDiameter(deskripsiBahan);
 
       if (diameter === 40) countD40 += qty;
@@ -176,6 +328,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const mode = (formData.get('mode') as string) || 'month_replace';
+
     if (sapList.length === 0) {
       return NextResponse.json(
         { success: false, message: 'Tidak ada baris data valid yang terbaca dari file Excel tersebut.' },
@@ -183,24 +337,74 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Insert batch ke database
+    // Kumpulkan seluruh bulan unik yang ada di file Excel secara akurat (format YYYY-MM)
+    const detectedMonths = new Set<string>();
+    for (const item of sapList) {
+      if (item.tanggalRealisasi) {
+        const d = new Date(item.tanggalRealisasi);
+        const yyyy = d.getUTCFullYear();
+        const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+        detectedMonths.add(`${yyyy}-${mm}`);
+      }
+    }
+
+    // Eksekusi penghapusan sesuai mode yang dipilih
+    if (mode === 'full_replace') {
+      await prisma.masterSapGorongGorong.deleteMany({});
+    } else if (mode === 'month_replace') {
+      // Hapus data lama HANYA untuk bulan-bulan yang tertera pada file yang diunggah
+      for (const ym of detectedMonths) {
+        const [yearStr, monthStr] = ym.split('-');
+        const y = parseInt(yearStr, 10);
+        const m = parseInt(monthStr, 10);
+        const startDate = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0));
+        const endDate = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
+
+        await prisma.masterSapGorongGorong.deleteMany({
+          where: {
+            tanggalRealisasi: {
+              gte: startDate,
+              lte: endDate,
+            },
+          },
+        });
+      }
+    }
+
+    // Insert batch data baru ke database (chunk 200)
     for (let i = 0; i < sapList.length; i += 200) {
       const chunk = sapList.slice(i, i + 200);
       await prisma.masterSapGorongGorong.createMany({ data: chunk });
     }
 
+    const monthListStr = Array.from(detectedMonths).sort().join(', ');
+
+    const summaryObj = {
+      mode,
+      detectedMonths: Array.from(detectedMonths).sort(),
+      totalBaris: sapList.length,
+      totalInserted: sapList.length,
+      fileName: file.name,
+      totalQty: countD40 + countD60 + countD80 + countD100,
+      qtyD40: countD40,
+      qtyD60: countD60,
+      qtyD80: countD80,
+      qtyD100: countD100,
+      countD40,
+      countD60,
+      countD80,
+      countD100,
+      totalBiaya: totalBiayaSum,
+      totalBiayaSum,
+    };
+
     return NextResponse.json({
       success: true,
-      message: `Upload Berhasil: ${sapList.length} baris realisasi SAP Form 630 berhasil diproses!`,
-      summary: {
-        totalBaris: sapList.length,
-        totalQty: countD40 + countD60 + countD80 + countD100,
-        qtyD40: countD40,
-        qtyD60: countD60,
-        qtyD80: countD80,
-        qtyD100: countD100,
-        totalBiaya: totalBiayaSum,
-      },
+      message: mode === 'full_replace'
+        ? `Replace Semua Berhasil: Seluruh data lama digantikan dengan ${sapList.length} baris realisasi SAP baru!`
+        : `Replace Parsial Berhasil: Data SAP untuk periode (${monthListStr}) telah diperbarui (${sapList.length} baris)!`,
+      data: summaryObj,
+      summary: summaryObj,
     });
   } catch (error: any) {
     console.error('Error uploading SAP Form 630:', error);

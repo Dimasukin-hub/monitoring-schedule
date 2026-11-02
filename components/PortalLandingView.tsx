@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import Link from 'next/link';
 import {
   Sprout,
   Layers,
@@ -16,17 +17,24 @@ import {
   FileSpreadsheet,
   MapPin,
   Tractor,
+  Lock,
+  Clock,
+  X,
+  AlertCircle,
 } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAuth } from '@/components/AuthProvider';
+import { usePortalAccess } from '@/lib/portalAccess';
 
 interface PortalLandingViewProps {
-  onSelectPortal: (portal: 'labita' | 'gorong_gorong') => void;
+  onSelectPortal?: (portal: 'labita' | 'gorong_gorong') => void;
 }
 
 export default function PortalLandingView({ onSelectPortal }: PortalLandingViewProps) {
   const { theme, toggleTheme } = useTheme();
   const { user, isAdmin, logout } = useAuth();
+  const { isLocalhost, canAccessLabita } = usePortalAccess();
+  const [showDevModal, setShowDevModal] = useState<boolean>(false);
 
   return (
     <div
@@ -54,7 +62,7 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
               <h1 className="text-sm font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
                 <span>GREAT GIANT FOODS</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-[#00873D] dark:text-emerald-400 font-bold border border-emerald-500/20">
-                  PG1 Terpadu
+                  Plantation Group 1
                 </span>
               </h1>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
@@ -126,37 +134,82 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
         {/* 2 Big Portal Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 w-full max-w-4xl">
           {/* Card 1: Portal Labita */}
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => onSelectPortal('labita')}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
+          <Link
+            href={canAccessLabita ? '/labita' : '#'}
+            prefetch={false}
+            onClick={(e) => {
+              if (!canAccessLabita) {
                 e.preventDefault();
-                onSelectPortal('labita');
+                setShowDevModal(true);
+                return;
               }
+              if (typeof window !== 'undefined') {
+                sessionStorage.setItem('ggf_active_portal', '/labita');
+              }
+              onSelectPortal?.('labita');
             }}
-            className="group relative flex flex-col justify-between p-7 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border-2 border-slate-200/90 dark:border-slate-800 hover:border-[#00873D] dark:hover:border-emerald-500 shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer overflow-hidden text-left"
+            className={`group relative flex flex-col justify-between p-7 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border-2 ${
+              !canAccessLabita
+                ? 'border-amber-400/50 dark:border-amber-500/40 hover:border-amber-500 dark:hover:border-amber-400 shadow-md hover:shadow-xl'
+                : 'border-slate-200/90 dark:border-slate-800 hover:border-[#00873D] dark:hover:border-emerald-500 shadow-md hover:shadow-2xl'
+            } transition-all duration-300 cursor-pointer overflow-hidden text-left`}
           >
             {/* Top accent badge */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-emerald-500/15 via-emerald-500/5 to-transparent rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform duration-500" />
+            <div
+              className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl ${
+                !canAccessLabita
+                  ? 'from-amber-500/20 via-amber-500/5'
+                  : 'from-emerald-500/15 via-emerald-500/5'
+              } to-transparent rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform duration-500`}
+            />
 
             <div>
               <div className="flex items-center justify-between mb-5">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 text-[#00873D] dark:text-emerald-400 flex items-center justify-center border border-emerald-500/30 group-hover:scale-110 group-hover:bg-[#00873D] group-hover:text-white transition-all duration-300 shadow-xs">
+                <div
+                  className={`w-14 h-14 rounded-2xl ${
+                    !canAccessLabita
+                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 group-hover:bg-amber-600 group-hover:text-white'
+                      : 'bg-emerald-500/15 text-[#00873D] dark:text-emerald-400 border border-emerald-500/30 group-hover:bg-[#00873D] group-hover:text-white'
+                  } flex items-center justify-center transition-all duration-300 shadow-xs group-hover:scale-110`}
+                >
                   <Sprout className="w-7 h-7" />
                 </div>
-                <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                  Land Prep &amp; Planting
-                </span>
+                {!canAccessLabita ? (
+                  <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1.5 shadow-2xs">
+                    <Clock className="w-3.5 h-3.5 animate-pulse text-amber-600 dark:text-amber-400" />
+                    Sedang Dikembangkan
+                  </span>
+                ) : !isLocalhost && isAdmin ? (
+                  <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1.5 shadow-2xs">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    Akses Admin
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                    Land Prep &amp; Planting
+                  </span>
+                )}
               </div>
 
-              <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight group-hover:text-[#00873D] dark:group-hover:text-emerald-400 transition-colors">
+              <h3
+                className={`text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight ${
+                  !canAccessLabita
+                    ? 'group-hover:text-amber-600 dark:group-hover:text-amber-400'
+                    : 'group-hover:text-[#00873D] dark:group-hover:text-emerald-400'
+                } transition-colors`}
+              >
                 Portal Labita
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1.5 leading-relaxed">
                 Pemantauan jadwal dan rencana olah tanah, stok bero, mutu olah tanah (DSM), serta pelacakan realisasi penanaman nanas PG1.
               </p>
+
+              {!canAccessLabita && (
+                <div className="mt-3.5 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-start gap-2 text-xs text-amber-800 dark:text-amber-300">
+                  <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <span>Akses publik sementara dinonaktifkan. Khusus dibuka pada localhost atau login Administrator.</span>
+                </div>
+              )}
 
               {/* Feature Points */}
               <div className="mt-6 space-y-2.5 pt-5 border-t border-slate-100 dark:border-slate-800/80">
@@ -180,24 +233,34 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
             </div>
 
             {/* Action CTA */}
-            <div className="mt-8 pt-4 flex items-center justify-between text-xs font-bold text-[#00873D] dark:text-emerald-400 group-hover:translate-x-1 transition-transform duration-200">
-              <span className="text-sm font-extrabold">Buka Portal Labita</span>
-              <div className="w-8 h-8 rounded-full bg-emerald-500/10 group-hover:bg-[#00873D] group-hover:text-white flex items-center justify-center transition-colors">
-                <ArrowRight className="w-4 h-4" />
+            {!canAccessLabita ? (
+              <div className="mt-8 pt-4 flex items-center justify-between text-xs font-bold text-amber-700 dark:text-amber-400 group-hover:translate-x-1 transition-transform duration-200">
+                <span className="text-sm font-extrabold flex items-center gap-1.5">
+                  <Lock className="w-4 h-4" /> Buka Akses Admin
+                </span>
+                <div className="w-8 h-8 rounded-full bg-amber-500/15 group-hover:bg-amber-600 group-hover:text-white flex items-center justify-center transition-colors">
+                  <ArrowRight className="w-4 h-4" />
+                </div>
               </div>
-            </div>
-          </div>
+            ) : (
+              <div className="mt-8 pt-4 flex items-center justify-between text-xs font-bold text-[#00873D] dark:text-emerald-400 group-hover:translate-x-1 transition-transform duration-200">
+                <span className="text-sm font-extrabold">Buka Portal Labita</span>
+                <div className="w-8 h-8 rounded-full bg-emerald-500/10 group-hover:bg-[#00873D] group-hover:text-white flex items-center justify-center transition-colors">
+                  <ArrowRight className="w-4 h-4" />
+                </div>
+              </div>
+            )}
+          </Link>
 
           {/* Card 2: Portal Monitor Gorong-Gorong */}
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => onSelectPortal('gorong_gorong')}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onSelectPortal('gorong_gorong');
+          <Link
+            href="/gorong-gorong"
+            prefetch={false}
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                sessionStorage.setItem('ggf_active_portal', '/gorong-gorong');
               }
+              onSelectPortal?.('gorong_gorong');
             }}
             className="group relative flex flex-col justify-between p-7 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border-2 border-slate-200/90 dark:border-slate-800 hover:border-blue-600 dark:hover:border-blue-500 shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer overflow-hidden text-left"
           >
@@ -218,7 +281,7 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
                 Portal Monitor Gorong-Gorong
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1.5 leading-relaxed">
-                Pusat pengawasan rekapitulasi order, kedatangan (dropping), realisasi pasang manual &amp; SAP, serta kontrol saldo fisik gorong-gorong.
+                Pusat pengawasan rekapitulasi order, kedatangan (dropping) serta kontrol saldo fisik gorong-gorong.
               </p>
 
               {/* Feature Points */}
@@ -249,8 +312,72 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
                 <ArrowRight className="w-4 h-4" />
               </div>
             </div>
-          </div>
+          </Link>
         </div>
+
+        {/* Modal Info Under Development (Khusus Pengunjung Online Non-Admin) */}
+        {showDevModal && (
+          <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+            <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl border border-amber-500/30 shadow-2xl p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-200">
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setShowDevModal(false)}
+                className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Tutup"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <Clock className="w-6 h-6 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight">
+                    Portal Labita Dalam Pengembangan
+                  </h3>
+                  <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">
+                    Under Development &amp; Calibration
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                <p>
+                  Modul <strong>Portal Labita (Pengolahan Lahan, Stok Bero, &amp; Tanam Nanas)</strong> saat ini sedang dalam proses penyempurnaan fitur dan kalibrasi data, sehingga untuk sementara akses publik dinonaktifkan.
+                </p>
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200 font-bold">
+                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                    <span>Ketentuan Akses:</span>
+                  </div>
+                  <ul className="list-disc list-inside text-[11px] text-slate-500 dark:text-slate-400 space-y-1 pl-1">
+                    <li><strong>Localhost:</strong> Terbuka penuh untuk pengujian &amp; development.</li>
+                    <li><strong>Domain Publik:</strong> Khusus dapat dibuka oleh Administrator.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-2">
+                <Link
+                  href="/login?callbackUrl=/labita"
+                  className="w-full sm:flex-1 py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white text-xs font-bold text-center transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Login Administrator</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setShowDevModal(false)}
+                  className="w-full sm:w-auto py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer info */}
         <div className="mt-12 text-center text-xs text-slate-300 dark:text-slate-400 drop-shadow-sm">

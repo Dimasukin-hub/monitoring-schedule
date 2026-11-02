@@ -257,16 +257,6 @@ export function PosisiLahanSection({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  if (!chartsData || !chartsData.wilayahPositions) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-pulse">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-64 rounded-2xl bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800"></div>
-        ))}
-      </div>
-    );
-  }
-
   // 7 Wilayah operasional resmi: W01 s/d W07
   const officialWilayahs = ['W01', 'W02', 'W03', 'W04', 'W05', 'W06', 'W07'];
 
@@ -293,14 +283,16 @@ export function PosisiLahanSection({
     }
 
     // Default: gunakan seluruh posisi stok lahan 2026 langsung dari chartsData.wilayahPositions
-    for (const item of chartsData.wilayahPositions) {
-      const norm = normalizeW(item.wilayah);
-      if (!map[norm]) {
-        map[norm] = { wilayah: norm, luas: 0, locations: [] };
+    if (chartsData?.wilayahPositions) {
+      for (const item of chartsData.wilayahPositions) {
+        const norm = normalizeW(item.wilayah);
+        if (!map[norm]) {
+          map[norm] = { wilayah: norm, luas: 0, locations: [] };
+        }
+        map[norm].luas += (item as any)[stageKey] || 0;
+        const locs = (item as any)[locKey] || [];
+        map[norm].locations.push(...locs);
       }
-      map[norm].luas += (item as any)[stageKey] || 0;
-      const locs = (item as any)[locKey] || [];
-      map[norm].locations.push(...locs);
     }
 
     return officialWilayahs.map((w) => ({
@@ -506,6 +498,16 @@ export function PosisiLahanSection({
         };
     }
   }, [selectedStage, periodLabel, totalLuasBK, totalLuasBJK, totalLuasSN, highestBK, highestBJK, highestSN]);
+
+  if (!chartsData || !chartsData.wilayahPositions) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-pulse">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-64 rounded-2xl bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800"></div>
+        ))}
+      </div>
+    );
+  }
 
   const renderBKChart = (isSingle: boolean = false) => (
     <div className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors ${isSingle ? 'h-full' : ''}`}>
@@ -1867,6 +1869,10 @@ export function ProsesTanamSection({
   const [hideProses, setHideProses] = useState(false);
   const [hideCekSelesai, setHideCekSelesai] = useState(false);
   const [hideSelesai, setHideSelesai] = useState(false);
+  const [hoveredWilayah, setHoveredWilayah] = useState<string | null>(null);
+  const [popupCoords, setPopupCoords] = useState<{ x: number; y: number } | null>(null);
+  const [isMouseOverPopup, setIsMouseOverPopup] = useState<boolean>(false);
+  const popupCloseTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Defensive aggregation ensuring strictly W01-W07 unique regions
   const normalizedData = React.useMemo(() => {
@@ -1932,7 +1938,10 @@ export function ProsesTanamSection({
 
   const displayData = normalizedData;
 
-  if (!chartsData || !chartsData.wilayahPositions) return null;
+  const activeItem = useMemo(() => {
+    if (!hoveredWilayah) return null;
+    return displayData.find((w) => w.wilayah === hoveredWilayah) || null;
+  }, [hoveredWilayah, displayData]);
 
   // Clicking W01..W07 below the chart cycles through hide legend
   const handleWilayahTickClick = (_wilayah: string) => {
@@ -1959,11 +1968,6 @@ export function ProsesTanamSection({
     }
   };
 
-  const [hoveredWilayah, setHoveredWilayah] = useState<string | null>(null);
-  const [popupCoords, setPopupCoords] = useState<{ x: number; y: number } | null>(null);
-  const [isMouseOverPopup, setIsMouseOverPopup] = useState<boolean>(false);
-  const popupCloseTimerRef = useRef<NodeJS.Timeout | null>(null);
-
   const handleToggleProses = () => setHideProses(!hideProses);
   const handleToggleCekSelesai = () => setHideCekSelesai(!hideCekSelesai);
   const handleToggleSelesai = () => setHideSelesai(!hideSelesai);
@@ -1976,11 +1980,6 @@ export function ProsesTanamSection({
   const totalSelesaiLuas = Math.round(displayData.reduce((acc, curr) => acc + curr.selesaiLuas, 0) * 100) / 100;
   const totalTanamLokasi = totalProses + totalCekSelesai + totalSelesai;
   const totalTanamLuas = Math.round((totalProsesLuas + totalCekSelesaiLuas + totalSelesaiLuas) * 100) / 100;
-
-  const activeItem = useMemo(() => {
-    if (!hoveredWilayah) return null;
-    return displayData.find((w) => w.wilayah === hoveredWilayah) || null;
-  }, [hoveredWilayah, displayData]);
 
   const activeProsesLocs = activeItem?.prosesLocations || [];
   const activeCekLocs = activeItem?.cekSelesaiLocations || [];
@@ -2024,6 +2023,8 @@ export function ProsesTanamSection({
     const radius = isTop ? [6, 6, 0, 0] : [0, 0, 0, 0];
     return <Rectangle {...props} radius={radius} />;
   };
+
+  if (!chartsData || !chartsData.wilayahPositions) return null;
 
   return (
     <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 glass-panel shadow-xs transition-colors">

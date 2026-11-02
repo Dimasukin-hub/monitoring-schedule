@@ -135,12 +135,16 @@ export async function GET(request: NextRequest) {
       if (isYear) e.sapYearly += s.qty;
     }
 
-    // Kumpulkan lokasi-lokasi yang memiliki pesanan order (identik dengan Tabel List Lokasi Order)
+    // Kumpulkan lokasi-lokasi yang masuk ke Tabel List Lokasi Order (Order, Drop, Pasang Manual, atau SAP)
     const orderedLokSet = new Set<string>();
     for (const trx of allTrx) {
-      if (trx.jenisTransaksi === 'ORDER') {
+      if (trx.jenisTransaksi === 'ORDER' || trx.jenisTransaksi === 'DROP' || trx.jenisTransaksi === 'PASANG_MANUAL') {
         orderedLokSet.add(trx.lokasi.trim().toUpperCase());
       }
+    }
+    for (const s of allSap) {
+      orderedLokSet.add(s.lokasi.trim().toUpperCase());
+      if (s.referensiLokasi) orderedLokSet.add(s.referensiLokasi.trim().toUpperCase());
     }
 
     // Hitung 5 Kartu KPI Summarized:
@@ -162,7 +166,7 @@ export async function GET(request: NextRequest) {
     let totalTerpasangAll = 0;
 
     for (const e of lokDiaMap.values()) {
-      // Hanya petak yang memiliki pesanan order sesuai tabel List Lokasi Order
+      // Hanya petak yang masuk sesuai tabel List Lokasi Order
       if (!orderedLokSet.has(e.lokasi)) continue;
 
       totalOrderAll += e.orderAll;
@@ -173,11 +177,11 @@ export async function GET(request: NextRequest) {
       order2026 += e.orderYearly;
       terpasang2026 += Math.max(e.manualYearly, e.sapYearly);
 
-      const saldoAll = Math.max(0, e.dropAll - pasangAll);
+      const saldoAll = e.dropAll - pasangAll;
 
       let isClose = false;
-      if (e.orderAll > 0 || e.dropAll > 0) {
-        if (e.dropAll >= e.orderAll && saldoAll === 0 && pasangAll > 0) {
+      if (e.orderAll > 0 || e.dropAll > 0 || pasangAll > 0) {
+        if (e.dropAll >= e.orderAll && saldoAll <= 0 && pasangAll > 0) {
           isClose = true;
         }
       }

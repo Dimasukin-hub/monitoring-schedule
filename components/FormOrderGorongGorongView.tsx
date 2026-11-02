@@ -325,20 +325,30 @@ export default function FormOrderGorongGorongView() {
     }
   };
 
-  // Delete Handler (Admin Only)
+  // Delete Handler
   const handleDeleteTrx = async (id: number) => {
-    if (!confirm('Apakah Anda yakin ingin membatalkan transaksi ini?')) return;
+    if (!confirm('Apakah Anda yakin ingin menghapus data riwayat transaksi ini?')) return;
     try {
-      const res = await fetch(`/api/gorong-gorong/order?id=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/gorong-gorong/order?id=${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': user?.role || (isAdmin ? 'admin' : 'user'),
+        },
+      });
       const data = await res.json();
       if (data.success) {
         setHistoryList((prev) => prev.filter((r) => r.id !== id));
+        setNotification({ type: 'success', message: data.message || 'Transaksi berhasil dihapus.' });
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('gorong_gorong_updated'));
         }
+      } else {
+        setNotification({ type: 'error', message: data.message || 'Gagal menghapus transaksi.' });
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Error deleting transaction:', e);
+      setNotification({ type: 'error', message: e.message || 'Terjadi kesalahan sistem saat menghapus transaksi.' });
     }
   };
 
@@ -881,7 +891,7 @@ export default function FormOrderGorongGorongView() {
                   Diameter
                 </th>
                 <th rowSpan={2} className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 px-3.5 py-2 text-center border-r border-b border-slate-200 dark:border-slate-700 font-bold">Penginput</th>
-                {isAdmin && <th rowSpan={2} className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 px-3 py-2 text-center border-b border-slate-200 dark:border-slate-700 font-bold">Aksi</th>}
+                <th rowSpan={2} className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 px-3 py-2 text-center border-b border-slate-200 dark:border-slate-700 font-bold">Aksi</th>
               </tr>
               {/* Header Tier 2: Rincian 4 Diameter (100% Solid Pekat) */}
               <tr className="h-[28px]">
@@ -894,13 +904,13 @@ export default function FormOrderGorongGorongView() {
             <tbody className="text-slate-700 dark:text-slate-300">
               {isLoadingHistory ? (
                 <tr>
-                  <td colSpan={isAdmin ? 11 : 10} className="px-4 py-8 text-center text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                  <td colSpan={11} className="px-4 py-8 text-center text-slate-400 border-b border-slate-200 dark:border-slate-800">
                     Memuat riwayat transaksi...
                   </td>
                 </tr>
               ) : historyList.length === 0 ? (
                 <tr>
-                  <td colSpan={isAdmin ? 11 : 10} className="px-4 py-8 text-center text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                  <td colSpan={11} className="px-4 py-8 text-center text-slate-400 border-b border-slate-200 dark:border-slate-800">
                     Belum ada riwayat transaksi.
                   </td>
                 </tr>
@@ -952,17 +962,16 @@ export default function FormOrderGorongGorongView() {
                     <td className="px-3.5 py-2 text-[11px] text-slate-500 border-r border-b border-slate-200 dark:border-slate-800 text-center">
                       {item.createdBy} ({item.userRole})
                     </td>
-                    {isAdmin && (
-                      <td className="px-3 py-2 text-center border-b border-slate-200 dark:border-slate-800">
-                        <button
-                          onClick={() => handleDeleteTrx(item.id)}
-                          className="p-1 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 cursor-pointer transition-colors"
-                          title="Hapus Transaksi"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    )}
+                    <td className="px-3 py-2 text-center border-b border-slate-200 dark:border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTrx(item.id)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer transition-colors"
+                        title="Hapus Transaksi"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}

@@ -21,6 +21,9 @@ import {
   MapPin,
   Calendar,
   Plus,
+  UploadCloud,
+  X,
+  FileSpreadsheet,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -42,6 +45,7 @@ export default function MonitorGorongGorongView() {
   const [selectedWilayah, setSelectedWilayah] = useState<string[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
   const [selectedYears, setSelectedYears] = useState<string[]>([]);
+  const [selectedPrioritas, setSelectedPrioritas] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedSearchLocations, setSelectedSearchLocations] = useState<string[]>([]);
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState<boolean>(false);
@@ -54,7 +58,17 @@ export default function MonitorGorongGorongView() {
   const [isWilayahDropdownOpen, setIsWilayahDropdownOpen] = useState<boolean>(false);
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState<boolean>(false);
   const [isYearDropdownOpen, setIsYearDropdownOpen] = useState<boolean>(false);
+  const [isPrioritasDropdownOpen, setIsPrioritasDropdownOpen] = useState<boolean>(false);
   const [isExporting, setIsExporting] = useState<boolean>(false);
+
+  // Upload States
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
+  const [uploadMode, setUploadMode] = useState<'merge' | 'full_replace'>('merge');
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [uploadResult, setUploadResult] = useState<any | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [dragActive, setDragActive] = useState<boolean>(false);
+  const fileUploadInputRef = useRef<HTMLInputElement>(null);
 
   const [summaryData, setSummaryData] = useState<any>(null);
   const [monitoringData, setMonitoringData] = useState<any>(null);
@@ -73,6 +87,9 @@ export default function MonitorGorongGorongView() {
       }
       if (!target.closest('.year-filter-container')) {
         setIsYearDropdownOpen(false);
+      }
+      if (!target.closest('.prioritas-filter-container')) {
+        setIsPrioritasDropdownOpen(false);
       }
       if (!target.closest('.multisearch-container')) {
         setIsSearchDropdownOpen(false);
@@ -112,6 +129,7 @@ export default function MonitorGorongGorongView() {
       if (selectedWilayah.length > 0) params.set('wilayah', selectedWilayah.join(','));
       if (selectedStatus.length > 0) params.set('status', selectedStatus.join(','));
       if (selectedYears.length > 0) params.set('tahun', selectedYears.join(','));
+      if (selectedPrioritas.length > 0) params.set('prioritas', selectedPrioritas.join(','));
       if (selectedDiameterFilter && selectedDiameterFilter !== 'ALL') params.set('diameter', String(selectedDiameterFilter));
       
       const allSearch = [...selectedSearchLocations, ...(searchQuery.trim() ? [searchQuery.trim()] : [])].join(',');
@@ -134,7 +152,7 @@ export default function MonitorGorongGorongView() {
 
   useEffect(() => {
     loadData();
-  }, [selectedWilayah, selectedStatus, selectedYears, selectedDiameterFilter, selectedSearchLocations]);
+  }, [selectedWilayah, selectedStatus, selectedYears, selectedPrioritas, selectedDiameterFilter, selectedSearchLocations]);
 
   const kpi = summaryData?.kpi || {
     orderYearly: 0,
@@ -222,6 +240,70 @@ export default function MonitorGorongGorongView() {
     );
   };
 
+  // Sorting state untuk Tabel List Lokasi Belum Order
+  const [belumSortBy, setBelumSortBy] = useState<string>('default');
+  const [belumSortOrder, setBelumSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  const handleBelumSort = (field: string, direction?: 'asc' | 'desc') => {
+    if (direction) {
+      setBelumSortBy(field);
+      setBelumSortOrder(direction);
+    } else if (belumSortBy === field) {
+      setBelumSortOrder(belumSortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setBelumSortBy(field);
+      if (['aktBk'].includes(field)) {
+        setBelumSortOrder('desc');
+      } else {
+        setBelumSortOrder('asc');
+      }
+    }
+  };
+
+  const renderBelumSortArrows = (field: string) => {
+    const isFieldActive = belumSortBy === field;
+    return (
+      <span className="inline-flex flex-col ml-1 shrink-0 align-middle">
+        <span
+          role="button"
+          tabIndex={0}
+          title="Urutkan Naik (A-Z / Kecil-Besar)"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleBelumSort(field, 'asc');
+          }}
+          className="p-0 cursor-pointer leading-none"
+        >
+          <ChevronUp
+            className={`w-2.5 h-2.5 -mb-0.5 transition-colors ${
+              isFieldActive && belumSortOrder === 'asc'
+                ? 'text-[#F58220] font-extrabold stroke-[3]'
+                : 'text-slate-300 dark:text-slate-600 hover:text-amber-500'
+            }`}
+          />
+        </span>
+        <span
+          role="button"
+          tabIndex={0}
+          title="Urutkan Turun (Z-A / Besar-Kecil)"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleBelumSort(field, 'desc');
+          }}
+          className="p-0 cursor-pointer leading-none"
+        >
+          <ChevronDown
+            className={`w-2.5 h-2.5 transition-colors ${
+              isFieldActive && belumSortOrder === 'desc'
+                ? 'text-[#F58220] font-extrabold stroke-[3]'
+                : 'text-slate-300 dark:text-slate-600 hover:text-amber-500'
+            }`}
+          />
+        </span>
+      </span>
+    );
+  };
+
   // Kumpulan seluruh nama lokasi yang tersedia untuk auto-suggest
   const allAvailableLocations = useMemo(() => {
     if (masterLocationsList.length > 0) {
@@ -288,6 +370,31 @@ export default function MonitorGorongGorongView() {
       });
     }
 
+    // Filter berdasarkan prioritas yang dipilih
+    if (selectedPrioritas.length > 0) {
+      list = list.filter((item: any) => {
+        const itemPrio = String(item.prioritas || '').trim();
+        return selectedPrioritas.includes(itemPrio);
+      });
+    }
+
+    // Filter berdasarkan status yang dipilih (Open -> '-' atau 'Open', Close -> 'Close')
+    if (selectedStatus.length > 0) {
+      list = list.filter((item: any) => {
+        const itemStatus = String(item.statusAll || '').trim().toUpperCase();
+        return selectedStatus.some((st) => {
+          const upper = st.toUpperCase();
+          if (upper === 'OPEN' || upper === '-') {
+            return itemStatus === '-' || itemStatus === 'OPEN' || itemStatus === '';
+          }
+          if (upper === 'CLOSE') {
+            return itemStatus === 'CLOSE';
+          }
+          return itemStatus === upper;
+        });
+      });
+    }
+
     if (hasSearchLocations || q) {
       list = list.filter((item: any) => {
         const itemLok = (item.lokasi || '').toUpperCase();
@@ -311,6 +418,7 @@ export default function MonitorGorongGorongView() {
     const prioOrder: Record<string, number> = { '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '-': 6, '': 7 };
 
     const sorted = [...list].sort((a: any, b: any) => {
+      // 7 Kolom Eksisting: Pertahankan Sesuai Aslinya (Jangan Diotak-Atik)
       if (sortBy === 'prioritas') {
         const pA = prioOrder[a.prioritas] ?? 99;
         const pB = prioOrder[b.prioritas] ?? 99;
@@ -343,6 +451,91 @@ export default function MonitorGorongGorongView() {
       } else if (sortBy === 'lokasi') {
         const cmp = a.lokasi.localeCompare(b.lokasi);
         if (cmp !== 0) return sortOrder === 'asc' ? cmp : -cmp;
+      }
+      // Kolom Tambahan yang Ditambahkan Fitur Sort
+      else if (sortBy === 'wilayah') {
+        const cmp = (a.wilayah || '').localeCompare(b.wilayah || '');
+        if (cmp !== 0) return sortOrder === 'asc' ? cmp : -cmp;
+      } else if (sortBy === 'luas') {
+        const lA = Number(a.luasNetto ?? a.luas ?? 0);
+        const lB = Number(b.luasNetto ?? b.luas ?? 0);
+        if (lA !== lB) return sortOrder === 'asc' ? lA - lB : lB - lA;
+      } else if (sortBy === 'umurBulan') {
+        const uA = Number(a.umurBulan ?? 0);
+        const uB = Number(b.umurBulan ?? 0);
+        if (uA !== uB) return sortOrder === 'asc' ? uA - uB : uB - uA;
+      } else if (sortBy === 'statusAll') {
+        const cmp = (a.statusAll || '').localeCompare(b.statusAll || '');
+        if (cmp !== 0) return sortOrder === 'asc' ? cmp : -cmp;
+      } else if (sortBy === 'ratioPerHa') {
+        const rA = Number(a.ratioPerHa ?? 0);
+        const rB = Number(b.ratioPerHa ?? 0);
+        if (rA !== rB) return sortOrder === 'asc' ? rA - rB : rB - rA;
+      } else if (
+        sortBy.startsWith('d40_') ||
+        sortBy.startsWith('d60_') ||
+        sortBy.startsWith('d80_') ||
+        sortBy.startsWith('d100_')
+      ) {
+        const parts = sortBy.split('_');
+        const diaKey = parts[0]; // 'd40' | 'd60' | 'd80' | 'd100'
+        const col = parts.slice(1).join('_');
+        const objA = a[diaKey] || {};
+        const objB = b[diaKey] || {};
+
+        if (col === 'order') {
+          const vA = Number(objA.order ?? 0);
+          const vB = Number(objB.order ?? 0);
+          if (vA !== vB) return sortOrder === 'asc' ? vA - vB : vB - vA;
+        } else if (col === 'drop') {
+          const vA = Number(objA.drop ?? 0);
+          const vB = Number(objB.drop ?? 0);
+          if (vA !== vB) return sortOrder === 'asc' ? vA - vB : vB - vA;
+        } else if (col === 'tglDrop') {
+          const vA =
+            objA.tglTerakhirDrop === '-' || !objA.tglTerakhirDrop
+              ? sortOrder === 'asc'
+                ? '9999-99-99'
+                : '0000-00-00'
+              : objA.tglTerakhirDrop;
+          const vB =
+            objB.tglTerakhirDrop === '-' || !objB.tglTerakhirDrop
+              ? sortOrder === 'asc'
+                ? '9999-99-99'
+                : '0000-00-00'
+              : objB.tglTerakhirDrop;
+          const cmp = vA.localeCompare(vB);
+          if (cmp !== 0) return sortOrder === 'asc' ? cmp : -cmp;
+        } else if (col === 'sisa') {
+          const vA = Number(objA.sisaKebutuhan ?? 0);
+          const vB = Number(objB.sisaKebutuhan ?? 0);
+          if (vA !== vB) return sortOrder === 'asc' ? vA - vB : vB - vA;
+        } else if (col === 'pctDtg') {
+          const vA = Number(objA.pctKedatangan ?? 0);
+          const vB = Number(objB.pctKedatangan ?? 0);
+          if (vA !== vB) return sortOrder === 'asc' ? vA - vB : vB - vA;
+        } else if (col === 'pasangManual') {
+          const vA = Number(objA.pasangManual ?? 0);
+          const vB = Number(objB.pasangManual ?? 0);
+          if (vA !== vB) return sortOrder === 'asc' ? vA - vB : vB - vA;
+        } else if (col === 'pasangSap') {
+          const vA = Number(objA.pasangSap ?? 0);
+          const vB = Number(objB.pasangSap ?? 0);
+          if (vA !== vB) return sortOrder === 'asc' ? vA - vB : vB - vA;
+        } else if (col === 'saldo') {
+          const vA = Number(objA.saldo ?? 0);
+          const vB = Number(objB.saldo ?? 0);
+          if (vA !== vB) return sortOrder === 'asc' ? vA - vB : vB - vA;
+        } else if (col === 'pctPasang') {
+          const vA = Number(objA.pctPasang ?? 0);
+          const vB = Number(objB.pctPasang ?? 0);
+          if (vA !== vB) return sortOrder === 'asc' ? vA - vB : vB - vA;
+        } else if (col === 'status') {
+          const vA = objA.status || '';
+          const vB = objB.status || '';
+          const cmp = vA.localeCompare(vB);
+          if (cmp !== 0) return sortOrder === 'asc' ? cmp : -cmp;
+        }
       }
 
       // Default Multi-Tier Sorting:
@@ -377,32 +570,63 @@ export default function MonitorGorongGorongView() {
     });
 
     return sorted;
-  }, [listLokasiOrder, selectedSearchLocations, searchQuery, sortBy, sortOrder]);
+  }, [listLokasiOrder, selectedSearchLocations, searchQuery, sortBy, sortOrder, selectedYears, selectedPrioritas, selectedStatus]);
 
   const filteredBelumOrderList = useMemo(() => {
+    let list = listLokasiBelumOrder;
     const hasSearchLocations = selectedSearchLocations.length > 0;
     const q = searchQuery.toUpperCase().trim();
 
-    if (!hasSearchLocations && !q) return listLokasiBelumOrder;
+    if (hasSearchLocations || q) {
+      list = list.filter((item: any) => {
+        const itemLok = (item.lokasi || '').toUpperCase();
+        const itemWil = (item.wilayah || '').toUpperCase();
 
-    return listLokasiBelumOrder.filter((item: any) => {
-      const itemLok = (item.lokasi || '').toUpperCase();
-      const itemWil = (item.wilayah || '').toUpperCase();
+        const matchSelected = hasSearchLocations
+          ? selectedSearchLocations.some(
+              (sel) => itemLok.includes(sel.toUpperCase()) || itemWil.includes(sel.toUpperCase())
+            )
+          : false;
 
-      const matchSelected = hasSearchLocations
-        ? selectedSearchLocations.some(
-            (sel) => itemLok.includes(sel.toUpperCase()) || itemWil.includes(sel.toUpperCase())
-          )
-        : false;
+        const matchQuery = q ? (itemLok.includes(q) || itemWil.includes(q)) : false;
 
-      const matchQuery = q ? (itemLok.includes(q) || itemWil.includes(q)) : false;
+        if (hasSearchLocations && q) {
+          return matchSelected || matchQuery;
+        }
+        return hasSearchLocations ? matchSelected : matchQuery;
+      });
+    }
 
-      if (hasSearchLocations && q) {
-        return matchSelected || matchQuery;
+    const sorted = [...list].sort((a: any, b: any) => {
+      if (belumSortBy === 'wilayah') {
+        const cmp = (a.wilayah || '').localeCompare(b.wilayah || '');
+        if (cmp !== 0) return belumSortOrder === 'asc' ? cmp : -cmp;
+      } else if (belumSortBy === 'lokasi') {
+        const cmp = (a.lokasi || '').localeCompare(b.lokasi || '');
+        if (cmp !== 0) return belumSortOrder === 'asc' ? cmp : -cmp;
+      } else if (belumSortBy === 'luasNetto') {
+        const lA = Number(a.luasNetto ?? 0);
+        const lB = Number(b.luasNetto ?? 0);
+        if (lA !== lB) return belumSortOrder === 'asc' ? lA - lB : lB - lA;
+      } else if (belumSortBy === 'status') {
+        const cmp = (a.status || '').localeCompare(b.status || '');
+        if (cmp !== 0) return belumSortOrder === 'asc' ? cmp : -cmp;
+      } else if (belumSortBy === 'aktBk') {
+        const stepA = typeof a.stepOrder === 'number' ? a.stepOrder : 99;
+        const stepB = typeof b.stepOrder === 'number' ? b.stepOrder : 99;
+        if (stepA !== stepB) return belumSortOrder === 'asc' ? stepA - stepB : stepB - stepA;
+        const cmp = (a.aktBk || '').localeCompare(b.aktBk || '');
+        if (cmp !== 0) return belumSortOrder === 'asc' ? cmp : -cmp;
       }
-      return hasSearchLocations ? matchSelected : matchQuery;
+
+      // Default sorting: Wilayah asc, lalu Lokasi asc
+      const wCmp = (a.wilayah || '').localeCompare(b.wilayah || '');
+      if (wCmp !== 0) return wCmp;
+      return (a.lokasi || '').localeCompare(b.lokasi || '');
     });
-  }, [listLokasiBelumOrder, selectedSearchLocations, searchQuery]);
+
+    return sorted;
+  }, [listLokasiBelumOrder, selectedSearchLocations, searchQuery, belumSortBy, belumSortOrder]);
 
   // Ringkasan untuk 4 Card List Lokasi Belum Order (Wilayah, Lokasi, Luas Ha, Status)
   const belumOrderSummary = useMemo(() => {
@@ -486,6 +710,7 @@ export default function MonitorGorongGorongView() {
       if (selectedWilayah.length > 0) params.set('wilayah', selectedWilayah.join(','));
       if (selectedStatus.length > 0) params.set('status', selectedStatus.join(','));
       if (selectedYears.length > 0) params.set('tahun', selectedYears.join(','));
+      if (selectedPrioritas.length > 0) params.set('prioritas', selectedPrioritas.join(','));
       if (selectedDiameterFilter && selectedDiameterFilter !== 'ALL') params.set('diameter', String(selectedDiameterFilter));
       
       const allSearch = [...selectedSearchLocations, ...(searchQuery.trim() ? [searchQuery.trim()] : [])].join(',');
@@ -514,10 +739,67 @@ export default function MonitorGorongGorongView() {
     }
   };
 
+  // Upload Excel (.xlsx/.xls) dengan mode Smart Merge atau Full Replace
+  const handleUploadExcel = async (file: File) => {
+    if (!file.name.match(/\.(xlsx|xls)$/i)) {
+      setUploadError('File harus berupa dokumen Excel (.xlsx / .xls)');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadError(null);
+    setUploadResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('mode', uploadMode);
+      formData.append('uploadedBy', 'Admin');
+
+      const res = await fetch('/api/gorong-gorong/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setUploadResult(data.summary);
+        // Refresh seluruh data dashboard, kartu KPI, grafik, dan kedua tabel secara real-time
+        await loadData(true);
+      } else {
+        setUploadError(data.message || 'Gagal memproses file Excel.');
+      }
+    } catch (err: any) {
+      setUploadError(err.message || 'Terjadi kesalahan saat mengunggah file.');
+    } finally {
+      setIsUploading(false);
+      if (fileUploadInputRef.current) fileUploadInputRef.current.value = '';
+    }
+  };
+
+  const handleDragUpload = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  };
+
+  const handleDropUpload = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleUploadExcel(e.dataTransfer.files[0]);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* 1. HEADER SECTION & FILTER BAR */}
-      <div className="relative z-30 flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs backdrop-blur-md">
+      <div className="relative z-30 flex flex-col xl:flex-row xl:items-center justify-between gap-4 p-5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs backdrop-blur-md">
         <div>
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#00873D] shadow-[0_0_8px_#00873D]" />
@@ -531,9 +813,9 @@ export default function MonitorGorongGorongView() {
         </div>
 
         {/* Action Controls */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex items-center gap-2 shrink-0 flex-nowrap py-0.5">
           {/* Tombol Page Diameter (Semua Diameter, Ø40, Ø60, Ø80, Ø100) */}
-          <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs">
+          <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0">
             <button
               type="button"
               onClick={() => setSelectedDiameterFilter('ALL')}
@@ -562,7 +844,7 @@ export default function MonitorGorongGorongView() {
           </div>
 
           {/* Filter Wilayah (Multi-select popup) */}
-          <div className="relative wilayah-filter-container">
+          <div className={`relative wilayah-filter-container shrink-0 ${isWilayahDropdownOpen ? 'z-50' : 'z-20'}`}>
             <button
               type="button"
               onClick={() => {
@@ -570,13 +852,14 @@ export default function MonitorGorongGorongView() {
                 setIsStatusDropdownOpen(false);
                 setIsYearDropdownOpen(false);
               }}
-              className="flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs"
+              title={selectedWilayah.length === 0 ? 'Semua Wilayah' : selectedWilayah.join(', ')}
+              className="flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs whitespace-nowrap"
             >
-              <span>
+              <span className="truncate max-w-[120px]">
                 {selectedWilayah.length === 0
-                  ? 'Wilayah'
-                  : selectedWilayah.length <= 3
-                  ? selectedWilayah.join(', ')
+                  ? 'Semua Wilayah'
+                  : selectedWilayah.length === 1
+                  ? selectedWilayah[0]
                   : `${selectedWilayah.length} Wilayah`}
               </span>
               <ChevronDown
@@ -624,16 +907,31 @@ export default function MonitorGorongGorongView() {
             )}
           </div>
 
-          {/* Export Excel Button (Tombol Refresh Dihapus) */}
-          <button
-            onClick={handleExportExcel}
-            disabled={isExporting}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#00873D] hover:bg-[#006e31] text-white text-xs font-bold transition-all shadow-xs hover:shadow-sm cursor-pointer disabled:opacity-50"
-            title="Export data tabel ke file Excel (.xlsx) dengan format rapi dan filter aktif"
-          >
-            <Download className={`w-3.5 h-3.5 ${isExporting ? 'animate-bounce' : ''}`} />
-            <span>{isExporting ? 'Mengekspor...' : 'Export Excel'}</span>
-          </button>
+          {/* Group Action Buttons: Export Excel & Upload Excel (Selalu Berdampingan Rapi Sejajar) */}
+          <div className="inline-flex items-center gap-2 shrink-0 flex-nowrap">
+            <button
+              onClick={handleExportExcel}
+              disabled={isExporting}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#00873D] hover:bg-[#006e31] text-white text-xs font-bold transition-all shadow-xs hover:shadow-sm cursor-pointer disabled:opacity-50 shrink-0 whitespace-nowrap"
+              title="Export data tabel ke file Excel (.xlsx) dengan format rapi dan filter aktif"
+            >
+              <Download className={`w-3.5 h-3.5 ${isExporting ? 'animate-bounce' : ''}`} />
+              <span>{isExporting ? 'Mengekspor...' : 'Export Excel'}</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setIsUploadModalOpen(true);
+                setUploadResult(null);
+                setUploadError(null);
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold transition-all shadow-xs hover:shadow-sm cursor-pointer shrink-0 whitespace-nowrap"
+              title="Upload file Excel untuk memperbarui data Monitor Gorong-Gorong (Full Replace atau Update Parsial)"
+            >
+              <UploadCloud className="w-3.5 h-3.5" />
+              <span>Upload Excel</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -896,9 +1194,13 @@ export default function MonitorGorongGorongView() {
             {sortedWilayahBreakdown.map((w: any) => (
               <div
                 key={w.wilayah}
-                onClick={() => setSelectedWilayah(w.wilayah === selectedWilayah ? 'ALL' : w.wilayah)}
+                onClick={() => {
+                  setSelectedWilayah((prev) =>
+                    prev.includes(w.wilayah) ? prev.filter((item) => item !== w.wilayah) : [...prev, w.wilayah]
+                  );
+                }}
                 className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
-                  selectedWilayah === w.wilayah
+                  selectedWilayah.includes(w.wilayah)
                     ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-[#00873D]'
                     : 'bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200/60 dark:border-slate-700/60'
                 }`}
@@ -907,7 +1209,7 @@ export default function MonitorGorongGorongView() {
                 <div className="flex items-center justify-between text-xs font-bold mb-1">
                   <div className="flex items-center gap-1.5">
                     <span className="text-slate-800 dark:text-slate-200 font-extrabold">{w.wilayah}</span>
-                    {selectedWilayah === w.wilayah && (
+                    {selectedWilayah.includes(w.wilayah) && (
                       <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />
                     )}
                   </div>
@@ -1097,6 +1399,72 @@ export default function MonitorGorongGorongView() {
               </div>
             )}
           </div>
+
+          {/* Filter Prioritas (Multi-select popup di samping tombol Filter Tahun) */}
+          <div className="relative prioritas-filter-container">
+            <button
+              type="button"
+              onClick={() => {
+                setIsPrioritasDropdownOpen((prev) => !prev);
+                setIsYearDropdownOpen(false);
+                setIsStatusDropdownOpen(false);
+                setIsWilayahDropdownOpen(false);
+              }}
+              className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs"
+            >
+              <span>
+                {selectedPrioritas.length === 0
+                  ? 'Prioritas'
+                  : selectedPrioritas.length === 1
+                  ? `Prioritas ${selectedPrioritas[0]}`
+                  : `Prio: ${selectedPrioritas.join(', ')}`}
+              </span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                  isPrioritasDropdownOpen ? 'rotate-180' : 'rotate-0'
+                }`}
+              />
+            </button>
+
+            {isPrioritasDropdownOpen && (
+              <div className="absolute left-0 top-full mt-1.5 w-36 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100">
+                <button
+                  type="button"
+                  onClick={() => setSelectedPrioritas([])}
+                  className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
+                    selectedPrioritas.length === 0
+                      ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
+                      : 'text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <span>Semua Prioritas</span>
+                  {selectedPrioritas.length === 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                </button>
+                {['1', '2', '3', '4', '5'].map((prio) => {
+                  const isSelected = selectedPrioritas.includes(prio);
+                  return (
+                    <button
+                      key={prio}
+                      type="button"
+                      onClick={() => {
+                        setSelectedPrioritas((prev) =>
+                          prev.includes(prio) ? prev.filter((item) => item !== prio) : [...prev, prio]
+                        );
+                      }}
+                      className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
+                        isSelected
+                          ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
+                          : 'text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      <span>Prioritas {prio}</span>
+                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Multi-Search Box Cepat dengan Tags Lokasi & Tombol Silang Lingkaran */}
@@ -1241,15 +1609,23 @@ export default function MonitorGorongGorongView() {
                   </th>
                   <th
                     rowSpan={2}
-                    className="sticky top-0 left-[130px] z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[55px] min-w-[55px] max-w-[55px] px-1 py-2 text-center font-bold"
+                    onClick={() => handleSort('wilayah')}
+                    className="sticky top-0 left-[130px] z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[55px] min-w-[55px] max-w-[55px] px-1 py-2 text-center font-bold cursor-pointer select-none"
                   >
-                    Wil
+                    <div className="inline-flex items-center justify-center gap-1">
+                      <span>Wil</span>
+                      {renderSortArrows('wilayah')}
+                    </div>
                   </th>
                   <th
                     rowSpan={2}
-                    className="sticky top-0 left-[185px] z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[60px] min-w-[60px] max-w-[60px] px-1 py-2 text-center font-bold"
+                    onClick={() => handleSort('luas')}
+                    className="sticky top-0 left-[185px] z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[60px] min-w-[60px] max-w-[60px] px-1 py-2 text-center font-bold cursor-pointer select-none"
                   >
-                    Luas
+                    <div className="inline-flex items-center justify-center gap-1">
+                      <span>Luas</span>
+                      {renderSortArrows('luas')}
+                    </div>
                   </th>
                   <th
                     rowSpan={2}
@@ -1263,9 +1639,13 @@ export default function MonitorGorongGorongView() {
                   </th>
                   <th
                     rowSpan={2}
-                    className="sticky top-0 left-[320px] z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[65px] min-w-[65px] max-w-[65px] px-1 py-2 text-center font-bold"
+                    onClick={() => handleSort('umurBulan')}
+                    className="sticky top-0 left-[320px] z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[65px] min-w-[65px] max-w-[65px] px-1 py-2 text-center font-bold cursor-pointer select-none"
                   >
-                    Umur Bln
+                    <div className="inline-flex items-center justify-center gap-1">
+                      <span>Umur Bln</span>
+                      {renderSortArrows('umurBulan')}
+                    </div>
                   </th>
                   <th
                     rowSpan={2}
@@ -1323,15 +1703,23 @@ export default function MonitorGorongGorongView() {
                   {/* Kolom Bebas Scroll ke Samping */}
                   <th
                     rowSpan={2}
-                    className="sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2.5 py-2 text-center font-bold w-[75px] min-w-[75px]"
+                    onClick={() => handleSort('statusAll')}
+                    className="sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2.5 py-2 text-center font-bold w-[75px] min-w-[75px] cursor-pointer select-none"
                   >
-                    Status All
+                    <div className="inline-flex items-center justify-center gap-1">
+                      <span>Status All</span>
+                      {renderSortArrows('statusAll')}
+                    </div>
                   </th>
                   <th
                     rowSpan={2}
-                    className="sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r-2 border-b border-slate-300 dark:border-slate-700 px-2.5 py-2 text-center font-bold w-[70px] min-w-[70px]"
+                    onClick={() => handleSort('ratioPerHa')}
+                    className="sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r-2 border-b border-slate-300 dark:border-slate-700 px-2.5 py-2 text-center font-bold w-[70px] min-w-[70px] cursor-pointer select-none"
                   >
-                    Ratio/Ha
+                    <div className="inline-flex items-center justify-center gap-1">
+                      <span>Ratio/Ha</span>
+                      {renderSortArrows('ratioPerHa')}
+                    </div>
                   </th>
 
                   {/* 4 Grup Diameter Header (100% Solid Warna Pekat) */}
@@ -1353,16 +1741,98 @@ export default function MonitorGorongGorongView() {
                 <tr className="h-[34px] text-[10.5px]">
                   {[40, 60, 80, 100].map((dia) => (
                     <React.Fragment key={dia}>
-                      <th className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold">Order</th>
-                      <th className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold">Drop</th>
-                      <th className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2.5 py-2 text-center font-bold">Tgl Drop</th>
-                      <th className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold text-rose-600 dark:text-rose-400">Sisa</th>
-                      <th className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold">% Dtg</th>
-                      <th className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold">P. Man</th>
-                      <th className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold">P. SAP</th>
-                      <th className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2.5 py-2 text-center font-bold text-amber-600 dark:text-amber-400">Saldo</th>
-                      <th className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold">% Psg</th>
-                      <th className={`sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-b ${dia !== 100 ? 'border-r-2 border-slate-300 dark:border-slate-700' : 'border-r border-slate-200 dark:border-slate-700'} px-2.5 py-2 text-center font-bold`}>Status</th>
+                      <th
+                        onClick={() => handleSort(`d${dia}_order`)}
+                        className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none"
+                      >
+                        <div className="inline-flex items-center justify-center gap-0.5">
+                          <span>Order</span>
+                          {renderSortArrows(`d${dia}_order`)}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSort(`d${dia}_drop`)}
+                        className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none"
+                      >
+                        <div className="inline-flex items-center justify-center gap-0.5">
+                          <span>Drop</span>
+                          {renderSortArrows(`d${dia}_drop`)}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSort(`d${dia}_tglDrop`)}
+                        className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2.5 py-2 text-center font-bold cursor-pointer select-none"
+                      >
+                        <div className="inline-flex items-center justify-center gap-0.5">
+                          <span>Tgl Drop</span>
+                          {renderSortArrows(`d${dia}_tglDrop`)}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSort(`d${dia}_sisa`)}
+                        className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold text-rose-600 dark:text-rose-400 cursor-pointer select-none"
+                      >
+                        <div className="inline-flex items-center justify-center gap-0.5">
+                          <span>Sisa</span>
+                          {renderSortArrows(`d${dia}_sisa`)}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSort(`d${dia}_pctDtg`)}
+                        className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none"
+                      >
+                        <div className="inline-flex items-center justify-center gap-0.5">
+                          <span>% Dtg</span>
+                          {renderSortArrows(`d${dia}_pctDtg`)}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSort(`d${dia}_pasangManual`)}
+                        className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none"
+                      >
+                        <div className="inline-flex items-center justify-center gap-0.5">
+                          <span>P. Man</span>
+                          {renderSortArrows(`d${dia}_pasangManual`)}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSort(`d${dia}_pasangSap`)}
+                        className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none"
+                      >
+                        <div className="inline-flex items-center justify-center gap-0.5">
+                          <span>P. SAP</span>
+                          {renderSortArrows(`d${dia}_pasangSap`)}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSort(`d${dia}_saldo`)}
+                        className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2.5 py-2 text-center font-bold text-amber-600 dark:text-amber-400 cursor-pointer select-none"
+                      >
+                        <div className="inline-flex items-center justify-center gap-0.5">
+                          <span>Saldo</span>
+                          {renderSortArrows(`d${dia}_saldo`)}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSort(`d${dia}_pctPasang`)}
+                        className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none"
+                      >
+                        <div className="inline-flex items-center justify-center gap-0.5">
+                          <span>% Psg</span>
+                          {renderSortArrows(`d${dia}_pctPasang`)}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSort(`d${dia}_status`)}
+                        className={`sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-b ${
+                          dia !== 100 ? 'border-r-2 border-slate-300 dark:border-slate-700' : 'border-r border-slate-200 dark:border-slate-700'
+                        } px-2.5 py-2 text-center font-bold cursor-pointer select-none`}
+                      >
+                        <div className="inline-flex items-center justify-center gap-0.5">
+                          <span>Status</span>
+                          {renderSortArrows(`d${dia}_status`)}
+                        </div>
+                      </th>
                     </React.Fragment>
                   ))}
                 </tr>
@@ -1416,7 +1886,7 @@ export default function MonitorGorongGorongView() {
                       <td className={`sticky left-[185px] z-20 w-[60px] min-w-[60px] max-w-[60px] text-center font-mono border-r border-b border-slate-200 dark:border-slate-800 px-1 py-2 ${
                         idx % 2 === 1 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-900'
                       } group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors`}>
-                        {item.luas?.toFixed(2)}
+                        {item.luas !== null && item.luas !== undefined ? Number(item.luas).toString() : '-'}
                       </td>
                       <td className={`sticky left-[245px] z-20 w-[75px] min-w-[75px] max-w-[75px] text-center font-semibold border-r border-b border-slate-200 dark:border-slate-800 px-1 py-2 ${
                         idx % 2 === 1 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-900'
@@ -1464,7 +1934,7 @@ export default function MonitorGorongGorongView() {
                           {item.statusAll}
                         </span>
                       </td>
-                      <td className="px-2.5 py-2 text-center font-mono border-r-2 border-b border-slate-300 dark:border-slate-700 w-[70px] min-w-[70px]">{Math.trunc(Number(item.ratioPerHa) || 0)}</td>
+                      <td className="px-2.5 py-2 text-center font-mono border-r-2 border-b border-slate-300 dark:border-slate-700 w-[70px] min-w-[70px]">{Math.round(Number(item.ratioPerHa) || 0)}</td>
 
                       {/* Rincian 4 Diameter (Ø40, Ø60, Ø80, Ø100) */}
                       {['d40', 'd60', 'd80', 'd100'].map((diaKey, dIdx) => {
@@ -1591,11 +2061,51 @@ export default function MonitorGorongGorongView() {
               <thead className="text-slate-700 dark:text-slate-200 font-bold">
                 <tr className="h-[34px]">
                   <th className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-4 py-2.5 text-center font-bold">No</th>
-                  <th className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-4 py-2.5 text-center font-bold">Wilayah</th>
-                  <th className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-4 py-2.5 text-center font-bold">Lokasi</th>
-                  <th className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-4 py-2.5 text-center font-bold">Luas Netto (Ha)</th>
-                  <th className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-4 py-2.5 text-center font-bold">Status Tanaman</th>
-                  <th className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-2.5 text-center font-bold">Aktivitas Terakhir (Akt. BK)</th>
+                  <th
+                    onClick={() => handleBelumSort('wilayah')}
+                    className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-4 py-2.5 text-center font-bold cursor-pointer select-none"
+                  >
+                    <div className="inline-flex items-center justify-center gap-1">
+                      <span>Wilayah</span>
+                      {renderBelumSortArrows('wilayah')}
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleBelumSort('lokasi')}
+                    className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-4 py-2.5 text-center font-bold cursor-pointer select-none"
+                  >
+                    <div className="inline-flex items-center justify-center gap-1">
+                      <span>Lokasi</span>
+                      {renderBelumSortArrows('lokasi')}
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleBelumSort('luasNetto')}
+                    className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-4 py-2.5 text-center font-bold cursor-pointer select-none"
+                  >
+                    <div className="inline-flex items-center justify-center gap-1">
+                      <span>Luas Netto (Ha)</span>
+                      {renderBelumSortArrows('luasNetto')}
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleBelumSort('status')}
+                    className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-4 py-2.5 text-center font-bold cursor-pointer select-none"
+                  >
+                    <div className="inline-flex items-center justify-center gap-1">
+                      <span>Status Tanaman</span>
+                      {renderBelumSortArrows('status')}
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleBelumSort('aktBk')}
+                    className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-2.5 text-center font-bold cursor-pointer select-none"
+                  >
+                    <div className="inline-flex items-center justify-center gap-1">
+                      <span>Aktivitas Terakhir (Akt. BK)</span>
+                      {renderBelumSortArrows('aktBk')}
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody className="text-slate-800 dark:text-slate-200">
@@ -1633,7 +2143,7 @@ export default function MonitorGorongGorongView() {
                           <span className="underline decoration-dotted underline-offset-2 hover:decoration-solid">{item.lokasi}</span>
                         </button>
                       </td>
-                      <td className="px-4 py-2 text-center font-mono border-r border-b border-slate-200 dark:border-slate-800">{item.luasNetto?.toFixed(2)}</td>
+                      <td className="px-4 py-2 text-center font-mono border-r border-b border-slate-200 dark:border-slate-800">{item.luasNetto !== null && item.luasNetto !== undefined ? Number(item.luasNetto).toString() : '-'}</td>
                       <td className="px-4 py-2 font-medium text-center border-r border-b border-slate-200 dark:border-slate-800">{item.status}</td>
                       <td className="px-6 py-2 font-semibold text-amber-700 dark:text-amber-400 text-center border-b border-slate-200 dark:border-slate-800">
                         {item.aktBk}
@@ -1655,6 +2165,243 @@ export default function MonitorGorongGorongView() {
       lokasi={selectedDetailLokasi}
       orderData={selectedOrderRow}
     />
+
+    {/* ============================================================== */}
+    {/* MODAL UPLOAD EXCEL MONITORING GORONG-GORONG                    */}
+    {/* ============================================================== */}
+    {isUploadModalOpen && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 ring-1 ring-violet-500/20">
+                <UploadCloud className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Upload Excel Monitoring Gorong-Gorong
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Sinkronisasi & pembaruan data rekapitulasi order, drop, pasang, serta status lokasi.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsUploadModalOpen(false)}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Modal Body */}
+          <div className="p-6 overflow-y-auto space-y-5">
+            {/* Mode Selection */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-2">
+                Pilih Metode Sinkronisasi:
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Mode: Smart Merge */}
+                <button
+                  type="button"
+                  onClick={() => setUploadMode('merge')}
+                  className={`p-3.5 rounded-xl text-left border transition-all cursor-pointer flex items-start gap-3 ${
+                    uploadMode === 'merge'
+                      ? 'border-violet-600 bg-violet-50/70 dark:bg-violet-950/40 text-violet-950 dark:text-violet-100 ring-1 ring-violet-500'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-850'
+                  }`}
+                >
+                  <div
+                    className={`w-4 h-4 rounded-full mt-0.5 border flex items-center justify-center shrink-0 ${
+                      uploadMode === 'merge' ? 'border-violet-600 bg-violet-600 text-white' : 'border-slate-400'
+                    }`}
+                  >
+                    {uploadMode === 'merge' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-bold">Update Parsial (Smart Merge)</p>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-violet-200 dark:bg-violet-900 text-violet-800 dark:text-violet-200">
+                        Disarankan
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                      Hanya mereplace baris/lokasi yang terdapat di dalam file Excel (misal baris 5–10). Lokasi 1–5 dan lainnya tetap aman tidak terhapus.
+                    </p>
+                  </div>
+                </button>
+
+                {/* Mode: Full Replace */}
+                <button
+                  type="button"
+                  onClick={() => setUploadMode('full_replace')}
+                  className={`p-3.5 rounded-xl text-left border transition-all cursor-pointer flex items-start gap-3 ${
+                    uploadMode === 'full_replace'
+                      ? 'border-rose-600 bg-rose-50/70 dark:bg-rose-950/40 text-rose-950 dark:text-rose-100 ring-1 ring-rose-500'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-850'
+                  }`}
+                >
+                  <div
+                    className={`w-4 h-4 rounded-full mt-0.5 border flex items-center justify-center shrink-0 ${
+                      uploadMode === 'full_replace' ? 'border-rose-600 bg-rose-600 text-white' : 'border-slate-400'
+                    }`}
+                  >
+                    {uploadMode === 'full_replace' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-rose-700 dark:text-rose-300">
+                      Replace Seluruh Data (Wipe & Replace)
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                      Menghapus seluruh transaksi lama di database dan menggantinya 100% dari file Excel yang diunggah.
+                    </p>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Drag & Drop Card */}
+            <div
+              onDragEnter={handleDragUpload}
+              onDragLeave={handleDragUpload}
+              onDragOver={handleDragUpload}
+              onDrop={handleDropUpload}
+              onClick={() => fileUploadInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
+                dragActive
+                  ? 'border-violet-500 bg-violet-500/10 scale-[1.005]'
+                  : 'border-violet-300 dark:border-violet-800/60 hover:border-violet-500 hover:bg-violet-500/5 bg-slate-50/60 dark:bg-slate-900/50'
+              }`}
+            >
+              <input
+                ref={fileUploadInputRef}
+                type="file"
+                accept=".xlsx, .xls"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    handleUploadExcel(e.target.files[0]);
+                  }
+                }}
+                className="hidden"
+              />
+              <div className="flex flex-col items-center justify-center gap-2.5">
+                <div className="w-12 h-12 rounded-full bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center">
+                  {isUploading ? (
+                    <RefreshCw className="w-6 h-6 animate-spin" />
+                  ) : (
+                    <UploadCloud className="w-6 h-6" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                    {isUploading
+                      ? 'Sedang memproses & menyinkronkan data Excel...'
+                      : 'Klik atau seret file Excel Monitor Gorong-Gorong ke sini'}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Mendukung berkas .xlsx dengan multi-sheet otomatis (Lokasi Order, Data Order, Data Drop, Status Lokasi)
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Info Panduan Multi-Sheet */}
+            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 text-xs text-slate-600 dark:text-slate-300 space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
+                <FileSpreadsheet className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                <span>Format Sheet yang Didukung Otomatis:</span>
+              </div>
+              <ul className="list-disc pl-5 space-y-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                <li>
+                  <strong>Sheet `Lokasi Order`:</strong> Rekapitulasi per baris lokasi (Order, Drop, Pasang Manual Ø40/60/80/100, Luas, Umur).
+                </li>
+                <li>
+                  <strong>Sheet Transaksi:</strong> `Data Order`, `Data Drop`, `Data Pasang Man.` (transaksi harian).
+                </li>
+                <li>
+                  <strong>Sheet Master:</strong> `Status Lokasi` (sinkronisasi luas netto, status tanaman, umur bulan).
+                </li>
+                <li>
+                  Sheet lain yang tidak terkait (Sum2, Summary, Bantu, dll.) akan diabaikan secara aman.
+                </li>
+              </ul>
+            </div>
+
+            {/* Error Alert */}
+            {uploadError && (
+              <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 flex items-start gap-2.5 text-xs animate-in fade-in duration-200">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold">Gagal Mengunggah Berkas</p>
+                  <p className="mt-0.5">{uploadError}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Upload Success Card */}
+            {uploadResult && (
+              <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 space-y-2 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                    <p className="font-bold text-sm">Sinkronisasi Excel Berhasil!</p>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-200/70 dark:bg-emerald-800/80 text-emerald-900 dark:text-emerald-100">
+                    {uploadResult.mode === 'full_replace' ? 'Replace Seluruh Data' : 'Update Parsial (Smart Merge)'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  Data telah diperbarui secara instan. Seluruh kartu KPI, grafik, dan tabel telah menyesuaikan hasil sinkronisasi.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px]">
+                  <div className="p-2 rounded-lg bg-emerald-100/70 dark:bg-emerald-900/50">
+                    <p className="text-slate-500 dark:text-slate-400">Lokasi Terupdate</p>
+                    <p className="font-bold text-emerald-800 dark:text-emerald-200 text-sm">
+                      {uploadResult.totalLocations} lokasi
+                    </p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-emerald-100/70 dark:bg-emerald-900/50">
+                    <p className="text-slate-500 dark:text-slate-400">Total Transaksi</p>
+                    <p className="font-bold text-emerald-800 dark:text-emerald-200 text-sm">
+                      {uploadResult.totalTransactions} baris
+                    </p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-emerald-100/70 dark:bg-emerald-900/50">
+                    <p className="text-slate-500 dark:text-slate-400">Total Gorong2</p>
+                    <p className="font-bold text-emerald-800 dark:text-emerald-200 text-sm">
+                      {uploadResult.totalPcs.toLocaleString()} pcs
+                    </p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-emerald-100/70 dark:bg-emerald-900/50">
+                    <p className="text-slate-500 dark:text-slate-400">Status Lokasi</p>
+                    <p className="font-bold text-emerald-800 dark:text-emerald-200 text-sm">
+                      {uploadResult.statusLokasiUpsertedCount} lokasi
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Modal Footer */}
+          <div className="flex items-center justify-end gap-3 px-6 py-3.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
+            <button
+              type="button"
+              onClick={() => setIsUploadModalOpen(false)}
+              className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
   </div>
 );
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { loadSnapshotFromFile } from '@/lib/lokasiOrderSnapshot';
 
 // Helper Pemetaan Tahapan Pekerjaan Tanah PG1 dengan Nomor Urut Resmi (Tahap 1 s/d 20)
 function parseLandActivity(raw: any) {
@@ -82,6 +83,7 @@ export async function GET(request: NextRequest) {
     const filterWilayah = searchParams.get('wilayah');
     const filterStatus = searchParams.get('status');
     const filterTahun = searchParams.get('tahun');
+    const filterPrioritas = searchParams.get('prioritas');
     const searchQuery = searchParams.get('search')?.trim().toUpperCase();
 
     // 1. Ambil seluruh data master pendukung
@@ -152,37 +154,41 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. Susun Tabel List Lokasi Order
+    const snapshotMap = loadSnapshotFromFile();
     const listLokasiOrder: any[] = [];
     const orderedLokasiSet = new Set<string>();
 
-    // Gabungkan seluruh lokasi kandidat dari transaksi (Order/Drop/Pasang Manual) maupun SAP
+    // Gabungkan seluruh lokasi kandidat dari transaksi (Order/Drop/Pasang Manual), SAP, maupun Snapshot Excel
     const allCandidateLocations = new Set<string>([
       ...lokasiOrderMap.keys(),
       ...lokasiSapMap.keys(),
+      ...Object.keys(snapshotMap),
     ]);
 
     for (const lok of allCandidateLocations) {
+      const snap = snapshotMap[lok];
       const trxData = lokasiOrderMap.get(lok) || { orders: [], drops: [], manuals: [] };
       const sapRecords = lokasiSapMap.get(lok.toUpperCase()) || [];
 
-      // Masuk ke List Lokasi Order jika memiliki pesanan Order ATAU Drop ATAU Pasang Manual ATAU Pasang SAP
+      // Masuk ke List Lokasi Order jika memiliki pesanan Order ATAU Drop ATAU Pasang Manual ATAU Pasang SAP ATAU ada di Snapshot Excel
       const hasOrder = trxData.orders.length > 0;
       const hasDrop = trxData.drops.length > 0;
       const hasManual = trxData.manuals.length > 0;
       const hasSap = sapRecords.length > 0;
+      const hasSnap = !!snap;
 
-      if (!hasOrder && !hasDrop && !hasManual && !hasSap) continue;
+      if (!hasOrder && !hasDrop && !hasManual && !hasSap && !hasSnap) continue;
       orderedLokasiSet.add(lok);
 
       const m = masterLokMap.get(lok);
       const dsm = dsmMap.get(lok);
-      const rawAktBk = landAktMap.get(lok) || (m ? m.statusLengkap : '-') || '-';
+      const rawAktBk = landAktMap.get(lok) || (m ? m.statusLengkap : null) || snap?.aktBk || '-';
       const aktBk = parseLandActivity(rawAktBk).formatted;
 
-      const wilayah = m?.wil || trxData.orders[0]?.wilayah || trxData.drops[0]?.wilayah || trxData.manuals[0]?.wilayah || '-';
-      const luas = m?.luasNetto || m?.luasAktif || m?.luasBruto || 0;
-      const statusTanaman = m?.status || '-';
-      const umurBulan = m?.umurBulan ?? (m?.umurRawat ?? 0);
+      const wilayah = m?.wil || snap?.wilayah || trxData.orders[0]?.wilayah || trxData.drops[0]?.wilayah || trxData.manuals[0]?.wilayah || '-';
+      const luas = m?.luasNetto || m?.luasAktif || m?.luasBruto || snap?.luas || 0;
+      const statusTanaman = m?.status || snap?.statusTanaman || '-';
+      const umurBulan = m?.umurBulan ?? (m?.umurRawat ?? (snap?.umurBulan || 0));
 
       // Cari tanggal order paling awal
       let minOrderDate: Date | null = null;
@@ -190,7 +196,11 @@ export async function GET(request: NextRequest) {
         const d = new Date(ord.tanggal);
         if (!minOrderDate || d < minOrderDate) minOrderDate = d;
       }
-      const tanggalOrderStr = minOrderDate ? minOrderDate.toISOString().slice(0, 10) : '-';
+      if (!minOrderDate && snap?.tanggalOrder) {
+        const d = new Date(snap.tanggalOrder);
+        if (!isNaN(d.getTime())) minOrderDate = d;
+      }
+      const tanggalOrderStr = minOrderDate ? minOrderDate.toISOString().slice(0, 10) : (snap?.tanggalOrder || '-');
 
       // Ekstraksi tahun untuk filter tahun
       let rowYear = minOrderDate ? minOrderDate.getFullYear().toString() : '';
@@ -201,6 +211,8 @@ export async function GET(request: NextRequest) {
           rowYear = new Date(trxData.manuals[0].tanggal).getFullYear().toString();
         } else if (sapRecords.length > 0 && sapRecords[0].tanggalRealisasi) {
           rowYear = new Date(sapRecords[0].tanggalRealisasi).getFullYear().toString();
+        } else if (snap?.tanggalOrder) {
+          rowYear = snap.tanggalOrder.slice(0, 4);
         } else {
           rowYear = '2026';
         }
@@ -213,6 +225,8 @@ export async function GET(request: NextRequest) {
       let totalOrderSemua = 0;
       let totalDropSemua = 0;
       let allClosed = true;
+
+      const isClosedInSnapshot = snap?.isClosedExcel === true || snap?.statusAll === 'Close';
 
       for (const dia of diameters) {
         const key = `d${dia}`;
@@ -241,16 +255,41 @@ export async function GET(request: NextRequest) {
         }
 
         // Standar Excel: Terpasang = MAX(Pasang Manual, Pasang SAP)
-        // Saldo = Drop - MAX(Pasang Manual, Pasang SAP)
+        // Saldo = Drop - MAX(Pasang Manual, Pasang SAP) (memperbolehkan minus jika pasang > drop)
         const totalPasangDia = Math.max(manQty, sapQty);
-        const sisaKebutuhanDia = Math.max(0, ordQty - dropQty);
-        const pctKedatanganDia = ordQty > 0 ? (dropQty / ordQty) * 100 : (dropQty > 0 ? 100 : 0);
-        const saldoDia = ordQty === 0 && dropQty === 0 ? 0 : Math.max(0, dropQty - totalPasangDia);
+        const sisaKebutuhanDia = ordQty - dropQty;
+
+        // Standar Excel untuk % Kedatangan:
+        // Jika sudah ada yang terpasang (totalPasangDia > 0), maka persentase kedatangan dihitung dari yang terpasang: Terpasang / Order.
+        // Jika belum ada yang terpasang, dihitung dari drop fisik: Drop / Order.
+        let pctKedatanganDia = 0;
+        if (ordQty > 0) {
+          if (totalPasangDia > 0) {
+            pctKedatanganDia = (totalPasangDia / ordQty) * 100;
+          } else {
+            pctKedatanganDia = (dropQty / ordQty) * 100;
+          }
+        } else if (dropQty > 0 || totalPasangDia > 0) {
+          pctKedatanganDia = 100;
+        }
+
+        const saldoDia = dropQty - totalPasangDia;
         const pctPasangDia = dropQty > 0 ? (totalPasangDia / dropQty) * 100 : (totalPasangDia > 0 ? 100 : 0);
 
-        let statusDia = '-';
-        if (ordQty > 0 || dropQty > 0 || totalPasangDia > 0) {
-          if (dropQty >= ordQty && saldoDia === 0 && totalPasangDia > 0) {
+        // Status Diameter:
+        // 1. Jika di snapshot Excel sudah Close -> Close
+        // 2. Jika di snapshot per diameter sudah Close -> Close
+        // 3. Jika drop >= order dan saldo <= 0 dan totalPasang > 0 -> Close
+        // 4. Jika order=0 dan drop=0 -> Close
+        const snapDiaStatus = dia === 40 ? snap?.statusD40 : dia === 60 ? snap?.statusD60 : dia === 80 ? snap?.statusD80 : snap?.statusD100;
+
+        let statusDia = 'Close';
+        if (isClosedInSnapshot) {
+          statusDia = 'Close';
+        } else if (snapDiaStatus === 'Close') {
+          statusDia = 'Close';
+        } else if (ordQty > 0 || dropQty > 0 || totalPasangDia > 0) {
+          if (dropQty >= ordQty && saldoDia <= 0 && totalPasangDia > 0) {
             statusDia = 'Close';
           } else {
             statusDia = 'Open';
@@ -266,39 +305,61 @@ export async function GET(request: NextRequest) {
           drop: dropQty,
           tglTerakhirDrop: lastDropDate ? lastDropDate.toISOString().slice(0, 10) : '-',
           sisaKebutuhan: sisaKebutuhanDia,
-          pctKedatangan: parseFloat(pctKedatanganDia.toFixed(1)),
+          pctKedatangan: Math.round(pctKedatanganDia),
           pasangManual: manQty,
           pasangSap: sapQty,
           totalPasang: totalPasangDia,
           saldo: saldoDia,
-          pctPasang: parseFloat(pctPasangDia.toFixed(1)),
+          pctPasang: Math.round(pctPasangDia),
           status: statusDia,
         };
       }
 
-      // Standar Excel: Ratio = Order Diameter 40 / Luas Netto
+      // Standar Excel: Ratio = ROUND(Order Diameter 40 / Luas Netto)
       const d40Order = diameterDetails['d40']?.order || 0;
-      const ratioPerHa = luas > 0 ? Math.trunc(d40Order / luas) : 0;
-      const statusAll = totalOrderSemua === 0 && totalDropSemua === 0 ? 'Close' : (allClosed ? 'Close' : 'Open');
+      const ratioPerHa = luas > 0 ? Math.round(d40Order / luas) : (snap?.ratioPerHa ? Math.round(snap.ratioPerHa) : 0);
+      let statusAll = (
+        diameterDetails['d40']?.status === 'Close' &&
+        diameterDetails['d60']?.status === 'Close' &&
+        diameterDetails['d80']?.status === 'Close' &&
+        diameterDetails['d100']?.status === 'Close'
+      ) ? 'Close' : '-';
 
-      // Evaluasi Prioritas (Jika Status All Close -> Prioritas kosong "")
-      let prioritas = '-';
+      if (isClosedInSnapshot) {
+        statusAll = 'Close';
+      } else if (snap && snap.statusAll) {
+        statusAll = snap.statusAll;
+      }
+
+      // Evaluasi Prioritas (Sesuai formula Excel sel K / L):
+      // Jika Status All Close -> Prioritas kosong ""
+      // Jika Order Diameter 40 = 0 -> Prioritas "-"
+      let prioritas = '';
       if (statusAll === 'Close') {
         prioritas = '';
-      } else if (totalOrderSemua === 0) {
+      } else if (d40Order === 0) {
         prioritas = '-';
+      } else if (snap && snap.prioritas !== undefined && snap.prioritas !== '') {
+        prioritas = snap.prioritas;
       } else {
-        const isFC = statusTanaman === 'FC' || statusTanaman?.endsWith('FC') || aktBk.includes('24.Sls Tanam') || aktBk.includes('Selesai Tnm') || aktBk.toLowerCase().includes('selesai tanam');
-        const isJalanSal = aktBk.includes('22.JALAN & SAL') || aktBk.includes('Jln&Sal') || aktBk.includes('Exmini') || aktBk.includes('SS1') || aktBk.includes('Subsoiler');
+        const isFC = statusTanaman === 'FC' || statusTanaman?.endsWith('FC');
+        const isSchedule1 = aktBk.includes('24.Sls Tanam') || aktBk.toLowerCase().includes('selesai tanam') || aktBk.includes('23.Proses Tanam');
+        const isSchedule2 = aktBk.includes('22.Jalan & Saluran') || aktBk.includes('22.JALAN & SAL') || aktBk.includes('Jln&Sal') || aktBk.includes('Exmini') || aktBk.includes('SS1') || aktBk.includes('Subsoiler') || aktBk.includes('Ridger');
+        const d40Drop = diameterDetails['d40']?.drop || 0;
+        const d40PctDtg = d40Order > 0 ? (d40Drop / d40Order) : 0;
+        const d40TotalPsg = diameterDetails['d40']?.totalPasang || 0;
+        const d40PctPsgOrDtg = d40Order > 0 ? (d40TotalPsg > 0 ? d40TotalPsg / d40Order : d40Drop / d40Order) : 0;
 
-        if (isFC && totalDropSemua === 0) {
-          prioritas = '1';
-        } else if (isJalanSal && totalDropSemua === 0) {
-          prioritas = '2';
-        } else if (isJalanSal && totalDropSemua > 0) {
-          prioritas = '3';
-        } else if (isFC && totalDropSemua > 0) {
+        if ((isFC || isSchedule1) && d40PctPsgOrDtg > 0.5) {
           prioritas = '4';
+        } else if (isSchedule2 && d40Drop > 0) {
+          prioritas = '3';
+        } else if (isSchedule2 && d40Drop === 0) {
+          prioritas = '2';
+        } else if ((isFC || isSchedule1) && d40Drop === 0) {
+          prioritas = '1';
+        } else if ((isFC || statusTanaman?.endsWith('ST') || isSchedule1) && d40PctDtg < 0.5) {
+          prioritas = '1';
         } else {
           prioritas = '5';
         }
@@ -313,8 +374,8 @@ export async function GET(request: NextRequest) {
         tanggalOrder: tanggalOrderStr,
         tahun: rowYear,
         aktBk,
-        dsmBk: dsm?.dsmbkPlot || '-',
-        dsmSt: dsm?.dsmPlot || '-',
+        dsmBk: dsm?.dsmbkPlot || snap?.dsmBk || '-',
+        dsmSt: dsm?.dsmPlot || snap?.dsmSt || '-',
         prioritas,
         statusAll,
         ratioPerHa,
@@ -417,15 +478,31 @@ export async function GET(request: NextRequest) {
 
     if (filterStatus && filterStatus !== 'ALL') {
       const sList = filterStatus.split(',').map((s) => s.trim().toUpperCase()).filter(Boolean);
-      filteredOrder = filteredOrder.filter((item) =>
-        sList.includes(item.statusAll.toUpperCase())
-      );
+      filteredOrder = filteredOrder.filter((item) => {
+        const itemStatus = (item.statusAll || '').trim().toUpperCase();
+        return sList.some((s) => {
+          if (s === 'OPEN' || s === '-') {
+            return itemStatus === '-' || itemStatus === 'OPEN' || itemStatus === '';
+          }
+          if (s === 'CLOSE') {
+            return itemStatus === 'CLOSE';
+          }
+          return itemStatus === s;
+        });
+      });
     }
 
     if (filterTahun && filterTahun !== 'ALL') {
       const yList = filterTahun.split(',').map((y) => y.trim()).filter(Boolean);
       filteredOrder = filteredOrder.filter((item) =>
         yList.includes(String(item.tahun))
+      );
+    }
+
+    if (filterPrioritas && filterPrioritas !== 'ALL') {
+      const pList = filterPrioritas.split(',').map((p) => p.trim()).filter(Boolean);
+      filteredOrder = filteredOrder.filter((item) =>
+        pList.includes(String(item.prioritas || ''))
       );
     }
 

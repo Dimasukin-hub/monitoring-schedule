@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Layers,
   Download,
+  Upload,
   X,
   Calendar,
   ChevronDown,
@@ -25,6 +26,7 @@ import MultiSelectDropdown, { FilterGroup } from '@/components/MultiSelectDropdo
 import { PIPELINE_ORDER, computeAktivitasTerakhir, computeRencanaBeroBongkar, isValidDate } from '@/lib/landActivityUtils';
 import { useAuth } from '@/components/AuthProvider';
 import AddLandModal from '@/components/AddLandModal';
+import UploadLandExcelModal from '@/components/UploadLandExcelModal';
 import { calculateCascadeRencanaDates, calculateLandPlanSchedule } from '@/lib/planScheduleCascade';
 
 export const REAL_MASTER_STATUSES = [
@@ -658,6 +660,7 @@ export default function LandTable({
   const prevSelectedActivitiesRef = useRef<string[]>([]);
   const [highlightedColumn, setHighlightedColumn] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [landToDelete, setLandToDelete] = useState<{ id: number; lokasi: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [page, setPage] = useState(() => {
@@ -2373,6 +2376,17 @@ export default function LandTable({
               )}
             </div>
 
+            {/* Upload Excel Button */}
+            <button
+              type="button"
+              onClick={() => setIsUploadModalOpen(true)}
+              className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-teal-600/20 hover:bg-teal-600/30 border border-teal-500/30 text-teal-700 dark:text-teal-300 text-xs font-semibold transition-all cursor-pointer whitespace-nowrap shadow-xs hover:shadow-sm"
+              title="Upload & Replace Data Lahan dari Master Schedule (.xlsx)"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Upload Excel</span>
+            </button>
+
             {/* Export Excel Button */}
             <button
               onClick={handleDownloadExcel}
@@ -3952,6 +3966,16 @@ export default function LandTable({
         availableWilayahs={filters.wilayahs}
         availableStatuses={availableStatusOptions}
         availableBulanTanams={filters.bulanTanam}
+      />
+
+      {/* Modal Upload & Replace Data Lahan dari Master Schedule */}
+      <UploadLandExcelModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onSuccess={() => {
+          fetchLands();
+          onDataChanged?.();
+        }}
       />
 
       {/* Modal Konfirmasi Hapus Data Lahan - Khusus Admin */}

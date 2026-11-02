@@ -13,8 +13,24 @@ import {
   XCircle,
   Database,
   Download,
+  Calendar,
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
+
+const MONTHS_LIST = [
+  { val: '01', label: 'Januari' },
+  { val: '02', label: 'Februari' },
+  { val: '03', label: 'Maret' },
+  { val: '04', label: 'April' },
+  { val: '05', label: 'Mei' },
+  { val: '06', label: 'Juni' },
+  { val: '07', label: 'Juli' },
+  { val: '08', label: 'Agustus' },
+  { val: '09', label: 'September' },
+  { val: '10', label: 'Oktober' },
+  { val: '11', label: 'November' },
+  { val: '12', label: 'Desember' },
+];
 
 export default function MasterSapUploadView() {
   const { user } = useAuth();
@@ -28,12 +44,15 @@ export default function MasterSapUploadView() {
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedDiameter, setSelectedDiameter] = useState<string[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Custom Dropdown Open State
   const [isDiameterDropdownOpen, setIsDiameterDropdownOpen] = useState<boolean>(false);
+  const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState<boolean>(false);
 
   // Upload States
+  const [uploadMode, setUploadMode] = useState<'month_replace' | 'full_replace'>('month_replace');
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadResult, setUploadResult] = useState<any | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -45,6 +64,9 @@ export default function MasterSapUploadView() {
       const target = e.target as HTMLElement;
       if (!target.closest('.diameter-dropdown-container')) {
         setIsDiameterDropdownOpen(false);
+      }
+      if (!target.closest('.month-dropdown-container')) {
+        setIsMonthDropdownOpen(false);
       }
     };
     document.addEventListener('click', handleClickOutside);
@@ -68,6 +90,7 @@ export default function MasterSapUploadView() {
         pageSize: String(pageSize),
       });
       if (selectedDiameter.length > 0) params.set('diameter', selectedDiameter.join(','));
+      if (selectedMonth.length > 0) params.set('bulan', selectedMonth.join(','));
       if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
 
       const res = await fetch(`/api/gorong-gorong/sap-upload?${params.toString()}`);
@@ -86,7 +109,7 @@ export default function MasterSapUploadView() {
 
   useEffect(() => {
     loadData(page, dataList.length === 0);
-  }, [page, selectedDiameter, debouncedSearch]);
+  }, [page, selectedDiameter, selectedMonth, debouncedSearch]);
 
   const handleFileProcess = async (file: File) => {
     if (!file.name.match(/\.(xlsx|xls)$/i)) {
@@ -101,6 +124,7 @@ export default function MasterSapUploadView() {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('mode', uploadMode);
       formData.append('uploadedBy', user?.name || user?.email || 'admin');
 
       const res = await fetch('/api/gorong-gorong/sap-upload', {
@@ -153,6 +177,20 @@ export default function MasterSapUploadView() {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
   };
 
+  const formatTime = (val: number | string | null) => {
+    if (val == null || val === '') return '-';
+    if (typeof val === 'string' && val.includes(':')) return val.trim();
+    const num = Number(val);
+    if (isNaN(num)) return String(val);
+    // Pecahan hari Excel ke detik
+    const fraction = num % 1;
+    const totalSeconds = Math.round((fraction >= 0 ? fraction : fraction + 1) * 86400);
+    const hours = Math.floor(totalSeconds / 3600) % 24;
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Upload Zone & Header */}
@@ -188,6 +226,58 @@ export default function MasterSapUploadView() {
           </div>
         </div>
 
+        {/* Pilihan Mode Sinkronisasi Upload */}
+        <div className="mt-5 p-3.5 rounded-xl bg-white/70 dark:bg-slate-800/70 border border-violet-200 dark:border-violet-900/60 shadow-2xs">
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-2">
+            Metode Sinkronisasi Data SAP:
+          </label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            <button
+              type="button"
+              onClick={() => setUploadMode('month_replace')}
+              className={`p-3 rounded-lg text-left border transition-all cursor-pointer flex items-start gap-2.5 ${
+                uploadMode === 'month_replace'
+                  ? 'border-violet-600 bg-violet-50/80 dark:bg-violet-950/40 text-violet-900 dark:text-violet-100 ring-1 ring-violet-500'
+                  : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900'
+              }`}
+            >
+              <div className={`w-4 h-4 rounded-full mt-0.5 border flex items-center justify-center shrink-0 ${
+                uploadMode === 'month_replace' ? 'border-violet-600 bg-violet-600 text-white' : 'border-slate-400'
+              }`}>
+                {uploadMode === 'month_replace' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+              </div>
+              <div>
+                <p className="text-xs font-bold">Replace per Periode Bulan (Disarankan)</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Menghapus & memperbarui hanya bulan yang ada di file Excel (misal: September atau Oktober), bulan lain tidak terhapus.
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setUploadMode('full_replace')}
+              className={`p-3 rounded-lg text-left border transition-all cursor-pointer flex items-start gap-2.5 ${
+                uploadMode === 'full_replace'
+                  ? 'border-rose-600 bg-rose-50/80 dark:bg-rose-950/40 text-rose-900 dark:text-rose-100 ring-1 ring-rose-500'
+                  : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900'
+              }`}
+            >
+              <div className={`w-4 h-4 rounded-full mt-0.5 border flex items-center justify-center shrink-0 ${
+                uploadMode === 'full_replace' ? 'border-rose-600 bg-rose-600 text-white' : 'border-slate-400'
+              }`}>
+                {uploadMode === 'full_replace' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+              </div>
+              <div>
+                <p className="text-xs font-bold text-rose-700 dark:text-rose-300">Replace Seluruh Data (Wipe & Replace)</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Menghapus seluruh transaksi SAP lama (semua bulan) dan menggantinya secara total dengan data file baru.
+                </p>
+              </div>
+            </button>
+          </div>
+        </div>
+
         {/* Drag & Drop Card */}
         <div
           onDragEnter={handleDrag}
@@ -195,7 +285,7 @@ export default function MasterSapUploadView() {
           onDragOver={handleDrag}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`mt-5 border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
+          className={`mt-4 border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
             dragActive
               ? 'border-violet-500 bg-violet-500/10 scale-[1.005]'
               : 'border-violet-300 dark:border-violet-800/60 hover:border-violet-500 hover:bg-violet-500/5 bg-white/50 dark:bg-slate-900/40'
@@ -227,7 +317,9 @@ export default function MasterSapUploadView() {
                   : 'Klik atau seret file Excel Form 630 ke sini'}
               </p>
               <p className="text-xs text-slate-400 mt-0.5">
-                Mendukung file .xlsx dengan format standar Form 630 SAP
+                {uploadMode === 'month_replace'
+                  ? 'Mode: Replace per Bulan — hanya bulan terkait yang diperbarui'
+                  : 'Mode: Replace Seluruh Data — seluruh data lama digantikan file ini'}
               </p>
             </div>
           </div>
@@ -237,27 +329,37 @@ export default function MasterSapUploadView() {
         {uploadResult && (
           <div className="mt-4 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 flex items-start gap-3 animate-in fade-in duration-200">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-            <div className="text-xs space-y-1">
-              <p className="font-bold text-sm">Berhasil Mengunggah Data SAP!</p>
+            <div className="text-xs space-y-1.5 flex-1">
+              <div className="flex items-center justify-between">
+                <p className="font-bold text-sm">Berhasil Mengunggah Data SAP!</p>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-200/70 dark:bg-emerald-800/80 text-emerald-900 dark:text-emerald-100">
+                  {uploadResult.mode === 'full_replace' ? 'Replace Seluruh Data' : 'Replace per Periode Bulan'}
+                </span>
+              </div>
               <p>
-                Total baris diproses: <span className="font-bold">{uploadResult.totalInserted} baris</span> dari file{' '}
+                Total baris diproses: <span className="font-bold">{uploadResult.totalInserted || uploadResult.totalBaris} baris</span> dari file{' '}
                 <span className="font-mono font-semibold">{uploadResult.fileName}</span>.
+                {uploadResult.detectedMonths && uploadResult.detectedMonths.length > 0 && (
+                  <span className="ml-1 text-slate-600 dark:text-slate-300">
+                    (Periode bulan terdeteksi: <strong>{uploadResult.detectedMonths.join(', ')}</strong>)
+                  </span>
+                )}
               </p>
               <div className="flex flex-wrap gap-3 pt-1 text-[11px]">
                 <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/60 rounded font-semibold">
-                  Ø40: {uploadResult.countD40} pcs
+                  Ø40: {uploadResult.countD40 || uploadResult.qtyD40 || 0} pcs
                 </span>
                 <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/60 rounded font-semibold">
-                  Ø60: {uploadResult.countD60} pcs
+                  Ø60: {uploadResult.countD60 || uploadResult.qtyD60 || 0} pcs
                 </span>
                 <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/60 rounded font-semibold">
-                  Ø80: {uploadResult.countD80} pcs
+                  Ø80: {uploadResult.countD80 || uploadResult.qtyD80 || 0} pcs
                 </span>
                 <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/60 rounded font-semibold">
-                  Ø100: {uploadResult.countD100} pcs
+                  Ø100: {uploadResult.countD100 || uploadResult.qtyD100 || 0} pcs
                 </span>
                 <span className="px-2 py-0.5 bg-emerald-200/60 dark:bg-emerald-900/80 rounded font-bold">
-                  Total Biaya: {formatCurrency(uploadResult.totalBiayaSum)}
+                  Total Biaya: {formatCurrency(uploadResult.totalBiayaSum || uploadResult.totalBiaya)}
                 </span>
               </div>
             </div>
@@ -301,12 +403,79 @@ export default function MasterSapUploadView() {
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            {/* Custom Dropdown Filter Bulan */}
+            <div className="relative month-dropdown-container">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMonthDropdownOpen((prev) => !prev);
+                  setIsDiameterDropdownOpen(false);
+                }}
+                className="flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs"
+              >
+                <span>
+                  {selectedMonth.length === 0
+                    ? 'Bulan'
+                    : selectedMonth.length <= 2
+                    ? selectedMonth.map((m) => MONTHS_LIST.find((item) => item.val === m)?.label || m).join(', ')
+                    : `${selectedMonth.length} Bulan`}
+                </span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                    isMonthDropdownOpen ? 'rotate-180' : 'rotate-0'
+                  }`}
+                />
+              </button>
+
+              {isMonthDropdownOpen && (
+                <div className="absolute right-0 top-full mt-1.5 w-44 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 max-h-60 overflow-y-auto scrollbar-thin animate-in fade-in zoom-in-95 duration-100">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedMonth([]);
+                      setPage(1);
+                    }}
+                    className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
+                      selectedMonth.length === 0 ? 'text-violet-600 font-bold bg-violet-50/50 dark:bg-violet-950/30' : 'text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <span>Semua Bulan</span>
+                    {selectedMonth.length === 0 && <span className="w-1.5 h-1.5 rounded-full bg-violet-600" />}
+                  </button>
+                  {MONTHS_LIST.map((m) => {
+                    const isSelected = selectedMonth.includes(m.val);
+                    return (
+                      <button
+                        key={m.val}
+                        type="button"
+                        onClick={() => {
+                          setSelectedMonth((prev) =>
+                            prev.includes(m.val) ? prev.filter((item) => item !== m.val) : [...prev, m.val]
+                          );
+                          setPage(1);
+                        }}
+                        className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
+                          isSelected ? 'text-violet-600 font-bold bg-violet-50/50 dark:bg-violet-950/30' : 'text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        <span>{m.label}</span>
+                        {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-violet-600" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {/* Custom Dropdown Filter Diameter */}
             <div className="relative diameter-dropdown-container">
               <button
                 type="button"
-                onClick={() => setIsDiameterDropdownOpen((prev) => !prev)}
+                onClick={() => {
+                  setIsDiameterDropdownOpen((prev) => !prev);
+                  setIsMonthDropdownOpen(false);
+                }}
                 className="flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs"
               >
                 <span>
@@ -473,8 +642,8 @@ export default function MasterSapUploadView() {
                     <td className="py-2.5 px-3 text-center text-slate-700 dark:text-slate-300 border-r border-slate-200/70 dark:border-slate-800/70">
                       {row.penanggungJawab || '-'}
                     </td>
-                    <td className="py-2.5 px-3 text-center font-mono text-slate-500 border-r border-slate-200/70 dark:border-slate-800/70">
-                      {row.waktuPelaksanaan != null ? row.waktuPelaksanaan : '-'}
+                    <td className="py-2.5 px-3 text-center font-mono text-slate-600 dark:text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70">
+                      {formatTime(row.waktuPelaksanaan)}
                     </td>
                     <td className="py-2.5 px-3 text-center font-mono text-slate-500 border-r border-slate-200/70 dark:border-slate-800/70">
                       {row.air != null ? row.air : '-'}

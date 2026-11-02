@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Great Giant Foods (PG1) — Integrated Agricultural Intelligence Portal
 
-## Getting Started
+Sistem Portal Terpadu Operasional & Monitoring Kebun Plantation Group 1 (PG1) PT Great Giant Pineapple.
 
-First, run the development server:
+---
 
+## 🌐 Production Domain & Routing
+
+* **Domain Utama:** `https://establishmentandplanting.estatepg1.online`
+
+### Struktur Rute (*Next.js App Router*):
+* `GET /` : **Portal Landing Page** — Halaman utama pemilihan portal operasional.
+* `GET /labita` : **Portal Labita** — Monitoring pengolahan lahan, tren bero, mutu olah tanah, real tanam nanas, dan manajemen user.
+* `GET /gorong-gorong` : **Portal Monitor Gorong-Gorong** — Rekapitulasi saldo fisik gorong-gorong 4 diameter, dropping lapangan, form order wilayah, master data lokasi, dan manajemen user.
+* `GET /plant-maintenance` : Modul pemeliharaan fasilitas (tahap pengembangan).
+* `GET /produksi` : Modul monitoring produksi & panen (tahap pengembangan).
+* `GET /login` : Autentikasi Admin/User terintegrasi dengan redirect otomatis ke portal aktif.
+
+---
+
+## 🚀 Panduan Menjalankan Aplikasi
+
+### Mode Pengembangan (Local Development):
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+Buka [http://localhost:3000](http://localhost:3000) di browser.
+
+### Mode Produksi (Build & Run):
+```bash
+npm run build
+npm run start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## ⚙️ Konfigurasi Nginx di VPS
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+File konfigurasi Nginx di VPS (`/etc/nginx/sites-available/estatepg1`):
 
-## Learn More
+```nginx
+server {
+    server_name establishmentandplanting.estatepg1.online;
 
-To learn more about Next.js, take a look at the following resources:
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Mengaktifkan & Memasang SSL (Certbot):
+```bash
+sudo ln -s /etc/nginx/sites-available/estatepg1 /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+sudo certbot --nginx -d establishmentandplanting.estatepg1.online
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🛠️ Tech Stack
+* **Framework:** Next.js (App Router, Turbopack, React 19)
+* **Language:** TypeScript
+* **Database & ORM:** PostgreSQL, Prisma
+* **Styling & UI:** Tailwind CSS, Lucide Icons, Recharts

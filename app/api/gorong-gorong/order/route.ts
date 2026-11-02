@@ -167,38 +167,25 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function checkIsAdmin(req: NextRequest): boolean {
-  try {
-    const roleHeader = req.headers.get('x-user-role');
-    if (roleHeader === 'admin') return true;
-
-    const cookieHeader = req.headers.get('cookie') || '';
-    const match = cookieHeader.match(/ggf_session=([^;]+)/);
-    if (match) {
-      const session = JSON.parse(decodeURIComponent(match[1]));
-      if (session && session.role === 'admin') return true;
-    }
-    return false;
-  } catch {
-    return false;
-  }
-}
-
-// DELETE: Hapus transaksi jika ada kesalahan input (Khusus Admin)
+// DELETE: Hapus transaksi jika ada kesalahan input
 export async function DELETE(request: NextRequest) {
   try {
-    if (!checkIsAdmin(request)) {
-      return NextResponse.json(
-        { success: false, message: 'Akses ditolak. Hanya admin yang berhak menghapus data riwayat transaksi.' },
-        { status: 403 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const id = parseInt(searchParams.get('id') || '0', 10);
 
     if (!id || id <= 0) {
       return NextResponse.json({ success: false, message: 'ID transaksi tidak valid.' }, { status: 400 });
+    }
+
+    const existing = await prisma.transaksiGorongGorong.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, message: 'Data transaksi tidak ditemukan atau sudah dihapus.' },
+        { status: 404 }
+      );
     }
 
     await prisma.transaksiGorongGorong.delete({
@@ -207,7 +194,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Transaksi berhasil dihapus.',
+      message: `Transaksi ${existing.jenisTransaksi} lokasi ${existing.lokasi} berhasil dihapus.`,
     });
   } catch (error: any) {
     console.error('Error deleting transaction:', error);

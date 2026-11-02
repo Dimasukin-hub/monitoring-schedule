@@ -20,8 +20,9 @@ export const LABITA_MAIN_MENU_ITEMS: MainMenuItem[] = [
 
 export const GORONG_GORONG_MAIN_MENU_ITEMS: MainMenuItem[] = [
   { id: 'monitor_gorong_gorong', label: 'Monitor Gorong-Gorong' },
-  { id: 'order_wilayah', label: 'Order Wilayah' },
+  { id: 'order_wilayah', label: 'Form Input' },
   { id: 'master_data', label: 'Master Data' },
+  { id: 'user_management', label: 'Manajemen User' },
 ];
 
 export const MAIN_MENU_ITEMS: MainMenuItem[] = [
@@ -53,7 +54,6 @@ export const PLANTING_SUB_MENUS: SubMenuItem[] = [
 
 export const ORDER_WILAYAH_SUB_MENUS: SubMenuItem[] = [
   { id: 'order_gorong_gorong', label: 'Order Gorong-Gorong' },
-  { id: 'order_sulam_bibit', label: 'Order Sulam Bibit' },
 ];
 
 export const MASTER_DATA_SUB_MENUS: SubMenuItem[] = [
@@ -315,11 +315,10 @@ export default function Header({
     <header className="flex flex-col shrink-0 select-none bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 transition-colors duration-200 shadow-2xs">
       {/* Header Paling Atas (Row 1): Logo GGF, Menu Utama, & Tombol Admin / Profil */}
       <div className="px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
-        {/* Sisi Kiri: Logo GGF Kotak Putih */}
+        {/* Sisi Kiri: Logo GGF Kotak Putih & Label Portal */}
         <div className="flex items-center gap-2.5 shrink-0">
-          <button
-            type="button"
-            onClick={() => onSwitchPortal?.('landing')}
+          <Link
+            href="/"
             title="Kembali ke Halaman Pilih Portal"
             className="w-9 h-9 rounded-xl overflow-hidden bg-white border border-slate-200/90 dark:border-slate-700/80 flex items-center justify-center p-1 shadow-xs hover:ring-2 hover:ring-emerald-400/40 transition-all cursor-pointer"
           >
@@ -328,7 +327,15 @@ export default function Header({
               alt="Great Giant Foods"
               className="w-full h-full object-contain"
             />
-          </button>
+          </Link>
+          <div className="hidden sm:flex flex-col">
+            <span className="text-[11px] font-extrabold tracking-tight text-slate-800 dark:text-slate-100 leading-none uppercase">
+              {currentPortal === 'gorong_gorong' ? 'Gorong-Gorong' : 'Labita'}
+            </span>
+            <span className="text-[9px] text-[#00873D] dark:text-emerald-400 font-semibold tracking-wider uppercase">
+              Plantation Group 1
+            </span>
+          </div>
         </div>
 
         {/* Sisi Tengah: Menu Utama (Menu Update hanya muncul setelah Login Admin) */}
@@ -557,7 +564,12 @@ export default function Header({
           ) : (
             /* Sebelum Login: Tombol Bertuliskan Admin saja (tanpa foto profil, tanpa info user only) */
             <Link
-              href="/login"
+              href={`/login?callbackUrl=${encodeURIComponent(currentPortal === 'gorong_gorong' ? '/gorong-gorong' : '/labita')}`}
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  sessionStorage.setItem('ggf_active_portal', currentPortal === 'gorong_gorong' ? '/gorong-gorong' : '/labita');
+                }
+              }}
               title="Masuk sebagai Admin"
               aria-label="Login Admin"
               className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white text-xs font-bold tracking-wide transition-all shadow-xs hover:shadow-sm active:scale-95 cursor-pointer"

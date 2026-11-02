@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import {
   Lock,
@@ -41,13 +41,29 @@ function LoginContent() {
 
   const { login, user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [targetUrl, setTargetUrl] = useState<string>('/');
+
+  useEffect(() => {
+    const paramCallback = searchParams.get('callbackUrl');
+    if (paramCallback && paramCallback !== '/') {
+      setTargetUrl(paramCallback);
+    } else if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('ggf_active_portal');
+      if (stored && stored !== '/') {
+        setTargetUrl(stored);
+      } else {
+        setTargetUrl('/');
+      }
+    }
+  }, [searchParams]);
 
   // Redirect jika sudah login
   useEffect(() => {
     if (user) {
-      router.push('/');
+      router.push(targetUrl);
     }
-  }, [user, router]);
+  }, [user, router, targetUrl]);
 
   // Handle Submit Login (Admin atau User)
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -63,8 +79,8 @@ function LoginContent() {
     if (res.success) {
       setSuccessMsg('Login berhasil! Mengalihkan ke dashboard...');
       setTimeout(() => {
-        router.push('/');
-      }, 600);
+        router.push(targetUrl);
+      }, 300);
     } else {
       setErrorMsg(res.message || 'Username atau kata sandi tidak sesuai.');
     }
@@ -118,8 +134,8 @@ function LoginContent() {
         setSuccessMsg('Pendaftaran akun berhasil! Mengalihkan ke dashboard...');
         // Simpan sesi dan redirect
         setTimeout(() => {
-          window.location.href = '/';
-        }, 800);
+          window.location.href = targetUrl;
+        }, 500);
       } else {
         setErrorMsg(data.message || 'Gagal mendaftarkan akun.');
       }
@@ -144,13 +160,19 @@ function LoginContent() {
 
       {/* Main Container Card */}
       <div className="relative w-full max-w-[440px] bg-white dark:bg-slate-900 rounded-[28px] sm:rounded-3xl shadow-2xl border border-white/30 dark:border-slate-800 p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
-        {/* Tombol Back ke Dashboard */}
+        {/* Tombol Back ke Portal Asal */}
         <Link
-          href="/"
+          href={targetUrl}
           className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-500 hover:text-emerald-700 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors mb-2 cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Dashboard</span>
+          <span>
+            {targetUrl === '/gorong-gorong'
+              ? 'Portal Gorong-Gorong'
+              : targetUrl === '/labita'
+              ? 'Portal Labita'
+              : 'Portal Utama'}
+          </span>
         </Link>
 
         {/* Top Brand Logo */}
