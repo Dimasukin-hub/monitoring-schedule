@@ -247,7 +247,7 @@ export default function FormOrderGorongGorongView() {
           (m) => m.lokasi.trim().toUpperCase() === cleanInput
         );
         selectedLok = found ? found.lokasi : cleanInput;
-        autoWil = found?.wil || 'AW01';
+        autoWil = found?.strucPlant || 'AW01';
       }
 
       return {
@@ -635,7 +635,7 @@ export default function FormOrderGorongGorongView() {
                               searchLokasiInput: val,
                               isDropdownOpen: true,
                               selectedLokasi: match ? match.lokasi : val.trim().toUpperCase(),
-                              autoWilayah: match ? (match.wil || 'AW01') : slot.autoWilayah,
+                              autoWilayah: match ? (match.strucPlant || 'AW01') : slot.autoWilayah,
                             });
                           }}
                           onBlur={() => {
@@ -646,7 +646,7 @@ export default function FormOrderGorongGorongView() {
                               if (match) {
                                 updateSlot(slot.id, {
                                   selectedLokasi: match.lokasi,
-                                  autoWilayah: match.wil || 'AW01',
+                                  autoWilayah: match.strucPlant || 'AW01',
                                   searchLokasiInput: match.lokasi,
                                 });
                               }
@@ -691,7 +691,7 @@ export default function FormOrderGorongGorongView() {
                                 onClick={() => {
                                   updateSlot(slot.id, {
                                     selectedLokasi: opt.lokasi,
-                                    autoWilayah: opt.wil || 'AW01',
+                                    autoWilayah: opt.strucPlant || 'AW01',
                                     searchLokasiInput: opt.lokasi,
                                     isDropdownOpen: false,
                                   });
@@ -699,7 +699,7 @@ export default function FormOrderGorongGorongView() {
                                 className="w-full px-3.5 py-2 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between cursor-pointer transition-colors"
                               >
                                 <span className="font-bold text-[#00873D]">{opt.lokasi}</span>
-                                <span className="text-[11px] text-slate-500 font-semibold">{opt.wil || 'AW01'}</span>
+                                <span className="text-[11px] text-slate-500 font-semibold">{opt.strucPlant || 'AW01'}</span>
                               </button>
                             ))
                           )}

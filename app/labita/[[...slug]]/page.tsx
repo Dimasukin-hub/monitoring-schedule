@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Clock,
@@ -32,15 +33,25 @@ import InputRealTanamPetikView from '@/components/InputRealTanamPetikView';
 import UserManagementView from '@/components/UserManagementView';
 import { useAuth } from '@/components/AuthProvider';
 import { usePortalAccess } from '@/lib/portalAccess';
+import {
+  parseLabitaPathname,
+  getLabitaRoute,
+  LABITA_ROUTES,
+} from '@/lib/portalRoutes';
 
 export default function LabitaDashboardPage() {
   const { user, isAdmin } = useAuth();
   const { isLocalhost, canAccessLabita, isClient, authLoading } = usePortalAccess();
+  const pathname = usePathname();
+  const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<string>('executive_summary');
-  const [executiveSubTab, setExecutiveSubTab] = useState<string>('pengolahan_lahan');
-  const [pengolahanSubTab, setPengolahanSubTab] = useState<string>('list_stok_lahan');
-  const [plantingSubTab, setPlantingSubTab] = useState<string>('real_tanam_nanas');
+  // Inisialisasi awal berdasarkan URL
+  const initial = parseLabitaPathname(pathname || '/labita');
+  const [activeTab, setActiveTab] = useState<string>(initial.activeTab);
+  const [executiveSubTab, setExecutiveSubTab] = useState<string>(initial.executiveSubTab);
+  const [pengolahanSubTab, setPengolahanSubTab] = useState<string>(initial.pengolahanSubTab);
+  const [plantingSubTab, setPlantingSubTab] = useState<string>(initial.plantingSubTab);
+
   const [selectedWilayah, setSelectedWilayah] = useState<string>('ALL');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('LATEST');
   const [stokYear, setStokYear] = useState<number>(2026);
@@ -64,6 +75,66 @@ export default function LabitaDashboardPage() {
   const [summaryData, setSummaryData] = useState<any>(null);
   const [chartsData, setChartsData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Sinkronisasi state dari URL pathname & redirect otomatis jika diperlukan
+  useEffect(() => {
+    if (!pathname) return;
+    const parsed = parseLabitaPathname(pathname);
+
+    if (parsed.redirectTo && parsed.redirectTo !== pathname) {
+      router.replace(parsed.redirectTo);
+      return;
+    }
+
+    setActiveTab(parsed.activeTab);
+    setExecutiveSubTab(parsed.executiveSubTab);
+    setPengolahanSubTab(parsed.pengolahanSubTab);
+    setPlantingSubTab(parsed.plantingSubTab);
+
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('ggf_active_portal', pathname);
+    }
+  }, [pathname, router]);
+
+  // Guard tab manajemen user & update tanam khusus Admin
+  useEffect(() => {
+    if (!isAdmin) {
+      if (activeTab === 'user_management') {
+        router.replace(LABITA_ROUTES.executivePengolahan);
+      }
+      if (activeTab === 'planting' && plantingSubTab === 'update') {
+        router.replace(LABITA_ROUTES.plantingRealTanam);
+      }
+    }
+  }, [isAdmin, activeTab, plantingSubTab, router]);
+
+  // Handler navigasi dari klik tab Header (mengubah URL browser)
+  const handleTabChange = (newTab: string) => {
+    let sub: string | undefined = undefined;
+    if (newTab === 'executive_summary') sub = executiveSubTab;
+    else if (newTab === 'pengolahan_lahan_bibit_tanam') sub = pengolahanSubTab;
+    else if (newTab === 'planting') sub = plantingSubTab;
+    const targetRoute = getLabitaRoute(newTab, sub);
+    router.push(targetRoute);
+  };
+
+  const handleExecutiveSubTabChange = (newSubTab: string) => {
+    setExecutiveSubTab(newSubTab);
+    const targetRoute = getLabitaRoute('executive_summary', newSubTab);
+    router.push(targetRoute);
+  };
+
+  const handlePengolahanSubTabChange = (newSubTab: string) => {
+    setPengolahanSubTab(newSubTab);
+    const targetRoute = getLabitaRoute('pengolahan_lahan_bibit_tanam', newSubTab);
+    router.push(targetRoute);
+  };
+
+  const handlePlantingSubTabChange = (newSubTab: string) => {
+    setPlantingSubTab(newSubTab);
+    const targetRoute = getLabitaRoute('planting', newSubTab);
+    router.push(targetRoute);
+  };
 
   // Load Dashboard Summary & Charts
   const loadDashboardData = (isManualRefresh = false, isSilent = false) => {
@@ -109,19 +180,12 @@ export default function LabitaDashboardPage() {
       });
   };
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('ggf_active_portal', '/labita');
-    }
-  }, []);
-
   const handleRefresh = () => {
     setRefreshLandTrigger((prev) => prev + 1);
     loadDashboardData(true);
   };
 
   const handleSilentDataChanged = () => {
-    // Perbarui kartu dashboard & grafik bero di latar belakang tanpa reload tabel dan tanpa jeda loading
     setRefreshLandTrigger((prev) => prev + 1);
     loadDashboardData(false, true);
   };
@@ -130,17 +194,6 @@ export default function LabitaDashboardPage() {
     if (!canAccessLabita) return;
     loadDashboardData();
   }, [canAccessLabita, selectedWilayah, selectedPeriod, stokYear, stokMonth]);
-
-  useEffect(() => {
-    if (!isAdmin) {
-      if (activeTab === 'user_management') {
-        setActiveTab('executive_summary');
-      }
-      if (activeTab === 'planting' && plantingSubTab === 'update') {
-        setPlantingSubTab('real_tanam_nanas');
-      }
-    }
-  }, [isAdmin, activeTab, plantingSubTab]);
 
   const getTabTitle = () => {
     switch (activeTab) {
@@ -271,14 +324,14 @@ export default function LabitaDashboardPage() {
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
               <Link
-                href="/login?callbackUrl=/labita"
+                href={`/login?callbackUrl=${encodeURIComponent(pathname || '/labita/executive-summary/pengolahan-lahan')}`}
                 className="w-full sm:flex-1 py-3 px-5 rounded-2xl bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-95"
               >
                 <Lock className="w-4 h-4" />
                 <span>Login Administrator</span>
               </Link>
               <Link
-                href="/gorong-gorong"
+                href="/gorong-gorong/monitor-gorong-gorong"
                 className="w-full sm:w-auto py-3 px-5 rounded-2xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors cursor-pointer"
               >
                 Portal Gorong-Gorong
@@ -296,13 +349,13 @@ export default function LabitaDashboardPage() {
       <Header
         currentPortal="labita"
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabChange}
         executiveSubTab={executiveSubTab}
-        setExecutiveSubTab={setExecutiveSubTab}
+        setExecutiveSubTab={handleExecutiveSubTabChange}
         pengolahanSubTab={pengolahanSubTab}
-        setPengolahanSubTab={setPengolahanSubTab}
+        setPengolahanSubTab={handlePengolahanSubTabChange}
         plantingSubTab={plantingSubTab}
-        setPlantingSubTab={setPlantingSubTab}
+        setPlantingSubTab={handlePlantingSubTabChange}
         activeTabTitle={getTabTitle()}
         selectedWilayah={selectedWilayah}
         setSelectedWilayah={setSelectedWilayah}
@@ -318,8 +371,7 @@ export default function LabitaDashboardPage() {
             }
           }
           if (query.trim() && (activeTab !== 'pengolahan_lahan_bibit_tanam' || pengolahanSubTab !== 'data_lahan')) {
-            setActiveTab('pengolahan_lahan_bibit_tanam');
-            setPengolahanSubTab('data_lahan');
+            handlePengolahanSubTabChange('data_lahan');
           }
         }}
         onRefresh={handleRefresh}
@@ -358,176 +410,114 @@ export default function LabitaDashboardPage() {
               onSelectLand={(loc) => setSelectedLandId(loc)}
             />
 
-            {/* Grafik Rerata Bero dan Tanam */}
-            <RerataBeroSection refreshTrigger={refreshLandTrigger} />
+            {/* Grafik Rerata Umur Bero & Tren Penurunan */}
+            <RerataBeroSection
+              refreshTrigger={refreshLandTrigger}
+            />
           </div>
 
           {/* 1.2 SUB MENU: TANAM */}
           <div className={executiveSubTab === 'tanam' ? 'space-y-8' : 'hidden'}>
-            {/* Kartu Realisasi Tanam */}
-            <KpiCards
-              data={summaryData}
-              selectedYear={stokYear}
-              selectedMonth={stokMonth}
-              onSelectStokFilter={(yr, m) => {
-                setStokYear(yr);
-                setStokMonth(m);
-              }}
-              selectedPeriod={selectedPeriod}
-              onSelectPeriod={(p) => setSelectedPeriod(p)}
-              chartsData={chartsData}
-              onSelectLand={(loc) => setSelectedLandId(loc)}
-              selectedWilayah={selectedWilayah}
-              setSelectedWilayah={setSelectedWilayah}
-              availableWilayahs={summaryData?.availableWilayahs || []}
-              activeSubTab="tanam"
-            />
-
-            {/* Grid Berdampingan: Monitoring Tanam & Tabel Real Tanam Kemarin */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-              <div className="lg:col-span-7">
-                <TanamBenchmarkChart data={chartsData?.tanamBenchmark} />
-              </div>
-              <div className="lg:col-span-5">
-                <RealTanamKemarinTable data={chartsData?.realTanamKemarin} />
-              </div>
-            </div>
-
-            {/* Grid Berdampingan: Donat Real Tanam Bibit & Grafik Batang Sebaran Bibit / Bulan */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-              <div className="lg:col-span-5">
-                <RealTanamBibitDonutChart data={chartsData?.realTanamBibitDonut} />
-              </div>
-              <div className="lg:col-span-7">
-                <SebaranBibitBulanChart data={chartsData?.sebaranBibitBulan} />
-              </div>
-            </div>
-
-            {/* Grid Berdampingan: Tabel List Lokasi Selesai Tanam & Tabel List Lokasi Proses Tanam */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
-              <ListLokasiSelesaiTanamTable
-                data={chartsData?.listLokasiSelesaiTanam}
-              />
-              <ListLokasiProsesTanamTable
-                data={chartsData?.listLokasiProsesTanam}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* 2. MENU: PENGOLAHAN LAHAN BIBIT TANAM (Dengan 2 Sub-Menu: List Stok Lahan & Data Lahan) */}
-        <div className={activeTab === 'pengolahan_lahan_bibit_tanam' ? 'space-y-8 animate-in fade-in duration-150' : 'hidden'}>
-          {/* 2.1 SUB MENU: LIST STOK LAHAN */}
-          <div className={pengolahanSubTab === 'list_stok_lahan' ? 'block' : 'hidden'}>
-            <ListStokLahanView
-              onSelectLand={(id) => setSelectedLandId(id)}
-              selectedWilayah={selectedWilayah}
-              refreshTrigger={refreshLandTrigger}
-              chartsData={chartsData}
-            />
-          </div>
-
-          {/* 2.2 SUB MENU: DATA LAHAN (Keep-Alive agar pencarian tidak reset saat buka menu/sub-menu lain) */}
-          <div className={pengolahanSubTab === 'data_lahan' ? 'block' : 'hidden'}>
-            <LandTable
-              onEditLand={(id) => {
-                if (isAdmin) {
-                  setEditingLandId(id);
-                }
-              }}
-              onDataChanged={handleSilentDataChanged}
-              initialSearch={searchQuery}
-              onSearchChange={(query) => {
-                setSearchQuery(query);
-                if (typeof window !== 'undefined') {
-                  if (query) {
-                    sessionStorage.setItem('labita_table_search', query);
-                  } else {
-                    sessionStorage.removeItem('labita_table_search');
-                  }
-                }
-              }}
-              selectedWilayah={selectedWilayah}
-              refreshTrigger={refreshLandTrigger}
-              isAdmin={isAdmin}
-            />
-          </div>
-        </div>
-
-        {/* 3. MENU: PLANTING (Dengan 4 Sub-Menu: Real Tanam Nanas, Input Real Tanam Petik, Proses/Selesai Tanam & Update) */}
-        <div className={activeTab === 'planting' ? 'space-y-8 animate-in fade-in duration-150' : 'hidden'}>
-          {/* 3.1 SUB MENU: REAL TANAM NANAS (Keep-Alive agar tabel dan filter tidak reset saat berpindah sub-menu) */}
-          <div className={plantingSubTab === 'real_tanam_nanas' ? 'block' : 'hidden'}>
-            <PlantingView
-              onOpenLand={(lokasi) => setSelectedLandId(lokasi)}
-              refreshTrigger={refreshLandTrigger}
-              isAdmin={isAdmin}
-              isActive={plantingSubTab === 'real_tanam_nanas'}
-              initialSearch={plantingSearchQuery}
-              onDataChanged={handleSilentDataChanged}
-              onSearchChange={(q) => {
-                setPlantingSearchQuery(q);
-                if (typeof window !== 'undefined') {
-                  if (q) {
-                    sessionStorage.setItem('labita_planting_search', q);
-                  } else {
-                    sessionStorage.removeItem('labita_planting_search');
-                  }
-                }
-              }}
-            />
-          </div>
-
-          {/* 3.2 SUB MENU: INPUT REAL TANAM & PETIK NANAS (Master Log Transaksi Detail Tanpa KPI Card) */}
-          <div className={plantingSubTab === 'input_real_tanam_petik' ? 'block' : 'hidden'}>
-            <InputRealTanamPetikView isAdmin={isAdmin} onDataChanged={handleSilentDataChanged} />
-          </div>
-
-          {/* 3.3 SUB MENU: PROSES TANAM & SELESAI TANAM (GRAFIK PER WILAYAH) */}
-          <div className={plantingSubTab === 'proses_selesai_tanam' ? 'block' : 'hidden'}>
             <ProsesTanamSection
               chartsData={chartsData}
               onSelectLand={(loc) => setSelectedLandId(loc)}
             />
           </div>
+        </div>
 
-          {/* 3.4 SUB MENU: UPDATE TANAM (Form Cepat Update Tanam - Khusus Admin) */}
+        {/* 2. MENU: PENGOLAHAN LAHAN (Dengan 2 Sub-Menu: List Stok Lahan & Data Lahan) */}
+        <div className={activeTab === 'pengolahan_lahan_bibit_tanam' ? 'space-y-8 animate-in fade-in duration-150' : 'hidden'}>
+          {/* 2.1 SUB MENU: LIST STOK LAHAN */}
+          <div className={pengolahanSubTab === 'list_stok_lahan' ? 'space-y-8' : 'hidden'}>
+            <ListStokLahanView
+              selectedWilayah={selectedWilayah}
+              onSelectLand={(loc) => setSelectedLandId(loc)}
+              chartsData={chartsData}
+              isAdmin={isAdmin}
+              refreshTrigger={refreshLandTrigger}
+            />
+          </div>
+
+          {/* 2.2 SUB MENU: DATA LAHAN (Tabel Induk Data Lahan) */}
+          <div className={pengolahanSubTab === 'data_lahan' ? 'space-y-8' : 'hidden'}>
+            <LandTable
+              selectedWilayah={selectedWilayah}
+              selectedPeriod={selectedPeriod}
+              searchQuery={searchQuery}
+              onSelectLand={(loc) => setSelectedLandId(loc)}
+              onEditLand={(loc) => setEditingLandId(loc)}
+              refreshTrigger={refreshLandTrigger}
+            />
+          </div>
+        </div>
+
+        {/* 3. MENU: PLANTING (Dengan 4 Sub-Menu: Real Tanam Nanas, Input Tanam & Petik, Proses Selesai Tanam, Update) */}
+        <div className={activeTab === 'planting' ? 'space-y-8 animate-in fade-in duration-150' : 'hidden'}>
+          {/* 3.1 SUB MENU: REAL TANAM NANAS */}
+          <div className={plantingSubTab === 'real_tanam_nanas' ? 'space-y-8' : 'hidden'}>
+            <PlantingView />
+
+            {/* TABEL REALISASI TANAM KEMARIN */}
+            <RealTanamKemarinTable />
+
+            {/* SEBARAN BIBIT PER BULAN */}
+            <SebaranBibitBulanChart />
+
+            {/* KOMPOSISI REALISASI BIBIT TANAM & BENCHMARK HARIAN */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+              <RealTanamBibitDonutChart />
+              <TanamBenchmarkChart />
+            </div>
+          </div>
+
+          {/* 3.2 SUB MENU: INPUT REAL TANAM & PETIK NANAS */}
+          <div className={plantingSubTab === 'input_real_tanam_petik' ? 'space-y-8' : 'hidden'}>
+            <InputRealTanamPetikView />
+          </div>
+
+          {/* 3.3 SUB MENU: PROSES TANAM & SELESAI TANAM */}
+          <div className={plantingSubTab === 'proses_selesai_tanam' ? 'space-y-8' : 'hidden'}>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+              <ListLokasiProsesTanamTable />
+              <ListLokasiSelesaiTanamTable />
+            </div>
+          </div>
+
+          {/* 3.4 SUB MENU: UPDATE TANAM (Khusus Admin) */}
           {isAdmin && (
-            <div className={plantingSubTab === 'update' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
-              <QuickUpdateTanamView onDataChanged={handleSilentDataChanged} isAdmin={isAdmin} />
+            <div className={plantingSubTab === 'update' ? 'space-y-8' : 'hidden'}>
+              <QuickUpdateTanamView onDataChanged={handleSilentDataChanged} />
             </div>
           )}
         </div>
 
         {/* 4. MENU: MANAJEMEN USER (Khusus Admin) */}
         {isAdmin && (
-          <div className={activeTab === 'user_management' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
+          <div className={activeTab === 'user_management' ? 'space-y-8 animate-in fade-in duration-150' : 'hidden'}>
             <UserManagementView />
           </div>
         )}
       </main>
 
-      {/* Modal Detail Lahan */}
-      {selectedLandId !== null && (
+      {/* Modal Detail Petak Lahan */}
+      {selectedLandId && (
         <LandDetailModal
           landId={selectedLandId}
           onClose={() => setSelectedLandId(null)}
-          onUpdated={() => {
-            setRefreshLandTrigger((prev) => prev + 1);
-            loadDashboardData();
+          onUpdated={handleRefresh}
+          onOpenEdit={(id) => {
+            setSelectedLandId(null);
+            setEditingLandId(id);
           }}
         />
       )}
 
-      {/* Modal Edit Lahan (Hanya untuk Admin) */}
-      {isAdmin && editingLandId !== null && (
+      {/* Modal Edit Data Petak Lahan (Khusus Admin) */}
+      {editingLandId && (
         <LandEditModal
           landId={editingLandId}
           onClose={() => setEditingLandId(null)}
-          onSaved={() => {
-            setEditingLandId(null);
-            handleRefresh();
-          }}
+          onSaved={handleRefresh}
         />
       )}
     </div>

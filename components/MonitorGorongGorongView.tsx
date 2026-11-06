@@ -22,8 +22,8 @@ import {
   Calendar,
   Plus,
   UploadCloud,
-  X,
   FileSpreadsheet,
+  X,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -39,6 +39,10 @@ import {
   Line,
 } from 'recharts';
 import MasterLokasiDetailDrawer from '@/components/MasterLokasiDetailDrawer';
+
+// In-memory module cache agar navigasi antar menu 0 ms instan tanpa loading dari awal lagi
+let cachedSummaryData: any = null;
+let cachedMonitoringData: any = null;
 
 export default function MonitorGorongGorongView() {
   const [activeTableTab, setActiveTableTab] = useState<'order' | 'belum_order'>('order');
@@ -57,22 +61,21 @@ export default function MonitorGorongGorongView() {
   // Custom Dropdown Open States
   const [isWilayahDropdownOpen, setIsWilayahDropdownOpen] = useState<boolean>(false);
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState<boolean>(false);
-  const [isYearDropdownOpen, setIsYearDropdownOpen] = useState<boolean>(false);
   const [isPrioritasDropdownOpen, setIsPrioritasDropdownOpen] = useState<boolean>(false);
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
   // Upload States
   const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
-  const [uploadMode, setUploadMode] = useState<'merge' | 'full_replace'>('merge');
+  const [uploadMode, setUploadMode] = useState<'full_replace' | 'partial'>('full_replace');
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadResult, setUploadResult] = useState<any | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState<boolean>(false);
   const fileUploadInputRef = useRef<HTMLInputElement>(null);
 
-  const [summaryData, setSummaryData] = useState<any>(null);
-  const [monitoringData, setMonitoringData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [summaryData, setSummaryData] = useState<any>(cachedSummaryData);
+  const [monitoringData, setMonitoringData] = useState<any>(cachedMonitoringData);
+  const [isLoading, setIsLoading] = useState<boolean>(!cachedMonitoringData);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   // Click outside listener untuk menutup dropdown filter & search dropdown
@@ -84,9 +87,6 @@ export default function MonitorGorongGorongView() {
       }
       if (!target.closest('.status-filter-container')) {
         setIsStatusDropdownOpen(false);
-      }
-      if (!target.closest('.year-filter-container')) {
-        setIsYearDropdownOpen(false);
       }
       if (!target.closest('.prioritas-filter-container')) {
         setIsPrioritasDropdownOpen(false);
@@ -121,14 +121,17 @@ export default function MonitorGorongGorongView() {
 
   // Load Data dari API
   const loadData = async (silent = false) => {
-    if (!silent) setIsLoading(true);
+    if (!silent && !cachedMonitoringData) setIsLoading(true);
     else setIsRefreshing(true);
 
     try {
       const params = new URLSearchParams();
       if (selectedWilayah.length > 0) params.set('wilayah', selectedWilayah.join(','));
       if (selectedStatus.length > 0) params.set('status', selectedStatus.join(','));
-      if (selectedYears.length > 0) params.set('tahun', selectedYears.join(','));
+      if (selectedYears.length > 0) {
+        params.set('tahun', selectedYears.join(','));
+        params.set('year', selectedYears.join(','));
+      }
       if (selectedPrioritas.length > 0) params.set('prioritas', selectedPrioritas.join(','));
       if (selectedDiameterFilter && selectedDiameterFilter !== 'ALL') params.set('diameter', String(selectedDiameterFilter));
       
@@ -137,11 +140,17 @@ export default function MonitorGorongGorongView() {
 
       const [summaryRes, monitoringRes] = await Promise.all([
         fetch(`/api/gorong-gorong/summary?${params.toString()}`).then((r) => r.json()),
-        fetch(`/api/gorong-gorong/monitoring?${params.toString()}`).then((r) => r.json()),
+        fetch(`/api/gorong-gorong/monitoring`).then((r) => r.json()),
       ]);
 
-      if (summaryRes.success) setSummaryData(summaryRes.data);
-      if (monitoringRes.success) setMonitoringData(monitoringRes.data);
+      if (summaryRes.success) {
+        cachedSummaryData = summaryRes.data;
+        setSummaryData(summaryRes.data);
+      }
+      if (monitoringRes.success) {
+        cachedMonitoringData = monitoringRes.data;
+        setMonitoringData(monitoringRes.data);
+      }
     } catch (err) {
       console.error('Error fetching gorong-gorong data:', err);
     } finally {
@@ -153,14 +162,6 @@ export default function MonitorGorongGorongView() {
   useEffect(() => {
     loadData();
   }, [selectedWilayah, selectedStatus, selectedYears, selectedPrioritas, selectedDiameterFilter, selectedSearchLocations]);
-
-  const kpi = summaryData?.kpi || {
-    orderYearly: 0,
-    terpasangYearly: 0,
-    saldoCurrent: 0,
-    pctKedatangan: 0,
-    pctPemasangan: 0,
-  };
 
   const listLokasiOrder = monitoringData?.listLokasiOrder || [];
   const listLokasiBelumOrder = monitoringData?.listLokasiBelumOrder || [];
@@ -329,17 +330,6 @@ export default function MonitorGorongGorongView() {
       .slice(0, 30);
   }, [allAvailableLocations, searchQuery, selectedSearchLocations]);
 
-  // Urutkan Ringkasan per Wilayah dari terendah ke tertinggi (default persentase kedatangan terendah di atas, tertinggi di bawah)
-  const sortedWilayahBreakdown = useMemo(() => {
-    const list = [...(summaryData?.wilayahBreakdown || [])];
-    return list.sort((a: any, b: any) => {
-      if (a.pctKedatangan !== b.pctKedatangan) {
-        return a.pctKedatangan - b.pctKedatangan;
-      }
-      return a.pctPasang - b.pctPasang;
-    });
-  }, [summaryData?.wilayahBreakdown]);
-
   // Kumpulan tahun yang tersedia secara dinamis dari data List Lokasi Order
   const availableYears = useMemo(() => {
     const set = new Set<string>();
@@ -367,6 +357,14 @@ export default function MonitorGorongGorongView() {
           item.tahun || (item.tanggalOrder && item.tanggalOrder !== '-' ? item.tanggalOrder.slice(0, 4) : '2026')
         );
         return selectedYears.includes(itemYear);
+      });
+    }
+
+    // Filter berdasarkan wilayah yang dipilih
+    if (selectedWilayah.length > 0) {
+      list = list.filter((item: any) => {
+        const itemWil = String(item.wilayah || '').trim().toUpperCase();
+        return selectedWilayah.some((w) => itemWil.includes(w.toUpperCase()));
       });
     }
 
@@ -570,12 +568,284 @@ export default function MonitorGorongGorongView() {
     });
 
     return sorted;
-  }, [listLokasiOrder, selectedSearchLocations, searchQuery, sortBy, sortOrder, selectedYears, selectedPrioritas, selectedStatus]);
+  }, [listLokasiOrder, selectedSearchLocations, searchQuery, sortBy, sortOrder, selectedYears, selectedPrioritas, selectedStatus, selectedWilayah]);
+
+  // 5 KPI Cards: Sesuai aturan arsitektur data:
+  // Card 1 (Total Order): MasterDataOrderGorongGorong khusus Tahun 2026
+  // Card 2 (Total Terpasang): MasterSapGorongGorong qty khusus Tahun 2026
+  // Card 3 (Saldo di Lokasi): Status OPEN per Diameter pada Tahun 2025 dan 2026
+  // Card 4 (% Kedatangan): Status OPEN per Diameter
+  // Card 5 (% Pemasangan): Status OPEN per Diameter
+  const kpi = useMemo(() => {
+    const hasSearch = searchQuery.trim().length > 0 || selectedSearchLocations.length > 0;
+    if (summaryData?.kpi && !hasSearch && selectedWilayah.length === 0 && selectedPrioritas.length === 0 && selectedStatus.length === 0) {
+      return {
+        orderYearly: summaryData.kpi.orderYearly ?? 0,
+        terpasangYearly: summaryData.kpi.terpasangYearly ?? 0,
+        saldoCurrent: summaryData.kpi.saldoCurrent ?? 0,
+        pctKedatangan: summaryData.kpi.pctKedatangan ?? 0,
+        pctPemasangan: summaryData.kpi.pctPemasangan ?? 0,
+        totalOrderAll: summaryData.kpi.totalOrderAll ?? summaryData.kpi.orderYearly ?? 0,
+        totalDropAll: summaryData.kpi.totalDropAll ?? 0,
+        totalTerpasangAll: summaryData.kpi.totalTerpasangAll ?? summaryData.kpi.terpasangYearly ?? 0,
+      };
+    }
+
+    let order = summaryData?.kpi?.orderYearly ?? 0;
+    let terpasangSap = summaryData?.kpi?.terpasangYearly ?? 0;
+    let saldo = 0;
+    let openOrder = 0;
+    let openDrop = 0;
+    let openPasang = 0;
+
+    const diaKeys = selectedDiameterFilter && selectedDiameterFilter !== 'ALL'
+      ? [`d${selectedDiameterFilter}`]
+      : ['d40', 'd60', 'd80', 'd100'];
+
+    const openCandidates = filteredOrderList;
+    for (const item of openCandidates) {
+      const itemYear = String(
+        item.tahun || (item.tanggalOrder && item.tanggalOrder !== '-' ? item.tanggalOrder.slice(0, 4) : '2026')
+      );
+      const is2025or2026 = itemYear === '2025' || itemYear === '2026';
+
+      for (const k of diaKeys) {
+        const d = item[k];
+        if (!d) continue;
+
+        // Status evaluasi per masing-masing diameter (bukan status all)
+        const isOpen = !d.status || d.status.trim().toLowerCase() !== 'close';
+        if (!isOpen) continue;
+
+        const ord = Number(d.order) || 0;
+        const drp = Number(d.drop) || 0;
+        const psap = Number(d.pasangSap) || 0;
+        const pman = Number(d.pasangManual) || 0;
+        const bestPasang = Math.max(pman, psap);
+        const sld = Number(d.saldo) !== undefined && Number(d.saldo) !== null ? Number(d.saldo) : (drp - bestPasang);
+
+        // Saldo khusus tahun 2025 dan 2026
+        if (is2025or2026) {
+          saldo += sld;
+        }
+
+        openOrder += ord;
+        openDrop += drp;
+        openPasang += bestPasang;
+      }
+    }
+
+    const effectiveKedatangan = openPasang > 0 ? openPasang : openDrop;
+    const pctKedatangan = openOrder > 0 ? (effectiveKedatangan / openOrder) * 100 : 0;
+    const pctPemasangan = openDrop > 0 ? (openPasang / openDrop) * 100 : 0;
+
+    return {
+      orderYearly: order,
+      terpasangYearly: terpasangSap,
+      saldoCurrent: saldo,
+      pctKedatangan: parseFloat(pctKedatangan.toFixed(1)),
+      pctPemasangan: parseFloat(pctPemasangan.toFixed(1)),
+      totalOrderAll: summaryData?.kpi?.totalOrderAll || order,
+      totalDropAll: summaryData?.kpi?.totalDropAll || 0,
+      totalTerpasangAll: summaryData?.kpi?.totalTerpasangAll || terpasangSap,
+    };
+  }, [summaryData, filteredOrderList, selectedDiameterFilter, searchQuery, selectedSearchLocations, selectedWilayah, selectedPrioritas, selectedStatus]);
+
+  // Ringkasan per Wilayah: Langsung terhubung dan mengikuti Tabel List Lokasi Order
+  const sortedWilayahBreakdown = useMemo(() => {
+    const validWilayahList = ['AW01', 'AW02', 'AW03', 'AW04', 'AW05', 'AW06', 'AW07'];
+    const map = new Map<string, {
+      wilayah: string;
+      order: number;
+      drop: number;
+      pasang: number;
+      totalPasang: number;
+      saldo: number;
+      openOrder: number;
+      openDrop: number;
+      openPasang: number;
+    }>();
+
+    // Inisialisasi hanya 7 wilayah kebun resmi AW01 s/d AW07 (menghilangkan 'Timur' dan '-')
+    for (const wil of validWilayahList) {
+      map.set(wil, {
+        wilayah: wil,
+        order: 0,
+        drop: 0,
+        pasang: 0,
+        totalPasang: 0,
+        saldo: 0,
+        openOrder: 0,
+        openDrop: 0,
+        openPasang: 0,
+      });
+    }
+
+    const diaKeys = selectedDiameterFilter && selectedDiameterFilter !== 'ALL'
+      ? [`d${selectedDiameterFilter}`]
+      : ['d40', 'd60', 'd80', 'd100'];
+
+    for (const item of filteredOrderList) {
+      const wil = String(item.wilayah || '').trim().toUpperCase();
+      // Hanya petak dengan wilayah resmi AW01 s/d AW07 yang dihitung ke ringkasan wilayah
+      if (!map.has(wil)) continue;
+      const entry = map.get(wil)!;
+      for (const k of diaKeys) {
+        const d = item[k];
+        if (!d) continue;
+
+        // Status open per masing-masing diameter (bukan status all)
+        const isOpen = !d.status || d.status.trim().toLowerCase() !== 'close';
+        if (!isOpen) continue;
+
+        const ord = Number(d.order) || 0;
+        const drp = Number(d.drop) || 0;
+        const psap = Number(d.pasangSap) || 0;
+        const pman = Number(d.pasangManual) || 0;
+        const bestPasang = Math.max(pman, psap);
+        const sld = Number(d.saldo) !== undefined && Number(d.saldo) !== null ? Number(d.saldo) : (drp - bestPasang);
+
+        entry.order += ord;
+        entry.drop += drp;
+        entry.pasang += psap; // DATA PASANG YANG SAP SAJA (untuk bar chart)
+        entry.totalPasang += psap; // DATA PASANG YANG SAP SAJA (untuk bar chart)
+        entry.saldo += sld;
+        entry.openOrder += ord;
+        entry.openDrop += drp;
+        entry.openPasang += bestPasang; // MAX(Manual, SAP) untuk perhitungan %
+      }
+    }
+
+    const result = Array.from(map.values()).map((w) => {
+      const effectiveK = w.openPasang > 0 ? w.openPasang : w.openDrop;
+      const pctK = w.openOrder > 0 ? (effectiveK / w.openOrder) * 100 : 0;
+      const pctP = w.openDrop > 0 ? (w.openPasang / w.openDrop) * 100 : 0;
+      return {
+        wilayah: w.wilayah,
+        order: w.order,
+        drop: w.drop,
+        pasang: w.pasang, // SAP Saja
+        totalPasang: w.totalPasang, // SAP Saja
+        saldo: w.saldo,
+        pctKedatangan: parseFloat(pctK.toFixed(1)),
+        pctPasang: parseFloat(pctP.toFixed(1)),
+      };
+    });
+
+    return result.sort((a, b) => {
+      if (a.pctKedatangan !== b.pctKedatangan) {
+        return a.pctKedatangan - b.pctKedatangan;
+      }
+      return a.pctPasang - b.pctPasang;
+    });
+  }, [filteredOrderList, selectedDiameterFilter]);
+
+  // Data Grafik Tren Bulanan: Dihitung langsung dari baris-baris Tabel List Lokasi Order
+  const monthlyChartData = useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const data = months.map((m, idx) => ({
+      month: m,
+      monthIndex: idx + 1,
+      order: 0,
+      drop: 0,
+      pasangManual: 0,
+      pasangSap: 0,
+      totalPasang: 0,
+      saldo: 0,
+      pctKedatangan: 0,
+      pctPasang: 0,
+    }));
+
+    const diaKeys = selectedDiameterFilter && selectedDiameterFilter !== 'ALL'
+      ? [`d${selectedDiameterFilter}`]
+      : ['d40', 'd60', 'd80', 'd100'];
+
+    for (const item of filteredOrderList) {
+      let rowOrd = 0;
+      let rowDrp = 0;
+      let rowSap = 0;
+      let rowMan = 0;
+
+      for (const k of diaKeys) {
+        const d = item[k];
+        if (!d) continue;
+        // Status open per masing-masing diameter (bukan status all)
+        const isOpen = !d.status || d.status.trim().toLowerCase() !== 'close';
+        if (!isOpen) continue;
+        rowOrd += Number(d.order) || 0;
+        rowDrp += Number(d.drop) || 0;
+        rowSap += Number(d.pasangSap) || 0;
+        rowMan += Number(d.pasangManual) || 0;
+      }
+
+      // Distribusi bulan Order dari tanggalOrder
+      if (item.tanggalOrder && item.tanggalOrder !== '-') {
+        const d = new Date(item.tanggalOrder);
+        if (!isNaN(d.getTime())) {
+          const m = d.getMonth();
+          if (m >= 0 && m < 12) {
+            data[m].order += rowOrd;
+          }
+        }
+      }
+
+      // Distribusi bulan Drop & Pasang dari tglTerakhirDrop
+      let dropDateStr: string | null = null;
+      for (const k of diaKeys) {
+        if (item[k]?.tglTerakhirDrop && item[k]?.tglTerakhirDrop !== '-') {
+          dropDateStr = item[k].tglTerakhirDrop;
+          break;
+        }
+      }
+      if (!dropDateStr && item.tanggalOrder && item.tanggalOrder !== '-') {
+        dropDateStr = item.tanggalOrder;
+      }
+
+      if (dropDateStr) {
+        const d = new Date(dropDateStr);
+        if (!isNaN(d.getTime())) {
+          const m = d.getMonth();
+          if (m >= 0 && m < 12) {
+            data[m].drop += rowDrp;
+            data[m].pasangSap += rowSap;
+            data[m].pasangManual += rowMan;
+          }
+        }
+      } else {
+        data[0].drop += rowDrp;
+        data[0].pasangSap += rowSap;
+        data[0].pasangManual += rowMan;
+      }
+    }
+
+    let runDrop = 0;
+    let runPasang = 0;
+    for (const m of data) {
+      m.totalPasang = m.pasangSap;
+      runDrop += m.drop;
+      runPasang += m.totalPasang;
+      m.saldo = Math.max(0, runDrop - runPasang);
+      const bestP = Math.max(m.pasangManual, m.pasangSap);
+      const effK = bestP > 0 ? bestP : m.drop;
+      m.pctKedatangan = m.order > 0 ? parseFloat(((effK / m.order) * 100).toFixed(1)) : 0;
+      m.pctPasang = m.drop > 0 ? parseFloat(((bestP / m.drop) * 100).toFixed(1)) : 0;
+    }
+
+    return data;
+  }, [filteredOrderList, selectedDiameterFilter]);
 
   const filteredBelumOrderList = useMemo(() => {
     let list = listLokasiBelumOrder;
     const hasSearchLocations = selectedSearchLocations.length > 0;
     const q = searchQuery.toUpperCase().trim();
+
+    // Filter berdasarkan wilayah yang dipilih
+    if (selectedWilayah.length > 0) {
+      list = list.filter((item: any) => {
+        const itemWil = String(item.wilayah || '').trim().toUpperCase();
+        return selectedWilayah.some((w) => itemWil.includes(w.toUpperCase()));
+      });
+    }
 
     if (hasSearchLocations || q) {
       list = list.filter((item: any) => {
@@ -626,7 +896,7 @@ export default function MonitorGorongGorongView() {
     });
 
     return sorted;
-  }, [listLokasiBelumOrder, selectedSearchLocations, searchQuery, belumSortBy, belumSortOrder]);
+  }, [listLokasiBelumOrder, selectedSearchLocations, searchQuery, belumSortBy, belumSortOrder, selectedWilayah]);
 
   // Ringkasan untuk 4 Card List Lokasi Belum Order (Wilayah, Lokasi, Luas Ha, Status)
   const belumOrderSummary = useMemo(() => {
@@ -763,6 +1033,8 @@ export default function MonitorGorongGorongView() {
 
       const data = await res.json();
       if (data.success) {
+        cachedSummaryData = null;
+        cachedMonitoringData = null;
         setUploadResult(data.summary);
         // Refresh seluruh data dashboard, kartu KPI, grafik, dan kedua tabel secara real-time
         await loadData(true);
@@ -843,6 +1115,35 @@ export default function MonitorGorongGorongView() {
             ))}
           </div>
 
+          {/* Tombol Filter Tahun (Semua Tahun, 2025, 2026) */}
+          <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0">
+            <button
+              type="button"
+              onClick={() => setSelectedYears([])}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                selectedYears.length === 0
+                  ? 'bg-[#00873D] text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Semua Tahun
+            </button>
+            {['2025', '2026'].map((yr) => (
+              <button
+                key={yr}
+                type="button"
+                onClick={() => setSelectedYears([yr])}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  selectedYears.length === 1 && selectedYears[0] === yr
+                    ? 'bg-[#00873D] text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                {yr}
+              </button>
+            ))}
+          </div>
+
           {/* Filter Wilayah (Multi-select popup) */}
           <div className={`relative wilayah-filter-container shrink-0 ${isWilayahDropdownOpen ? 'z-50' : 'z-20'}`}>
             <button
@@ -850,7 +1151,6 @@ export default function MonitorGorongGorongView() {
               onClick={() => {
                 setIsWilayahDropdownOpen((prev) => !prev);
                 setIsStatusDropdownOpen(false);
-                setIsYearDropdownOpen(false);
               }}
               title={selectedWilayah.length === 0 ? 'Semua Wilayah' : selectedWilayah.join(', ')}
               className="flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs whitespace-nowrap"
@@ -907,8 +1207,18 @@ export default function MonitorGorongGorongView() {
             )}
           </div>
 
-          {/* Group Action Buttons: Export Excel & Upload Excel (Selalu Berdampingan Rapi Sejajar) */}
+          {/* Group Action Buttons: Template Excel, Export Excel & Upload Excel */}
           <div className="inline-flex items-center gap-2 shrink-0 flex-nowrap">
+            <a
+              href="/api/gorong-gorong/template"
+              download="Template_Upload_Monitor_Gorong_Gorong.xlsx"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold transition-all shadow-2xs hover:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
+              title="Unduh template Excel resmi (Sheet Lokasi Order & Master Data Order 9 kolom)"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-[#00873D]" />
+              <span>Template Excel</span>
+            </a>
+
             <button
               onClick={handleExportExcel}
               disabled={isExporting}
@@ -926,7 +1236,7 @@ export default function MonitorGorongGorongView() {
                 setUploadError(null);
               }}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold transition-all shadow-xs hover:shadow-sm cursor-pointer shrink-0 whitespace-nowrap"
-              title="Upload file Excel untuk memperbarui data Monitor Gorong-Gorong (Full Replace atau Update Parsial)"
+              title="Upload file Excel untuk memperbarui & me-replace data Monitor Gorong-Gorong 100% sekaligus"
             >
               <UploadCloud className="w-3.5 h-3.5" />
               <span>Upload Excel</span>
@@ -953,7 +1263,8 @@ export default function MonitorGorongGorongView() {
               <span className="text-xs font-semibold text-slate-500 ml-1.5">pcs</span>
             </div>
             <p className="text-[10.5px] text-emerald-600 dark:text-emerald-400 font-medium mt-1 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Transaksi Tahun 2026
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />{' '}
+              {selectedYears.length === 1 ? `Transaksi Tahun ${selectedYears[0]}` : 'Transaksi Tahun 2026'}
             </p>
           </div>
         </div>
@@ -974,7 +1285,8 @@ export default function MonitorGorongGorongView() {
               <span className="text-xs font-semibold text-slate-500 ml-1.5">pcs</span>
             </div>
             <p className="text-[10.5px] text-blue-600 dark:text-blue-400 font-medium mt-1 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Realisasi Tahun 2026
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />{' '}
+              {selectedYears.length === 1 ? `Realisasi Tahun ${selectedYears[0]}` : 'Realisasi Tahun 2026'}
             </p>
           </div>
         </div>
@@ -1067,39 +1379,41 @@ export default function MonitorGorongGorongView() {
               </p>
             </div>
 
-            {/* Tab Switcher: Tren Bulanan vs Per Wilayah (AW01 - AW07) */}
-            <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs self-start sm:self-auto">
-              <button
-                type="button"
-                onClick={() => setChartViewMode('monthly')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  chartViewMode === 'monthly'
-                    ? 'bg-[#00873D] text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <Calendar className="w-3.5 h-3.5" />
-                <span>Tren Bulanan</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setChartViewMode('wilayah')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  chartViewMode === 'wilayah'
-                    ? 'bg-[#00873D] text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <MapPin className="w-3.5 h-3.5" />
-                <span>Per Wilayah (AW01 - AW07)</span>
-              </button>
+            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+              {/* Tab Switcher: Tren Bulanan vs Per Wilayah (AW01 - AW07) */}
+              <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => setChartViewMode('monthly')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    chartViewMode === 'monthly'
+                      ? 'bg-[#00873D] text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>Tren Bulanan</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChartViewMode('wilayah')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    chartViewMode === 'wilayah'
+                      ? 'bg-[#00873D] text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span>Per Wilayah (AW01 - AW07)</span>
+                </button>
+              </div>
             </div>
           </div>
 
           <div className="h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
-                data={chartViewMode === 'monthly' ? (summaryData?.monthlyData || []) : (summaryData?.wilayahBreakdown || [])}
+                data={(chartViewMode === 'monthly' ? monthlyChartData : sortedWilayahBreakdown) as any[]}
                 margin={{ top: 10, right: 15, left: -15, bottom: 0 }}
               >
                 <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
@@ -1145,7 +1459,7 @@ export default function MonitorGorongGorongView() {
                 <Bar
                   yAxisId="left"
                   dataKey="totalPasang"
-                  name="Terpasang"
+                  name="Terpasang (SAP)"
                   fill="#009EE2"
                   radius={[4, 4, 0, 0]}
                   maxBarSize={32}
@@ -1280,7 +1594,6 @@ export default function MonitorGorongGorongView() {
               type="button"
               onClick={() => {
                 setIsStatusDropdownOpen((prev) => !prev);
-                setIsYearDropdownOpen(false);
                 setIsWilayahDropdownOpen(false);
               }}
               className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs"
@@ -1337,76 +1650,12 @@ export default function MonitorGorongGorongView() {
             )}
           </div>
 
-          {/* Filter Tahun (Multi-select popup di samping tombol Filter Status) */}
-          <div className="relative year-filter-container">
-            <button
-              type="button"
-              onClick={() => {
-                setIsYearDropdownOpen((prev) => !prev);
-                setIsStatusDropdownOpen(false);
-                setIsWilayahDropdownOpen(false);
-              }}
-              className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs"
-            >
-              <span>
-                {selectedYears.length === 0
-                  ? 'Tahun'
-                  : selectedYears.join(', ')}
-              </span>
-              <ChevronDown
-                className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
-                  isYearDropdownOpen ? 'rotate-180' : 'rotate-0'
-                }`}
-              />
-            </button>
-
-            {isYearDropdownOpen && (
-              <div className="absolute left-0 top-full mt-1.5 w-36 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100">
-                <button
-                  type="button"
-                  onClick={() => setSelectedYears([])}
-                  className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
-                    selectedYears.length === 0
-                      ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
-                      : 'text-slate-700 dark:text-slate-300'
-                  }`}
-                >
-                  <span>Semua Tahun</span>
-                  {selectedYears.length === 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
-                </button>
-                {availableYears.map((yr) => {
-                  const isSelected = selectedYears.includes(yr);
-                  return (
-                    <button
-                      key={yr}
-                      type="button"
-                      onClick={() => {
-                        setSelectedYears((prev) =>
-                          prev.includes(yr) ? prev.filter((item) => item !== yr) : [...prev, yr]
-                        );
-                      }}
-                      className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
-                        isSelected
-                          ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
-                          : 'text-slate-700 dark:text-slate-300'
-                      }`}
-                    >
-                      <span>{yr}</span>
-                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Filter Prioritas (Multi-select popup di samping tombol Filter Tahun) */}
+          {/* Filter Prioritas (Multi-select popup di samping tombol Filter Status) */}
           <div className="relative prioritas-filter-container">
             <button
               type="button"
               onClick={() => {
                 setIsPrioritasDropdownOpen((prev) => !prev);
-                setIsYearDropdownOpen(false);
                 setIsStatusDropdownOpen(false);
                 setIsWilayahDropdownOpen(false);
               }}
@@ -1714,10 +1963,10 @@ export default function MonitorGorongGorongView() {
                   <th
                     rowSpan={2}
                     onClick={() => handleSort('ratioPerHa')}
-                    className="sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r-2 border-b border-slate-300 dark:border-slate-700 px-2.5 py-2 text-center font-bold w-[70px] min-w-[70px] cursor-pointer select-none"
+                    className="sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r-2 border-b border-slate-300 dark:border-slate-700 px-2.5 py-2 text-center font-bold w-[90px] min-w-[90px] cursor-pointer select-none"
                   >
                     <div className="inline-flex items-center justify-center gap-1">
-                      <span>Ratio/Ha</span>
+                      <span>Ratio Gorong2 / Ha</span>
                       {renderSortArrows('ratioPerHa')}
                     </div>
                   </th>
@@ -1726,112 +1975,80 @@ export default function MonitorGorongGorongView() {
                   <th colSpan={10} className="sticky top-0 z-30 px-3 py-2 text-center border-r-2 border-b border-slate-300 dark:border-slate-700 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold">
                     DIAMETER 40 CM (Ø40)
                   </th>
-                  <th colSpan={10} className="sticky top-0 z-30 px-3 py-2 text-center border-r-2 border-b border-slate-300 dark:border-slate-700 bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 font-bold">
+                  <th colSpan={9} className="sticky top-0 z-30 px-3 py-2 text-center border-r-2 border-b border-slate-300 dark:border-slate-700 bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 font-bold">
                     DIAMETER 60 CM (Ø60)
                   </th>
-                  <th colSpan={10} className="sticky top-0 z-30 px-3 py-2 text-center border-r-2 border-b border-slate-300 dark:border-slate-700 bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-bold">
+                  <th colSpan={9} className="sticky top-0 z-30 px-3 py-2 text-center border-r-2 border-b border-slate-300 dark:border-slate-700 bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-bold">
                     DIAMETER 80 CM (Ø80)
                   </th>
-                  <th colSpan={10} className="sticky top-0 z-30 px-3 py-2 text-center border-b border-slate-200 dark:border-slate-700 bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 font-bold">
+                  <th colSpan={9} className="sticky top-0 z-30 px-3 py-2 text-center border-b border-slate-200 dark:border-slate-700 bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 font-bold">
                     DIAMETER 100 CM (Ø100)
                   </th>
                 </tr>
 
-                {/* Baris Header Bawah: 4x 10 Kolom Sub-Diameter */}
+                {/* Baris Header Bawah: Sub-Diameter */}
                 <tr className="h-[34px] text-[10.5px]">
-                  {[40, 60, 80, 100].map((dia) => (
+                  {/* DIAMETER 40: 10 Kolom */}
+                  <th onClick={() => handleSort('d40_order')} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none">
+                    <div className="inline-flex items-center justify-center gap-0.5"><span>Jml. Order</span>{renderSortArrows('d40_order')}</div>
+                  </th>
+                  <th onClick={() => handleSort('d40_drop')} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none">
+                    <div className="inline-flex items-center justify-center gap-0.5"><span>Drop</span>{renderSortArrows('d40_drop')}</div>
+                  </th>
+                  <th onClick={() => handleSort('d40_tglDrop')} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2.5 py-2 text-center font-bold cursor-pointer select-none">
+                    <div className="inline-flex items-center justify-center gap-0.5"><span>Tanggal Terakhir Drop</span>{renderSortArrows('d40_tglDrop')}</div>
+                  </th>
+                  <th onClick={() => handleSort('d40_sisa')} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold text-rose-600 dark:text-rose-400 cursor-pointer select-none">
+                    <div className="inline-flex items-center justify-center gap-0.5"><span>Sisa Kebutuhan</span>{renderSortArrows('d40_sisa')}</div>
+                  </th>
+                  <th onClick={() => handleSort('d40_pctDtg')} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none">
+                    <div className="inline-flex items-center justify-center gap-0.5"><span>% Kedatangan</span>{renderSortArrows('d40_pctDtg')}</div>
+                  </th>
+                  <th onClick={() => handleSort('d40_pasangManual')} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none">
+                    <div className="inline-flex items-center justify-center gap-0.5"><span>Pasang Manual</span>{renderSortArrows('d40_pasangManual')}</div>
+                  </th>
+                  <th onClick={() => handleSort('d40_pasangSap')} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none">
+                    <div className="inline-flex items-center justify-center gap-0.5"><span>Pasang SAP</span>{renderSortArrows('d40_pasangSap')}</div>
+                  </th>
+                  <th onClick={() => handleSort('d40_saldo')} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2.5 py-2 text-center font-bold text-amber-600 dark:text-amber-400 cursor-pointer select-none">
+                    <div className="inline-flex items-center justify-center gap-0.5"><span>Saldo</span>{renderSortArrows('d40_saldo')}</div>
+                  </th>
+                  <th onClick={() => handleSort('d40_pctPasang')} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none">
+                    <div className="inline-flex items-center justify-center gap-0.5"><span>%Pasang</span>{renderSortArrows('d40_pctPasang')}</div>
+                  </th>
+                  <th onClick={() => handleSort('d40_status')} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r-2 border-b border-slate-300 dark:border-slate-700 px-2.5 py-2 text-center font-bold cursor-pointer select-none">
+                    <div className="inline-flex items-center justify-center gap-0.5"><span>Status</span>{renderSortArrows('d40_status')}</div>
+                  </th>
+
+                  {/* DIAMETER 60, 80, 100: Masing-masing 9 Kolom */}
+                  {[60, 80, 100].map((dia) => (
                     <React.Fragment key={dia}>
-                      <th
-                        onClick={() => handleSort(`d${dia}_order`)}
-                        className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none"
-                      >
-                        <div className="inline-flex items-center justify-center gap-0.5">
-                          <span>Order</span>
-                          {renderSortArrows(`d${dia}_order`)}
-                        </div>
+                      <th onClick={() => handleSort(`d${dia}_order`)} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none">
+                        <div className="inline-flex items-center justify-center gap-0.5"><span>Jml. Order</span>{renderSortArrows(`d${dia}_order`)}</div>
                       </th>
-                      <th
-                        onClick={() => handleSort(`d${dia}_drop`)}
-                        className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none"
-                      >
-                        <div className="inline-flex items-center justify-center gap-0.5">
-                          <span>Drop</span>
-                          {renderSortArrows(`d${dia}_drop`)}
-                        </div>
+                      <th onClick={() => handleSort(`d${dia}_drop`)} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none">
+                        <div className="inline-flex items-center justify-center gap-0.5"><span>Drop</span>{renderSortArrows(`d${dia}_drop`)}</div>
                       </th>
-                      <th
-                        onClick={() => handleSort(`d${dia}_tglDrop`)}
-                        className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2.5 py-2 text-center font-bold cursor-pointer select-none"
-                      >
-                        <div className="inline-flex items-center justify-center gap-0.5">
-                          <span>Tgl Drop</span>
-                          {renderSortArrows(`d${dia}_tglDrop`)}
-                        </div>
+                      <th onClick={() => handleSort(`d${dia}_sisa`)} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold text-rose-600 dark:text-rose-400 cursor-pointer select-none">
+                        <div className="inline-flex items-center justify-center gap-0.5"><span>Sisa Kebutuhan</span>{renderSortArrows(`d${dia}_sisa`)}</div>
                       </th>
-                      <th
-                        onClick={() => handleSort(`d${dia}_sisa`)}
-                        className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold text-rose-600 dark:text-rose-400 cursor-pointer select-none"
-                      >
-                        <div className="inline-flex items-center justify-center gap-0.5">
-                          <span>Sisa</span>
-                          {renderSortArrows(`d${dia}_sisa`)}
-                        </div>
+                      <th onClick={() => handleSort(`d${dia}_pctDtg`)} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none">
+                        <div className="inline-flex items-center justify-center gap-0.5"><span>% Kedatangan</span>{renderSortArrows(`d${dia}_pctDtg`)}</div>
                       </th>
-                      <th
-                        onClick={() => handleSort(`d${dia}_pctDtg`)}
-                        className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none"
-                      >
-                        <div className="inline-flex items-center justify-center gap-0.5">
-                          <span>% Dtg</span>
-                          {renderSortArrows(`d${dia}_pctDtg`)}
-                        </div>
+                      <th onClick={() => handleSort(`d${dia}_pasangSap`)} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none">
+                        <div className="inline-flex items-center justify-center gap-0.5"><span>Pasang SAP</span>{renderSortArrows(`d${dia}_pasangSap`)}</div>
                       </th>
-                      <th
-                        onClick={() => handleSort(`d${dia}_pasangManual`)}
-                        className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none"
-                      >
-                        <div className="inline-flex items-center justify-center gap-0.5">
-                          <span>P. Man</span>
-                          {renderSortArrows(`d${dia}_pasangManual`)}
-                        </div>
+                      <th onClick={() => handleSort(`d${dia}_pasangManual`)} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none">
+                        <div className="inline-flex items-center justify-center gap-0.5"><span>Pasang Manual</span>{renderSortArrows(`d${dia}_pasangManual`)}</div>
                       </th>
-                      <th
-                        onClick={() => handleSort(`d${dia}_pasangSap`)}
-                        className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none"
-                      >
-                        <div className="inline-flex items-center justify-center gap-0.5">
-                          <span>P. SAP</span>
-                          {renderSortArrows(`d${dia}_pasangSap`)}
-                        </div>
+                      <th onClick={() => handleSort(`d${dia}_saldo`)} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2.5 py-2 text-center font-bold text-amber-600 dark:text-amber-400 cursor-pointer select-none">
+                        <div className="inline-flex items-center justify-center gap-0.5"><span>Saldo</span>{renderSortArrows(`d${dia}_saldo`)}</div>
                       </th>
-                      <th
-                        onClick={() => handleSort(`d${dia}_saldo`)}
-                        className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2.5 py-2 text-center font-bold text-amber-600 dark:text-amber-400 cursor-pointer select-none"
-                      >
-                        <div className="inline-flex items-center justify-center gap-0.5">
-                          <span>Saldo</span>
-                          {renderSortArrows(`d${dia}_saldo`)}
-                        </div>
+                      <th onClick={() => handleSort(`d${dia}_pctPasang`)} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none">
+                        <div className="inline-flex items-center justify-center gap-0.5"><span>%Pasang</span>{renderSortArrows(`d${dia}_pctPasang`)}</div>
                       </th>
-                      <th
-                        onClick={() => handleSort(`d${dia}_pctPasang`)}
-                        className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none"
-                      >
-                        <div className="inline-flex items-center justify-center gap-0.5">
-                          <span>% Psg</span>
-                          {renderSortArrows(`d${dia}_pctPasang`)}
-                        </div>
-                      </th>
-                      <th
-                        onClick={() => handleSort(`d${dia}_status`)}
-                        className={`sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-b ${
-                          dia !== 100 ? 'border-r-2 border-slate-300 dark:border-slate-700' : 'border-r border-slate-200 dark:border-slate-700'
-                        } px-2.5 py-2 text-center font-bold cursor-pointer select-none`}
-                      >
-                        <div className="inline-flex items-center justify-center gap-0.5">
-                          <span>Status</span>
-                          {renderSortArrows(`d${dia}_status`)}
-                        </div>
+                      <th onClick={() => handleSort(`d${dia}_status`)} className={`sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-b ${dia !== 100 ? 'border-r-2 border-slate-300 dark:border-slate-700' : 'border-r border-slate-200 dark:border-slate-700'} px-2.5 py-2 text-center font-bold cursor-pointer select-none`}>
+                        <div className="inline-flex items-center justify-center gap-0.5"><span>Status</span>{renderSortArrows(`d${dia}_status`)}</div>
                       </th>
                     </React.Fragment>
                   ))}
@@ -1840,14 +2057,14 @@ export default function MonitorGorongGorongView() {
               <tbody className="text-slate-800 dark:text-slate-200">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={53} className="px-4 py-12 text-center text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                    <td colSpan={50} className="px-4 py-12 text-center text-slate-400 border-b border-slate-200 dark:border-slate-800">
                       <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-[#00873D]" />
                       <span>Memuat data monitoring gorong-gorong...</span>
                     </td>
                   </tr>
                 ) : filteredOrderList.length === 0 ? (
                   <tr>
-                    <td colSpan={53} className="px-4 py-12 text-center text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                    <td colSpan={50} className="px-4 py-12 text-center text-slate-400 border-b border-slate-200 dark:border-slate-800">
                       Tidak ada data lokasi order yang cocok dengan filter.
                     </td>
                   </tr>
@@ -1934,25 +2151,115 @@ export default function MonitorGorongGorongView() {
                           {item.statusAll}
                         </span>
                       </td>
-                      <td className="px-2.5 py-2 text-center font-mono border-r-2 border-b border-slate-300 dark:border-slate-700 w-[70px] min-w-[70px]">{Math.round(Number(item.ratioPerHa) || 0)}</td>
+                      <td className="px-2.5 py-2 text-center font-mono border-r-2 border-b border-slate-300 dark:border-slate-700 w-[90px] min-w-[90px]">
+                        {item.ratioPerHa !== null && item.ratioPerHa !== undefined && item.ratioPerHa > 0 ? Math.round(Number(item.ratioPerHa)) : '-'}
+                      </td>
 
-                      {/* Rincian 4 Diameter (Ø40, Ø60, Ø80, Ø100) */}
-                      {['d40', 'd60', 'd80', 'd100'].map((diaKey, dIdx) => {
+                      {/* DIAMETER 40 (10 Kolom) */}
+                      {(() => {
+                        const d40 = item.d40;
+                        return (
+                          <>
+                            <td className="px-2 py-2 text-center font-mono font-bold border-r border-b border-slate-200 dark:border-slate-800">
+                              {d40?.order !== null && d40?.order !== undefined ? d40.order : '-'}
+                            </td>
+                            <td className="px-2 py-2 text-center font-mono text-emerald-600 dark:text-emerald-400 font-semibold border-r border-b border-slate-200 dark:border-slate-800">
+                              {d40?.drop !== null && d40?.drop !== undefined ? d40.drop : '-'}
+                            </td>
+                            <td className="px-2.5 py-2 text-center font-mono text-[10px] text-slate-400 border-r border-b border-slate-200 dark:border-slate-800">
+                              {d40?.tglTerakhirDrop || '-'}
+                            </td>
+                            <td className="px-2 py-2 text-center font-mono text-rose-500 font-semibold border-r border-b border-slate-200 dark:border-slate-800">
+                              {d40?.sisaKebutuhan !== null && d40?.sisaKebutuhan !== undefined ? d40.sisaKebutuhan : '-'}
+                            </td>
+                            <td className="px-2 py-2 text-center font-mono text-[10.5px] border-r border-b border-slate-200 dark:border-slate-800">
+                              {d40?.pctKedatangan === 'Belum' ? (
+                                <span className="inline-block px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-bold text-[10px]">
+                                  Belum
+                                </span>
+                              ) : d40?.pctKedatangan === '-' || d40?.pctKedatangan === '' || d40?.pctKedatangan === undefined || d40?.pctKedatangan === null ? (
+                                <span className="text-slate-400 font-medium">-</span>
+                              ) : (
+                                <span>{d40?.pctKedatangan}%</span>
+                              )}
+                            </td>
+                            <td className="px-2 py-2 text-center font-mono border-r border-b border-slate-200 dark:border-slate-800">
+                              {d40?.pasangManual !== null && d40?.pasangManual !== undefined ? d40.pasangManual : '-'}
+                            </td>
+                            <td className="px-2 py-2 text-center font-mono text-blue-600 dark:text-blue-400 font-semibold border-r border-b border-slate-200 dark:border-slate-800">
+                              {d40?.pasangSap !== null && d40?.pasangSap !== undefined ? d40.pasangSap : '-'}
+                            </td>
+                            <td className="px-2.5 py-2 text-center font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-500/5 border-r border-b border-slate-200 dark:border-slate-800">
+                              {d40?.saldo !== null && d40?.saldo !== undefined ? d40.saldo : '-'}
+                            </td>
+                            <td className="px-2 py-2 text-center font-mono text-[10.5px] border-r border-b border-slate-200 dark:border-slate-800">
+                              {d40?.pctPasang === 'Check' ? (
+                                <span className="inline-block px-1.5 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 font-bold text-[10px] animate-pulse">
+                                  Check
+                                </span>
+                              ) : d40?.pctPasang === '-' || d40?.pctPasang === '' || d40?.pctPasang === undefined || d40?.pctPasang === null ? (
+                                <span className="text-slate-400 font-medium">-</span>
+                              ) : (
+                                <span>{d40?.pctPasang}%</span>
+                              )}
+                            </td>
+                            <td className="px-2.5 py-2 text-center border-r-2 border-b border-slate-300 dark:border-slate-700">
+                              <span className={`text-[10px] font-bold ${d40?.status === 'Close' ? 'text-emerald-600' : 'text-slate-500'}`}>
+                                {d40?.status || '-'}
+                              </span>
+                            </td>
+                          </>
+                        );
+                      })()}
+
+                      {/* DIAMETER 60, 80, 100 (Masing-masing 9 Kolom: Pasang SAP sebelum Pasang Manual) */}
+                      {['d60', 'd80', 'd100'].map((diaKey, dIdx) => {
                         const d = item[diaKey];
                         return (
                           <React.Fragment key={diaKey}>
-                            <td className="px-2 py-2 text-center font-mono font-bold border-r border-b border-slate-200 dark:border-slate-800">{d?.order || 0}</td>
-                            <td className="px-2 py-2 text-center font-mono text-emerald-600 dark:text-emerald-400 font-semibold border-r border-b border-slate-200 dark:border-slate-800">{d?.drop || 0}</td>
-                            <td className="px-2.5 py-2 text-center font-mono text-[10px] text-slate-400 border-r border-b border-slate-200 dark:border-slate-800">{d?.tglTerakhirDrop}</td>
-                            <td className="px-2 py-2 text-center font-mono text-rose-500 font-semibold border-r border-b border-slate-200 dark:border-slate-800">{d?.sisaKebutuhan || 0}</td>
-                            <td className="px-2 py-2 text-center font-mono text-[10.5px] border-r border-b border-slate-200 dark:border-slate-800">{d?.pctKedatangan}%</td>
-                            <td className="px-2 py-2 text-center font-mono border-r border-b border-slate-200 dark:border-slate-800">{d?.pasangManual || 0}</td>
-                            <td className="px-2 py-2 text-center font-mono text-blue-600 dark:text-blue-400 font-semibold border-r border-b border-slate-200 dark:border-slate-800">{d?.pasangSap || 0}</td>
-                            <td className="px-2.5 py-2 text-center font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-500/5 border-r border-b border-slate-200 dark:border-slate-800">{d?.saldo || 0}</td>
-                            <td className="px-2 py-2 text-center font-mono text-[10.5px] border-r border-b border-slate-200 dark:border-slate-800">{d?.pctPasang}%</td>
-                            <td className={`px-2.5 py-2 text-center border-b ${dIdx !== 3 ? 'border-r-2 border-slate-300 dark:border-slate-700' : 'border-r border-slate-200 dark:border-slate-800'}`}>
+                            <td className="px-2 py-2 text-center font-mono font-bold border-r border-b border-slate-200 dark:border-slate-800">
+                              {d?.order !== null && d?.order !== undefined ? d.order : '-'}
+                            </td>
+                            <td className="px-2 py-2 text-center font-mono text-emerald-600 dark:text-emerald-400 font-semibold border-r border-b border-slate-200 dark:border-slate-800">
+                              {d?.drop !== null && d?.drop !== undefined ? d.drop : '-'}
+                            </td>
+                            <td className="px-2 py-2 text-center font-mono text-rose-500 font-semibold border-r border-b border-slate-200 dark:border-slate-800">
+                              {d?.sisaKebutuhan !== null && d?.sisaKebutuhan !== undefined ? d.sisaKebutuhan : '-'}
+                            </td>
+                            <td className="px-2 py-2 text-center font-mono text-[10.5px] border-r border-b border-slate-200 dark:border-slate-800">
+                              {d?.pctKedatangan === 'Belum' ? (
+                                <span className="inline-block px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-bold text-[10px]">
+                                  Belum
+                                </span>
+                              ) : d?.pctKedatangan === '-' || d?.pctKedatangan === '' || d?.pctKedatangan === undefined || d?.pctKedatangan === null ? (
+                                <span className="text-slate-400 font-medium">-</span>
+                              ) : (
+                                <span>{d?.pctKedatangan}%</span>
+                              )}
+                            </td>
+                            <td className="px-2 py-2 text-center font-mono text-blue-600 dark:text-blue-400 font-semibold border-r border-b border-slate-200 dark:border-slate-800">
+                              {d?.pasangSap !== null && d?.pasangSap !== undefined ? d.pasangSap : '-'}
+                            </td>
+                            <td className="px-2 py-2 text-center font-mono border-r border-b border-slate-200 dark:border-slate-800">
+                              {d?.pasangManual !== null && d?.pasangManual !== undefined ? d.pasangManual : '-'}
+                            </td>
+                            <td className="px-2.5 py-2 text-center font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-500/5 border-r border-b border-slate-200 dark:border-slate-800">
+                              {d?.saldo !== null && d?.saldo !== undefined ? d.saldo : '-'}
+                            </td>
+                            <td className="px-2 py-2 text-center font-mono text-[10.5px] border-r border-b border-slate-200 dark:border-slate-800">
+                              {d?.pctPasang === 'Check' ? (
+                                <span className="inline-block px-1.5 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 font-bold text-[10px] animate-pulse">
+                                  Check
+                                </span>
+                              ) : d?.pctPasang === '-' || d?.pctPasang === '' || d?.pctPasang === undefined || d?.pctPasang === null ? (
+                                <span className="text-slate-400 font-medium">-</span>
+                              ) : (
+                                <span>{d?.pctPasang}%</span>
+                              )}
+                            </td>
+                            <td className={`px-2.5 py-2 text-center border-b ${dIdx !== 2 ? 'border-r-2 border-slate-300 dark:border-slate-700' : 'border-r border-slate-200 dark:border-slate-700'}`}>
                               <span className={`text-[10px] font-bold ${d?.status === 'Close' ? 'text-emerald-600' : 'text-slate-500'}`}>
-                                {d?.status}
+                                {d?.status || '-'}
                               </span>
                             </td>
                           </React.Fragment>
@@ -2201,69 +2508,94 @@ export default function MonitorGorongGorongView() {
 
           {/* Modal Body */}
           <div className="p-6 overflow-y-auto space-y-5">
-            {/* Mode Selection */}
+            {/* Pilihan Opsi Upload: Replace All vs Replace Parsial */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-2">
-                Pilih Metode Sinkronisasi:
+                Pilih Opsi Upload:
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Mode: Smart Merge */}
-                <button
-                  type="button"
-                  onClick={() => setUploadMode('merge')}
-                  className={`p-3.5 rounded-xl text-left border transition-all cursor-pointer flex items-start gap-3 ${
-                    uploadMode === 'merge'
-                      ? 'border-violet-600 bg-violet-50/70 dark:bg-violet-950/40 text-violet-950 dark:text-violet-100 ring-1 ring-violet-500'
-                      : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-850'
-                  }`}
-                >
-                  <div
-                    className={`w-4 h-4 rounded-full mt-0.5 border flex items-center justify-center shrink-0 ${
-                      uploadMode === 'merge' ? 'border-violet-600 bg-violet-600 text-white' : 'border-slate-400'
-                    }`}
-                  >
-                    {uploadMode === 'merge' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-xs font-bold">Update Parsial (Smart Merge)</p>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-violet-200 dark:bg-violet-900 text-violet-800 dark:text-violet-200">
-                        Disarankan
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                      Hanya mereplace baris/lokasi yang terdapat di dalam file Excel (misal baris 5–10). Lokasi 1–5 dan lainnya tetap aman tidak terhapus.
-                    </p>
-                  </div>
-                </button>
-
-                {/* Mode: Full Replace */}
+                {/* Opsi 1: Replace Semua Data (All) */}
                 <button
                   type="button"
                   onClick={() => setUploadMode('full_replace')}
                   className={`p-3.5 rounded-xl text-left border transition-all cursor-pointer flex items-start gap-3 ${
                     uploadMode === 'full_replace'
-                      ? 'border-rose-600 bg-rose-50/70 dark:bg-rose-950/40 text-rose-950 dark:text-rose-100 ring-1 ring-rose-500'
+                      ? 'border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-950 dark:text-emerald-100 ring-1 ring-emerald-500'
                       : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-850'
                   }`}
                 >
                   <div
                     className={`w-4 h-4 rounded-full mt-0.5 border flex items-center justify-center shrink-0 ${
-                      uploadMode === 'full_replace' ? 'border-rose-600 bg-rose-600 text-white' : 'border-slate-400'
+                      uploadMode === 'full_replace' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-400'
                     }`}
                   >
                     {uploadMode === 'full_replace' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-rose-700 dark:text-rose-300">
-                      Replace Seluruh Data (Wipe & Replace)
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-bold">Replace Semua Data (All)</p>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-emerald-200 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200">
+                        Default
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                      Me-replace 100% seluruh data tabel, transaksi, dan SAP sekaligus dari file Excel master.
+                    </p>
+                  </div>
+                </button>
+
+                {/* Opsi 2: Replace Parsial (Per Baris / Nomor) */}
+                <button
+                  type="button"
+                  onClick={() => setUploadMode('partial')}
+                  className={`p-3.5 rounded-xl text-left border transition-all cursor-pointer flex items-start gap-3 ${
+                    uploadMode === 'partial'
+                      ? 'border-blue-600 bg-blue-50/70 dark:bg-blue-950/40 text-blue-950 dark:text-blue-100 ring-1 ring-blue-500'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-850'
+                  }`}
+                >
+                  <div
+                    className={`w-4 h-4 rounded-full mt-0.5 border flex items-center justify-center shrink-0 ${
+                      uploadMode === 'partial' ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-400'
+                    }`}
+                  >
+                    {uploadMode === 'partial' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-blue-700 dark:text-blue-300">
+                      Replace Parsial (Per Baris / Nomor)
                     </p>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                      Menghapus seluruh transaksi lama di database dan menggantinya 100% dari file Excel yang diunggah.
+                      Hanya me-replace baris/lokasi yang terdapat di dalam file Excel. Baris lokasi lainnya tetap aman tidak terhapus.
                     </p>
                   </div>
                 </button>
               </div>
+            </div>
+
+            {/* Banner Unduh Template Excel */}
+            <div className="flex items-center justify-between p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 shadow-2xs">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-[#00873D] text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <FileSpreadsheet className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                    Belum memiliki template Excel?
+                  </p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Unduh template resmi (Sheet Lokasi Order & Master Data Order 9 kolom)
+                  </p>
+                </div>
+              </div>
+              <a
+                href="/api/gorong-gorong/template"
+                download="Template_Upload_Monitor_Gorong_Gorong.xlsx"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#00873D] hover:bg-[#006e31] text-white text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Unduh Template</span>
+              </a>
             </div>
 
             {/* Drag & Drop Card */}
@@ -2305,32 +2637,10 @@ export default function MonitorGorongGorongView() {
                       : 'Klik atau seret file Excel Monitor Gorong-Gorong ke sini'}
                   </p>
                   <p className="text-xs text-slate-400 mt-1">
-                    Mendukung berkas .xlsx dengan multi-sheet otomatis (Lokasi Order, Data Order, Data Drop, Status Lokasi)
+                    Mendukung berkas Excel (.xlsx / .xls)
                   </p>
                 </div>
               </div>
-            </div>
-
-            {/* Info Panduan Multi-Sheet */}
-            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 text-xs text-slate-600 dark:text-slate-300 space-y-1">
-              <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
-                <FileSpreadsheet className="w-4 h-4 text-violet-600 dark:text-violet-400" />
-                <span>Format Sheet yang Didukung Otomatis:</span>
-              </div>
-              <ul className="list-disc pl-5 space-y-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-                <li>
-                  <strong>Sheet `Lokasi Order`:</strong> Rekapitulasi per baris lokasi (Order, Drop, Pasang Manual Ø40/60/80/100, Luas, Umur).
-                </li>
-                <li>
-                  <strong>Sheet Transaksi:</strong> `Data Order`, `Data Drop`, `Data Pasang Man.` (transaksi harian).
-                </li>
-                <li>
-                  <strong>Sheet Master:</strong> `Status Lokasi` (sinkronisasi luas netto, status tanaman, umur bulan).
-                </li>
-                <li>
-                  Sheet lain yang tidak terkait (Sum2, Summary, Bantu, dll.) akan diabaikan secara aman.
-                </li>
-              </ul>
             </div>
 
             {/* Error Alert */}
@@ -2360,28 +2670,28 @@ export default function MonitorGorongGorongView() {
                   Data telah diperbarui secara instan. Seluruh kartu KPI, grafik, dan tabel telah menyesuaikan hasil sinkronisasi.
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px]">
-                  <div className="p-2 rounded-lg bg-emerald-100/70 dark:bg-emerald-900/50">
-                    <p className="text-slate-500 dark:text-slate-400">Lokasi Terupdate</p>
-                    <p className="font-bold text-emerald-800 dark:text-emerald-200 text-sm">
-                      {uploadResult.totalLocations} lokasi
+                  <div className="p-2.5 rounded-xl bg-emerald-100/70 dark:bg-emerald-900/50">
+                    <p className="text-slate-500 dark:text-slate-400">Lokasi Order</p>
+                    <p className="font-bold text-emerald-800 dark:text-emerald-200 text-sm mt-0.5">
+                      {(uploadResult.snapshotLocationCount || uploadResult.totalLocations || 0)} lokasi
                     </p>
                   </div>
-                  <div className="p-2 rounded-lg bg-emerald-100/70 dark:bg-emerald-900/50">
-                    <p className="text-slate-500 dark:text-slate-400">Total Transaksi</p>
-                    <p className="font-bold text-emerald-800 dark:text-emerald-200 text-sm">
-                      {uploadResult.totalTransactions} baris
+                  <div className="p-2.5 rounded-xl bg-emerald-100/70 dark:bg-emerald-900/50">
+                    <p className="text-slate-500 dark:text-slate-400">Total Order</p>
+                    <p className="font-bold text-emerald-800 dark:text-emerald-200 text-sm mt-0.5">
+                      {(uploadResult.totalOrderPcs || uploadResult.totalPcs || 0).toLocaleString()} pcs
                     </p>
                   </div>
-                  <div className="p-2 rounded-lg bg-emerald-100/70 dark:bg-emerald-900/50">
-                    <p className="text-slate-500 dark:text-slate-400">Total Gorong2</p>
-                    <p className="font-bold text-emerald-800 dark:text-emerald-200 text-sm">
-                      {uploadResult.totalPcs.toLocaleString()} pcs
+                  <div className="p-2.5 rounded-xl bg-emerald-100/70 dark:bg-emerald-900/50">
+                    <p className="text-slate-500 dark:text-slate-400">Lokasi Belum Order</p>
+                    <p className="font-bold text-emerald-800 dark:text-emerald-200 text-sm mt-0.5">
+                      {(uploadResult.belumOrderLocationCount ?? 0)} lokasi
                     </p>
                   </div>
-                  <div className="p-2 rounded-lg bg-emerald-100/70 dark:bg-emerald-900/50">
-                    <p className="text-slate-500 dark:text-slate-400">Status Lokasi</p>
-                    <p className="font-bold text-emerald-800 dark:text-emerald-200 text-sm">
-                      {uploadResult.statusLokasiUpsertedCount} lokasi
+                  <div className="p-2.5 rounded-xl bg-emerald-100/70 dark:bg-emerald-900/50">
+                    <p className="text-slate-500 dark:text-slate-400">Realisasi SAP</p>
+                    <p className="font-bold text-emerald-800 dark:text-emerald-200 text-sm mt-0.5">
+                      {(uploadResult.sapRecordCount || 0).toLocaleString()} data <span className="text-[10px] text-emerald-600 font-semibold">(Aman)</span>
                     </p>
                   </div>
                 </div>

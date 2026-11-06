@@ -2,9 +2,11 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Sun, Moon, LogOut, ShieldCheck, ChevronDown, Camera, Trash2 } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAuth } from '@/components/AuthProvider';
+import { getGorongGorongRoute, getLabitaRoute } from '@/lib/portalRoutes';
 
 export interface MainMenuItem {
   id: string;
@@ -20,7 +22,7 @@ export const LABITA_MAIN_MENU_ITEMS: MainMenuItem[] = [
 
 export const GORONG_GORONG_MAIN_MENU_ITEMS: MainMenuItem[] = [
   { id: 'monitor_gorong_gorong', label: 'Monitor Gorong-Gorong' },
-  { id: 'order_wilayah', label: 'Form Input' },
+  { id: 'form_input', label: 'Form Input' },
   { id: 'master_data', label: 'Master Data' },
   { id: 'user_management', label: 'Manajemen User' },
 ];
@@ -55,6 +57,7 @@ export const PLANTING_SUB_MENUS: SubMenuItem[] = [
 export const ORDER_WILAYAH_SUB_MENUS: SubMenuItem[] = [
   { id: 'order_gorong_gorong', label: 'Order Gorong-Gorong' },
 ];
+export const FORM_INPUT_SUB_MENUS = ORDER_WILAYAH_SUB_MENUS;
 
 export const MASTER_DATA_SUB_MENUS: SubMenuItem[] = [
   { id: 'master_status_lokasi', label: 'Master Status Lokasi' },
@@ -130,6 +133,15 @@ export const MENU_THEMES: Record<string, MenuThemeConfig> = {
     subActiveLine: 'bg-amber-600 dark:bg-amber-400',
     subHoverText: 'hover:text-amber-600 dark:hover:text-amber-300',
   },
+  form_input: {
+    activeText: 'text-amber-700 dark:text-amber-300',
+    activeLine: 'bg-amber-600 dark:bg-amber-400',
+    hoverText: 'hover:text-amber-600 dark:hover:text-amber-300',
+    hoverLine: 'bg-amber-500/40',
+    subActiveText: 'text-amber-700 dark:text-amber-300',
+    subActiveLine: 'bg-amber-600 dark:bg-amber-400',
+    subHoverText: 'hover:text-amber-600 dark:hover:text-amber-300',
+  },
   master_data: {
     activeText: 'text-violet-700 dark:text-violet-300',
     activeLine: 'bg-violet-600 dark:bg-violet-400',
@@ -153,6 +165,7 @@ export const MENU_THEMES: Record<string, MenuThemeConfig> = {
 interface HeaderProps {
   currentPortal?: 'labita' | 'gorong_gorong' | 'landing';
   onSwitchPortal?: (portal: 'labita' | 'gorong_gorong' | 'landing') => void;
+  onNavigate?: (tab: string, subTab?: string) => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
   activeTabTitle?: string;
@@ -173,6 +186,8 @@ interface HeaderProps {
   setPlantingSubTab?: (subTab: string) => void;
   orderWilayahSubTab?: string;
   setOrderWilayahSubTab?: (subTab: string) => void;
+  formInputSubTab?: string;
+  setFormInputSubTab?: (subTab: string) => void;
   masterDataSubTab?: string;
   setMasterDataSubTab?: (subTab: string) => void;
   totalLands?: number;
@@ -181,6 +196,7 @@ interface HeaderProps {
 export default function Header({
   currentPortal = 'labita',
   onSwitchPortal,
+  onNavigate,
   activeTab,
   setActiveTab,
   executiveSubTab,
@@ -193,11 +209,14 @@ export default function Header({
   setPlantingSubTab,
   orderWilayahSubTab,
   setOrderWilayahSubTab,
+  formInputSubTab,
+  setFormInputSubTab,
   masterDataSubTab,
   setMasterDataSubTab,
 }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const { user, isAdmin, logout, setUserDirectly } = useAuth();
+  const currentPathname = usePathname();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [showPhotoMenu, setShowPhotoMenu] = useState(false);
   const [isUpdatingPhoto, setIsUpdatingPhoto] = useState(false);
@@ -341,19 +360,40 @@ export default function Header({
         {/* Sisi Tengah: Menu Utama (Menu Update hanya muncul setelah Login Admin) */}
         <nav className="flex-1 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth px-2">
           {displayedMenuItems.map((item) => {
-            const isActive = activeTab === item.id;
-            const itemTheme = MENU_THEMES[item.id] || MENU_THEMES.executive_summary;
+            const isActive = activeTab === item.id || (item.id === 'form_input' && activeTab === 'order_wilayah') || (item.id === 'order_wilayah' && activeTab === 'form_input');
+            const itemTheme = MENU_THEMES[item.id] || MENU_THEMES[activeTab] || MENU_THEMES.executive_summary;
+
+            const itemHref =
+              currentPortal === 'gorong_gorong'
+                ? getGorongGorongRoute(item.id, item.id === 'master_data' ? masterDataSubTab : undefined)
+                : getLabitaRoute(
+                    item.id,
+                    item.id === 'executive_summary'
+                      ? (executiveSubTab || 'pengolahan_lahan')
+                      : item.id === 'pengolahan_lahan_bibit_tanam'
+                      ? (currentSubTab || 'list_stok_lahan')
+                      : item.id === 'planting'
+                      ? (plantingSubTab || 'real_tanam_nanas')
+                      : undefined
+                  );
+
             return (
-              <button
+              <Link
                 key={item.id}
-                type="button"
-                onClick={() => {
-                  setActiveTab(item.id);
-                  if (item.id === 'pengolahan_lahan_bibit_tanam' && handleSetSubTab && !currentSubTab) {
-                    handleSetSubTab('list_stok_lahan');
-                  }
-                  if (item.id === 'executive_summary' && setExecutiveSubTab && !executiveSubTab) {
-                    setExecutiveSubTab('pengolahan_lahan');
+                href={itemHref}
+                prefetch={false}
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (onNavigate) {
+                    onNavigate(item.id);
+                  } else {
+                    setActiveTab(item.id);
+                    if (item.id === 'pengolahan_lahan_bibit_tanam' && handleSetSubTab && !currentSubTab) {
+                      handleSetSubTab('list_stok_lahan');
+                    }
+                    if (item.id === 'executive_summary' && setExecutiveSubTab && !executiveSubTab) {
+                      setExecutiveSubTab('pengolahan_lahan');
+                    }
                   }
                 }}
                 className={`relative py-2 px-1 text-xs sm:text-[13px] tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
@@ -370,7 +410,7 @@ export default function Header({
                 ) : (
                   <span className={`absolute bottom-0 left-0 right-0 h-[2px] ${itemTheme.hoverLine} rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-200`} />
                 )}
-              </button>
+              </Link>
             );
           })}
         </nav>
@@ -564,10 +604,12 @@ export default function Header({
           ) : (
             /* Sebelum Login: Tombol Bertuliskan Admin saja (tanpa foto profil, tanpa info user only) */
             <Link
-              href={`/login?callbackUrl=${encodeURIComponent(currentPortal === 'gorong_gorong' ? '/gorong-gorong' : '/labita')}`}
+              href={`/login?callbackUrl=${encodeURIComponent(
+                currentPathname || (currentPortal === 'gorong_gorong' ? '/gorong-gorong' : '/labita')
+              )}`}
               onClick={() => {
-                if (typeof window !== 'undefined') {
-                  sessionStorage.setItem('ggf_active_portal', currentPortal === 'gorong_gorong' ? '/gorong-gorong' : '/labita');
+                if (typeof window !== 'undefined' && currentPathname) {
+                  sessionStorage.setItem('ggf_active_portal', currentPathname);
                 }
               }}
               title="Masuk sebagai Admin"
@@ -586,10 +628,12 @@ export default function Header({
         <div className="px-6 py-1.5 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
           {EXECUTIVE_SUB_MENUS.map((item) => {
             const isActive = (executiveSubTab || 'pengolahan_lahan') === item.id;
+            const subHref = getLabitaRoute('executive_summary', item.id);
             return (
-              <button
+              <Link
                 key={item.id}
-                type="button"
+                href={subHref}
+                prefetch={false}
                 onClick={() => setExecutiveSubTab?.(item.id)}
                 className={`relative py-1 px-1 text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
                   isActive
@@ -605,7 +649,7 @@ export default function Header({
                 ) : (
                   <span className={`absolute -bottom-1 left-0 right-0 h-[1.5px] ${currentTheme.hoverLine} rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-150`} />
                 )}
-              </button>
+              </Link>
             );
           })}
         </div>
@@ -616,10 +660,12 @@ export default function Header({
         <div className="px-6 py-1.5 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
           {PENGOLAHAN_SUB_MENUS.map((item) => {
             const isActive = currentSubTab === item.id;
+            const subHref = getLabitaRoute('pengolahan_lahan_bibit_tanam', item.id);
             return (
-              <button
+              <Link
                 key={item.id}
-                type="button"
+                href={subHref}
+                prefetch={false}
                 onClick={() => handleSetSubTab?.(item.id)}
                 className={`relative py-1 px-1 text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
                   isActive
@@ -635,7 +681,7 @@ export default function Header({
                 ) : (
                   <span className={`absolute -bottom-1 left-0 right-0 h-[1.5px] ${currentTheme.hoverLine} rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-150`} />
                 )}
-              </button>
+              </Link>
             );
           })}
         </div>
@@ -651,10 +697,12 @@ export default function Header({
             return true;
           }).map((item) => {
             const isActive = (plantingSubTab || 'real_tanam_nanas') === item.id;
+            const subHref = getLabitaRoute('planting', item.id);
             return (
-              <button
+              <Link
                 key={item.id}
-                type="button"
+                href={subHref}
+                prefetch={false}
                 onClick={() => setPlantingSubTab?.(item.id)}
                 className={`relative py-1 px-1 text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
                   isActive
@@ -670,22 +718,27 @@ export default function Header({
                 ) : (
                   <span className={`absolute -bottom-1 left-0 right-0 h-[1.5px] ${currentTheme.hoverLine} rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-150`} />
                 )}
-              </button>
+              </Link>
             );
           })}
         </div>
       )}
 
-      {/* Row 2: Sub Menu untuk Order Wilayah (Order Gorong-Gorong, Order Sulam Bibit) */}
-      {activeTab === 'order_wilayah' && (
+      {/* Row 2: Sub Menu untuk Order Wilayah / Form Input */}
+      {(activeTab === 'order_wilayah' || activeTab === 'form_input') && (
         <div className="px-6 py-1.5 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
           {ORDER_WILAYAH_SUB_MENUS.map((item) => {
             const isActive = (orderWilayahSubTab || 'order_gorong_gorong') === item.id;
+            const subHref = getGorongGorongRoute('form_input', item.id);
             return (
-              <button
+              <Link
                 key={item.id}
-                type="button"
-                onClick={() => setOrderWilayahSubTab?.(item.id)}
+                href={subHref}
+                prefetch={false}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOrderWilayahSubTab?.(item.id);
+                }}
                 className={`relative py-1 px-1 text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
                   isActive
                     ? `${currentTheme.subActiveText} font-semibold`
@@ -700,7 +753,7 @@ export default function Header({
                 ) : (
                   <span className={`absolute -bottom-1 left-0 right-0 h-[1.5px] ${currentTheme.hoverLine} rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-150`} />
                 )}
-              </button>
+              </Link>
             );
           })}
         </div>
@@ -711,11 +764,16 @@ export default function Header({
         <div className="px-6 py-1.5 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
           {MASTER_DATA_SUB_MENUS.map((item) => {
             const isActive = (masterDataSubTab || 'master_status_lokasi') === item.id;
+            const subHref = getGorongGorongRoute('master_data', item.id);
             return (
-              <button
+              <Link
                 key={item.id}
-                type="button"
-                onClick={() => setMasterDataSubTab?.(item.id)}
+                href={subHref}
+                prefetch={false}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMasterDataSubTab?.(item.id);
+                }}
                 className={`relative py-1 px-1 text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
                   isActive
                     ? `${currentTheme.subActiveText} font-semibold`
@@ -730,7 +788,7 @@ export default function Header({
                 ) : (
                   <span className={`absolute -bottom-1 left-0 right-0 h-[1.5px] ${currentTheme.hoverLine} rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-150`} />
                 )}
-              </button>
+              </Link>
             );
           })}
         </div>

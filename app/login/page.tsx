@@ -167,9 +167,9 @@ function LoginContent() {
         >
           <ArrowLeft className="w-4 h-4" />
           <span>
-            {targetUrl === '/gorong-gorong'
+            {targetUrl.startsWith('/gorong-gorong')
               ? 'Portal Gorong-Gorong'
-              : targetUrl === '/labita'
+              : targetUrl.startsWith('/labita')
               ? 'Portal Labita'
               : 'Portal Utama'}
           </span>

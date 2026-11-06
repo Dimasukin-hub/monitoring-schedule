@@ -12,17 +12,21 @@ const ALL_STATUS_LIST = [
 
 const WILAYAH_LIST = ['AW01', 'AW02', 'AW03', 'AW04', 'AW05', 'AW06', 'AW07'];
 
+let cachedMasterLokasiList: any[] = [];
+let cachedTotalCount = 0;
+let cachedTotalPages = 1;
+
 export default function MasterStatusLokasiView() {
-  const [dataList, setDataList] = useState<any[]>([]);
-  const [totalCount, setTotalCount] = useState<number>(0);
+  const [dataList, setDataList] = useState<any[]>(cachedMasterLokasiList);
+  const [totalCount, setTotalCount] = useState<number>(cachedTotalCount);
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(50);
-  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(cachedTotalPages);
 
   const [selectedWilayah, setSelectedWilayah] = useState<string[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(cachedMasterLokasiList.length === 0);
 
   // Custom Dropdown Open States
   const [isWilayahDropdownOpen, setIsWilayahDropdownOpen] = useState<boolean>(false);
@@ -66,9 +70,12 @@ export default function MasterStatusLokasiView() {
       const res = await fetch(`/api/gorong-gorong/master-lokasi?${params.toString()}`);
       const data = await res.json();
       if (data.success && data.data) {
-        setDataList(data.data.records || []);
-        setTotalCount(data.data.total || 0);
-        setTotalPages(data.data.totalPages || 1);
+        cachedMasterLokasiList = data.data.records || [];
+        cachedTotalCount = data.data.total || 0;
+        cachedTotalPages = data.data.totalPages || 1;
+        setDataList(cachedMasterLokasiList);
+        setTotalCount(cachedTotalCount);
+        setTotalPages(cachedTotalPages);
       }
     } catch (e) {
       console.error('Error fetching master status lokasi:', e);

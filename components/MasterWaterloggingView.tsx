@@ -5,16 +5,20 @@ import { Search, ChevronLeft, ChevronRight, ChevronDown, XCircle, Waves, Refresh
 
 const WATERLOGGING_WILAYAH_LIST = Array.from({ length: 25 }, (_, i) => `AW${String(i + 1).padStart(2, '0')}`);
 
+let cachedWaterloggingList: any[] = [];
+let cachedTotalCount = 0;
+let cachedTotalPages = 1;
+
 export default function MasterWaterloggingView() {
-  const [dataList, setDataList] = useState<any[]>([]);
-  const [totalCount, setTotalCount] = useState<number>(0);
+  const [dataList, setDataList] = useState<any[]>(cachedWaterloggingList);
+  const [totalCount, setTotalCount] = useState<number>(cachedTotalCount);
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(50);
-  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(cachedTotalPages);
 
   const [selectedWilayah, setSelectedWilayah] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(cachedWaterloggingList.length === 0);
 
   // Custom Dropdown Open State
   const [isWilayahDropdownOpen, setIsWilayahDropdownOpen] = useState<boolean>(false);
@@ -53,9 +57,12 @@ export default function MasterWaterloggingView() {
       const res = await fetch(`/api/gorong-gorong/master-waterlogging?${params.toString()}`);
       const data = await res.json();
       if (data.success && data.data) {
-        setDataList(data.data.records || []);
-        setTotalCount(data.data.total || 0);
-        setTotalPages(data.data.totalPages || 1);
+        cachedWaterloggingList = data.data.records || [];
+        cachedTotalCount = data.data.total || 0;
+        cachedTotalPages = data.data.totalPages || 1;
+        setDataList(cachedWaterloggingList);
+        setTotalCount(cachedTotalCount);
+        setTotalPages(cachedTotalPages);
       }
     } catch (e) {
       console.error('Error fetching master waterlogging:', e);

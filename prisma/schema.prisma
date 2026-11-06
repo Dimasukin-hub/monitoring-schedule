@@ -249,7 +249,6 @@ model User {
 model MasterStatusLokasi {
   id               Int       @id @default(autoincrement())
   lokasi           String    @unique
-  wil              String?
   strucPlant       String?
   statusLengkap    String?
   status           String?   // LEFT(statusLengkap, 4)
@@ -276,7 +275,7 @@ model MasterStatusLokasi {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  @@index([wil])
+  @@index([strucPlant])
   @@index([status])
   @@index([bibit])
   @@index([kelas])
@@ -363,3 +362,96 @@ model TransaksiGorongGorong {
   @@index([tanggal])
   @@index([wilayah])
 }
+
+model LokasiOrderGorongGorong {
+  id              Int      @id @default(autoincrement())
+  lokasi          String   @unique
+  wilayah         String?
+  luas            Float?
+  statusTanaman   String?
+  umurBulan       Int?
+  tanggalOrder    String?
+  aktBk           String?
+  dsmBk           String?
+  dsmSt           String?
+  prioritas       String?
+  statusAll       String?  // 'Close' | '-'
+  isClosedExcel   Boolean  @default(false)
+  ratioPerHa      Float?
+  keteranganClose String?
+
+  // Diameter 40
+  orderD40        Int?
+  dropD40         Int?
+  tglDropD40      String?
+  pasangManD40    Int?
+  pasangSapD40    Int?
+  statusD40       String?
+
+  // Diameter 60
+  orderD60        Int?
+  dropD60         Int?
+  pasangManD60    Int?
+  pasangSapD60    Int?
+  statusD60       String?
+
+  // Diameter 80
+  orderD80        Int?
+  dropD80         Int?
+  pasangManD80    Int?
+  pasangSapD80    Int?
+  statusD80       String?
+
+  // Diameter 100
+  orderD100        Int?
+  dropD100         Int?
+  pasangManD100    Int?
+  pasangSapD100    Int?
+  statusD100       String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([lokasi])
+  @@index([wilayah])
+  @@index([prioritas])
+  @@index([statusAll])
+}
+
+model LokasiBelumOrderGorongGorong {
+  id        Int      @id @default(autoincrement())
+  lokasi    String   @unique
+  wilayah   String?
+  luasNetto Float?
+  status    String?  // BK atau ST
+  aktBk     String?  // Aktivitas olah tanah (misal "06. DP1", "24. Selesai Tanam")
+  stepOrder Int?     // 6 s/d 20
+  keterangan String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lokasi])
+  @@index([wilayah])
+  @@index([stepOrder])
+}
+
+model MasterDataOrderGorongGorong {
+  id           Int       @id @default(autoincrement())
+  area         String?
+  lokasi       String
+  wilayah      String?   // Dari MasterStatusLokasi.strucPlant
+  keterangan   String?
+  tanggal      DateTime? // Tanggal order
+  diameter40   Int       @default(0)
+  diameter60   Int       @default(0)
+  diameter80   Int       @default(0)
+  diameter100  Int       @default(0)
+  lookupStatus String?   // Dari LokasiOrderGorongGorong.dsmSt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([lokasi])
+  @@index([wilayah])
+  @@index([tanggal])
+}
+

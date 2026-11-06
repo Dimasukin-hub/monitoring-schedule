@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
         const masterLokasi = await prisma.masterStatusLokasi.findUnique({
           where: { lokasi: cleanLokasi },
         });
-        autoWil = masterLokasi?.wil || 'AW01';
+        autoWil = masterLokasi?.strucPlant || 'AW01';
       }
 
       const trxDate = it.tanggal ? new Date(it.tanggal) : new Date();

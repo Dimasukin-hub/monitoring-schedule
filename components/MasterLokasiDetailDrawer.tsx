@@ -26,7 +26,6 @@ export interface MasterLokasiDetailDrawerProps {
 interface MasterStatusLokasiData {
   id: number;
   lokasi: string;
-  wil: string | null;
   strucPlant: string | null;
   statusLengkap: string | null;
   status: string | null;
@@ -123,7 +122,7 @@ export default function MasterLokasiDetailDrawer({
     }
   };
 
-  const strucPlant = masterData?.strucPlant || masterData?.wil || orderData?.wilayah || '-';
+  const strucPlant = masterData?.strucPlant || orderData?.wilayah || '-';
   const statusPetak = masterData?.status || orderData?.status || '-';
   const statusLengkap = masterData?.statusLengkap || '-';
 
@@ -413,7 +412,7 @@ export default function MasterLokasiDetailDrawer({
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
                         {[40, 60, 80, 100].map((dia) => {
-                          const det = orderData.details?.[`d${dia}`] || {};
+                          const det = orderData[`d${dia}`] || orderData.details?.[`d${dia}`] || {};
                           const isClose = det.status === 'Close';
                           return (
                             <tr key={dia} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
@@ -427,7 +426,15 @@ export default function MasterLokasiDetailDrawer({
                                 {det.drop ?? 0}
                               </td>
                               <td className="px-2.5 py-2 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
-                                {det.pctKedatangan !== undefined ? `${det.pctKedatangan}%` : '-'}
+                                {det.pctKedatangan === 'Belum' ? (
+                                  <span className="inline-block px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-bold text-[10px]">
+                                    Belum
+                                  </span>
+                                ) : det.pctKedatangan === '-' || det.pctKedatangan === '' || det.pctKedatangan === undefined || det.pctKedatangan === null ? (
+                                  <span className="text-slate-400 font-medium">-</span>
+                                ) : (
+                                  <span>{det.pctKedatangan}%</span>
+                                )}
                               </td>
                               <td className="px-2.5 py-2 font-mono font-bold text-emerald-600 dark:text-emerald-400 border-r border-slate-200/70 dark:border-slate-800/70">
                                 {det.totalPasang ?? 0}
@@ -436,7 +443,15 @@ export default function MasterLokasiDetailDrawer({
                                 {det.saldo ?? 0}
                               </td>
                               <td className="px-2.5 py-2 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
-                                {det.pctPasang !== undefined ? `${det.pctPasang}%` : '-'}
+                                {det.pctPasang === 'Check' ? (
+                                  <span className="inline-block px-1.5 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 font-bold text-[10px] animate-pulse">
+                                    Check
+                                  </span>
+                                ) : det.pctPasang === '-' || det.pctPasang === '' || det.pctPasang === undefined || det.pctPasang === null ? (
+                                  <span className="text-slate-400 font-medium">-</span>
+                                ) : (
+                                  <span>{det.pctPasang}%</span>
+                                )}
                               </td>
                               <td className="px-2.5 py-2">
                                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${

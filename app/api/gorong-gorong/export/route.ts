@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import ExcelJS from 'exceljs';
-import { loadSnapshotFromFile } from '@/lib/lokasiOrderSnapshot';
+import { loadSnapshotFromFile, isExcludedGorongGorongLocation, isLocationWithoutWilayah } from '@/lib/lokasiOrderSnapshot';
 
 // Helper Pemetaan Tahapan Pekerjaan Tanah PG1 dengan Nomor Urut Resmi (Tahap 1 s/d 20)
 function parseLandActivity(raw: any) {
@@ -87,8 +87,8 @@ export async function GET(request: NextRequest) {
     const filterPrioritas = searchParams.get('prioritas');
     const searchQuery = searchParams.get('search')?.trim().toUpperCase();
 
-    // 1. Ambil data master pendukung
-    const [statusLokasiList, waterloggingList, allLands, allTrx, allSap] = await Promise.all([
+    // 1. Ambil data master pendukung dan database tabel lokasi order & belum order
+    const [statusLokasiList, waterloggingList, allLands, allTrx, allSap, dbLokasiOrder, dbLokasiBelumOrder] = await Promise.all([
       prisma.masterStatusLokasi.findMany({}),
       prisma.masterWaterlogging.findMany({}),
       prisma.land.findMany({
@@ -101,6 +101,8 @@ export async function GET(request: NextRequest) {
       prisma.masterSapGorongGorong.findMany({
         orderBy: { tanggalRealisasi: 'asc' },
       }),
+      prisma.lokasiOrderGorongGorong.findMany({}),
+      prisma.lokasiBelumOrderGorongGorong.findMany({}),
     ]);
 
     const masterLokMap = new Map<string, any>();
@@ -171,8 +173,18 @@ export async function GET(request: NextRequest) {
     };
 
     if (tab === 'order') {
-      // PROSES TABEL LIST LOKASI ORDER
-      const snapshotMap = loadSnapshotFromFile();
+      // PROSES TABEL LIST LOKASI ORDER (Prioritas dari Database LokasiOrderGorongGorong)
+      const snapshotMap: Record<string, any> = {};
+      if (dbLokasiOrder && dbLokasiOrder.length > 0) {
+        for (const row of dbLokasiOrder) {
+          snapshotMap[row.lokasi] = row;
+        }
+      } else {
+        const fileSnap = loadSnapshotFromFile();
+        for (const [k, v] of Object.entries(fileSnap)) {
+          snapshotMap[k] = v;
+        }
+      }
       const listLokasiOrder: any[] = [];
       const orderedLokasiSet = new Set<string>();
 
@@ -184,6 +196,7 @@ export async function GET(request: NextRequest) {
       ]);
 
       for (const lok of allCandidateLocations) {
+        if (isExcludedGorongGorongLocation(lok)) continue;
         const snap = snapshotMap[lok];
         const trxData = lokasiOrderMap.get(lok) || { orders: [], drops: [], manuals: [] };
         const sapRecords = lokasiSapMap.get(lok.toUpperCase()) || [];
@@ -202,7 +215,16 @@ export async function GET(request: NextRequest) {
         const dsm = dsmMap.get(lok);
         const rawAktBk = landAktMap.get(lok) || (m ? m.statusLengkap : null) || snap?.aktBk || '-';
         const aktBk = parseLandActivity(rawAktBk).formatted;
-        const wilayah = m?.wil || snap?.wilayah || trxData.orders[0]?.wilayah || trxData.drops[0]?.wilayah || trxData.manuals[0]?.wilayah || '-';
+        let wilayah = m?.strucPlant || snap?.wilayah || trxData.orders[0]?.wilayah || trxData.drops[0]?.wilayah || trxData.manuals[0]?.wilayah || '-';
+        if (isLocationWithoutWilayah(lok)) {
+          wilayah = '-';
+        } else if (wilayah === 'Timur' || wilayah === '-' || !wilayah.startsWith('AW')) {
+          if (m?.strucPlant && m.strucPlant.startsWith('AW')) {
+            wilayah = m.strucPlant;
+          } else if (snap?.wilayah && snap.wilayah.startsWith('AW')) {
+            wilayah = snap.wilayah;
+          }
+        }
         const luas = m?.luasNetto || m?.luasAktif || m?.luasBruto || snap?.luas || 0;
         const statusTanaman = m?.status || snap?.statusTanaman || '-';
         const umurBulan = m?.umurBulan ?? (m?.umurRawat ?? (snap?.umurBulan || 0));
@@ -244,105 +266,146 @@ export async function GET(request: NextRequest) {
 
         for (const dia of diameters) {
           const key = `d${dia}`;
-          let ordQty = 0;
-          let dropQty = 0;
-          let manQty = 0;
-          let sapQty = 0;
-          let lastDropDate: Date | null = null;
 
+          const snapOrdRaw = dia === 40 ? snap?.orderD40 : dia === 60 ? snap?.orderD60 : dia === 80 ? snap?.orderD80 : snap?.orderD100;
+          const snapDrpRaw = dia === 40 ? snap?.dropD40 : dia === 60 ? snap?.dropD60 : dia === 80 ? snap?.dropD80 : snap?.dropD100;
+          const snapManRaw = dia === 40 ? snap?.pasangManD40 : dia === 60 ? snap?.pasangManD60 : dia === 80 ? snap?.pasangManD80 : snap?.pasangManD100;
+          const snapSapRaw = dia === 40 ? snap?.pasangSapD40 : dia === 60 ? snap?.pasangSapD60 : dia === 80 ? snap?.pasangSapD80 : snap?.pasangSapD100;
+
+          const hasSnapOrd = snapOrdRaw !== null && snapOrdRaw !== undefined;
+          const hasSnapDrp = snapDrpRaw !== null && snapDrpRaw !== undefined;
+          const hasSnapMan = snapManRaw !== null && snapManRaw !== undefined;
+          const hasSnapSap = snapSapRaw !== null && snapSapRaw !== undefined;
+
+          let trxOrdQty = 0;
           for (const o of trxData.orders) {
-            ordQty += (dia === 40 ? o.qtyD40 : dia === 60 ? o.qtyD60 : dia === 80 ? o.qtyD80 : o.qtyD100);
+            trxOrdQty += (dia === 40 ? o.qtyD40 : dia === 60 ? o.qtyD60 : dia === 80 ? o.qtyD80 : o.qtyD100);
           }
+
+          let trxDrpQty = 0;
+          let lastDropDate: Date | null = null;
           for (const dr of trxData.drops) {
             const q = (dia === 40 ? dr.qtyD40 : dia === 60 ? dr.qtyD60 : dia === 80 ? dr.qtyD80 : dr.qtyD100);
-            dropQty += q;
+            trxDrpQty += q;
             if (q > 0) {
               const d = new Date(dr.tanggal);
               if (!lastDropDate || d > lastDropDate) lastDropDate = d;
             }
           }
+
+          let trxManQty = 0;
           for (const pm of trxData.manuals) {
-            manQty += (dia === 40 ? pm.qtyD40 : dia === 60 ? pm.qtyD60 : dia === 80 ? pm.qtyD80 : pm.qtyD100);
+            trxManQty += (dia === 40 ? pm.qtyD40 : dia === 60 ? pm.qtyD60 : dia === 80 ? pm.qtyD80 : pm.qtyD100);
           }
+
+          let sapDbQty = 0;
           for (const s of sapRecords) {
-            if (s.diameter === dia) sapQty += s.qty;
+            if (s.diameter === dia) sapDbQty += s.qty;
           }
+
+          const hasTrxActivity = trxOrdQty > 0 || trxDrpQty > 0 || trxManQty > 0 || sapDbQty > 0;
+          const isDiameterActive = hasSnapOrd || hasSnapDrp || hasSnapMan || hasSnapSap || hasTrxActivity;
+
+          if (!isDiameterActive) {
+            diameterDetails[key] = {
+              order: null,
+              drop: null,
+              tglTerakhirDrop: '-',
+              sisaKebutuhan: null,
+              pctKedatangan: '-',
+              pasangManual: null,
+              pasangSap: null,
+              totalPasang: null,
+              saldo: null,
+              pctPasang: '-',
+              status: '-',
+            };
+            continue;
+          }
+
+          const ordQty = (hasSnapOrd ? snapOrdRaw! : 0) + trxOrdQty;
+          const dropQty = (hasSnapDrp ? snapDrpRaw! : 0) + trxDrpQty;
+          const manQty = (hasSnapMan ? snapManRaw! : 0) + trxManQty;
+          const sapQty = sapDbQty > 0 ? sapDbQty : (hasSnapSap ? snapSapRaw! : 0);
 
           const totalPasangDia = Math.max(manQty, sapQty);
           const sisaKebutuhanDia = ordQty - dropQty;
+          const saldoDia = dropQty - totalPasangDia;
 
-          // Standar Excel untuk % Kedatangan:
-          // Jika sudah ada yang terpasang (totalPasangDia > 0), maka persentase kedatangan dihitung dari yang terpasang: Terpasang / Order.
-          // Jika belum ada yang terpasang, dihitung dari drop fisik: Drop / Order.
-          let pctKedatanganDia = 0;
-          if (ordQty > 0) {
-            if (totalPasangDia > 0) {
-              pctKedatanganDia = (totalPasangDia / ordQty) * 100;
-            } else {
-              pctKedatanganDia = (dropQty / ordQty) * 100;
-            }
-          } else if (dropQty > 0 || totalPasangDia > 0) {
-            pctKedatanganDia = 100;
+          let pctKedatanganDia: number | string = '-';
+          if (totalPasangDia > 0) {
+            pctKedatanganDia = ordQty > 0 ? Math.round((totalPasangDia / ordQty) * 100) : '-';
+          } else if (ordQty > 0 && dropQty === 0) {
+            pctKedatanganDia = 'Belum';
+          } else if (ordQty > 0 && dropQty > 0) {
+            pctKedatanganDia = Math.round((dropQty / ordQty) * 100);
+          } else {
+            pctKedatanganDia = '-';
           }
 
-          const saldoDia = dropQty - totalPasangDia;
-          const pctPasangDia = dropQty > 0 ? (totalPasangDia / dropQty) * 100 : (totalPasangDia > 0 ? 100 : 0);
+          let pctPasangDia: number | string = '-';
+          if (dropQty === 0 && manQty > 0) {
+            pctPasangDia = 'Check';
+          } else if (dropQty > 0) {
+            pctPasangDia = Math.round((totalPasangDia / dropQty) * 100);
+          } else {
+            pctPasangDia = '-';
+          }
 
           const snapDiaStatus = dia === 40 ? snap?.statusD40 : dia === 60 ? snap?.statusD60 : dia === 80 ? snap?.statusD80 : snap?.statusD100;
 
           let statusDia = 'Close';
-          if (isClosedInSnapshot) {
-            statusDia = 'Close';
-          } else if (snapDiaStatus === 'Close') {
-            statusDia = 'Close';
-          } else if (ordQty > 0 || dropQty > 0 || totalPasangDia > 0) {
+          if (ordQty > 0 || dropQty > 0 || totalPasangDia > 0) {
             if (dropQty >= ordQty && saldoDia <= 0 && totalPasangDia > 0) {
               statusDia = 'Close';
             } else {
               statusDia = 'Open';
               allClosed = false;
             }
+          } else if (isClosedInSnapshot || snapDiaStatus === 'Close') {
+            statusDia = 'Close';
+          } else {
+            statusDia = '-';
           }
 
           totalOrderSemua += ordQty;
           totalDropSemua += dropQty;
 
+          const tglDrop = lastDropDate ? lastDropDate.toISOString().slice(0, 10) : (dia === 40 ? (snap?.tglDropD40 || '-') : '-');
+
           diameterDetails[key] = {
-            order: ordQty,
-            drop: dropQty,
-            tglTerakhirDrop: lastDropDate ? lastDropDate.toISOString().slice(0, 10) : '-',
-            sisaKebutuhan: sisaKebutuhanDia,
-            pctKedatangan: Math.round(pctKedatanganDia),
-            pasangManual: manQty,
-            pasangSap: sapQty,
+            order: hasSnapOrd || trxOrdQty > 0 ? ordQty : null,
+            drop: hasSnapDrp || trxDrpQty > 0 ? dropQty : null,
+            tglTerakhirDrop: tglDrop,
+            sisaKebutuhan: (hasSnapOrd || hasSnapDrp || trxOrdQty > 0 || trxDrpQty > 0) ? sisaKebutuhanDia : null,
+            pctKedatangan: pctKedatanganDia,
+            pasangManual: hasSnapMan || trxManQty > 0 ? manQty : null,
+            pasangSap: sapDbQty > 0 || hasSnapSap ? sapQty : null,
             totalPasang: totalPasangDia,
-            saldo: saldoDia,
-            pctPasang: Math.round(pctPasangDia),
+            saldo: (hasSnapDrp || hasSnapMan || hasSnapSap || trxDrpQty > 0 || totalPasangDia > 0) ? saldoDia : null,
+            pctPasang: pctPasangDia,
             status: statusDia,
           };
         }
 
-        const d40Order = diameterDetails['d40']?.order || 0;
-        const ratioPerHa = luas > 0 ? Math.round(d40Order / luas) : (snap?.ratioPerHa ? Math.round(snap.ratioPerHa) : 0);
-        let statusAll = (
-          diameterDetails['d40']?.status === 'Close' &&
-          diameterDetails['d60']?.status === 'Close' &&
-          diameterDetails['d80']?.status === 'Close' &&
-          diameterDetails['d100']?.status === 'Close'
-        ) ? 'Close' : '-';
+        const d40Order = diameterDetails['d40']?.order;
+        const ratioPerHa = (luas > 0 && d40Order !== null && d40Order !== undefined && d40Order > 0)
+          ? Math.round(d40Order / luas)
+          : (snap?.ratioPerHa !== null && snap?.ratioPerHa !== undefined && snap.ratioPerHa > 0 ? Math.round(snap.ratioPerHa) : null);
 
-        if (isClosedInSnapshot) {
+        let statusAll = '-';
+        const diaStatuses = [diameterDetails['d40']?.status, diameterDetails['d60']?.status, diameterDetails['d80']?.status, diameterDetails['d100']?.status];
+        const activeDiaStatuses = diaStatuses.filter((s) => s && s !== '-');
+        if (isClosedInSnapshot || (activeDiaStatuses.length > 0 && activeDiaStatuses.every((s) => s === 'Close'))) {
           statusAll = 'Close';
-        } else if (snap && snap.statusAll) {
-          statusAll = snap.statusAll;
         }
 
         let prioritas = '';
         if (statusAll === 'Close') {
           prioritas = '';
-        } else if (d40Order === 0) {
+        } else if (d40Order === null || d40Order === undefined || d40Order === 0) {
           prioritas = '-';
-        } else if (snap && snap.prioritas !== undefined && snap.prioritas !== '') {
+        } else if (snap && snap.prioritas !== undefined && snap.prioritas !== null && snap.prioritas !== '') {
           prioritas = snap.prioritas;
         } else {
           const isFC = statusTanaman === 'FC' || statusTanaman?.endsWith('FC');
@@ -439,7 +502,7 @@ export async function GET(request: NextRequest) {
         views: [{ state: 'frozen', xSplit: 11, ySplit: 1 }],
       });
 
-      // Definisi 53 Kolom
+      // Definisi 50 Kolom (Sesuai Urutan dan Struktur Tabel Monitoring)
       const columns = [
         { header: 'No', key: 'no', width: 6 },
         { header: 'Lokasi', key: 'lokasi', width: 12 },
@@ -468,33 +531,30 @@ export async function GET(request: NextRequest) {
         // Ø60
         { header: 'Ø60 Order', key: 'd60_order', width: 11 },
         { header: 'Ø60 Drop', key: 'd60_drop', width: 11 },
-        { header: 'Ø60 Tgl Drop', key: 'd60_tglDrop', width: 13 },
         { header: 'Ø60 Sisa', key: 'd60_sisa', width: 10 },
         { header: 'Ø60 % Dtg', key: 'd60_pctDtg', width: 11 },
-        { header: 'Ø60 P.Man', key: 'd60_pman', width: 11 },
         { header: 'Ø60 P.SAP', key: 'd60_psap', width: 11 },
+        { header: 'Ø60 P.Man', key: 'd60_pman', width: 11 },
         { header: 'Ø60 Saldo', key: 'd60_saldo', width: 11 },
         { header: 'Ø60 % Psg', key: 'd60_pctPsg', width: 11 },
         { header: 'Ø60 Status', key: 'd60_status', width: 11 },
         // Ø80
         { header: 'Ø80 Order', key: 'd80_order', width: 11 },
         { header: 'Ø80 Drop', key: 'd80_drop', width: 11 },
-        { header: 'Ø80 Tgl Drop', key: 'd80_tglDrop', width: 13 },
         { header: 'Ø80 Sisa', key: 'd80_sisa', width: 10 },
         { header: 'Ø80 % Dtg', key: 'd80_pctDtg', width: 11 },
-        { header: 'Ø80 P.Man', key: 'd80_pman', width: 11 },
         { header: 'Ø80 P.SAP', key: 'd80_psap', width: 11 },
+        { header: 'Ø80 P.Man', key: 'd80_pman', width: 11 },
         { header: 'Ø80 Saldo', key: 'd80_saldo', width: 11 },
         { header: 'Ø80 % Psg', key: 'd80_pctPsg', width: 11 },
         { header: 'Ø80 Status', key: 'd80_status', width: 11 },
         // Ø100
         { header: 'Ø100 Order', key: 'd100_order', width: 11 },
         { header: 'Ø100 Drop', key: 'd100_drop', width: 11 },
-        { header: 'Ø100 Tgl Drop', key: 'd100_tglDrop', width: 13 },
         { header: 'Ø100 Sisa', key: 'd100_sisa', width: 10 },
         { header: 'Ø100 % Dtg', key: 'd100_pctDtg', width: 11 },
-        { header: 'Ø100 P.Man', key: 'd100_pman', width: 11 },
         { header: 'Ø100 P.SAP', key: 'd100_psap', width: 11 },
+        { header: 'Ø100 P.Man', key: 'd100_pman', width: 11 },
         { header: 'Ø100 Saldo', key: 'd100_saldo', width: 11 },
         { header: 'Ø100 % Psg', key: 'd100_pctPsg', width: 11 },
         { header: 'Ø100 Status', key: 'd100_status', width: 11 },
@@ -513,64 +573,68 @@ export async function GET(request: NextRequest) {
       });
 
       // Masukkan baris data
+      const formatPercentStr = (val: any) => {
+        if (val === 'Belum' || val === 'Check' || val === '-') return val;
+        if (typeof val === 'number') return `${val}%`;
+        if (typeof val === 'string' && val.trim() !== '') return val.includes('%') ? val : `${val}%`;
+        return '-';
+      };
+
       filtered.forEach((item, idx) => {
-        const rowData: Record<string, any> = {
+        const rowData = {
           no: idx + 1,
           lokasi: item.lokasi,
-          wilayah: item.wilayah,
+          wilayah: item.wilayah || '-',
           luas: item.luas ? parseFloat(item.luas.toFixed(2)) : 0,
-          status: item.status,
+          status: item.status || '-',
           umurBulan: item.umurBulan ?? 0,
-          tanggalOrder: item.tanggalOrder,
-          aktBk: item.aktBk,
-          dsmBk: item.dsmBk,
-          dsmSt: item.dsmSt,
+          tanggalOrder: item.tanggalOrder || '-',
+          aktBk: item.aktBk || '-',
+          dsmBk: item.dsmBk || '-',
+          dsmSt: item.dsmSt || '-',
           prioritas: item.prioritas || '-',
-          statusAll: item.statusAll,
+          statusAll: item.statusAll || '-',
           ratioPerHa: item.ratioPerHa,
           // Ø40
           d40_order: item.d40?.order ?? 0,
           d40_drop: item.d40?.drop ?? 0,
           d40_tglDrop: item.d40?.tglTerakhirDrop || '-',
           d40_sisa: item.d40?.sisaKebutuhan ?? 0,
-          d40_pctDtg: `${item.d40?.pctKedatangan ?? 0}%`,
+          d40_pctDtg: formatPercentStr(item.d40?.pctKedatangan),
           d40_pman: item.d40?.pasangManual ?? 0,
           d40_psap: item.d40?.pasangSap ?? 0,
           d40_saldo: item.d40?.saldo ?? 0,
-          d40_pctPsg: `${item.d40?.pctPasang ?? 0}%`,
+          d40_pctPsg: formatPercentStr(item.d40?.pctPasang),
           d40_status: item.d40?.status || '-',
           // Ø60
           d60_order: item.d60?.order ?? 0,
           d60_drop: item.d60?.drop ?? 0,
-          d60_tglDrop: item.d60?.tglTerakhirDrop || '-',
           d60_sisa: item.d60?.sisaKebutuhan ?? 0,
-          d60_pctDtg: `${item.d60?.pctKedatangan ?? 0}%`,
-          d60_pman: item.d60?.pasangManual ?? 0,
+          d60_pctDtg: formatPercentStr(item.d60?.pctKedatangan),
           d60_psap: item.d60?.pasangSap ?? 0,
+          d60_pman: item.d60?.pasangManual ?? 0,
           d60_saldo: item.d60?.saldo ?? 0,
-          d60_pctPsg: `${item.d60?.pctPasang ?? 0}%`,
+          d60_pctPsg: formatPercentStr(item.d60?.pctPasang),
           d60_status: item.d60?.status || '-',
           // Ø80
           d80_order: item.d80?.order ?? 0,
           d80_drop: item.d80?.drop ?? 0,
-          d80_tglDrop: item.d80?.tglTerakhirDrop || '-',
           d80_sisa: item.d80?.sisaKebutuhan ?? 0,
-          d80_pctDtg: `${item.d80?.pctKedatangan ?? 0}%`,
-          d80_pman: item.d80?.pasangManual ?? 0,
+          d80_pctDtg: formatPercentStr(item.d80?.pctKedatangan),
           d80_psap: item.d80?.pasangSap ?? 0,
+          d80_pman: item.d80?.pasangManual ?? 0,
           d80_saldo: item.d80?.saldo ?? 0,
-          d80_pctPsg: `${item.d80?.pctPasang ?? 0}%`,
+          d80_pctPsg: formatPercentStr(item.d80?.pctPasang),
           d80_status: item.d80?.status || '-',
           // Ø100
           d100_order: item.d100?.order ?? 0,
           d100_drop: item.d100?.drop ?? 0,
-          d100_tglDrop: item.d100?.tglTerakhirDrop || '-',
           d100_sisa: item.d100?.sisaKebutuhan ?? 0,
-          d100_pctDtg: `${item.d100?.pctKedatangan ?? 0}%`,
-          d100_pman: item.d100?.pasangManual ?? 0,
+          d100_pctDtg: formatPercentStr(item.d100?.pctKedatangan),
           d100_psap: item.d100?.pasangSap ?? 0,
+          d100_pman: item.d100?.pasangManual ?? 0,
           d100_saldo: item.d100?.saldo ?? 0,
-          d100_pctPsg: `${item.d100?.pctPasang ?? 0}%`,
+          d100_pctPsg: formatPercentStr(item.d100?.pctPasang),
           d100_status: item.d100?.status || '-',
         };
 
@@ -608,35 +672,49 @@ export async function GET(request: NextRequest) {
         column.width = Math.min(Math.max(maxLen + 3, 9), 22);
       });
     } else {
-      // PROSES TABEL LIST LOKASI BELUM ORDER
-      const orderedLokasiSet = new Set<string>();
-      for (const [lok, trxData] of lokasiOrderMap.entries()) {
-        if (trxData.orders.length > 0) orderedLokasiSet.add(lok);
-      }
-
+      // PROSES TABEL LIST LOKASI BELUM ORDER (Prioritas dari Database LokasiBelumOrderGorongGorong)
       const listLokasiBelumOrder: any[] = [];
-      for (const m of statusLokasiList) {
-        const lok = m.lokasi.trim();
-        if (orderedLokasiSet.has(lok)) continue;
+      if (dbLokasiBelumOrder && dbLokasiBelumOrder.length > 0) {
+        for (const b of dbLokasiBelumOrder) {
+          listLokasiBelumOrder.push({
+            wilayah: b.wilayah || '-',
+            lokasi: b.lokasi,
+            luasNetto: b.luasNetto || 0,
+            status: b.status || '-',
+            aktBk: b.aktBk || '-',
+            stepOrder: b.stepOrder || 0,
+          });
+        }
+      } else {
+        const orderedLokasiSet = new Set<string>();
+        for (const [lok, trxData] of lokasiOrderMap.entries()) {
+          if (trxData.orders.length > 0) orderedLokasiSet.add(lok);
+        }
 
-        const statusTanaman = (m.status || '').trim().toUpperCase();
-        const isBkOrSt = statusTanaman.endsWith('BK') || statusTanaman.endsWith('ST');
-        if (!isBkOrSt) continue;
+        for (const m of statusLokasiList) {
+          const lok = m.lokasi.trim();
+          if (isExcludedGorongGorongLocation(lok)) continue;
+          if (orderedLokasiSet.has(lok)) continue;
 
-        const rawAkt = landAktMap.get(lok) || m.statusLengkap || '';
-        const parsed = parseLandActivity(rawAkt);
+          const statusTanaman = (m.status || '').trim().toUpperCase();
+          const isBkOrSt = statusTanaman.endsWith('BK') || statusTanaman.endsWith('ST');
+          if (!isBkOrSt) continue;
 
-        // Hanya lolos jika setelah dolomit (stepOrder >= 6)
-        if (parsed.stepOrder < 6) continue;
+          const rawAkt = landAktMap.get(lok) || m.statusLengkap || '';
+          const parsed = parseLandActivity(rawAkt);
 
-        listLokasiBelumOrder.push({
-          wilayah: m.wil || '-',
-          lokasi: lok,
-          luasNetto: m.luasNetto || m.luasAktif || 0,
-          status: m.status || '-',
-          aktBk: parsed.formatted,
-          stepOrder: parsed.stepOrder,
-        });
+          // Hanya lolos jika setelah dolomit (stepOrder >= 6)
+          if (parsed.stepOrder < 6) continue;
+
+          listLokasiBelumOrder.push({
+            wilayah: m.strucPlant || '-',
+            lokasi: lok,
+            luasNetto: m.luasNetto || m.luasAktif || 0,
+            status: m.status || '-',
+            aktBk: parsed.formatted,
+            stepOrder: parsed.stepOrder,
+          });
+        }
       }
 
       listLokasiBelumOrder.sort((a, b) => {

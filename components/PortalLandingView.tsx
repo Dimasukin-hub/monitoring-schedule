@@ -135,7 +135,7 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 w-full max-w-4xl">
           {/* Card 1: Portal Labita */}
           <Link
-            href={canAccessLabita ? '/labita' : '#'}
+            href={canAccessLabita ? '/labita/executive-summary/pengolahan-lahan' : '#'}
             prefetch={false}
             onClick={(e) => {
               if (!canAccessLabita) {
@@ -144,7 +144,7 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
                 return;
               }
               if (typeof window !== 'undefined') {
-                sessionStorage.setItem('ggf_active_portal', '/labita');
+                sessionStorage.setItem('ggf_active_portal', '/labita/executive-summary/pengolahan-lahan');
               }
               onSelectPortal?.('labita');
             }}
@@ -254,11 +254,11 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
 
           {/* Card 2: Portal Monitor Gorong-Gorong */}
           <Link
-            href="/gorong-gorong"
+            href="/gorong-gorong/monitor-gorong-gorong"
             prefetch={false}
             onClick={() => {
               if (typeof window !== 'undefined') {
-                sessionStorage.setItem('ggf_active_portal', '/gorong-gorong');
+                sessionStorage.setItem('ggf_active_portal', '/gorong-gorong/monitor-gorong-gorong');
               }
               onSelectPortal?.('gorong_gorong');
             }}
@@ -361,7 +361,7 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
 
               <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-2">
                 <Link
-                  href="/login?callbackUrl=/labita"
+                  href="/login?callbackUrl=/labita/executive-summary/pengolahan-lahan"
                   className="w-full sm:flex-1 py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white text-xs font-bold text-center transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Lock className="w-3.5 h-3.5" />

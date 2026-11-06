@@ -32,27 +32,31 @@ const MONTHS_LIST = [
   { val: '12', label: 'Desember' },
 ];
 
+let cachedSapList: any[] = [];
+let cachedTotalCount = 0;
+let cachedTotalPages = 1;
+
 export default function MasterSapUploadView() {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [dataList, setDataList] = useState<any[]>([]);
-  const [totalCount, setTotalCount] = useState<number>(0);
+  const [dataList, setDataList] = useState<any[]>(cachedSapList);
+  const [totalCount, setTotalCount] = useState<number>(cachedTotalCount);
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(50);
-  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(cachedTotalPages);
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedDiameter, setSelectedDiameter] = useState<string[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(cachedSapList.length === 0);
 
   // Custom Dropdown Open State
   const [isDiameterDropdownOpen, setIsDiameterDropdownOpen] = useState<boolean>(false);
   const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState<boolean>(false);
 
   // Upload States
-  const [uploadMode, setUploadMode] = useState<'month_replace' | 'full_replace'>('month_replace');
+  const [uploadMode, setUploadMode] = useState<'full_replace' | 'partial'>('full_replace');
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadResult, setUploadResult] = useState<any | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -96,9 +100,12 @@ export default function MasterSapUploadView() {
       const res = await fetch(`/api/gorong-gorong/sap-upload?${params.toString()}`);
       const data = await res.json();
       if (data.success && data.data) {
-        setDataList(data.data.records || []);
-        setTotalCount(data.data.total || 0);
-        setTotalPages(data.data.totalPages || 1);
+        cachedSapList = data.data.records || [];
+        cachedTotalCount = data.data.total || 0;
+        cachedTotalPages = data.data.totalPages || 1;
+        setDataList(cachedSapList);
+        setTotalCount(cachedTotalCount);
+        setTotalPages(cachedTotalPages);
       }
     } catch (e) {
       console.error('Error fetching SAP records:', e);
@@ -213,7 +220,20 @@ export default function MasterSapUploadView() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <a
+              href={`/api/gorong-gorong/sap-upload/export?${new URLSearchParams({
+                ...(selectedDiameter.length > 0 ? { diameter: selectedDiameter.join(',') } : {}),
+                ...(selectedMonth.length > 0 ? { bulan: selectedMonth.join(',') } : {}),
+                ...(debouncedSearch.trim() ? { search: debouncedSearch.trim() } : {}),
+              }).toString()}`}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+              title="Unduh seluruh data transaksi realisasi SAP ke dalam berkas Excel (.xlsx)"
+            >
+              <Download className="w-4 h-4 text-white" />
+              <span>Download Data Realisasi SAP (.xlsx)</span>
+            </a>
+
             <a
               href="/api/gorong-gorong/sap-upload/template"
               download="Template_Upload_Realisasi_SAP_Form630.xlsx"
@@ -234,44 +254,44 @@ export default function MasterSapUploadView() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
             <button
               type="button"
-              onClick={() => setUploadMode('month_replace')}
+              onClick={() => setUploadMode('full_replace')}
               className={`p-3 rounded-lg text-left border transition-all cursor-pointer flex items-start gap-2.5 ${
-                uploadMode === 'month_replace'
+                uploadMode === 'full_replace'
                   ? 'border-violet-600 bg-violet-50/80 dark:bg-violet-950/40 text-violet-900 dark:text-violet-100 ring-1 ring-violet-500'
                   : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900'
               }`}
             >
               <div className={`w-4 h-4 rounded-full mt-0.5 border flex items-center justify-center shrink-0 ${
-                uploadMode === 'month_replace' ? 'border-violet-600 bg-violet-600 text-white' : 'border-slate-400'
+                uploadMode === 'full_replace' ? 'border-violet-600 bg-violet-600 text-white' : 'border-slate-400'
               }`}>
-                {uploadMode === 'month_replace' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                {uploadMode === 'full_replace' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
               </div>
               <div>
-                <p className="text-xs font-bold">Replace per Periode Bulan (Disarankan)</p>
+                <p className="text-xs font-bold">Replace Semua Data (All) (Disarankan)</p>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                  Menghapus & memperbarui hanya bulan yang ada di file Excel (misal: September atau Oktober), bulan lain tidak terhapus.
+                  Menimpa & memperbarui seluruh data transaksi realisasi SAP sekaligus dari berkas Excel.
                 </p>
               </div>
             </button>
 
             <button
               type="button"
-              onClick={() => setUploadMode('full_replace')}
+              onClick={() => setUploadMode('partial')}
               className={`p-3 rounded-lg text-left border transition-all cursor-pointer flex items-start gap-2.5 ${
-                uploadMode === 'full_replace'
-                  ? 'border-rose-600 bg-rose-50/80 dark:bg-rose-950/40 text-rose-900 dark:text-rose-100 ring-1 ring-rose-500'
+                uploadMode === 'partial'
+                  ? 'border-violet-600 bg-violet-50/80 dark:bg-violet-950/40 text-violet-900 dark:text-violet-100 ring-1 ring-violet-500'
                   : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900'
               }`}
             >
               <div className={`w-4 h-4 rounded-full mt-0.5 border flex items-center justify-center shrink-0 ${
-                uploadMode === 'full_replace' ? 'border-rose-600 bg-rose-600 text-white' : 'border-slate-400'
+                uploadMode === 'partial' ? 'border-violet-600 bg-violet-600 text-white' : 'border-slate-400'
               }`}>
-                {uploadMode === 'full_replace' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                {uploadMode === 'partial' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
               </div>
               <div>
-                <p className="text-xs font-bold text-rose-700 dark:text-rose-300">Replace Seluruh Data (Wipe & Replace)</p>
+                <p className="text-xs font-bold">Replace Parsial (Per Baris / Nomor)</p>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                  Menghapus seluruh transaksi SAP lama (semua bulan) dan menggantinya secara total dengan data file baru.
+                  Hanya memperbarui baris lokasi yang ada di file Excel tanpa menghapus atau mengubah baris lokasi lainnya.
                 </p>
               </div>
             </button>
@@ -317,9 +337,9 @@ export default function MasterSapUploadView() {
                   : 'Klik atau seret file Excel Form 630 ke sini'}
               </p>
               <p className="text-xs text-slate-400 mt-0.5">
-                {uploadMode === 'month_replace'
-                  ? 'Mode: Replace per Bulan — hanya bulan terkait yang diperbarui'
-                  : 'Mode: Replace Seluruh Data — seluruh data lama digantikan file ini'}
+                {uploadMode === 'full_replace'
+                  ? 'Mode: Replace Semua Data (All) — seluruh data lama digantikan file ini'
+                  : 'Mode: Replace Parsial (Per Baris / Nomor) — hanya baris lokasi dalam file yang diperbarui'}
               </p>
             </div>
           </div>
@@ -333,7 +353,7 @@ export default function MasterSapUploadView() {
               <div className="flex items-center justify-between">
                 <p className="font-bold text-sm">Berhasil Mengunggah Data SAP!</p>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-200/70 dark:bg-emerald-800/80 text-emerald-900 dark:text-emerald-100">
-                  {uploadResult.mode === 'full_replace' ? 'Replace Seluruh Data' : 'Replace per Periode Bulan'}
+                  {uploadResult.mode === 'partial' ? 'Replace Parsial (Per Baris)' : 'Replace Semua Data (All)'}
                 </span>
               </div>
               <p>
@@ -540,46 +560,44 @@ export default function MasterSapUploadView() {
         </div>
       </div>
 
-      {/* Tabel 21 Kolom Realisasi SAP Form 630 (Freeze Panes Header & Garis Pembatas Halus) */}
+      {/* Tabel 18 Kolom Realisasi SAP Form 630 (Freeze Panes Header & Garis Pembatas Halus) */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
         <div className="overflow-x-auto max-h-[600px] scrollbar-thin">
           <table className="w-full text-center border-collapse text-xs whitespace-nowrap">
             <thead className="sticky top-0 z-20 backdrop-blur-md bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-2xs">
               <tr className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold tracking-wider uppercase text-[11px]">
                 <th className="py-3 px-3 text-center w-12 border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">No</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Wilayah</th>
                 <th className="py-3 px-3 text-center font-bold text-violet-600 dark:text-violet-400 border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Lokasi</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Wilayah SAP</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Cost Center</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Status Tnm</th>
-                <th className="py-3 px-3 text-center font-mono border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">No SPK</th>
-                <th className="py-3 px-3 text-center font-mono border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">PAS Doc</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Tgl Realisasi</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Deskripsi Kegiatan</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[280px] bg-slate-100 dark:bg-slate-800">Deskripsi Bahan</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Jenis</th>
-                <th className="py-3 px-3 text-center font-mono border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Kode Bahan</th>
-                <th className="py-3 px-3 text-center font-bold text-violet-600 dark:text-violet-400 border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Diameter</th>
-                <th className="py-3 px-3 text-center font-bold text-emerald-600 dark:text-emerald-400 border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Qty</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Status tanaman</th>
+                <th className="py-3 px-3 text-center font-mono border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">SPK ID</th>
+                <th className="py-3 px-3 text-center font-mono border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">PAS Document</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Tanggal Realisasi</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[200px] bg-slate-100 dark:bg-slate-800">Deskripsi</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[280px] bg-slate-100 dark:bg-slate-800">Deskripsi Bahan/Alat/Lainlain</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Jenis Data</th>
+                <th className="py-3 px-3 text-center font-mono border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Kode Bahan/Alat/Lainlain</th>
+                <th className="py-3 px-3 text-center font-bold text-emerald-600 dark:text-emerald-400 border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Resource Bahan/Alat</th>
                 <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Hasil Efektif</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Total Biaya</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Total Realisasi Biaya</th>
                 <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Penanggung Jawab</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Waktu</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Time</th>
                 <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Air</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Jml Air</th>
-                <th className="py-3 px-3 text-center bg-slate-100 dark:bg-slate-800">Ref Lokasi</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Jumlah Air</th>
+                <th className="py-3 px-3 text-center bg-slate-100 dark:bg-slate-800">Referensi Lokasi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={21} className="py-12 text-center text-slate-400">
+                  <td colSpan={19} className="py-12 text-center text-slate-400">
                     <RefreshCw className="w-6 h-6 animate-spin mx-auto text-violet-500 mb-2" />
                     Memuat data realisasi SAP...
                   </td>
                 </tr>
               ) : dataList.length === 0 ? (
                 <tr>
-                  <td colSpan={21} className="py-12 text-center text-slate-400">
+                  <td colSpan={19} className="py-12 text-center text-slate-400">
                     Tidak ada data SAP yang sesuai dengan filter atau pencarian.
                   </td>
                 </tr>
@@ -592,14 +610,11 @@ export default function MasterSapUploadView() {
                     <td className="py-2.5 px-3 text-center text-slate-400 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
                       {(page - 1) * pageSize + idx + 1}
                     </td>
-                    <td className="py-2.5 px-3 text-center font-bold text-violet-700 dark:text-violet-400 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
-                      {row.lokasi}
-                    </td>
                     <td className="py-2.5 px-3 text-center text-slate-700 dark:text-slate-300 font-semibold border-r border-slate-200/70 dark:border-slate-800/70">
                       {row.wilayahSap || '-'}
                     </td>
-                    <td className="py-2.5 px-3 text-center text-slate-600 dark:text-slate-400 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
-                      {row.plantCostCenter || '-'}
+                    <td className="py-2.5 px-3 text-center font-bold text-violet-700 dark:text-violet-400 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
+                      {row.plantCostCenter || row.lokasi}
                     </td>
                     <td className="py-2.5 px-3 text-center text-slate-700 dark:text-slate-300 border-r border-slate-200/70 dark:border-slate-800/70">
                       {row.statusTanaman || '-'}
@@ -613,11 +628,11 @@ export default function MasterSapUploadView() {
                     <td className="py-2.5 px-3 text-center font-mono text-slate-600 dark:text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70">
                       {formatDate(row.tanggalRealisasi)}
                     </td>
-                    <td className="py-2.5 px-3 text-center text-slate-700 dark:text-slate-300 max-w-[160px] truncate border-r border-slate-200/70 dark:border-slate-800/70" title={row.deskripsiKegiatan}>
+                    <td className="py-2.5 px-3 text-center text-slate-700 dark:text-slate-300 min-w-[200px] border-r border-slate-200/70 dark:border-slate-800/70" title={row.deskripsiKegiatan}>
                       {row.deskripsiKegiatan || '-'}
                     </td>
                     <td className="py-2.5 px-3 text-center text-slate-700 dark:text-slate-300 min-w-[280px] font-medium border-r border-slate-200/70 dark:border-slate-800/70" title={row.deskripsiBahan}>
-                      {row.deskripsiBahan}
+                      {row.deskripsiBahan || '-'}
                     </td>
                     <td className="py-2.5 px-3 text-center text-slate-500 border-r border-slate-200/70 dark:border-slate-800/70">
                       {row.jenisData || '-'}
@@ -625,13 +640,8 @@ export default function MasterSapUploadView() {
                     <td className="py-2.5 px-3 text-center font-mono text-[11px] text-slate-600 dark:text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70">
                       {row.kodeBahan || '-'}
                     </td>
-                    <td className="py-2.5 px-3 text-center border-r border-slate-200/70 dark:border-slate-800/70">
-                      <span className="px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 font-bold text-[10px] border border-violet-200 dark:border-violet-800">
-                        Ø{row.diameter}
-                      </span>
-                    </td>
                     <td className="py-2.5 px-3 text-center font-bold font-mono text-emerald-600 dark:text-emerald-400 border-r border-slate-200/70 dark:border-slate-800/70">
-                      {row.qty}
+                      {row.qty ?? 0}
                     </td>
                     <td className="py-2.5 px-3 text-center font-mono text-slate-600 dark:text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70">
                       {row.hasilEfektif != null ? Number(row.hasilEfektif).toFixed(1) : '-'}
@@ -652,7 +662,7 @@ export default function MasterSapUploadView() {
                       {row.jumlahAir != null ? row.jumlahAir : '-'}
                     </td>
                     <td className="py-2.5 px-3 text-center font-mono text-slate-500">
-                      {row.referensiLokasi || '-'}
+                      {row.referensiLokasi || row.lokasi || '-'}
                     </td>
                   </tr>
                 ))

@@ -30,9 +30,9 @@ export async function GET(request: NextRequest) {
     if (wilayah && wilayah !== 'ALL') {
       const wList = wilayah.split(',').map((w) => w.trim()).filter(Boolean);
       if (wList.length === 1) {
-        where.wil = { contains: wList[0], mode: 'insensitive' };
+        where.strucPlant = { contains: wList[0], mode: 'insensitive' };
       } else if (wList.length > 1) {
-        where.OR = wList.map((w) => ({ wil: { contains: w, mode: 'insensitive' } }));
+        where.OR = wList.map((w) => ({ strucPlant: { contains: w, mode: 'insensitive' } }));
       }
     }
     if (status && status !== 'ALL') {
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
         select: {
           id: true,
           lokasi: true,
-          wil: true,
+          strucPlant: true,
           status: true,
           statusLengkap: true,
           luasNetto: true,

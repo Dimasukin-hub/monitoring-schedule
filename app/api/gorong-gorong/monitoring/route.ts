@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { loadSnapshotFromFile } from '@/lib/lokasiOrderSnapshot';
+import { loadSnapshotFromFile, isExcludedGorongGorongLocation, isLocationWithoutWilayah } from '@/lib/lokasiOrderSnapshot';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // Helper Pemetaan Tahapan Pekerjaan Tanah PG1 dengan Nomor Urut Resmi (Tahap 1 s/d 20)
 function parseLandActivity(raw: any) {
@@ -86,13 +89,20 @@ export async function GET(request: NextRequest) {
     const filterPrioritas = searchParams.get('prioritas');
     const searchQuery = searchParams.get('search')?.trim().toUpperCase();
 
-    // 1. Ambil seluruh data master pendukung
-    const [statusLokasiList, waterloggingList, allLands, allTrx, allSap] = await Promise.all([
+    // 1. Ambil seluruh data master pendukung dan database tabel lokasi order & belum order
+    const [statusLokasiList, waterloggingList, allLands, allTrx, allSap, dbLokasiOrder, dbLokasiBelumOrder] = await Promise.all([
       prisma.masterStatusLokasi.findMany({}),
       prisma.masterWaterlogging.findMany({}),
       prisma.land.findMany({
-        orderBy: { year: 'asc' },
-        select: { lokasi: true, aplikasiTerakhir: true },
+        orderBy: { year: 'desc' },
+        select: {
+          lokasi: true,
+          year: true,
+          activities: {
+            where: { realisasiDate: { not: null } },
+            select: { code: true, name: true, stepOrder: true, realisasiDate: true },
+          },
+        },
       }),
       prisma.transaksiGorongGorong.findMany({
         orderBy: { tanggal: 'asc' },
@@ -100,6 +110,8 @@ export async function GET(request: NextRequest) {
       prisma.masterSapGorongGorong.findMany({
         orderBy: { tanggalRealisasi: 'asc' },
       }),
+      prisma.lokasiOrderGorongGorong.findMany({}),
+      prisma.lokasiBelumOrderGorongGorong.findMany({}),
     ]);
 
     // Buat lookup maps untuk performa instan
@@ -113,10 +125,47 @@ export async function GET(request: NextRequest) {
       dsmMap.set(w.lokasi.trim(), w);
     }
 
-    const landAktMap = new Map<string, string>();
+    // Helper parsing tanggal realisasi kegiatan tanah
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
+    function parseRealDate(s: string | null | undefined): Date | null {
+      if (!s) return null;
+      const str = String(s).trim();
+      if (!str || str === '-' || str === '0') return null;
+      if (str.includes('/')) {
+        const parts = str.split('/');
+        if (parts.length === 3) {
+          const d = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10) - 1;
+          const y = parseInt(parts[2], 10);
+          const res = new Date(y, m, d);
+          return isNaN(res.getTime()) ? null : res;
+        }
+      }
+      const res = new Date(str);
+      return isNaN(res.getTime()) ? null : res;
+    }
+
+    // Pemetaan Akt. BK MURNI dari tabel database Land saja (Newest <= Today, tidak mengambil dari MasterStatusLokasi)
+    const landAktMap = new Map<string, { formatted: string; stepOrder: number; date: Date }>();
     for (const l of allLands) {
-      if (l.aplikasiTerakhir) {
-        landAktMap.set(l.lokasi.trim(), l.aplikasiTerakhir);
+      const lok = l.lokasi.trim().toUpperCase();
+      const validActs = (l.activities || []).filter((a) => {
+        const d = parseRealDate(a.realisasiDate);
+        return d && d <= today;
+      });
+
+      for (const a of validActs) {
+        const d = parseRealDate(a.realisasiDate)!;
+        const current = landAktMap.get(lok);
+        if (!current || d > current.date || (d.getTime() === current.date.getTime() && a.stepOrder > current.stepOrder)) {
+          landAktMap.set(lok, {
+            formatted: `${String(a.stepOrder).padStart(2, '0')}. ${a.name}`,
+            stepOrder: a.stepOrder,
+            date: d,
+          });
+        }
       }
     }
 
@@ -153,39 +202,58 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 3. Susun Tabel List Lokasi Order
-    const snapshotMap = loadSnapshotFromFile();
+    // 3. Susun Tabel List Lokasi Order (Prioritas dari Database LokasiOrderGorongGorong)
+    const snapshotMap: Record<string, any> = {};
+    if (dbLokasiOrder && dbLokasiOrder.length > 0) {
+      for (const row of dbLokasiOrder) {
+        snapshotMap[row.lokasi] = row;
+      }
+    } else {
+      const fallbackSnap = loadSnapshotFromFile();
+      for (const [k, v] of Object.entries(fallbackSnap)) {
+        snapshotMap[k] = v;
+      }
+    }
     const listLokasiOrder: any[] = [];
     const orderedLokasiSet = new Set<string>();
 
-    // Gabungkan seluruh lokasi kandidat dari transaksi (Order/Drop/Pasang Manual), SAP, maupun Snapshot Excel
+    // Gabungkan seluruh lokasi kandidat dari Snapshot Excel (261 petak resmi) dan transaksi Order/Drop/Pasang Manual
     const allCandidateLocations = new Set<string>([
-      ...lokasiOrderMap.keys(),
-      ...lokasiSapMap.keys(),
       ...Object.keys(snapshotMap),
+      ...lokasiOrderMap.keys(),
     ]);
 
     for (const lok of allCandidateLocations) {
+      if (isExcludedGorongGorongLocation(lok)) continue;
       const snap = snapshotMap[lok];
       const trxData = lokasiOrderMap.get(lok) || { orders: [], drops: [], manuals: [] };
       const sapRecords = lokasiSapMap.get(lok.toUpperCase()) || [];
 
-      // Masuk ke List Lokasi Order jika memiliki pesanan Order ATAU Drop ATAU Pasang Manual ATAU Pasang SAP ATAU ada di Snapshot Excel
+      // Masuk ke List Lokasi Order jika ada di Snapshot Excel (261 lokasi resmi) ATAU memiliki transaksi pesanan Order/Drop/Pasang Manual
       const hasOrder = trxData.orders.length > 0;
       const hasDrop = trxData.drops.length > 0;
       const hasManual = trxData.manuals.length > 0;
-      const hasSap = sapRecords.length > 0;
       const hasSnap = !!snap;
 
-      if (!hasOrder && !hasDrop && !hasManual && !hasSap && !hasSnap) continue;
+      if (!hasSnap && !hasOrder && !hasDrop && !hasManual) continue;
       orderedLokasiSet.add(lok);
 
       const m = masterLokMap.get(lok);
       const dsm = dsmMap.get(lok);
-      const rawAktBk = landAktMap.get(lok) || (m ? m.statusLengkap : null) || snap?.aktBk || '-';
-      const aktBk = parseLandActivity(rawAktBk).formatted;
+      // Kolom Akt. BK diambil dari tabel database Land saja (newest <= today, tidak dari MasterStatusLokasi)
+      const landAkt = landAktMap.get(lok.toUpperCase());
+      const aktBk = landAkt ? landAkt.formatted : (snap?.aktBk || '-');
 
-      const wilayah = m?.wil || snap?.wilayah || trxData.orders[0]?.wilayah || trxData.drops[0]?.wilayah || trxData.manuals[0]?.wilayah || '-';
+      let wilayah = m?.strucPlant || snap?.wilayah || trxData.orders[0]?.wilayah || trxData.drops[0]?.wilayah || trxData.manuals[0]?.wilayah || '-';
+      if (isLocationWithoutWilayah(lok)) {
+        wilayah = '-';
+      } else if (wilayah === 'Timur' || wilayah === '-' || !wilayah.startsWith('AW')) {
+        if (m?.strucPlant && m.strucPlant.startsWith('AW')) {
+          wilayah = m.strucPlant;
+        } else if (snap?.wilayah && snap.wilayah.startsWith('AW')) {
+          wilayah = snap.wilayah;
+        }
+      }
       const luas = m?.luasNetto || m?.luasAktif || m?.luasBruto || snap?.luas || 0;
       const statusTanaman = m?.status || snap?.statusTanaman || '-';
       const umurBulan = m?.umurBulan ?? (m?.umurRawat ?? (snap?.umurBulan || 0));
@@ -230,116 +298,156 @@ export async function GET(request: NextRequest) {
 
       for (const dia of diameters) {
         const key = `d${dia}`;
-        let ordQty = 0;
-        let dropQty = 0;
-        let manQty = 0;
-        let sapQty = 0;
-        let lastDropDate: Date | null = null;
 
+        // Data dasar dari snapshot Excel
+        const snapOrdRaw = dia === 40 ? snap?.orderD40 : dia === 60 ? snap?.orderD60 : dia === 80 ? snap?.orderD80 : snap?.orderD100;
+        const snapDrpRaw = dia === 40 ? snap?.dropD40 : dia === 60 ? snap?.dropD60 : dia === 80 ? snap?.dropD80 : snap?.dropD100;
+        const snapManRaw = dia === 40 ? snap?.pasangManD40 : dia === 60 ? snap?.pasangManD60 : dia === 80 ? snap?.pasangManD80 : snap?.pasangManD100;
+        const snapSapRaw = dia === 40 ? snap?.pasangSapD40 : dia === 60 ? snap?.pasangSapD60 : dia === 80 ? snap?.pasangSapD80 : snap?.pasangSapD100;
+
+        const hasSnapOrd = snapOrdRaw !== null && snapOrdRaw !== undefined;
+        const hasSnapDrp = snapDrpRaw !== null && snapDrpRaw !== undefined;
+        const hasSnapMan = snapManRaw !== null && snapManRaw !== undefined;
+        const hasSnapSap = snapSapRaw !== null && snapSapRaw !== undefined;
+
+        // Data dinamis dari transaksi form input / database
+        let trxOrdQty = 0;
         for (const o of trxData.orders) {
-          ordQty += (dia === 40 ? o.qtyD40 : dia === 60 ? o.qtyD60 : dia === 80 ? o.qtyD80 : o.qtyD100);
+          trxOrdQty += (dia === 40 ? o.qtyD40 : dia === 60 ? o.qtyD60 : dia === 80 ? o.qtyD80 : o.qtyD100);
         }
+
+        let trxDrpQty = 0;
+        let lastDropDate: Date | null = null;
         for (const dr of trxData.drops) {
           const q = (dia === 40 ? dr.qtyD40 : dia === 60 ? dr.qtyD60 : dia === 80 ? dr.qtyD80 : dr.qtyD100);
-          dropQty += q;
+          trxDrpQty += q;
           if (q > 0) {
             const d = new Date(dr.tanggal);
             if (!lastDropDate || d > lastDropDate) lastDropDate = d;
           }
         }
+
+        let trxManQty = 0;
         for (const pm of trxData.manuals) {
-          manQty += (dia === 40 ? pm.qtyD40 : dia === 60 ? pm.qtyD60 : dia === 80 ? pm.qtyD80 : pm.qtyD100);
-        }
-        for (const s of sapRecords) {
-          if (s.diameter === dia) sapQty += s.qty;
+          trxManQty += (dia === 40 ? pm.qtyD40 : dia === 60 ? pm.qtyD60 : dia === 80 ? pm.qtyD80 : pm.qtyD100);
         }
 
-        // Standar Excel: Terpasang = MAX(Pasang Manual, Pasang SAP)
-        // Saldo = Drop - MAX(Pasang Manual, Pasang SAP) (memperbolehkan minus jika pasang > drop)
+        let sapDbQty = 0;
+        for (const s of sapRecords) {
+          if (s.diameter === dia) sapDbQty += s.qty;
+        }
+
+        const hasTrxActivity = trxOrdQty > 0 || trxDrpQty > 0 || trxManQty > 0 || sapDbQty > 0;
+        const isDiameterActive = hasSnapOrd || hasSnapDrp || hasSnapMan || hasSnapSap || hasTrxActivity;
+
+        if (!isDiameterActive) {
+          diameterDetails[key] = {
+            order: null,
+            drop: null,
+            tglTerakhirDrop: '-',
+            sisaKebutuhan: null,
+            pctKedatangan: '-',
+            pasangManual: null,
+            pasangSap: null,
+            totalPasang: null,
+            saldo: null,
+            pctPasang: '-',
+            status: '-',
+          };
+          continue;
+        }
+
+        // Jika diameter aktif, gabungkan baseline snapshot + transaksi form input
+        const ordQty = (hasSnapOrd ? snapOrdRaw! : 0) + trxOrdQty;
+        const dropQty = (hasSnapDrp ? snapDrpRaw! : 0) + trxDrpQty;
+        const manQty = (hasSnapMan ? snapManRaw! : 0) + trxManQty;
+        const sapQty = sapDbQty > 0 ? sapDbQty : (hasSnapSap ? snapSapRaw! : 0);
+
+        // Rumus Terpasang = MAX(Pasang Manual, Pasang SAP)
         const totalPasangDia = Math.max(manQty, sapQty);
         const sisaKebutuhanDia = ordQty - dropQty;
+        const saldoDia = dropQty - totalPasangDia;
 
-        // Standar Excel untuk % Kedatangan:
-        // Jika sudah ada yang terpasang (totalPasangDia > 0), maka persentase kedatangan dihitung dari yang terpasang: Terpasang / Order.
-        // Jika belum ada yang terpasang, dihitung dari drop fisik: Drop / Order.
-        let pctKedatanganDia = 0;
-        if (ordQty > 0) {
-          if (totalPasangDia > 0) {
-            pctKedatanganDia = (totalPasangDia / ordQty) * 100;
-          } else {
-            pctKedatanganDia = (dropQty / ordQty) * 100;
-          }
-        } else if (dropQty > 0 || totalPasangDia > 0) {
-          pctKedatanganDia = 100;
+        // Rumus % Kedatangan
+        let pctKedatanganDia: number | string = '-';
+        if (totalPasangDia > 0) {
+          pctKedatanganDia = ordQty > 0 ? Math.round((totalPasangDia / ordQty) * 100) : '-';
+        } else if (ordQty > 0 && dropQty === 0) {
+          pctKedatanganDia = 'Belum';
+        } else if (ordQty > 0 && dropQty > 0) {
+          pctKedatanganDia = Math.round((dropQty / ordQty) * 100);
+        } else {
+          pctKedatanganDia = '-';
         }
 
-        const saldoDia = dropQty - totalPasangDia;
-        const pctPasangDia = dropQty > 0 ? (totalPasangDia / dropQty) * 100 : (totalPasangDia > 0 ? 100 : 0);
+        // Rumus % Pasang
+        let pctPasangDia: number | string = '-';
+        if (dropQty === 0 && manQty > 0) {
+          pctPasangDia = 'Check';
+        } else if (dropQty > 0) {
+          pctPasangDia = Math.round((totalPasangDia / dropQty) * 100);
+        } else {
+          pctPasangDia = '-';
+        }
 
-        // Status Diameter:
-        // 1. Jika di snapshot Excel sudah Close -> Close
-        // 2. Jika di snapshot per diameter sudah Close -> Close
-        // 3. Jika drop >= order dan saldo <= 0 dan totalPasang > 0 -> Close
-        // 4. Jika order=0 dan drop=0 -> Close
+        // Rumus Status Diameter
         const snapDiaStatus = dia === 40 ? snap?.statusD40 : dia === 60 ? snap?.statusD60 : dia === 80 ? snap?.statusD80 : snap?.statusD100;
-
         let statusDia = 'Close';
-        if (isClosedInSnapshot) {
-          statusDia = 'Close';
-        } else if (snapDiaStatus === 'Close') {
-          statusDia = 'Close';
-        } else if (ordQty > 0 || dropQty > 0 || totalPasangDia > 0) {
+        if (ordQty > 0 || dropQty > 0 || totalPasangDia > 0) {
           if (dropQty >= ordQty && saldoDia <= 0 && totalPasangDia > 0) {
             statusDia = 'Close';
           } else {
             statusDia = 'Open';
             allClosed = false;
           }
+        } else if (isClosedInSnapshot || snapDiaStatus === 'Close') {
+          statusDia = 'Close';
+        } else {
+          statusDia = '-';
         }
 
         totalOrderSemua += ordQty;
         totalDropSemua += dropQty;
 
+        const tglDrop = lastDropDate ? lastDropDate.toISOString().slice(0, 10) : (dia === 40 ? (snap?.tglDropD40 || '-') : '-');
+
         diameterDetails[key] = {
-          order: ordQty,
-          drop: dropQty,
-          tglTerakhirDrop: lastDropDate ? lastDropDate.toISOString().slice(0, 10) : '-',
-          sisaKebutuhan: sisaKebutuhanDia,
-          pctKedatangan: Math.round(pctKedatanganDia),
-          pasangManual: manQty,
-          pasangSap: sapQty,
+          order: hasSnapOrd || trxOrdQty > 0 ? ordQty : null,
+          drop: hasSnapDrp || trxDrpQty > 0 ? dropQty : null,
+          tglTerakhirDrop: tglDrop,
+          sisaKebutuhan: (hasSnapOrd || hasSnapDrp || trxOrdQty > 0 || trxDrpQty > 0) ? sisaKebutuhanDia : null,
+          pctKedatangan: pctKedatanganDia,
+          pasangManual: hasSnapMan || trxManQty > 0 ? manQty : null,
+          pasangSap: sapDbQty > 0 || hasSnapSap ? sapQty : null,
           totalPasang: totalPasangDia,
-          saldo: saldoDia,
-          pctPasang: Math.round(pctPasangDia),
+          saldo: (hasSnapDrp || hasSnapMan || hasSnapSap || trxDrpQty > 0 || totalPasangDia > 0) ? saldoDia : null,
+          pctPasang: pctPasangDia,
           status: statusDia,
         };
       }
 
       // Standar Excel: Ratio = ROUND(Order Diameter 40 / Luas Netto)
-      const d40Order = diameterDetails['d40']?.order || 0;
-      const ratioPerHa = luas > 0 ? Math.round(d40Order / luas) : (snap?.ratioPerHa ? Math.round(snap.ratioPerHa) : 0);
-      let statusAll = (
-        diameterDetails['d40']?.status === 'Close' &&
-        diameterDetails['d60']?.status === 'Close' &&
-        diameterDetails['d80']?.status === 'Close' &&
-        diameterDetails['d100']?.status === 'Close'
-      ) ? 'Close' : '-';
+      const d40Order = diameterDetails['d40']?.order;
+      const ratioPerHa = (luas > 0 && d40Order !== null && d40Order !== undefined && d40Order > 0)
+        ? Math.round(d40Order / luas)
+        : (snap?.ratioPerHa !== null && snap?.ratioPerHa !== undefined && snap.ratioPerHa > 0 ? Math.round(snap.ratioPerHa) : null);
 
-      if (isClosedInSnapshot) {
+      let statusAll = '-';
+      const diaStatuses = [diameterDetails['d40']?.status, diameterDetails['d60']?.status, diameterDetails['d80']?.status, diameterDetails['d100']?.status];
+      const activeDiaStatuses = diaStatuses.filter((s) => s && s !== '-');
+      if (isClosedInSnapshot || (activeDiaStatuses.length > 0 && activeDiaStatuses.every((s) => s === 'Close'))) {
         statusAll = 'Close';
-      } else if (snap && snap.statusAll) {
-        statusAll = snap.statusAll;
       }
 
       // Evaluasi Prioritas (Sesuai formula Excel sel K / L):
       // Jika Status All Close -> Prioritas kosong ""
-      // Jika Order Diameter 40 = 0 -> Prioritas "-"
+      // Jika Order Diameter 40 = 0 atau kosong -> Prioritas "-"
       let prioritas = '';
       if (statusAll === 'Close') {
         prioritas = '';
-      } else if (d40Order === 0) {
+      } else if (d40Order === null || d40Order === undefined || d40Order === 0) {
         prioritas = '-';
-      } else if (snap && snap.prioritas !== undefined && snap.prioritas !== '') {
+      } else if (snap && snap.prioritas !== undefined && snap.prioritas !== null && snap.prioritas !== '') {
         prioritas = snap.prioritas;
       } else {
         const isFC = statusTanaman === 'FC' || statusTanaman?.endsWith('FC');
@@ -426,35 +534,49 @@ export async function GET(request: NextRequest) {
       return a.lokasi.localeCompare(b.lokasi);
     });
 
-    // 4. Susun Tabel List Lokasi Belum Order (Wilayah, Lokasi, Akt. BK)
-    // Sesuai Arahan User:
-    // - Hanya petak belum order
-    // - Status berakhiran BK atau ST (2 huruf dari kanan pada status)
-    // - Aktivitas terakhir setelah dolomit sampai selesai tanam (stepOrder 6 s/d 20: DP1 hingga Selesai Tanam)
-    // - Menampilkan nomor urut tahapan resmi
+    // 4. Susun Tabel List Lokasi Belum Order (Prioritas dari Database LokasiBelumOrderGorongGorong)
     const listLokasiBelumOrder: any[] = [];
-    for (const m of statusLokasiList) {
-      const lok = m.lokasi.trim();
-      if (orderedLokasiSet.has(lok)) continue;
+    if (dbLokasiBelumOrder && dbLokasiBelumOrder.length > 0) {
+      for (const b of dbLokasiBelumOrder) {
+        const lokUpper = b.lokasi.trim().toUpperCase();
+        if (orderedLokasiSet.has(lokUpper)) continue;
+        const landAkt = landAktMap.get(lokUpper);
+        listLokasiBelumOrder.push({
+          wilayah: b.wilayah || '-',
+          lokasi: b.lokasi,
+          luasNetto: b.luasNetto || 0,
+          status: b.status || '-',
+          aktBk: landAkt ? landAkt.formatted : (b.aktBk || '-'),
+          stepOrder: landAkt ? landAkt.stepOrder : (b.stepOrder || 0),
+        });
+      }
+    } else {
+      for (const m of statusLokasiList) {
+        const lok = m.lokasi.trim();
+        const lokUpper = lok.toUpperCase();
+        if (isExcludedGorongGorongLocation(lok)) continue;
+        if (orderedLokasiSet.has(lokUpper)) continue;
 
-      const statusTanaman = (m.status || '').trim().toUpperCase();
-      const isBkOrSt = statusTanaman.endsWith('BK') || statusTanaman.endsWith('ST');
-      if (!isBkOrSt) continue;
+        const statusTanaman = (m.status || '').trim().toUpperCase();
+        const isBkOrSt = statusTanaman.endsWith('BK') || statusTanaman.endsWith('ST');
+        if (!isBkOrSt) continue;
 
-      const rawAkt = landAktMap.get(lok) || m.statusLengkap || '';
-      const parsed = parseLandActivity(rawAkt);
+        // Ambil Akt. BK murni dari Land saja (newest <= today)
+        const landAkt = landAktMap.get(lokUpper);
+        if (!landAkt) continue;
 
-      // Hanya lolos jika setelah dolomit (stepOrder >= 6)
-      if (parsed.stepOrder < 6) continue;
+        // Hanya lolos jika setelah dolomit (stepOrder >= 6)
+        if (landAkt.stepOrder < 6) continue;
 
-      listLokasiBelumOrder.push({
-        wilayah: m.wil || '-',
-        lokasi: lok,
-        luasNetto: m.luasNetto || m.luasAktif || 0,
-        status: m.status || '-',
-        aktBk: parsed.formatted,
-        stepOrder: parsed.stepOrder,
-      });
+        listLokasiBelumOrder.push({
+          wilayah: m.strucPlant || '-',
+          lokasi: lok,
+          luasNetto: m.luasNetto || m.luasAktif || 0,
+          status: m.status || '-',
+          aktBk: landAkt.formatted,
+          stepOrder: landAkt.stepOrder,
+        });
+      }
     }
 
     listLokasiBelumOrder.sort((a, b) => {
