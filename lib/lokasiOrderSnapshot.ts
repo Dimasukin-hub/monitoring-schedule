@@ -369,7 +369,7 @@ export function parseSnapshotFromWorkbook(wb: XLSX.WorkBook): Record<string, Lok
       const statusD100 = calcDiaStatus(ord100, drop100, pman100, psap100, statusD100Raw);
 
       let statusAll = isClosedExcel ? 'Close' : '-';
-      if (!isClosedExcel) {
+      if (!isClosedExcel && colMap.statusAll === undefined) {
         const acts = [statusD40, statusD60, statusD80, statusD100].filter((s) => s !== '-');
         if (acts.length > 0 && acts.every((s) => s === 'Close')) {
           statusAll = 'Close';
