@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { loadSnapshotFromFile, isExcludedGorongGorongLocation, isLocationWithoutWilayah } from '@/lib/lokasiOrderSnapshot';
+import { loadSnapshotFromFile, isExcludedGorongGorongLocation, isLocationWithoutWilayah, ensureMasterSapLoaded } from '@/lib/lokasiOrderSnapshot';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   try {
+    await ensureMasterSapLoaded();
     const { searchParams } = new URL(request.url);
     const wilayah = searchParams.get('wilayah');
     const diameterParam = searchParams.get('diameter');

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { loadSnapshotFromFile, saveSnapshotToFile, isExcludedGorongGorongLocation, isLocationWithoutWilayah } from '@/lib/lokasiOrderSnapshot';
+import { loadSnapshotFromFile, saveSnapshotToFile, isExcludedGorongGorongLocation, isLocationWithoutWilayah, ensureMasterSapLoaded } from '@/lib/lokasiOrderSnapshot';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -96,6 +96,7 @@ function parseLandActivity(raw: any) {
 
 export async function GET(request: NextRequest) {
   try {
+    await ensureMasterSapLoaded();
     const { searchParams } = new URL(request.url);
     const filterWilayah = searchParams.get('wilayah');
     const filterStatus = searchParams.get('status');

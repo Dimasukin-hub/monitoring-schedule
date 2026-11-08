@@ -10,7 +10,8 @@ import {
   syncLokasiOrderToDb,
   syncLokasiBelumOrderToDb,
   syncMasterDataOrderFromWorkbook,
-  syncMasterDataDropFromWorkbook
+  syncMasterDataDropFromWorkbook,
+  ensureMasterSapLoaded
 } from '@/lib/lokasiOrderSnapshot';
 
 function parseExcelDate(val: any): Date {
@@ -40,6 +41,7 @@ function cleanQty(val: any): number {
 
 export async function POST(request: NextRequest) {
   try {
+    await ensureMasterSapLoaded();
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const mode = (formData.get('mode') as string) || 'full_replace'; // 'full_replace' | 'partial' | 'merge'
@@ -228,7 +230,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (wsDataPasangSap) {
+    if (!hasRekapSheet && wsDataPasangSap) {
       // Data Pasang SAP: Lokasi di Col C, Wilayah di Col D, Tanggal di Col F, Qty D40:G, D60:H, D80:I, D100:J, Ref Lokasi di Col N
       for (let r = 5; r <= 3500; r++) {
         const cellC = wsDataPasangSap['C' + r] || wsDataPasangSap['B' + r];

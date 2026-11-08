@@ -188,11 +188,10 @@ export async function GET(request: NextRequest) {
       const listLokasiOrder: any[] = [];
       const orderedLokasiSet = new Set<string>();
 
-      // Gabungkan seluruh lokasi kandidat dari transaksi (Order/Drop/Pasang Manual), SAP, maupun Snapshot Excel
+      // Gabungkan seluruh lokasi kandidat dari Snapshot Excel (261 petak resmi) dan transaksi Order/Drop/Pasang Manual
       const allCandidateLocations = new Set<string>([
-        ...lokasiOrderMap.keys(),
-        ...lokasiSapMap.keys(),
         ...Object.keys(snapshotMap),
+        ...lokasiOrderMap.keys(),
       ]);
 
       for (const lok of allCandidateLocations) {
@@ -201,14 +200,13 @@ export async function GET(request: NextRequest) {
         const trxData = lokasiOrderMap.get(lok) || { orders: [], drops: [], manuals: [] };
         const sapRecords = lokasiSapMap.get(lok.toUpperCase()) || [];
 
-        // Masuk ke List Lokasi Order jika memiliki pesanan Order ATAU Drop ATAU Pasang Manual ATAU Pasang SAP ATAU ada di Snapshot Excel
+        // Masuk ke List Lokasi Order jika ada di Snapshot Excel (261 lokasi resmi) ATAU memiliki transaksi pesanan Order/Drop/Pasang Manual
         const hasOrder = trxData.orders.length > 0;
         const hasDrop = trxData.drops.length > 0;
         const hasManual = trxData.manuals.length > 0;
-        const hasSap = sapRecords.length > 0;
         const hasSnap = !!snap;
 
-        if (!hasOrder && !hasDrop && !hasManual && !hasSap && !hasSnap) continue;
+        if (!hasSnap && !hasOrder && !hasDrop && !hasManual) continue;
         orderedLokasiSet.add(lok);
 
         const m = masterLokMap.get(lok);
@@ -393,12 +391,7 @@ export async function GET(request: NextRequest) {
           ? Math.round(d40Order / luas)
           : (snap?.ratioPerHa !== null && snap?.ratioPerHa !== undefined && snap.ratioPerHa > 0 ? Math.round(snap.ratioPerHa) : null);
 
-        let statusAll = '-';
-        const diaStatuses = [diameterDetails['d40']?.status, diameterDetails['d60']?.status, diameterDetails['d80']?.status, diameterDetails['d100']?.status];
-        const activeDiaStatuses = diaStatuses.filter((s) => s && s !== '-');
-        if (isClosedInSnapshot || (activeDiaStatuses.length > 0 && activeDiaStatuses.every((s) => s === 'Close'))) {
-          statusAll = 'Close';
-        }
+        let statusAll = isClosedInSnapshot ? 'Close' : '-';
 
         let prioritas = '';
         if (statusAll === 'Close') {
@@ -482,13 +475,8 @@ export async function GET(request: NextRequest) {
           });
         });
       }
-      if (filterTahun && filterTahun !== 'ALL') {
-        const yList = filterTahun.split(',').map((y) => y.trim()).filter(Boolean);
-        filtered = filtered.filter((i) => {
-          const itemYear = i.tanggalOrder && i.tanggalOrder !== '-' ? i.tanggalOrder.slice(0, 4) : '2026';
-          return yList.includes(itemYear);
-        });
-      }
+      // Note: Filter tahun tidak diterapkan pada List Lokasi Order agar mempertahankan seluruh 261 petak resmi
+      // (termasuk petak Open 2025) persis sama dengan yang tampil di tabel dashboard.
       if (filterPrioritas && filterPrioritas !== 'ALL') {
         const pList = filterPrioritas.split(',').map((p) => p.trim()).filter(Boolean);
         filtered = filtered.filter((i) => pList.includes(String(i.prioritas || '').trim()));

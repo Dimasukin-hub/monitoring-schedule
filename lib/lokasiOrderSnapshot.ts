@@ -926,9 +926,9 @@ export async function syncMasterDataOrderFromWorkbook(
   let cD80 = -1;
   let cD100 = -1;
   let cLookup = -1;
-  let headerRow = 4;
+  let headerRow = -1;
 
-  for (let r = 2; r <= Math.min(6, range.e.r); r++) {
+  for (let r = range.s.r; r <= Math.min(range.s.r + 10, range.e.r); r++) {
     for (let c = range.s.c; c <= Math.min(range.e.c, 25); c++) {
       const cell = ws[XLSX.utils.encode_cell({ r, c })];
       if (!cell || cell.v === undefined || cell.v === null) continue;
@@ -948,10 +948,12 @@ export async function syncMasterDataOrderFromWorkbook(
       else if (text === '100' || text === 'diameter 100' || text === 'd100' || text === 'ø100') cD100 = c;
       else if (text.includes('lookup') || text.includes('status lookup')) cLookup = c;
     }
+    if (cLokasi !== -1) break;
   }
 
   // Fallback defaults jika header tidak terdeteksi lengkap
   if (cLokasi === -1) {
+    headerRow = 0;
     if (cKeterangan !== -1) {
       cArea = 1; cLokasi = 2; cWilayah = 3; cTanggal = 5;
       cD40 = 6; cD60 = 7; cD80 = 8; cD100 = 9; cLookup = 10;
@@ -1101,9 +1103,9 @@ export async function syncMasterDataDropFromWorkbook(
   let cD60 = -1;
   let cD80 = -1;
   let cD100 = -1;
-  let headerRow = 4;
+  let headerRow = -1;
 
-  for (let r = 2; r <= Math.min(6, range.e.r); r++) {
+  for (let r = range.s.r; r <= Math.min(range.s.r + 10, range.e.r); r++) {
     for (let c = range.s.c; c <= Math.min(range.e.c, 25); c++) {
       const cell = ws[XLSX.utils.encode_cell({ r, c })];
       if (!cell || cell.v === undefined || cell.v === null) continue;
@@ -1126,10 +1128,12 @@ export async function syncMasterDataDropFromWorkbook(
         cD100 = c;
       }
     }
+    if (cLokasi !== -1) break;
   }
 
   // Fallback defaults jika header bertingkat PG1: Lokasi di Col C (2), Tgl di Col G (6), 40 di Col I (8)
   if (cLokasi === -1) {
+    headerRow = 0;
     // Check if PG1 layout
     if (ws['C4'] || ws['C5'] || ws['C7']) {
       cLokasi = 2; cWilayah = 3; cTanggal = 6; cD40 = 8; cD60 = 9; cD80 = 10; cD100 = 11;
@@ -1239,6 +1243,53 @@ export async function syncMasterDataDropFromWorkbook(
   }
 
   return dataDropRows.length;
+}
+
+export async function ensureMasterSapLoaded(): Promise<number> {
+  try {
+    const count = await prisma.masterSapGorongGorong.count();
+    if (count > 0) return count;
+
+    console.log('MasterSapGorongGorong is empty. Auto-restoring from data/master-sap-gorong-gorong.json...');
+    const jsonPath = path.join(process.cwd(), 'data', 'master-sap-gorong-gorong.json');
+    if (fs.existsSync(jsonPath)) {
+      const content = fs.readFileSync(jsonPath, 'utf8');
+      const records = JSON.parse(content);
+      const toInsert = records.map((r: any) => ({
+        lokasi: r.lokasi,
+        wilayahSap: r.wilayahSap,
+        plantCostCenter: r.plantCostCenter,
+        statusTanaman: r.statusTanaman,
+        spkId: r.spkId,
+        pasDocument: r.pasDocument,
+        tanggalRealisasi: new Date(r.tanggalRealisasi),
+        deskripsiKegiatan: r.deskripsiKegiatan,
+        deskripsiBahan: r.deskripsiBahan,
+        jenisData: r.jenisData,
+        kodeBahan: r.kodeBahan,
+        qty: r.qty,
+        hasilEfektif: r.hasilEfektif,
+        totalBiaya: r.totalBiaya,
+        penanggungJawab: r.penanggungJawab,
+        waktuPelaksanaan: r.waktuPelaksanaan,
+        air: r.air,
+        jumlahAir: r.jumlahAir,
+        referensiLokasi: r.referensiLokasi,
+        diameter: r.diameter,
+        fileName: r.fileName,
+        uploadedBy: r.uploadedBy || 'auto_seed',
+      }));
+
+      for (let i = 0; i < toInsert.length; i += 200) {
+        await prisma.masterSapGorongGorong.createMany({ data: toInsert.slice(i, i + 200) });
+      }
+      console.log(`Auto-restored ${toInsert.length} MasterSapGorongGorong records!`);
+      return toInsert.length;
+    }
+  } catch (e: any) {
+    console.error('Error in ensureMasterSapLoaded:', e);
+  }
+  return 0;
 }
 
 

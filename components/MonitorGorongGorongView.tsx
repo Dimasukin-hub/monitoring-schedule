@@ -1020,7 +1020,6 @@ export default function MonitorGorongGorongView() {
       if (selectedWilayah.length > 0) params.set('wilayah', selectedWilayah.join(','));
       if (selectedStatusOpenClose.length > 0) params.set('status', selectedStatusOpenClose.join(','));
       if (selectedStatusTanaman.length > 0) params.set('statusTanaman', selectedStatusTanaman.join(','));
-      if (selectedYears.length > 0) params.set('tahun', selectedYears.join(','));
       if (selectedPrioritas.length > 0) params.set('prioritas', selectedPrioritas.join(','));
       if (selectedDiameterFilter && selectedDiameterFilter !== 'ALL') params.set('diameter', String(selectedDiameterFilter));
       
