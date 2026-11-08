@@ -217,21 +217,21 @@ export async function GET(request: NextRequest) {
 
         const m = masterLokMap.get(lok);
         const dsm = dsmMap.get(lok);
-        const rawAktBk = landAktMap.get(lok) || (m ? m.statusLengkap : null) || snap?.aktBk || '-';
+        const rawAktBk = snap?.aktBk || landAktMap.get(lok) || (m ? m.statusLengkap : null) || '-';
         const aktBk = parseLandActivity(rawAktBk).formatted;
-        let wilayah = m?.strucPlant || snap?.wilayah || trxData.orders[0]?.wilayah || trxData.drops[0]?.wilayah || trxData.manuals[0]?.wilayah || '-';
-        if (isLocationWithoutWilayah(lok)) {
-          wilayah = '-';
-        } else if (wilayah === 'Timur' || wilayah === '-' || !wilayah.startsWith('AW')) {
-          if (m?.strucPlant && m.strucPlant.startsWith('AW')) {
-            wilayah = m.strucPlant;
-          } else if (snap?.wilayah && snap.wilayah.startsWith('AW')) {
+        let wilayah = isLocationWithoutWilayah(lok)
+          ? '-'
+          : (snap?.wilayah || m?.strucPlant || trxData.orders[0]?.wilayah || trxData.drops[0]?.wilayah || trxData.manuals[0]?.wilayah || '-');
+        if (wilayah === 'Timur' || wilayah === '-' || !wilayah.startsWith('AW')) {
+          if (snap?.wilayah && snap.wilayah.startsWith('AW')) {
             wilayah = snap.wilayah;
+          } else if (m?.strucPlant && m.strucPlant.startsWith('AW')) {
+            wilayah = m.strucPlant;
           }
         }
-        const luas = m?.luasNetto || m?.luasAktif || m?.luasBruto || snap?.luas || 0;
-        const statusTanaman = m?.status || snap?.statusTanaman || '-';
-        const umurBulan = m?.umurBulan ?? (m?.umurRawat ?? (snap?.umurBulan || 0));
+        const luas = snap?.luas != null ? snap.luas : (m?.luasNetto || m?.luasAktif || m?.luasBruto || 0);
+        const statusTanaman = snap?.statusTanaman || m?.status || '-';
+        const umurBulan = snap?.umurBulan != null ? snap.umurBulan : (m?.umurBulan ?? (m?.umurRawat ?? 0));
 
         let minOrderDate: Date | null = null;
         for (const ord of trxData.orders) {
@@ -330,7 +330,7 @@ export async function GET(request: NextRequest) {
           const ordQty = (hasSnapOrd ? snapOrdRaw! : 0) + trxOrdQty;
           const dropQty = (hasSnapDrp ? snapDrpRaw! : 0) + trxDrpQty;
           const manQty = (hasSnapMan ? snapManRaw! : 0) + trxManQty;
-          const sapQty = sapDbQty > 0 ? sapDbQty : (hasSnapSap ? snapSapRaw! : 0);
+          const sapQty = (hasSnapSap && snapSapRaw !== null && snapSapRaw !== undefined) ? snapSapRaw : sapDbQty;
 
           const totalPasangDia = Math.max(manQty, sapQty);
           const sisaKebutuhanDia = ordQty - dropQty;
@@ -357,19 +357,19 @@ export async function GET(request: NextRequest) {
           }
 
           const snapDiaStatus = dia === 40 ? snap?.statusD40 : dia === 60 ? snap?.statusD60 : dia === 80 ? snap?.statusD80 : snap?.statusD100;
-
-          let statusDia = 'Close';
-          if (ordQty > 0 || dropQty > 0 || totalPasangDia > 0) {
+          let statusDia = snapDiaStatus ? snapDiaStatus.trim() : '-';
+          if (isClosedInSnapshot || statusDia.toLowerCase() === 'close') {
+            statusDia = 'Close';
+          } else if (!snapDiaStatus && (ordQty > 0 || dropQty > 0 || totalPasangDia > 0)) {
             if (dropQty >= ordQty && saldoDia <= 0 && totalPasangDia > 0) {
               statusDia = 'Close';
             } else {
               statusDia = 'Open';
               allClosed = false;
             }
-          } else if (isClosedInSnapshot || snapDiaStatus === 'Close') {
-            statusDia = 'Close';
-          } else {
-            statusDia = '-';
+          }
+          if (statusDia === '-' || statusDia.toLowerCase() === 'open') {
+            allClosed = false;
           }
 
           totalOrderSemua += ordQty;
@@ -439,8 +439,8 @@ export async function GET(request: NextRequest) {
           tanggalOrder: tanggalOrderStr,
           tahun: rowYear,
           aktBk,
-          dsmBk: dsm?.dsmbkPlot || snap?.dsmBk || '-',
-          dsmSt: dsm?.dsmPlot || snap?.dsmSt || '-',
+          dsmBk: snap?.dsmBk || dsm?.dsmbkPlot || '-',
+          dsmSt: snap?.dsmSt || dsm?.dsmPlot || '-',
           prioritas,
           statusAll,
           ratioPerHa,

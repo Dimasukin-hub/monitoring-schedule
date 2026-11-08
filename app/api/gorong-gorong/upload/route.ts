@@ -9,6 +9,7 @@ import {
   isLocationWithoutWilayah,
   syncLokasiOrderToDb,
   syncLokasiBelumOrderToDb,
+  syncLokasiBelumOrderFromWorkbook,
   syncMasterDataOrderFromWorkbook,
   syncMasterDataDropFromWorkbook,
   ensureMasterSapLoaded
@@ -80,14 +81,41 @@ export async function POST(request: NextRequest) {
       }
       // Simpan langsung ke database permanen PostgreSQL
       snapshotLocationCount = await syncLokasiOrderToDb(parsedSnapshot, isPartial ? 'partial' : 'full_replace');
-      belumOrderLocationCount = await syncLokasiBelumOrderToDb();
+      belumOrderLocationCount = await syncLokasiBelumOrderFromWorkbook(wb, isPartial ? 'partial' : 'full_replace');
+
+      // Sinkronisasi MasterStatusLokasi agar luas, status, wilayah di DB PostgreSQL langsung diperbarui
+      for (const item of Object.values(parsedSnapshot)) {
+        const lok = item.lokasi.trim().toUpperCase();
+        if (isExcludedGorongGorongLocation(lok)) continue;
+        await prisma.masterStatusLokasi.upsert({
+          where: { lokasi: lok },
+          update: {
+            strucPlant: item.wilayah || undefined,
+            status: item.statusTanaman || undefined,
+            luasNetto: item.luas != null ? item.luas : undefined,
+            umurBulan: item.umurBulan != null ? item.umurBulan : undefined,
+            umurRawat: item.umurBulan != null ? item.umurBulan : undefined,
+          },
+          create: {
+            lokasi: lok,
+            strucPlant: item.wilayah || null,
+            status: item.statusTanaman || null,
+            luasNetto: item.luas != null ? item.luas : null,
+            umurBulan: item.umurBulan != null ? item.umurBulan : null,
+            umurRawat: item.umurBulan != null ? item.umurBulan : null,
+          },
+        });
+      }
+    } else {
+      // Jika berkas tidak memuat sheet rekap Lokasi Order, coba cek apakah memuat sheet Lokasi Belum Order
+      belumOrderLocationCount = await syncLokasiBelumOrderFromWorkbook(wb, isPartial ? 'partial' : 'full_replace');
     }
 
     // Sinkronisasi Master Data Order (Lookup Otomatis) jika sheet Data Order ada
     let masterDataOrderCount = 0;
     masterDataOrderCount = await syncMasterDataOrderFromWorkbook(wb, isPartial ? 'partial' : 'full_replace');
 
-    // Sinkronisasi Master Data Drop (Lookup Otomatis & Filter 2025/2026 Tanpa 'x') jika sheet Data Drop ada
+    // Sinkronisasi Master Data Drop (Lookup Otomatis Tanpa 'x') jika sheet Data Drop ada
     let masterDataDropCount = 0;
     masterDataDropCount = await syncMasterDataDropFromWorkbook(wb, isPartial ? 'partial' : 'full_replace');
 
@@ -481,11 +509,11 @@ export async function POST(request: NextRequest) {
         totalOrderPcs: finalTotalPcs,
         totalPcs: finalTotalPcs,
         totalTransactions: newTransactions.length > 0 ? newTransactions.length : finalLocationsCount,
-        orderCount: orderCount > 0 ? orderCount : finalLocationsCount,
-        dropCount,
+        orderCount: masterDataOrderCount > 0 ? masterDataOrderCount : (orderCount > 0 ? orderCount : finalLocationsCount),
+        dropCount: masterDataDropCount > 0 ? masterDataDropCount : dropCount,
         pasangManCount,
         sapRecordCount: newSapRecords.length > 0 ? newSapRecords.length : currentSapCount,
-        statusLokasiUpsertedCount,
+        statusLokasiUpsertedCount: snapshotKeys.length > 0 ? snapshotKeys.length : statusLokasiUpsertedCount,
       },
     });
   } catch (error: any) {

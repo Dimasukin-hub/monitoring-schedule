@@ -258,21 +258,21 @@ export async function GET(request: NextRequest) {
       const dsm = dsmMap.get(lok);
       // Kolom Akt. BK diambil dari tabel database Land saja (newest <= today, tidak dari MasterStatusLokasi)
       const landAkt = landAktMap.get(lok.toUpperCase());
-      const aktBk = landAkt ? landAkt.formatted : (snap?.aktBk || '-');
+      const aktBk = snap?.aktBk || (landAkt ? landAkt.formatted : (m?.statusLengkap || '-'));
 
-      let wilayah = m?.strucPlant || snap?.wilayah || trxData.orders[0]?.wilayah || trxData.drops[0]?.wilayah || trxData.manuals[0]?.wilayah || '-';
-      if (isLocationWithoutWilayah(lok)) {
-        wilayah = '-';
-      } else if (wilayah === 'Timur' || wilayah === '-' || !wilayah.startsWith('AW')) {
-        if (m?.strucPlant && m.strucPlant.startsWith('AW')) {
-          wilayah = m.strucPlant;
-        } else if (snap?.wilayah && snap.wilayah.startsWith('AW')) {
+      let wilayah = isLocationWithoutWilayah(lok)
+        ? '-'
+        : (snap?.wilayah || m?.strucPlant || trxData.orders[0]?.wilayah || trxData.drops[0]?.wilayah || trxData.manuals[0]?.wilayah || '-');
+      if (wilayah === 'Timur' || wilayah === '-' || !wilayah.startsWith('AW')) {
+        if (snap?.wilayah && snap.wilayah.startsWith('AW')) {
           wilayah = snap.wilayah;
+        } else if (m?.strucPlant && m.strucPlant.startsWith('AW')) {
+          wilayah = m.strucPlant;
         }
       }
-      const luas = m?.luasNetto || m?.luasAktif || m?.luasBruto || snap?.luas || 0;
-      const statusTanaman = m?.status || snap?.statusTanaman || '-';
-      const umurBulan = m?.umurBulan ?? (m?.umurRawat ?? (snap?.umurBulan || 0));
+      const luas = snap?.luas != null ? snap.luas : (m?.luasNetto || m?.luasAktif || m?.luasBruto || 0);
+      const statusTanaman = snap?.statusTanaman || m?.status || '-';
+      const umurBulan = snap?.umurBulan != null ? snap.umurBulan : (m?.umurBulan ?? (m?.umurRawat ?? 0));
 
       // Cari tanggal order paling awal
       let minOrderDate: Date | null = null;
@@ -377,7 +377,7 @@ export async function GET(request: NextRequest) {
         const ordQty = (hasSnapOrd ? snapOrdRaw! : 0) + trxOrdQty;
         const dropQty = (hasSnapDrp ? snapDrpRaw! : 0) + trxDrpQty;
         const manQty = (hasSnapMan ? snapManRaw! : 0) + trxManQty;
-        const sapQty = Math.max(sapDbQty, (hasSnapSap ? snapSapRaw! : 0));
+        const sapQty = (hasSnapSap && snapSapRaw !== null && snapSapRaw !== undefined) ? snapSapRaw : sapDbQty;
 
         // Rumus Terpasang = MAX(Pasang Manual, Pasang SAP)
         const totalPasangDia = Math.max(manQty, sapQty);
@@ -492,8 +492,8 @@ export async function GET(request: NextRequest) {
         tanggalOrder: tanggalOrderStr,
         tahun: rowYear,
         aktBk,
-        dsmBk: dsm?.dsmbkPlot || snap?.dsmBk || '-',
-        dsmSt: dsm?.dsmPlot || snap?.dsmSt || '-',
+        dsmBk: snap?.dsmBk || dsm?.dsmbkPlot || '-',
+        dsmSt: snap?.dsmSt || dsm?.dsmPlot || '-',
         prioritas,
         statusAll,
         ratioPerHa,

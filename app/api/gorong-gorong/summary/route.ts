@@ -401,6 +401,9 @@ export async function GET(request: NextRequest) {
       const rowYear = row.tanggalOrder ? new Date(row.tanggalOrder).getFullYear() : 2026;
       const is2025or2026 = rowYear === 2025 || rowYear === 2026;
 
+      const isPetakClosed = row.isClosedExcel === true || (row.statusAll || '').trim().toLowerCase() === 'close';
+      if (isPetakClosed) continue;
+
       const tData = trxByLok[lok] || { orders: [], drops: [], manuals: [] };
 
       const diaList = [
@@ -611,6 +614,9 @@ export async function GET(request: NextRequest) {
         const is2025or2026 = rowYear === 2025 || rowYear === 2026;
         if (!is2025or2026) continue;
 
+        const isPetakClosed = row.isClosedExcel === true || (row.statusAll || '').trim().toLowerCase() === 'close';
+        if (isPetakClosed) continue;
+
         const tData = trxByLok[lok] || { orders: [], drops: [], manuals: [] };
 
         const diaList = [
@@ -719,6 +725,9 @@ export async function GET(request: NextRequest) {
           const rowWil = (row.wilayah || '').toUpperCase();
           if (!wList.some((w) => rowWil.includes(w))) continue;
         }
+
+        const isPetakClosed = row.isClosedExcel === true || (row.statusAll || '').trim().toLowerCase() === 'close';
+        if (isPetakClosed) continue;
 
         const tData = trxByLok[lok] || { orders: [], drops: [], manuals: [] };
 

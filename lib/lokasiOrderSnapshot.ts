@@ -883,6 +883,131 @@ export async function syncLokasiBelumOrderToDb(): Promise<number> {
   return belumOrderRecords.length;
 }
 
+export async function syncLokasiBelumOrderFromWorkbook(
+  wb: XLSX.WorkBook,
+  mode: 'full_replace' | 'partial' = 'full_replace'
+): Promise<number> {
+  const sheetNames = wb.SheetNames || [];
+  const match = sheetNames.find((name) =>
+    ['lokasi belum order', 'belum order', 'list lokasi belum order'].some((p) =>
+      name.trim().toLowerCase().includes(p)
+    )
+  );
+
+  if (!match) {
+    return await syncLokasiBelumOrderToDb();
+  }
+
+  const ws = wb.Sheets[match];
+  if (!ws || !ws['!ref']) {
+    return await syncLokasiBelumOrderToDb();
+  }
+
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  let cWilayah = -1;
+  let cLokasi = -1;
+  let cLuasNetto = -1;
+  let cStatus = -1;
+  let cAktBk = -1;
+  let headerRow = -1;
+
+  for (let r = range.s.r; r <= Math.min(range.s.r + 5, range.e.r); r++) {
+    for (let c = range.s.c; c <= Math.min(range.e.c, 15); c++) {
+      const cell = ws[XLSX.utils.encode_cell({ r, c })];
+      if (!cell || cell.v == null) continue;
+      const text = String(cell.v).toLowerCase().trim();
+      if (text === 'lokasi' || text === 'petak') {
+        cLokasi = c;
+        headerRow = r;
+      } else if (text === 'wilayah' || text === 'wil') {
+        cWilayah = c;
+      } else if (text.includes('luas')) {
+        cLuasNetto = c;
+      } else if (text === 'status' || text.includes('tanaman')) {
+        cStatus = c;
+      } else if (text.includes('akt') || text.includes('aktivitas')) {
+        cAktBk = c;
+      }
+    }
+    if (cLokasi !== -1) break;
+  }
+
+  if (cLokasi === -1) {
+    return await syncLokasiBelumOrderToDb();
+  }
+
+  const getCellVal = (r: number, col: number) => {
+    if (col < 0) return null;
+    const cell = ws[XLSX.utils.encode_cell({ r, c: col })];
+    return cell && cell.v !== undefined && cell.v !== null ? cell.v : null;
+  };
+
+  const belumOrderRecords: any[] = [];
+  const seenLokasi = new Set<string>();
+
+  for (let r = headerRow + 1; r <= range.e.r; r++) {
+    const rawLok = getCellVal(r, cLokasi);
+    if (!rawLok) continue;
+    const lokStr = String(rawLok).trim().toUpperCase();
+    if (
+      !lokStr ||
+      lokStr === 'LOKASI' ||
+      lokStr === 'TOTAL' ||
+      lokStr === 'GRAND TOTAL' ||
+      lokStr.startsWith('TOTAL') ||
+      isExcludedGorongGorongLocation(lokStr)
+    ) {
+      continue;
+    }
+    if (seenLokasi.has(lokStr)) continue;
+    seenLokasi.add(lokStr);
+
+    const rawWil = getCellVal(r, cWilayah);
+    const wilayah = rawWil ? String(rawWil).trim().toUpperCase() : '-';
+
+    const rawLuas = getCellVal(r, cLuasNetto);
+    const luasNetto = Number(rawLuas) || 0;
+
+    const rawStatus = getCellVal(r, cStatus);
+    const status = rawStatus ? String(rawStatus).trim().toUpperCase() : '-';
+
+    const rawAkt = getCellVal(r, cAktBk);
+    const aktBkStr = rawAkt ? String(rawAkt).trim() : '-';
+    const parsedAkt = parseLandActivity(aktBkStr);
+
+    belumOrderRecords.push({
+      wilayah,
+      lokasi: lokStr,
+      luasNetto,
+      status,
+      aktBk: parsedAkt.formatted !== '-' ? parsedAkt.formatted : aktBkStr,
+      stepOrder: parsedAkt.stepOrder || 6,
+    });
+  }
+
+  if (belumOrderRecords.length === 0) {
+    return await syncLokasiBelumOrderToDb();
+  }
+
+  if (mode === 'full_replace') {
+    await prisma.lokasiBelumOrderGorongGorong.deleteMany({});
+    for (let i = 0; i < belumOrderRecords.length; i += 200) {
+      const chunk = belumOrderRecords.slice(i, i + 200);
+      await prisma.lokasiBelumOrderGorongGorong.createMany({ data: chunk });
+    }
+  } else {
+    for (const b of belumOrderRecords) {
+      await prisma.lokasiBelumOrderGorongGorong.upsert({
+        where: { lokasi: b.lokasi },
+        update: b,
+        create: b,
+      });
+    }
+  }
+
+  return belumOrderRecords.length;
+}
+
 export async function syncMasterDataOrderFromWorkbook(
   wb: XLSX.WorkBook,
   mode: 'full_replace' | 'partial' = 'full_replace'
@@ -1197,10 +1322,6 @@ export async function syncMasterDataDropFromWorkbook(
     }
 
     if (!tanggal) continue;
-
-    const yr = tanggal.getFullYear();
-    // Hanya tahun 2025 dan 2026
-    if (yr !== 2025 && yr !== 2026) continue;
 
     const d40 = Number(getCellVal(r, cD40)) || 0;
     const d60 = Number(getCellVal(r, cD60)) || 0;
