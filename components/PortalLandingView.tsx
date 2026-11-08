@@ -21,6 +21,7 @@ import {
   Clock,
   X,
   AlertCircle,
+  LayoutGrid,
 } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAuth } from '@/components/AuthProvider';
@@ -72,7 +73,17 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
           </div>
 
           {/* Right Controls: Theme Toggle & User Info */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <a
+              href="https://estatepg1.online"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/90 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-bold transition-all shadow-2xs hover:shadow-xs cursor-pointer shrink-0"
+              title="Kembali ke Halaman Utama estatepg1.online"
+              aria-label="Kembali ke Halaman Utama estatepg1.online"
+            >
+              <LayoutGrid className="w-3.5 h-3.5 text-[#00873D]" />
+              <span>Portal Utama</span>
+            </a>
+
             <button
               type="button"
               onClick={toggleTheme}

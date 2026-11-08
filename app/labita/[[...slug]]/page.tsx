@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   ArrowLeft,
   Loader2,
+  LayoutGrid,
 } from 'lucide-react';
 import Header from '@/components/Header';
 import KpiCards from '@/components/KpiCards';
@@ -272,13 +273,23 @@ export default function LabitaDashboardPage() {
             </div>
           </div>
 
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Pilih Portal Lain</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <a
+              href="https://estatepg1.online"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+              title="Kembali ke Halaman Utama estatepg1.online"
+            >
+              <LayoutGrid className="w-3.5 h-3.5 text-[#00873D]" />
+              <span>Portal Utama</span>
+            </a>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Pilih Portal Lain</span>
+            </Link>
+          </div>
         </header>
 
         {/* Centered Under Development Hero */}

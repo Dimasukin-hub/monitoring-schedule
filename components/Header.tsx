@@ -417,23 +417,16 @@ export default function Header({
 
         {/* Sisi Kanan: Tombol Portal Utama & Profil User */}
         <div className="flex items-center gap-2.5 shrink-0">
-          {/* Tombol Portal Utama: Kembali ke Halaman Portal SIMESTA */}
-          <button
-            type="button"
-            onClick={() => {
-              if (onSwitchPortal) {
-                onSwitchPortal('landing');
-              } else {
-                window.location.href = '/';
-              }
-            }}
+          {/* Tombol Portal Utama: Mengarah ke Halaman Utama estatepg1.online */}
+          <a
+            href="https://estatepg1.online"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-bold transition-all shadow-2xs hover:shadow-xs cursor-pointer shrink-0"
-            title="Kembali ke Halaman Portal Utama SIMESTA"
-            aria-label="Kembali ke Portal Utama"
+            title="Kembali ke Halaman Utama estatepg1.online"
+            aria-label="Kembali ke Halaman Utama estatepg1.online"
           >
             <LayoutGrid className="w-3.5 h-3.5 text-[#00873D]" />
             <span>Portal Utama</span>
-          </button>
+          </a>
 
           {user ? (
             <div className="relative flex items-center gap-2" ref={profileRef}>
