@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     const searchQuery = searchParams.get('search')?.trim().toUpperCase();
 
     // 1. Ambil data master pendukung dan database tabel lokasi order & belum order
-    const [statusLokasiList, waterloggingList, allLands, allTrx, allSap, dbLokasiOrder, dbLokasiBelumOrder] = await Promise.all([
+    const [statusLokasiList, waterloggingList, allLands, allTrx, allSap, dbLokasiOrder, dbLokasiBelumOrder, dbMasterOrder, dbMasterDrop] = await Promise.all([
       prisma.masterStatusLokasi.findMany({}),
       prisma.masterWaterlogging.findMany({}),
       prisma.land.findMany({
@@ -103,6 +103,12 @@ export async function GET(request: NextRequest) {
       }),
       prisma.lokasiOrderGorongGorong.findMany({}),
       prisma.lokasiBelumOrderGorongGorong.findMany({}),
+      prisma.masterDataOrderGorongGorong.findMany({
+        orderBy: { id: 'asc' },
+      }),
+      prisma.masterDataDropGorongGorong.findMany({
+        orderBy: { id: 'asc' },
+      }),
     ]);
 
     const masterLokMap = new Map<string, any>();
@@ -659,6 +665,152 @@ export async function GET(request: NextRequest) {
         });
         column.width = Math.min(Math.max(maxLen + 3, 9), 22);
       });
+
+      // SHEET 2: Data Order (Master Transaksi Pesanan Order - 246 baris)
+      const wsDataOrder = workbook.addWorksheet('Data Order', {
+        views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }],
+      });
+      const orderColumns = [
+        { header: 'Area', key: 'area', width: 12 },
+        { header: 'Lokasi', key: 'lokasi', width: 14 },
+        { header: 'Wilayah', key: 'wilayah', width: 12 },
+        { header: 'Tanggal', key: 'tanggal', width: 14 },
+        { header: 'Diameter 40', key: 'qtyD40', width: 14 },
+        { header: 'Diameter 60', key: 'qtyD60', width: 14 },
+        { header: 'Diameter 80', key: 'qtyD80', width: 14 },
+        { header: 'Diameter 100', key: 'qtyD100', width: 14 },
+        { header: 'Lookup Status', key: 'lookupStatus', width: 16 },
+      ];
+      wsDataOrder.columns = orderColumns;
+      const orderHeaderRow = wsDataOrder.getRow(1);
+      orderHeaderRow.height = 26;
+      orderHeaderRow.eachCell((cell) => {
+        cell.fill = lightBlueFill;
+        cell.font = { bold: true, color: { argb: 'FF1F4E79' }, size: 10, name: 'Calibri' };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.border = headerBorder;
+      });
+
+      dbMasterOrder.forEach((ord, idx) => {
+        const row = wsDataOrder.addRow({
+          area: ord.area || 'Timur',
+          lokasi: ord.lokasi,
+          wilayah: ord.wilayah || '-',
+          tanggal: ord.tanggal ? (ord.tanggal instanceof Date ? ord.tanggal.toISOString().slice(0, 10) : String(ord.tanggal).slice(0, 10)) : '-',
+          diameter40: ord.diameter40 || 0,
+          diameter60: ord.diameter60 || 0,
+          diameter80: ord.diameter80 || 0,
+          diameter100: ord.diameter100 || 0,
+          lookupStatus: ord.lookupStatus || 'A. GOOD',
+        });
+        row.height = 20;
+        const isOdd = idx % 2 === 1;
+        row.eachCell((cell) => {
+          cell.font = { size: 9.5, name: 'Calibri' };
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          cell.border = cellBorder;
+          if (isOdd) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+        });
+      });
+      wsDataOrder.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: orderColumns.length } };
+
+      // SHEET 3: Data Drop (Master Transaksi Drop Pengiriman - 356 baris)
+      const wsDataDrop = workbook.addWorksheet('Data Drop', {
+        views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }],
+      });
+      const dropColumns = [
+        { header: 'Lokasi', key: 'lokasi', width: 14 },
+        { header: 'Wilayah', key: 'wilayah', width: 12 },
+        { header: 'Tanggal', key: 'tanggal', width: 14 },
+        { header: 'Diameter 40', key: 'diameter40', width: 14 },
+        { header: 'Diameter 60', key: 'diameter60', width: 14 },
+        { header: 'Diameter 80', key: 'diameter80', width: 14 },
+        { header: 'Diameter 100', key: 'diameter100', width: 14 },
+      ];
+      wsDataDrop.columns = dropColumns;
+      const dropHeaderRow = wsDataDrop.getRow(1);
+      dropHeaderRow.height = 26;
+      dropHeaderRow.eachCell((cell) => {
+        cell.fill = lightBlueFill;
+        cell.font = { bold: true, color: { argb: 'FF1F4E79' }, size: 10, name: 'Calibri' };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.border = headerBorder;
+      });
+
+      dbMasterDrop.forEach((drp, idx) => {
+        const row = wsDataDrop.addRow({
+          lokasi: drp.lokasi,
+          wilayah: drp.wilayah || '-',
+          tanggal: drp.tanggal ? (drp.tanggal instanceof Date ? drp.tanggal.toISOString().slice(0, 10) : String(drp.tanggal).slice(0, 10)) : '-',
+          diameter40: drp.diameter40 || 0,
+          diameter60: drp.diameter60 || 0,
+          diameter80: drp.diameter80 || 0,
+          diameter100: drp.diameter100 || 0,
+        });
+        row.height = 20;
+        const isOdd = idx % 2 === 1;
+        row.eachCell((cell) => {
+          cell.font = { size: 9.5, name: 'Calibri' };
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          cell.border = cellBorder;
+          if (isOdd) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+        });
+      });
+      wsDataDrop.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: dropColumns.length } };
+
+      // SHEET 4: List Lokasi Belum Order (62 petak)
+      const wsBelumOrder = workbook.addWorksheet('Lokasi Belum Order', {
+        views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }],
+      });
+      const belumColumns = [
+        { header: 'No', key: 'no', width: 6 },
+        { header: 'Wilayah', key: 'wilayah', width: 12 },
+        { header: 'Lokasi', key: 'lokasi', width: 14 },
+        { header: 'Luas Netto (Ha)', key: 'luasNetto', width: 16 },
+        { header: 'Status Tanaman', key: 'status', width: 16 },
+        { header: 'Aktivitas Terakhir (Akt. BK)', key: 'aktBk', width: 30 },
+      ];
+      wsBelumOrder.columns = belumColumns;
+      const belumHeaderRow = wsBelumOrder.getRow(1);
+      belumHeaderRow.height = 26;
+      belumHeaderRow.eachCell((cell) => {
+        cell.fill = lightBlueFill;
+        cell.font = { bold: true, color: { argb: 'FF1F4E79' }, size: 10, name: 'Calibri' };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.border = headerBorder;
+      });
+
+      const listBelumOrder: any[] = [];
+      if (dbLokasiBelumOrder && dbLokasiBelumOrder.length > 0) {
+        for (const b of dbLokasiBelumOrder) {
+          listBelumOrder.push({
+            wilayah: b.wilayah || '-',
+            lokasi: b.lokasi,
+            luasNetto: b.luasNetto || 0,
+            status: b.status || '-',
+            aktBk: b.aktBk || '-',
+          });
+        }
+      }
+      listBelumOrder.forEach((item, idx) => {
+        const row = wsBelumOrder.addRow({
+          no: idx + 1,
+          wilayah: item.wilayah,
+          lokasi: item.lokasi,
+          luasNetto: item.luasNetto ? parseFloat(item.luasNetto.toFixed(2)) : 0,
+          status: item.status,
+          aktBk: item.aktBk,
+        });
+        row.height = 20;
+        const isOdd = idx % 2 === 1;
+        row.eachCell((cell) => {
+          cell.font = { size: 9.5, name: 'Calibri' };
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          cell.border = cellBorder;
+          if (isOdd) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+        });
+      });
+      wsBelumOrder.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: belumColumns.length } };
     } else {
       // PROSES TABEL LIST LOKASI BELUM ORDER (Prioritas dari Database LokasiBelumOrderGorongGorong)
       const listLokasiBelumOrder: any[] = [];

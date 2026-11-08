@@ -1243,9 +1243,9 @@ export default function MonitorGorongGorongView() {
           <div className="inline-flex items-center gap-2 shrink-0 flex-nowrap">
             <a
               href="/api/gorong-gorong/template"
-              download="Template_Upload_Monitor_Gorong_Gorong.xlsx"
+              download="Template_Upload_Monitor_Gorong_Gorong_Aktual.xlsx"
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold transition-all shadow-2xs hover:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
-              title="Unduh template Excel resmi (Sheet Lokasi Order & Master Data Order 9 kolom)"
+              title="Unduh template Excel resmi lengkap dengan seluruh data aktual (Sheet Lokasi Order 261 baris, Data Order 246 baris, Data Drop 356 baris)"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-[#00873D]" />
               <span>Template Excel</span>
@@ -2831,13 +2831,13 @@ export default function MonitorGorongGorongView() {
                     Belum memiliki template Excel?
                   </p>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Unduh template resmi (Sheet Lokasi Order & Master Data Order 9 kolom)
+                    Unduh template resmi lengkap data aktual (Lokasi Order, Data Order, Data Drop)
                   </p>
                 </div>
               </div>
               <a
                 href="/api/gorong-gorong/template"
-                download="Template_Upload_Monitor_Gorong_Gorong.xlsx"
+                download="Template_Upload_Monitor_Gorong_Gorong_Aktual.xlsx"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#00873D] hover:bg-[#006e31] text-white text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
