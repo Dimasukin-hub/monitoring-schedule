@@ -99,6 +99,13 @@ function cleanStrOrNull(val: any): string | null {
   return s;
 }
 
+function cleanStrPreserveDash(val: any): string | null {
+  if (val === null || val === undefined) return null;
+  const s = String(val).trim();
+  if (s === '' || s.startsWith('#') || s === '#N/A' || s === '#VALUE!' || s === '#REF!') return null;
+  return s;
+}
+
 function cleanNum(val: any): number {
   if (val === null || val === undefined) return 0;
   const n = Number(val);
@@ -321,29 +328,30 @@ export function parseSnapshotFromWorkbook(wb: XLSX.WorkBook): Record<string, Lok
       const tglDrop40 = parseExcelDate(getVal(colMap.tglDropD40));
       const pman40 = cleanNumOrNull(getVal(colMap.pmanD40));
       const psap40 = cleanNumOrNull(getVal(colMap.psapD40));
-      const statusD40Raw = cleanStrOrNull(getVal(colMap.statusD40));
+      const statusD40Raw = cleanStrPreserveDash(getVal(colMap.statusD40));
 
       const ord60 = cleanNumOrNull(getVal(colMap.orderD60));
       const drop60 = cleanNumOrNull(getVal(colMap.dropD60));
       const psap60 = cleanNumOrNull(getVal(colMap.psapD60));
       const pman60 = cleanNumOrNull(getVal(colMap.pmanD60));
-      const statusD60Raw = cleanStrOrNull(getVal(colMap.statusD60));
+      const statusD60Raw = cleanStrPreserveDash(getVal(colMap.statusD60));
 
       const ord80 = cleanNumOrNull(getVal(colMap.orderD80));
       const drop80 = cleanNumOrNull(getVal(colMap.dropD80));
       const psap80 = cleanNumOrNull(getVal(colMap.psapD80));
       const pman80 = cleanNumOrNull(getVal(colMap.pmanD80));
-      const statusD80Raw = cleanStrOrNull(getVal(colMap.statusD80));
+      const statusD80Raw = cleanStrPreserveDash(getVal(colMap.statusD80));
 
       const ord100 = cleanNumOrNull(getVal(colMap.orderD100));
       const drop100 = cleanNumOrNull(getVal(colMap.dropD100));
       const psap100 = cleanNumOrNull(getVal(colMap.psapD100));
       const pman100 = cleanNumOrNull(getVal(colMap.pmanD100));
-      const statusD100Raw = cleanStrOrNull(getVal(colMap.statusD100));
+      const statusD100Raw = cleanStrPreserveDash(getVal(colMap.statusD100));
 
-      // Rumus status diameter dinamis di backend
+      // Rumus status diameter dinamis di backend (prioritaskan status dari Excel: '-', 'Close', 'Cek', dll.)
       const calcDiaStatus = (ord: number | null, drp: number | null, pman: number | null, psap: number | null, rawSt?: string | null) => {
         if (isClosedExcel || rawSt?.toLowerCase() === 'close') return 'Close';
+        if (rawSt && rawSt.trim() !== '') return rawSt.trim();
         const hasAct = ord !== null || drp !== null || pman !== null || psap !== null;
         if (!hasAct) return '-';
         const o = ord ?? 0;
@@ -515,6 +523,20 @@ export function loadSnapshotFromFile(): Record<string, LokasiSnapshot> {
     console.error('Error loading snapshot from file:', error);
   }
   return {};
+}
+
+// Helper Pemformatan Resmi Tahapan Pekerjaan Tanah PG1 dengan Kode Resmi (contoh: 24. Selesai Tanam)
+export function formatLandActivity(a: { code?: string | null; name?: string | null; stepOrder?: number | null }) {
+  if (!a || !a.name) return '-';
+  const name = String(a.name).trim();
+  if (/^\d{2}\./.test(name)) return name;
+  let numPrefix = '';
+  if (a.code && /^\d{2}\./.test(a.code.trim())) {
+    numPrefix = a.code.trim().slice(0, 2);
+  } else if (a.stepOrder) {
+    numPrefix = String(a.stepOrder).padStart(2, '0');
+  }
+  return numPrefix ? `${numPrefix}. ${name}` : name;
 }
 
 // Helper Pemetaan Tahapan Pekerjaan Tanah PG1 dengan Nomor Urut Resmi (Tahap 1 s/d 20)
@@ -811,7 +833,7 @@ export async function syncLokasiBelumOrderToDb(): Promise<number> {
       const current = landAktMap.get(lok);
       if (!current || d > current.date || (d.getTime() === current.date.getTime() && a.stepOrder > current.stepOrder)) {
         landAktMap.set(lok, {
-          formatted: `${String(a.stepOrder).padStart(2, '0')}. ${a.name}`,
+          formatted: formatLandActivity(a),
           stepOrder: a.stepOrder,
           date: d,
         });
@@ -1000,10 +1022,13 @@ export async function syncMasterDataOrderFromWorkbook(
     const d80 = Number(getCellVal(r, cD80)) || 0;
     const d100 = Number(getCellVal(r, cD100)) || 0;
 
-    // Lookup 1: Wilayah dari MasterStatusLokasi.strucPlant (jika tidak ditemukan -> fallback ke sel sheet)
+    // Lookup 1: Wilayah dari sel sheet terlebih dahulu (jika valid AW01-AW07), fallback ke MasterStatusLokasi.strucPlant
     const rawWil = getCellVal(r, cWilayah);
     const sheetWil = rawWil ? String(rawWil).trim().toUpperCase() : null;
-    const wilayah = strucPlantMap.get(lokStr) || sheetWil || null;
+    const normSheetWil = /^AW0[1-7]$/.test(sheetWil || '') ? sheetWil : (/^W0[1-7]$/.test(sheetWil || '') ? 'A' + sheetWil : null);
+    const rawFoundWil = normSheetWil || strucPlantMap.get(lokStr) || sheetWil || null;
+    // Jika lokasi tidak memiliki wilayah atau masuk daftar tanpa wilayah, simpan dengan wilayah = null agar masuk Total Semua Wilayah
+    const wilayah = isLocationWithoutWilayah(lokStr) ? null : rawFoundWil;
 
     // Lookup 2: Lookup Status dari LokasiOrderGorongGorong.dsmSt (jika tidak ditemukan -> fallback ke sel sheet)
     const rawLookup = getCellVal(r, cLookup);
@@ -1044,6 +1069,176 @@ export async function syncMasterDataOrderFromWorkbook(
   }
 
   return dataOrderRows.length;
+}
+
+export async function syncMasterDataDropFromWorkbook(
+  wb: XLSX.WorkBook,
+  mode: 'full_replace' | 'partial' = 'full_replace'
+): Promise<number> {
+  const sheetNames = wb.SheetNames || [];
+  const match = sheetNames.find((name) =>
+    ['data drop', 'drop gorong', 'drop'].some((p) => name.trim().toLowerCase().includes(p))
+  );
+  if (!match) return 0;
+  const ws = wb.Sheets[match];
+  if (!ws) return 0;
+
+  // 1. Ambil map lookup MasterStatusLokasi (strucPlant)
+  const statusLokasiList = await prisma.masterStatusLokasi.findMany({
+    select: { lokasi: true, strucPlant: true }
+  });
+  const strucPlantMap = new Map<string, string>();
+  for (const s of statusLokasiList) {
+    if (s.strucPlant) strucPlantMap.set(s.lokasi.trim().toUpperCase(), s.strucPlant.trim().toUpperCase());
+  }
+
+  // 2. Deteksi posisi kolom header secara dinamis
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:Z500');
+  let cLokasi = -1;
+  let cWilayah = -1;
+  let cTanggal = -1;
+  let cD40 = -1;
+  let cD60 = -1;
+  let cD80 = -1;
+  let cD100 = -1;
+  let headerRow = 4;
+
+  for (let r = 2; r <= Math.min(6, range.e.r); r++) {
+    for (let c = range.s.c; c <= Math.min(range.e.c, 25); c++) {
+      const cell = ws[XLSX.utils.encode_cell({ r, c })];
+      if (!cell || cell.v === undefined || cell.v === null) continue;
+      const text = String(cell.v).toLowerCase().trim();
+
+      if (text === 'lokasi' || text === 'petak') {
+        cLokasi = c;
+        headerRow = r;
+      } else if (text === 'wil' || text === 'wilayah') {
+        cWilayah = c;
+      } else if ((text === 'tgl' || text === 'tanggal' || text === 'date') && !text.includes('order')) {
+        cTanggal = c;
+      } else if (text === '40' || text === 'diameter 40' || text === 'd40' || text === 'ø40') {
+        cD40 = c;
+      } else if (text === '60' || text === 'diameter 60' || text === 'd60' || text === 'ø60') {
+        cD60 = c;
+      } else if (text === '80' || text === 'diameter 80' || text === 'd80' || text === 'ø80') {
+        cD80 = c;
+      } else if (text === '100' || text === 'diameter 100' || text === 'd100' || text === 'ø100') {
+        cD100 = c;
+      }
+    }
+  }
+
+  // Fallback defaults jika header bertingkat PG1: Lokasi di Col C (2), Tgl di Col G (6), 40 di Col I (8)
+  if (cLokasi === -1) {
+    // Check if PG1 layout
+    if (ws['C4'] || ws['C5'] || ws['C7']) {
+      cLokasi = 2; cWilayah = 3; cTanggal = 6; cD40 = 8; cD60 = 9; cD80 = 10; cD100 = 11;
+    } else {
+      // 7-col layout: Lokasi(0), Wilayah(1), Tanggal(2), D40(3), D60(4), D80(5), D100(6)
+      cLokasi = 0; cWilayah = 1; cTanggal = 2; cD40 = 3; cD60 = 4; cD80 = 5; cD100 = 6;
+    }
+  }
+
+  let dataStartRow = headerRow + 1;
+  if (dataStartRow <= range.e.r) {
+    const checkCell = ws[XLSX.utils.encode_cell({ r: dataStartRow, c: cD40 !== -1 ? cD40 : 3 })];
+    const val = checkCell ? String(checkCell.v).trim() : '';
+    if (val === '40' || val.toLowerCase().includes('diameter')) {
+      dataStartRow++;
+    }
+  }
+
+  const getCellVal = (r: number, col: number) => {
+    if (col < 0) return null;
+    const cell = ws[XLSX.utils.encode_cell({ r, c: col })];
+    return cell && cell.v !== undefined && cell.v !== null ? cell.v : null;
+  };
+
+  const dataDropRows: any[] = [];
+  for (let r = dataStartRow; r <= range.e.r; r++) {
+    const lokVal = getCellVal(r, cLokasi);
+    if (!lokVal) continue;
+    const lokStr = String(lokVal).trim().toUpperCase();
+    if (
+      !lokStr ||
+      lokStr === 'LOKASI' ||
+      lokStr === 'TOTAL' ||
+      lokStr === 'GRAND TOTAL' ||
+      lokStr.startsWith('TOTAL') ||
+      isExcludedGorongGorongLocation(lokStr)
+    ) {
+      continue;
+    }
+
+    const rawDate = getCellVal(r, cTanggal);
+    if (!rawDate) continue;
+
+    // Abaikan jika 'x' (silang)
+    const strDate = String(rawDate).trim().toLowerCase();
+    if (strDate === 'x' || strDate.includes('x')) continue;
+
+    let tanggal: Date | null = null;
+    if (rawDate instanceof Date) {
+      tanggal = isNaN(rawDate.getTime()) ? null : rawDate;
+    } else {
+      const num = Number(rawDate);
+      if (!isNaN(num) && num > 20000 && num < 70000) {
+        const utcDays = num - 25569;
+        const d = new Date(Math.round(utcDays * 86400 * 1000));
+        if (!isNaN(d.getTime())) tanggal = d;
+      } else if (typeof rawDate === 'string') {
+        const d = new Date(rawDate.trim());
+        if (!isNaN(d.getTime())) tanggal = d;
+      }
+    }
+
+    if (!tanggal) continue;
+
+    const yr = tanggal.getFullYear();
+    // Hanya tahun 2025 dan 2026
+    if (yr !== 2025 && yr !== 2026) continue;
+
+    const d40 = Number(getCellVal(r, cD40)) || 0;
+    const d60 = Number(getCellVal(r, cD60)) || 0;
+    const d80 = Number(getCellVal(r, cD80)) || 0;
+    const d100 = Number(getCellVal(r, cD100)) || 0;
+
+    // Lookup wilayah dari MasterStatusLokasi.strucPlant
+    const rawWil = getCellVal(r, cWilayah);
+    const sheetWil = rawWil ? String(rawWil).trim().toUpperCase() : null;
+    const wilayah = strucPlantMap.get(lokStr) || sheetWil || null;
+
+    dataDropRows.push({
+      lokasi: lokStr,
+      wilayah,
+      tanggal,
+      diameter40: Math.round(d40),
+      diameter60: Math.round(d60),
+      diameter80: Math.round(d80),
+      diameter100: Math.round(d100),
+    });
+  }
+
+  if (dataDropRows.length === 0) return 0;
+
+  if (mode === 'full_replace') {
+    await prisma.masterDataDropGorongGorong.deleteMany({});
+    for (let i = 0; i < dataDropRows.length; i += 200) {
+      const chunk = dataDropRows.slice(i, i + 200);
+      await prisma.masterDataDropGorongGorong.createMany({ data: chunk });
+    }
+  } else {
+    const touchedLoks = Array.from(new Set(dataDropRows.map((d) => d.lokasi)));
+    await prisma.masterDataDropGorongGorong.deleteMany({
+      where: { lokasi: { in: touchedLoks } },
+    });
+    for (let i = 0; i < dataDropRows.length; i += 200) {
+      const chunk = dataDropRows.slice(i, i + 200);
+      await prisma.masterDataDropGorongGorong.createMany({ data: chunk });
+    }
+  }
+
+  return dataDropRows.length;
 }
 
 

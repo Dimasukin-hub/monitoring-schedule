@@ -9,7 +9,8 @@ import {
   isLocationWithoutWilayah,
   syncLokasiOrderToDb,
   syncLokasiBelumOrderToDb,
-  syncMasterDataOrderFromWorkbook
+  syncMasterDataOrderFromWorkbook,
+  syncMasterDataDropFromWorkbook
 } from '@/lib/lokasiOrderSnapshot';
 
 function parseExcelDate(val: any): Date {
@@ -80,9 +81,13 @@ export async function POST(request: NextRequest) {
       belumOrderLocationCount = await syncLokasiBelumOrderToDb();
     }
 
-    // Sinkronisasi Master Data Order (10 Kolom dengan Lookup Otomatis) jika sheet Data Order ada
+    // Sinkronisasi Master Data Order (Lookup Otomatis) jika sheet Data Order ada
     let masterDataOrderCount = 0;
     masterDataOrderCount = await syncMasterDataOrderFromWorkbook(wb, isPartial ? 'partial' : 'full_replace');
+
+    // Sinkronisasi Master Data Drop (Lookup Otomatis & Filter 2025/2026 Tanpa 'x') jika sheet Data Drop ada
+    let masterDataDropCount = 0;
+    masterDataDropCount = await syncMasterDataDropFromWorkbook(wb, isPartial ? 'partial' : 'full_replace');
 
     // Identifikasi sheet berdasarkan nama
     const findSheet = (patterns: string[]) => {
@@ -470,6 +475,7 @@ export async function POST(request: NextRequest) {
         snapshotLocationCount: finalLocationsCount,
         belumOrderLocationCount,
         masterDataOrderCount,
+        masterDataDropCount,
         totalOrderPcs: finalTotalPcs,
         totalPcs: finalTotalPcs,
         totalTransactions: newTransactions.length > 0 ? newTransactions.length : finalLocationsCount,

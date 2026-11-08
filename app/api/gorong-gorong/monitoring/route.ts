@@ -1,9 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { loadSnapshotFromFile, isExcludedGorongGorongLocation, isLocationWithoutWilayah } from '@/lib/lokasiOrderSnapshot';
+import { loadSnapshotFromFile, saveSnapshotToFile, isExcludedGorongGorongLocation, isLocationWithoutWilayah } from '@/lib/lokasiOrderSnapshot';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+// Helper Pemformatan Resmi Tahapan Pekerjaan Tanah PG1 dengan Kode Resmi (contoh: 24. Selesai Tanam)
+function formatLandActivity(a: { code?: string | null; name?: string | null; stepOrder?: number | null }) {
+  if (!a || !a.name) return '-';
+  const name = String(a.name).trim();
+  if (/^\d{2}\./.test(name)) return name;
+  let numPrefix = '';
+  if (a.code && /^\d{2}\./.test(a.code.trim())) {
+    numPrefix = a.code.trim().slice(0, 2);
+  } else if (a.stepOrder) {
+    numPrefix = String(a.stepOrder).padStart(2, '0');
+  }
+  return numPrefix ? `${numPrefix}. ${name}` : name;
+}
 
 // Helper Pemetaan Tahapan Pekerjaan Tanah PG1 dengan Nomor Urut Resmi (Tahap 1 s/d 20)
 function parseLandActivity(raw: any) {
@@ -87,6 +101,7 @@ export async function GET(request: NextRequest) {
     const filterStatus = searchParams.get('status');
     const filterTahun = searchParams.get('tahun');
     const filterPrioritas = searchParams.get('prioritas');
+    const filterDiameter = searchParams.get('diameter');
     const searchQuery = searchParams.get('search')?.trim().toUpperCase();
 
     // 1. Ambil seluruh data master pendukung dan database tabel lokasi order & belum order
@@ -161,7 +176,7 @@ export async function GET(request: NextRequest) {
         const current = landAktMap.get(lok);
         if (!current || d > current.date || (d.getTime() === current.date.getTime() && a.stepOrder > current.stepOrder)) {
           landAktMap.set(lok, {
-            formatted: `${String(a.stepOrder).padStart(2, '0')}. ${a.name}`,
+            formatted: formatLandActivity(a),
             stepOrder: a.stepOrder,
             date: d,
           });
@@ -361,7 +376,7 @@ export async function GET(request: NextRequest) {
         const ordQty = (hasSnapOrd ? snapOrdRaw! : 0) + trxOrdQty;
         const dropQty = (hasSnapDrp ? snapDrpRaw! : 0) + trxDrpQty;
         const manQty = (hasSnapMan ? snapManRaw! : 0) + trxManQty;
-        const sapQty = sapDbQty > 0 ? sapDbQty : (hasSnapSap ? snapSapRaw! : 0);
+        const sapQty = Math.max(sapDbQty, (hasSnapSap ? snapSapRaw! : 0));
 
         // Rumus Terpasang = MAX(Pasang Manual, Pasang SAP)
         const totalPasangDia = Math.max(manQty, sapQty);
@@ -390,20 +405,20 @@ export async function GET(request: NextRequest) {
           pctPasangDia = '-';
         }
 
-        // Rumus Status Diameter
+        // Rumus Status Diameter: utamakan status asli dari snapshot/Excel ('-', 'Close', 'Cek', 'Open') per diameter
         const snapDiaStatus = dia === 40 ? snap?.statusD40 : dia === 60 ? snap?.statusD60 : dia === 80 ? snap?.statusD80 : snap?.statusD100;
-        let statusDia = 'Close';
-        if (ordQty > 0 || dropQty > 0 || totalPasangDia > 0) {
+        let statusDia = snapDiaStatus ? snapDiaStatus.trim() : '-';
+        if (statusDia.toLowerCase() === 'close') {
+          statusDia = 'Close';
+        } else if (!snapDiaStatus && (ordQty > 0 || dropQty > 0 || totalPasangDia > 0)) {
           if (dropQty >= ordQty && saldoDia <= 0 && totalPasangDia > 0) {
             statusDia = 'Close';
           } else {
             statusDia = 'Open';
-            allClosed = false;
           }
-        } else if (isClosedInSnapshot || snapDiaStatus === 'Close') {
-          statusDia = 'Close';
-        } else {
-          statusDia = '-';
+        }
+        if (statusDia === '-' || statusDia.toLowerCase() === 'open') {
+          allClosed = false;
         }
 
         totalOrderSemua += ordQty;
@@ -432,23 +447,17 @@ export async function GET(request: NextRequest) {
         ? Math.round(d40Order / luas)
         : (snap?.ratioPerHa !== null && snap?.ratioPerHa !== undefined && snap.ratioPerHa > 0 ? Math.round(snap.ratioPerHa) : null);
 
-      let statusAll = '-';
-      const diaStatuses = [diameterDetails['d40']?.status, diameterDetails['d60']?.status, diameterDetails['d80']?.status, diameterDetails['d100']?.status];
-      const activeDiaStatuses = diaStatuses.filter((s) => s && s !== '-');
-      if (isClosedInSnapshot || (activeDiaStatuses.length > 0 && activeDiaStatuses.every((s) => s === 'Close'))) {
-        statusAll = 'Close';
-      }
+      let statusAll = isClosedInSnapshot ? 'Close' : '-';
 
-      // Evaluasi Prioritas (Sesuai formula Excel sel K / L):
-      // Jika Status All Close -> Prioritas kosong ""
-      // Jika Order Diameter 40 = 0 atau kosong -> Prioritas "-"
+      // Evaluasi Prioritas:
+      // Prioritaskan nilai prioritas resmi dari database / snapshot (Prioritas 1, 4, 5, dll.)
       let prioritas = '';
-      if (statusAll === 'Close') {
+      if (snap && snap.prioritas !== undefined && snap.prioritas !== null && snap.prioritas !== '') {
+        prioritas = snap.prioritas;
+      } else if (statusAll === 'Close') {
         prioritas = '';
       } else if (d40Order === null || d40Order === undefined || d40Order === 0) {
         prioritas = '-';
-      } else if (snap && snap.prioritas !== undefined && snap.prioritas !== null && snap.prioritas !== '') {
-        prioritas = snap.prioritas;
       } else {
         const isFC = statusTanaman === 'FC' || statusTanaman?.endsWith('FC');
         const isSchedule1 = aktBk.includes('24.Sls Tanam') || aktBk.toLowerCase().includes('selesai tanam') || aktBk.includes('23.Proses Tanam');
@@ -600,16 +609,20 @@ export async function GET(request: NextRequest) {
 
     if (filterStatus && filterStatus !== 'ALL') {
       const sList = filterStatus.split(',').map((s) => s.trim().toUpperCase()).filter(Boolean);
+      const diaKeys = (filterDiameter && filterDiameter !== 'ALL')
+        ? [`d${filterDiameter}`]
+        : ['d40', 'd60', 'd80', 'd100'];
+
       filteredOrder = filteredOrder.filter((item) => {
-        const itemStatus = (item.statusAll || '').trim().toUpperCase();
-        return sList.some((s) => {
-          if (s === 'OPEN' || s === '-') {
-            return itemStatus === '-' || itemStatus === 'OPEN' || itemStatus === '';
-          }
-          if (s === 'CLOSE') {
-            return itemStatus === 'CLOSE';
-          }
-          return itemStatus === s;
+        return diaKeys.some((k) => {
+          const diaStatus = (item[k]?.status || '-').trim().toUpperCase();
+          const isOpen = diaStatus === '-' || diaStatus === 'OPEN';
+          const isClose = diaStatus === 'CLOSE';
+          return sList.some((s) => {
+            if (s === 'OPEN' || s === '-') return isOpen;
+            if (s === 'CLOSE') return isClose;
+            return diaStatus === s;
+          });
         });
       });
     }
@@ -651,6 +664,75 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching gorong-gorong monitoring data:', error);
     return NextResponse.json(
       { success: false, message: 'Gagal memuat data monitoring gorong-gorong', error: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { lokasi, diameter, status } = body;
+
+    if (!lokasi || !diameter) {
+      return NextResponse.json(
+        { success: false, message: 'Lokasi dan diameter wajib diisi.' },
+        { status: 400 }
+      );
+    }
+
+    const diaNum = Number(diameter);
+    if (![40, 60, 80, 100].includes(diaNum)) {
+      return NextResponse.json(
+        { success: false, message: 'Diameter harus salah satu dari: 40, 60, 80, 100.' },
+        { status: 400 }
+      );
+    }
+
+    const validStatus = ['Open', '-', 'Cek', 'Close'];
+    if (!validStatus.includes(status)) {
+      return NextResponse.json(
+        { success: false, message: 'Status harus salah satu dari: Open, -, Cek, Close.' },
+        { status: 400 }
+      );
+    }
+
+    const normalizedStatus = (status === 'Open' || status === '-') ? '-' : status;
+    const updateData: Record<string, string> = {};
+    if (diaNum === 40) updateData.statusD40 = normalizedStatus;
+    else if (diaNum === 60) updateData.statusD60 = normalizedStatus;
+    else if (diaNum === 80) updateData.statusD80 = normalizedStatus;
+    else if (diaNum === 100) updateData.statusD100 = normalizedStatus;
+
+    const lokStr = String(lokasi).trim();
+
+    // 1. Update ke database PostgreSQL permanen
+    await prisma.lokasiOrderGorongGorong.updateMany({
+      where: { lokasi: lokStr },
+      data: updateData,
+    });
+
+    // 2. Update ke snapshot file JSON agar selalu sinkron
+    try {
+      const snap = loadSnapshotFromFile();
+      if (snap && snap[lokStr]) {
+        const diaKey = `statusD${diaNum}`;
+        (snap[lokStr] as any)[diaKey] = normalizedStatus;
+        saveSnapshotToFile(snap);
+      }
+    } catch (snapErr) {
+      console.warn('Warning updating snapshot file:', snapErr);
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Status diameter ${diaNum} lokasi ${lokStr} berhasil diperbarui menjadi ${normalizedStatus}.`,
+      data: { lokasi: lokStr, diameter: diaNum, status: normalizedStatus },
+    });
+  } catch (error: any) {
+    console.error('Error updating diameter status:', error);
+    return NextResponse.json(
+      { success: false, message: 'Gagal memperbarui status diameter', error: error.message },
       { status: 500 }
     );
   }

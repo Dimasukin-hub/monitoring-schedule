@@ -11,8 +11,11 @@ export async function GET(request: NextRequest) {
     const wilayah = searchParams.get('wilayah');
     const diameterParam = searchParams.get('diameter');
     const yearParam = searchParams.get('year') || searchParams.get('tahun');
-    const isAllYears = !yearParam || yearParam === 'ALL';
-    const targetYear = !isAllYears && yearParam ? parseInt(yearParam, 10) : new Date().getFullYear();
+    const targetYears = yearParam
+      ? yearParam.split(',').map((y) => parseInt(y.trim(), 10)).filter((y) => !isNaN(y))
+      : [2026];
+    const isYearMatching = (yr: number) => targetYears.includes(yr);
+    const targetYear = targetYears[0] || 2026;
 
     const statusParam = searchParams.get('status');
     const prioritasParam = searchParams.get('prioritas');
@@ -38,13 +41,12 @@ export async function GET(request: NextRequest) {
       sapWhere.diameter = selectedDia;
     }
 
-    const [allTrx, allSap, masterStatusList, dbLokasiOrder, allMasterDataOrder] = await Promise.all([
+    const [allTrx, allSap, masterStatusList, dbLokasiOrder, allMasterDataOrder, allMasterDataDrop] = await Promise.all([
       prisma.transaksiGorongGorong.findMany({
         where: trxWhere,
         orderBy: { tanggal: 'asc' },
       }),
       prisma.masterSapGorongGorong.findMany({
-        where: sapWhere,
         orderBy: { tanggalRealisasi: 'asc' },
       }),
       prisma.masterStatusLokasi.findMany({
@@ -52,6 +54,9 @@ export async function GET(request: NextRequest) {
       }),
       prisma.lokasiOrderGorongGorong.findMany({}),
       prisma.masterDataOrderGorongGorong.findMany({
+        orderBy: { tanggal: 'asc' },
+      }),
+      prisma.masterDataDropGorongGorong.findMany({
         orderBy: { tanggal: 'asc' },
       }),
     ]);
@@ -287,8 +292,8 @@ export async function GET(request: NextRequest) {
     // 5. % Pemasangan: Status Open per Diameter
     // =========================================================================
 
-    // 1. Card Total Order (Tahun 2026 dari Master Data Order)
-    let order2026 = 0;
+    // 1. Card Total Order (Dinamis dari Master Data Order sesuai Tahun & Diameter aktif)
+    let orderYearly = 0;
     let totalOrderAllMaster = 0;
     for (const o of allMasterDataOrder) {
       if (wilayah && wilayah !== 'ALL') {
@@ -302,12 +307,31 @@ export async function GET(request: NextRequest) {
         ? (selectedDia === 40 ? o.diameter40 : selectedDia === 60 ? o.diameter60 : selectedDia === 80 ? o.diameter80 : o.diameter100)
         : (o.diameter40 + o.diameter60 + o.diameter80 + o.diameter100);
       totalOrderAllMaster += qty;
-      if (yr === 2026) {
-        order2026 += qty;
+      if (isYearMatching(yr)) {
+        orderYearly += qty;
+      }
+    }
+
+    // Tambahkan transaksi ORDER dinamis dari form input (allTrx)
+    for (const trx of allTrx) {
+      if (trx.jenisTransaksi !== 'ORDER') continue;
+      if (wilayah && wilayah !== 'ALL') {
+        const wList = wilayah.split(',').map((w) => w.trim().toUpperCase()).filter(Boolean);
+        const tWil = (trx.wilayah || '').toUpperCase();
+        if (!wList.some((w) => tWil.includes(w))) continue;
+      }
+      const d = trx.tanggal ? new Date(trx.tanggal) : null;
+      const yr = d ? d.getFullYear() : 2026;
+      const qty = selectedDia
+        ? (selectedDia === 40 ? trx.qtyD40 : selectedDia === 60 ? trx.qtyD60 : selectedDia === 80 ? trx.qtyD80 : trx.qtyD100)
+        : (trx.qtyD40 + trx.qtyD60 + trx.qtyD80 + trx.qtyD100);
+      totalOrderAllMaster += qty;
+      if (isYearMatching(yr)) {
+        orderYearly += qty;
       }
     }
     // Fallback jika MasterDataOrderGorongGorong belum terisi
-    if (order2026 === 0) {
+    if (orderYearly === 0) {
       for (const r of dbLokasiOrder) {
         if (wilayah && wilayah !== 'ALL') {
           const wList = wilayah.split(',').map((w) => w.trim().toUpperCase()).filter(Boolean);
@@ -316,26 +340,45 @@ export async function GET(request: NextRequest) {
         }
         const d = r.tanggalOrder ? new Date(r.tanggalOrder) : null;
         const yr = d ? d.getFullYear() : 2026;
-        if (yr === 2026) {
+        if (isYearMatching(yr)) {
           const qty = selectedDia
             ? (selectedDia === 40 ? (r.orderD40 || 0) : selectedDia === 60 ? (r.orderD60 || 0) : selectedDia === 80 ? (r.orderD80 || 0) : (r.orderD100 || 0))
             : ((r.orderD40 || 0) + (r.orderD60 || 0) + (r.orderD80 || 0) + (r.orderD100 || 0));
-          order2026 += qty;
+          orderYearly += qty;
         }
       }
     }
 
-    // 2. Card Total Terpasang (Tahun 2026 dari MasterSapGorongGorong kolom qty via referensiLokasi)
+    // 2. Card Total Terpasang (Tahun aktif dari MasterSapGorongGorong kolom qty via referensiLokasi)
     let terpasangSapYearly = 0;
     let terpasangSapAll = 0;
     for (const s of allSap) {
+      if (selectedDia && s.diameter !== selectedDia) continue;
       const d = s.tanggalRealisasi ? new Date(s.tanggalRealisasi) : null;
       const yr = d ? d.getFullYear() : 2026;
       terpasangSapAll += s.qty;
-      if (yr === 2026) {
+      if (isYearMatching(yr)) {
         terpasangSapYearly += s.qty;
       }
     }
+
+    // Kumpulkan transaksi form input (Order, Drop, Pasang Manual) per lokasi
+    const trxByLok: Record<string, { orders: any[]; drops: any[]; manuals: any[] }> = {};
+    for (const trx of allTrx) {
+      const l = trx.lokasi.trim().toUpperCase();
+      if (!trxByLok[l]) trxByLok[l] = { orders: [], drops: [], manuals: [] };
+      if (trx.jenisTransaksi === 'ORDER') trxByLok[l].orders.push(trx);
+      else if (trx.jenisTransaksi === 'DROP') trxByLok[l].drops.push(trx);
+      else if (trx.jenisTransaksi === 'PASANG_MANUAL') trxByLok[l].manuals.push(trx);
+    }
+
+    const getTrxSum = (arr: any[] | undefined, dia: number) => {
+      if (!arr || arr.length === 0) return 0;
+      return arr.reduce(
+        (acc, it) => acc + (dia === 40 ? (it.qtyD40 || 0) : dia === 60 ? (it.qtyD60 || 0) : dia === 80 ? (it.qtyD80 || 0) : (it.qtyD100 || 0)),
+        0
+      );
+    };
 
     // 3. Card Saldo di Lokasi (Status OPEN per Diameter khusus Tahun 2025 & 2026)
     let saldoOpen2025_2026 = 0;
@@ -347,6 +390,7 @@ export async function GET(request: NextRequest) {
     for (const row of dbLokasiOrder) {
       const lok = row.lokasi.trim().toUpperCase();
       if (isExcludedGorongGorongLocation(lok)) continue;
+
       if (wilayah && wilayah !== 'ALL') {
         const wList = wilayah.split(',').map((w) => w.trim().toUpperCase()).filter(Boolean);
         const rowWil = (row.wilayah || '').toUpperCase();
@@ -356,17 +400,49 @@ export async function GET(request: NextRequest) {
       const rowYear = row.tanggalOrder ? new Date(row.tanggalOrder).getFullYear() : 2026;
       const is2025or2026 = rowYear === 2025 || rowYear === 2026;
 
+      const tData = trxByLok[lok] || { orders: [], drops: [], manuals: [] };
+
       const diaList = [
-        { dia: 40, ord: row.orderD40 || 0, drop: row.dropD40 || 0, pman: row.pasangManD40 || 0, psap: row.pasangSapD40 || 0, status: row.statusD40 },
-        { dia: 60, ord: row.orderD60 || 0, drop: row.dropD60 || 0, pman: row.pasangManD60 || 0, psap: row.pasangSapD60 || 0, status: row.statusD60 },
-        { dia: 80, ord: row.orderD80 || 0, drop: row.dropD80 || 0, pman: row.pasangManD80 || 0, psap: row.pasangSapD80 || 0, status: row.statusD80 },
-        { dia: 100, ord: row.orderD100 || 0, drop: row.dropD100 || 0, pman: row.pasangManD100 || 0, psap: row.pasangSapD100 || 0, status: row.statusD100 },
+        {
+          dia: 40,
+          ord: (row.orderD40 || 0) + getTrxSum(tData.orders, 40),
+          drop: (row.dropD40 || 0) + getTrxSum(tData.drops, 40),
+          pman: (row.pasangManD40 || 0) + getTrxSum(tData.manuals, 40),
+          psap: row.pasangSapD40 || 0,
+          status: row.statusD40,
+        },
+        {
+          dia: 60,
+          ord: (row.orderD60 || 0) + getTrxSum(tData.orders, 60),
+          drop: (row.dropD60 || 0) + getTrxSum(tData.drops, 60),
+          pman: (row.pasangManD60 || 0) + getTrxSum(tData.manuals, 60),
+          psap: row.pasangSapD60 || 0,
+          status: row.statusD60,
+        },
+        {
+          dia: 80,
+          ord: (row.orderD80 || 0) + getTrxSum(tData.orders, 80),
+          drop: (row.dropD80 || 0) + getTrxSum(tData.drops, 80),
+          pman: (row.pasangManD80 || 0) + getTrxSum(tData.manuals, 80),
+          psap: row.pasangSapD80 || 0,
+          status: row.statusD80,
+        },
+        {
+          dia: 100,
+          ord: (row.orderD100 || 0) + getTrxSum(tData.orders, 100),
+          drop: (row.dropD100 || 0) + getTrxSum(tData.drops, 100),
+          pman: (row.pasangManD100 || 0) + getTrxSum(tData.manuals, 100),
+          psap: row.pasangSapD100 || 0,
+          status: row.statusD100,
+        },
       ];
 
       for (const d of diaList) {
         if (selectedDia && d.dia !== selectedDia) continue;
-        const isOpen = !d.status || d.status.trim().toLowerCase() !== 'close';
+        const st = (d.status || '-').trim().toLowerCase();
+        const isOpen = st === 'open' || st === '-';
         if (isOpen) {
+          // Di Excel: Terpasang Maksimal = MAX(Pasang Manual, Pasang SAP)
           const bestPasang = Math.max(d.pman, d.psap);
           const sld = d.drop - bestPasang;
 
@@ -378,16 +454,46 @@ export async function GET(request: NextRequest) {
           // Akumulasi rasio open
           openOrderSum += d.ord;
           openDropSum += d.drop;
-          openPasangSum += bestPasang;
+          openPasangSum += bestPasang; // Terpasang Maksimal untuk Card % Pemasangan
         }
       }
     }
 
-    const effectiveKedatanganOpen = openPasangSum > 0 ? openPasangSum : openDropSum;
-    const pctKedatanganOpen = openOrderSum > 0 ? parseFloat(((effectiveKedatanganOpen / openOrderSum) * 100).toFixed(1)) : 0;
+    // Tangani transaksi dinamis form input untuk lokasi yang belum terdaftar di dbLokasiOrder
+    const dbLokasiSet = new Set(dbLokasiOrder.map((r) => r.lokasi.trim().toUpperCase()));
+    for (const trx of allTrx) {
+      const l = trx.lokasi.trim().toUpperCase();
+      if (dbLokasiSet.has(l) || isExcludedGorongGorongLocation(l)) continue;
+      if (wilayah && wilayah !== 'ALL') {
+        const wList = wilayah.split(',').map((w) => w.trim().toUpperCase()).filter(Boolean);
+        const tWil = (trx.wilayah || '').toUpperCase();
+        if (!wList.some((w) => tWil.includes(w))) continue;
+      }
+      const tYear = trx.tanggal ? new Date(trx.tanggal).getFullYear() : 2026;
+      const is2025or2026 = tYear === 2025 || tYear === 2026;
+
+      for (const dia of [40, 60, 80, 100]) {
+        if (selectedDia && dia !== selectedDia) continue;
+        const q = dia === 40 ? trx.qtyD40 : dia === 60 ? trx.qtyD60 : dia === 80 ? trx.qtyD80 : trx.qtyD100;
+        if (q <= 0) continue;
+
+        if (trx.jenisTransaksi === 'DROP') {
+          if (is2025or2026) saldoOpen2025_2026 += q;
+          openDropSum += q;
+        } else if (trx.jenisTransaksi === 'PASANG_MANUAL') {
+          if (is2025or2026) saldoOpen2025_2026 -= q;
+          openPasangSum += q;
+        } else if (trx.jenisTransaksi === 'ORDER') {
+          openOrderSum += q;
+        }
+      }
+    }
+
+    // 4 & 5. % Kedatangan Murni Fisik (Drop / Order) & % Pemasangan (Pasang / Drop)
+    const pctKedatanganOpen = openOrderSum > 0 ? parseFloat(((openDropSum / openOrderSum) * 100).toFixed(1)) : 0;
     const pctPemasanganOpen = openDropSum > 0 ? parseFloat(((openPasangSum / openDropSum) * 100).toFixed(1)) : 0;
 
-    // 2. Data Tren Bulanan untuk Grafik (Murni dari diameter yang berstatus OPEN)
+    // 2. Data Tren Bulanan untuk Grafik (Murni dari Tahun yang dipilih: targetYear 2026 atau 2025)
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     const monthlyData = months.map((m, idx) => ({
       month: m,
@@ -402,28 +508,22 @@ export async function GET(request: NextRequest) {
       pctPasang: 0,
     }));
 
+    // Diambil dari dbLokasiOrder berdasarkan targetYear
     for (const row of dbLokasiOrder) {
       const lok = row.lokasi.trim().toUpperCase();
       if (isExcludedGorongGorongLocation(lok)) continue;
+      if (!row.tanggalOrder) continue;
+      const d = new Date(row.tanggalOrder);
+      if (isNaN(d.getTime()) || d.getFullYear() !== targetYear) continue;
+
       if (wilayah && wilayah !== 'ALL') {
         const wList = wilayah.split(',').map((w) => w.trim().toUpperCase()).filter(Boolean);
         const rowWil = (row.wilayah || '').toUpperCase();
         if (!wList.some((w) => rowWil.includes(w))) continue;
       }
 
-      // Distribusi bulan Order dari tanggalOrder
-      let mOrderIdx = 0;
-      if (row.tanggalOrder) {
-        const d = new Date(row.tanggalOrder);
-        if (!isNaN(d.getTime())) mOrderIdx = d.getMonth();
-      }
-
-      // Distribusi bulan Drop dari tglDropD40 atau tanggalOrder
-      let mDropIdx = mOrderIdx;
-      if (row.tglDropD40) {
-        const d = new Date(row.tglDropD40);
-        if (!isNaN(d.getTime())) mDropIdx = d.getMonth();
-      }
+      const mIdx = d.getMonth();
+      if (mIdx < 0 || mIdx >= 12) continue;
 
       const diaList = [
         { dia: 40, ord: row.orderD40 || 0, drop: row.dropD40 || 0, pman: row.pasangManD40 || 0, psap: row.pasangSapD40 || 0, status: row.statusD40 },
@@ -432,38 +532,65 @@ export async function GET(request: NextRequest) {
         { dia: 100, ord: row.orderD100 || 0, drop: row.dropD100 || 0, pman: row.pasangManD100 || 0, psap: row.pasangSapD100 || 0, status: row.statusD100 },
       ];
 
-      for (const d of diaList) {
-        if (selectedDia && d.dia !== selectedDia) continue;
-        const isOpen = !d.status || d.status.trim().toLowerCase() !== 'close';
-        if (isOpen) {
-          if (mOrderIdx >= 0 && mOrderIdx < 12) {
-            monthlyData[mOrderIdx].order += d.ord;
-          }
-          if (mDropIdx >= 0 && mDropIdx < 12) {
-            monthlyData[mDropIdx].drop += d.drop;
-            monthlyData[mDropIdx].pasangManual += d.pman;
-            monthlyData[mDropIdx].pasangSap += d.psap;
-            monthlyData[mDropIdx].totalPasang += d.psap; // SAP saja untuk bar chart pasang
-          }
-        }
+      for (const diaItem of diaList) {
+        if (selectedDia && diaItem.dia !== selectedDia) continue;
+        monthlyData[mIdx].order += diaItem.ord;
+        monthlyData[mIdx].drop += diaItem.drop;
+        monthlyData[mIdx].pasangSap += diaItem.psap;
+        monthlyData[mIdx].pasangManual += diaItem.pman;
+      }
+    }
+
+    // Tambahkan transaksi dinamis dari form input (allTrx) ke grafik bulanan
+    const trxManualByMonth: number[] = new Array(12).fill(0);
+    for (const trx of allTrx) {
+      const lok = trx.lokasi.trim().toUpperCase();
+      if (isExcludedGorongGorongLocation(lok)) continue;
+      if (!trx.tanggal) continue;
+      const d = new Date(trx.tanggal);
+      if (isNaN(d.getTime()) || d.getFullYear() !== targetYear) continue;
+
+      if (wilayah && wilayah !== 'ALL') {
+        const wList = wilayah.split(',').map((w) => w.trim().toUpperCase()).filter(Boolean);
+        const tWil = (trx.wilayah || '').toUpperCase();
+        if (!wList.some((w) => tWil.includes(w))) continue;
+      }
+
+      const mIdx = d.getMonth();
+      if (mIdx < 0 || mIdx >= 12) continue;
+
+      const qty = selectedDia
+        ? (selectedDia === 40 ? trx.qtyD40 : selectedDia === 60 ? trx.qtyD60 : selectedDia === 80 ? trx.qtyD80 : trx.qtyD100)
+        : (trx.qtyD40 + trx.qtyD60 + trx.qtyD80 + trx.qtyD100);
+
+      if (qty <= 0) continue;
+
+      if (trx.jenisTransaksi === 'ORDER') {
+        monthlyData[mIdx].order += qty;
+      } else if (trx.jenisTransaksi === 'DROP') {
+        monthlyData[mIdx].drop += qty;
+      } else if (trx.jenisTransaksi === 'PASANG_MANUAL') {
+        monthlyData[mIdx].pasangManual += qty;
+        trxManualByMonth[mIdx] += qty;
       }
     }
 
     let runningDrop = 0;
     let runningPasang = 0;
-    for (const m of monthlyData) {
+    for (let i = 0; i < monthlyData.length; i++) {
+      const m = monthlyData[i];
+      // Terpasang bulanan: baseline pasangSap + transaksi manual form baru di bulan tersebut
+      m.totalPasang = m.pasangSap + trxManualByMonth[i];
       runningDrop += m.drop;
       runningPasang += m.totalPasang;
       m.saldo = Math.max(0, runningDrop - runningPasang);
-      const bestPasang = Math.max(m.pasangManual, m.pasangSap);
-      const effectiveKedatangan = bestPasang > 0 ? bestPasang : m.drop;
-      const mPctKedatangan = m.order > 0 ? (effectiveKedatangan / m.order) * 100 : 0;
-      const mPctPasang = m.drop > 0 ? (bestPasang / m.drop) * 100 : 0;
-      m.pctKedatangan = parseFloat(mPctKedatangan.toFixed(1));
-      m.pctPasang = parseFloat(mPctPasang.toFixed(1));
+      // % Kedatangan Murni Fisik (Drop / Order)
+      m.pctKedatangan = m.order > 0 ? parseFloat(((m.drop / m.order) * 100).toFixed(1)) : 0;
+      // % Pasang Murni Fisik (Total Pasang / Drop)
+      m.pctPasang = m.drop > 0 ? parseFloat(((m.totalPasang / m.drop) * 100).toFixed(1)) : 0;
     }
 
-    // 3. Breakdown per Wilayah (AW01 s/d AW07) - Murni dari diameter yang berstatus OPEN
+    // 3. Breakdown per Wilayah (AW01 s/d AW07) - Murni dari Tahun yang dipilih & status OPEN
     const wilayahList = ['AW01', 'AW02', 'AW03', 'AW04', 'AW05', 'AW06', 'AW07'];
     const wilayahBreakdown = wilayahList.map((w) => {
       let wOrder = 0;
@@ -479,38 +606,94 @@ export async function GET(request: NextRequest) {
         const matchesWil = rowWil.includes(w) || rowWil.includes(w.replace('AW0', 'Wilayah '));
         if (!matchesWil) continue;
 
+        const rowYear = row.tanggalOrder ? new Date(row.tanggalOrder).getFullYear() : 2026;
+        const is2025or2026 = rowYear === 2025 || rowYear === 2026;
+        if (!is2025or2026) continue;
+
+        const tData = trxByLok[lok] || { orders: [], drops: [], manuals: [] };
+
         const diaList = [
-          { dia: 40, ord: row.orderD40 || 0, drop: row.dropD40 || 0, pman: row.pasangManD40 || 0, psap: row.pasangSapD40 || 0, status: row.statusD40 },
-          { dia: 60, ord: row.orderD60 || 0, drop: row.dropD60 || 0, pman: row.pasangManD60 || 0, psap: row.pasangSapD60 || 0, status: row.statusD60 },
-          { dia: 80, ord: row.orderD80 || 0, drop: row.dropD80 || 0, pman: row.pasangManD80 || 0, psap: row.pasangSapD80 || 0, status: row.statusD80 },
-          { dia: 100, ord: row.orderD100 || 0, drop: row.dropD100 || 0, pman: row.pasangManD100 || 0, psap: row.pasangSapD100 || 0, status: row.statusD100 },
+          {
+            dia: 40,
+            ord: (row.orderD40 || 0) + getTrxSum(tData.orders, 40),
+            drop: (row.dropD40 || 0) + getTrxSum(tData.drops, 40),
+            pman: (row.pasangManD40 || 0) + getTrxSum(tData.manuals, 40),
+            psap: row.pasangSapD40 || 0,
+            status: row.statusD40,
+          },
+          {
+            dia: 60,
+            ord: (row.orderD60 || 0) + getTrxSum(tData.orders, 60),
+            drop: (row.dropD60 || 0) + getTrxSum(tData.drops, 60),
+            pman: (row.pasangManD60 || 0) + getTrxSum(tData.manuals, 60),
+            psap: row.pasangSapD60 || 0,
+            status: row.statusD60,
+          },
+          {
+            dia: 80,
+            ord: (row.orderD80 || 0) + getTrxSum(tData.orders, 80),
+            drop: (row.dropD80 || 0) + getTrxSum(tData.drops, 80),
+            pman: (row.pasangManD80 || 0) + getTrxSum(tData.manuals, 80),
+            psap: row.pasangSapD80 || 0,
+            status: row.statusD80,
+          },
+          {
+            dia: 100,
+            ord: (row.orderD100 || 0) + getTrxSum(tData.orders, 100),
+            drop: (row.dropD100 || 0) + getTrxSum(tData.drops, 100),
+            pman: (row.pasangManD100 || 0) + getTrxSum(tData.manuals, 100),
+            psap: row.pasangSapD100 || 0,
+            status: row.statusD100,
+          },
         ];
 
         for (const d of diaList) {
           if (selectedDia && d.dia !== selectedDia) continue;
-          const isOpen = !d.status || d.status.trim().toLowerCase() !== 'close';
+          const st = (d.status || '-').trim().toLowerCase();
+          const isOpen = st === 'open' || st === '-';
           if (isOpen) {
             wOrder += d.ord;
             wDrop += d.drop;
-            const pasang = Math.max(d.pman, d.psap);
-            wTotalPasang += pasang;
+            const bestPasang = Math.max(d.pman, d.psap);
+            wTotalPasang += bestPasang;
             wPasangSap += d.psap;
-            wSaldo += Math.max(0, d.drop - pasang);
+            wSaldo += (d.drop - bestPasang);
           }
         }
       }
 
-      const bestPasang = wTotalPasang;
-      const effectiveKedatangan = bestPasang > 0 ? bestPasang : wDrop;
-      const wPctKedatangan = wOrder > 0 ? (effectiveKedatangan / wOrder) * 100 : 0;
-      const wPctPasang = wDrop > 0 ? (bestPasang / wDrop) * 100 : 0;
+      // Periksa apakah ada transaksi form input untuk lokasi baru di wilayah w yang belum ada di dbLokasiOrder
+      for (const trx of allTrx) {
+        const l = trx.lokasi.trim().toUpperCase();
+        if (dbLokasiSet.has(l) || isExcludedGorongGorongLocation(l)) continue;
+        const tWil = (trx.wilayah || '').toUpperCase();
+        const matchesWil = tWil.includes(w) || tWil.includes(w.replace('AW0', 'Wilayah '));
+        if (!matchesWil) continue;
+
+        for (const dia of [40, 60, 80, 100]) {
+          if (selectedDia && dia !== selectedDia) continue;
+          const q = dia === 40 ? trx.qtyD40 : dia === 60 ? trx.qtyD60 : dia === 80 ? trx.qtyD80 : trx.qtyD100;
+          if (q <= 0) continue;
+          if (trx.jenisTransaksi === 'ORDER') wOrder += q;
+          else if (trx.jenisTransaksi === 'DROP') {
+            wDrop += q;
+            wSaldo += q;
+          } else if (trx.jenisTransaksi === 'PASANG_MANUAL') {
+            wTotalPasang += q;
+            wSaldo -= q;
+          }
+        }
+      }
+
+      const wPctKedatangan = wOrder > 0 ? (wDrop / wOrder) * 100 : 0;
+      const wPctPasang = wDrop > 0 ? (wTotalPasang / wDrop) * 100 : 0;
 
       return {
         wilayah: w,
         order: wOrder,
         drop: wDrop,
-        pasang: wPasangSap, // JUMLAH PASANG SAP SAJA
-        totalPasang: wPasangSap, // JUMLAH PASANG SAP SAJA
+        pasang: wTotalPasang, // TERPASANG MAKSIMAL
+        totalPasang: wTotalPasang, // TERPASANG MAKSIMAL
         saldo: wSaldo,
         pctKedatangan: parseFloat(wPctKedatangan.toFixed(1)),
         pctPasang: parseFloat(wPctPasang.toFixed(1)),
@@ -529,20 +712,31 @@ export async function GET(request: NextRequest) {
       for (const row of dbLokasiOrder) {
         const lok = row.lokasi.trim().toUpperCase();
         if (isExcludedGorongGorongLocation(lok)) continue;
-        const ord = dia === 40 ? (row.orderD40 || 0) : dia === 60 ? (row.orderD60 || 0) : dia === 80 ? (row.orderD80 || 0) : (row.orderD100 || 0);
-        const drp = dia === 40 ? (row.dropD40 || 0) : dia === 60 ? (row.dropD60 || 0) : dia === 80 ? (row.dropD80 || 0) : (row.dropD100 || 0);
-        const pman = dia === 40 ? (row.pasangManD40 || 0) : dia === 60 ? (row.pasangManD60 || 0) : dia === 80 ? (row.pasangManD80 || 0) : (row.pasangManD100 || 0);
+
+        if (wilayah && wilayah !== 'ALL') {
+          const wList = wilayah.split(',').map((w) => w.trim().toUpperCase()).filter(Boolean);
+          const rowWil = (row.wilayah || '').toUpperCase();
+          if (!wList.some((w) => rowWil.includes(w))) continue;
+        }
+
+        const tData = trxByLok[lok] || { orders: [], drops: [], manuals: [] };
+
+        const ord = (dia === 40 ? (row.orderD40 || 0) : dia === 60 ? (row.orderD60 || 0) : dia === 80 ? (row.orderD80 || 0) : (row.orderD100 || 0)) + getTrxSum(tData.orders, dia);
+        const drp = (dia === 40 ? (row.dropD40 || 0) : dia === 60 ? (row.dropD60 || 0) : dia === 80 ? (row.dropD80 || 0) : (row.dropD100 || 0)) + getTrxSum(tData.drops, dia);
+        const pman = (dia === 40 ? (row.pasangManD40 || 0) : dia === 60 ? (row.pasangManD60 || 0) : dia === 80 ? (row.pasangManD80 || 0) : (row.pasangManD100 || 0)) + getTrxSum(tData.manuals, dia);
         const psap = dia === 40 ? (row.pasangSapD40 || 0) : dia === 60 ? (row.pasangSapD60 || 0) : dia === 80 ? (row.pasangSapD80 || 0) : (row.pasangSapD100 || 0);
         const status = dia === 40 ? row.statusD40 : dia === 60 ? row.statusD60 : dia === 80 ? row.statusD80 : row.statusD100;
-        const isOpen = !status || status.trim().toLowerCase() !== 'close';
+        const st = (status || '-').trim().toLowerCase();
+        const isOpen = st === 'open' || st === '-';
         if (isOpen) {
           dOrder += ord;
           dDrop += drp;
           dPasangMan += pman;
           dPasangSap += psap;
-          const pasang = Math.max(pman, psap);
+          const pasang = psap;
           dTotalPasang += pasang;
-          dSaldo += Math.max(0, drp - pasang);
+          const bestPasang = Math.max(pman, psap);
+          dSaldo += (drp - bestPasang);
         }
       }
 
@@ -564,12 +758,12 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         kpi: {
-          orderYearly: order2026,
-          terpasangYearly: terpasangSapYearly, // JUMLAH DATA PASANG YANG SAP SAJA (2026)
+          orderYearly: orderYearly,
+          terpasangYearly: terpasangSapYearly, // JUMLAH DATA PASANG YANG SAP SAJA (Tahun aktif)
           saldoCurrent: saldoOpen2025_2026,    // Saldo Open khusus tahun 2025 & 2026
           pctKedatangan: parseFloat(pctKedatanganOpen.toFixed(1)),
           pctPemasangan: parseFloat(pctPemasanganOpen.toFixed(1)),
-          totalOrderAll: totalOrderAllMaster > 0 ? totalOrderAllMaster : order2026,
+          totalOrderAll: totalOrderAllMaster > 0 ? totalOrderAllMaster : orderYearly,
           totalDropAll: openDropSum,
           totalTerpasangAll: terpasangSapAll,
         },

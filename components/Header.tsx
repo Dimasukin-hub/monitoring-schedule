@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Sun, Moon, LogOut, ShieldCheck, ChevronDown, Camera, Trash2 } from 'lucide-react';
+import { Sun, Moon, LogOut, ShieldCheck, ChevronDown, Camera, Trash2, LayoutGrid } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAuth } from '@/components/AuthProvider';
 import { getGorongGorongRoute, getLabitaRoute } from '@/lib/portalRoutes';
@@ -415,8 +415,26 @@ export default function Header({
           })}
         </nav>
 
-        {/* Sisi Kanan: Tombol Admin (Sebelum Login) ATAU Profil Avatar + Nama (Setelah Login) */}
-        <div className="flex items-center gap-3 shrink-0">
+        {/* Sisi Kanan: Tombol Portal Utama & Profil User */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          {/* Tombol Portal Utama: Kembali ke Halaman Portal SIMESTA */}
+          <button
+            type="button"
+            onClick={() => {
+              if (onSwitchPortal) {
+                onSwitchPortal('landing');
+              } else {
+                window.location.href = '/';
+              }
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-bold transition-all shadow-2xs hover:shadow-xs cursor-pointer shrink-0"
+            title="Kembali ke Halaman Portal Utama SIMESTA"
+            aria-label="Kembali ke Portal Utama"
+          >
+            <LayoutGrid className="w-3.5 h-3.5 text-[#00873D]" />
+            <span>Portal Utama</span>
+          </button>
+
           {user ? (
             <div className="relative flex items-center gap-2" ref={profileRef}>
               {/* Foto Profil Bulat (Sebelah Kiri) Berdiri Sendiri Tanpa Kotak Oval Pembungkus */}

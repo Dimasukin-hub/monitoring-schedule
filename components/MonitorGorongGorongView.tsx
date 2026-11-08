@@ -47,8 +47,10 @@ let cachedMonitoringData: any = null;
 export default function MonitorGorongGorongView() {
   const [activeTableTab, setActiveTableTab] = useState<'order' | 'belum_order'>('order');
   const [selectedWilayah, setSelectedWilayah] = useState<string[]>([]);
-  const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
-  const [selectedYears, setSelectedYears] = useState<string[]>([]);
+  const [selectedStatusOpenClose, setSelectedStatusOpenClose] = useState<string[]>([]);
+  const [selectedStatusTanaman, setSelectedStatusTanaman] = useState<string[]>([]);
+  const [selectedTanggalOrder, setSelectedTanggalOrder] = useState<string[]>([]);
+  const [selectedYears, setSelectedYears] = useState<string[]>(['2026']);
   const [selectedPrioritas, setSelectedPrioritas] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedSearchLocations, setSelectedSearchLocations] = useState<string[]>([]);
@@ -57,10 +59,23 @@ export default function MonitorGorongGorongView() {
   const [masterLocationsList, setMasterLocationsList] = useState<string[]>([]);
   const [selectedDiameterFilter, setSelectedDiameterFilter] = useState<number | 'ALL'>(40);
   const [chartViewMode, setChartViewMode] = useState<'monthly' | 'wilayah'>('monthly');
+  const [hiddenSeries, setHiddenSeries] = useState<Record<string, boolean>>({
+    order: false,
+    drop: false,
+    totalPasang: false,
+    pctKedatangan: false,
+    pctPasang: false,
+  });
+
+  const toggleSeries = (key: string) => {
+    setHiddenSeries((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   // Custom Dropdown Open States
   const [isWilayahDropdownOpen, setIsWilayahDropdownOpen] = useState<boolean>(false);
-  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState<boolean>(false);
+  const [isStatusOpenCloseDropdownOpen, setIsStatusOpenCloseDropdownOpen] = useState<boolean>(false);
+  const [isStatusTanamanDropdownOpen, setIsStatusTanamanDropdownOpen] = useState<boolean>(false);
+  const [isTanggalOrderDropdownOpen, setIsTanggalOrderDropdownOpen] = useState<boolean>(false);
   const [isPrioritasDropdownOpen, setIsPrioritasDropdownOpen] = useState<boolean>(false);
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
@@ -85,8 +100,14 @@ export default function MonitorGorongGorongView() {
       if (!target.closest('.wilayah-filter-container')) {
         setIsWilayahDropdownOpen(false);
       }
-      if (!target.closest('.status-filter-container')) {
-        setIsStatusDropdownOpen(false);
+      if (!target.closest('.status-openclose-filter-container')) {
+        setIsStatusOpenCloseDropdownOpen(false);
+      }
+      if (!target.closest('.status-tanaman-filter-container')) {
+        setIsStatusTanamanDropdownOpen(false);
+      }
+      if (!target.closest('.tanggal-order-filter-container')) {
+        setIsTanggalOrderDropdownOpen(false);
       }
       if (!target.closest('.prioritas-filter-container')) {
         setIsPrioritasDropdownOpen(false);
@@ -127,7 +148,7 @@ export default function MonitorGorongGorongView() {
     try {
       const params = new URLSearchParams();
       if (selectedWilayah.length > 0) params.set('wilayah', selectedWilayah.join(','));
-      if (selectedStatus.length > 0) params.set('status', selectedStatus.join(','));
+      if (selectedStatusOpenClose.length > 0) params.set('status', selectedStatusOpenClose.join(','));
       if (selectedYears.length > 0) {
         params.set('tahun', selectedYears.join(','));
         params.set('year', selectedYears.join(','));
@@ -161,7 +182,7 @@ export default function MonitorGorongGorongView() {
 
   useEffect(() => {
     loadData();
-  }, [selectedWilayah, selectedStatus, selectedYears, selectedPrioritas, selectedDiameterFilter, selectedSearchLocations]);
+  }, [selectedWilayah, selectedStatusOpenClose, selectedYears, selectedPrioritas, selectedDiameterFilter, selectedSearchLocations]);
 
   const listLokasiOrder = monitoringData?.listLokasiOrder || [];
   const listLokasiBelumOrder = monitoringData?.listLokasiBelumOrder || [];
@@ -344,21 +365,37 @@ export default function MonitorGorongGorongView() {
     return Array.from(set).sort().reverse();
   }, [listLokasiOrder]);
 
+  // Kumpulan Status Tanaman yang tersedia secara dinamis (NSBK, NSFC, FC, ST, dll)
+  const availableStatusTanamanOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of listLokasiOrder) {
+      if (item.status && item.status !== '-') {
+        set.add(item.status.trim().toUpperCase());
+      }
+    }
+    return Array.from(set).sort();
+  }, [listLokasiOrder]);
+
+  // Kumpulan Tanggal Order yang tersedia secara dinamis
+  const availableTanggalOrderOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of listLokasiOrder) {
+      if (item.tanggalOrder && item.tanggalOrder !== '-') {
+        set.add(item.tanggalOrder.trim());
+      }
+    }
+    return Array.from(set).sort();
+  }, [listLokasiOrder]);
+
   // Filter client-side untuk pencarian cepat & multi-tier sorting
   const filteredOrderList = useMemo(() => {
     let list = listLokasiOrder;
     const hasSearchLocations = selectedSearchLocations.length > 0;
     const q = searchQuery.toUpperCase().trim();
 
-    // Filter berdasarkan tahun yang dipilih
-    if (selectedYears.length > 0) {
-      list = list.filter((item: any) => {
-        const itemYear = String(
-          item.tahun || (item.tanggalOrder && item.tanggalOrder !== '-' ? item.tanggalOrder.slice(0, 4) : '2026')
-        );
-        return selectedYears.includes(itemYear);
-      });
-    }
+    // Catatan: Header Tahun mengontrol kartu KPI dan grafik tren.
+    // Tabel List Lokasi Order mempertahankan seluruh 261 petak resmi (121 Open + 140 Close)
+    // agar petak dari tahun 2025 yang berstatus Open (12 petak) tetap tampil penuh saat filter Open diklik.
 
     // Filter berdasarkan wilayah yang dipilih
     if (selectedWilayah.length > 0) {
@@ -376,20 +413,32 @@ export default function MonitorGorongGorongView() {
       });
     }
 
-    // Filter berdasarkan status yang dipilih (Open -> '-' atau 'Open', Close -> 'Close')
-    if (selectedStatus.length > 0) {
+    // Filter berdasarkan status Open / Close
+    if (selectedStatusOpenClose.length > 0) {
       list = list.filter((item: any) => {
-        const itemStatus = String(item.statusAll || '').trim().toUpperCase();
-        return selectedStatus.some((st) => {
-          const upper = st.toUpperCase();
-          if (upper === 'OPEN' || upper === '-') {
-            return itemStatus === '-' || itemStatus === 'OPEN' || itemStatus === '';
-          }
-          if (upper === 'CLOSE') {
-            return itemStatus === 'CLOSE';
-          }
-          return itemStatus === upper;
-        });
+        const rawStatusAll = (item.statusAll || item.status || '-').trim().toLowerCase();
+        const isLocClosed = rawStatusAll === 'close';
+        const isLocOpen = rawStatusAll === 'open' || rawStatusAll === '-';
+
+        const matchOpen = selectedStatusOpenClose.some((sel) => sel.toLowerCase() === 'open') && isLocOpen;
+        const matchClose = selectedStatusOpenClose.some((sel) => sel.toLowerCase() === 'close') && isLocClosed;
+        return matchOpen || matchClose;
+      });
+    }
+
+    // Filter berdasarkan status tanaman yang dipilih (NSBK, NSFC, FC, ST, dll)
+    if (selectedStatusTanaman.length > 0) {
+      list = list.filter((item: any) => {
+        const itemStatus = String(item.status || '').trim().toUpperCase();
+        return selectedStatusTanaman.some((st) => itemStatus.includes(st.toUpperCase()));
+      });
+    }
+
+    // Filter berdasarkan tanggal order yang dipilih
+    if (selectedTanggalOrder.length > 0) {
+      list = list.filter((item: any) => {
+        const itemDate = String(item.tanggalOrder || '').trim();
+        return selectedTanggalOrder.includes(itemDate);
       });
     }
 
@@ -568,17 +617,25 @@ export default function MonitorGorongGorongView() {
     });
 
     return sorted;
-  }, [listLokasiOrder, selectedSearchLocations, searchQuery, sortBy, sortOrder, selectedYears, selectedPrioritas, selectedStatus, selectedWilayah]);
+  }, [listLokasiOrder, selectedSearchLocations, searchQuery, sortBy, sortOrder, selectedYears, selectedPrioritas, selectedStatusOpenClose, selectedStatusTanaman, selectedTanggalOrder, selectedWilayah, selectedDiameterFilter]);
 
   // 5 KPI Cards: Sesuai aturan arsitektur data:
   // Card 1 (Total Order): MasterDataOrderGorongGorong khusus Tahun 2026
   // Card 2 (Total Terpasang): MasterSapGorongGorong qty khusus Tahun 2026
-  // Card 3 (Saldo di Lokasi): Status OPEN per Diameter pada Tahun 2025 dan 2026
-  // Card 4 (% Kedatangan): Status OPEN per Diameter
-  // Card 5 (% Pemasangan): Status OPEN per Diameter
+  // Card 3 (Saldo di Lokasi): Status OPEN per Diameter pada SEMUA TAHUN (Tahun 2025 dan 2026)
+  // Card 4 (% Kedatangan): Status OPEN per Diameter (Murni Drop Fisik / Order)
+  // Card 5 (% Pemasangan): Status OPEN per Diameter (Pasang SAP / Drop)
   const kpi = useMemo(() => {
     const hasSearch = searchQuery.trim().length > 0 || selectedSearchLocations.length > 0;
-    if (summaryData?.kpi && !hasSearch && selectedWilayah.length === 0 && selectedPrioritas.length === 0 && selectedStatus.length === 0) {
+    if (
+      summaryData?.kpi &&
+      !hasSearch &&
+      selectedWilayah.length === 0 &&
+      selectedPrioritas.length === 0 &&
+      selectedStatusOpenClose.length === 0 &&
+      selectedStatusTanaman.length === 0 &&
+      selectedTanggalOrder.length === 0
+    ) {
       return {
         orderYearly: summaryData.kpi.orderYearly ?? 0,
         terpasangYearly: summaryData.kpi.terpasangYearly ?? 0,
@@ -602,54 +659,68 @@ export default function MonitorGorongGorongView() {
       ? [`d${selectedDiameterFilter}`]
       : ['d40', 'd60', 'd80', 'd100'];
 
-    const openCandidates = filteredOrderList;
-    for (const item of openCandidates) {
+    // 1. Saldo di Lokasi Status OPEN di SEMUA TAHUN (2025 dan 2026)
+    for (const item of listLokasiOrder) {
       const itemYear = String(
         item.tahun || (item.tanggalOrder && item.tanggalOrder !== '-' ? item.tanggalOrder.slice(0, 4) : '2026')
       );
       const is2025or2026 = itemYear === '2025' || itemYear === '2026';
+      const matchesYear = selectedYears.length > 0 ? selectedYears.includes(itemYear) : is2025or2026;
+      if (!matchesYear) continue;
 
       for (const k of diaKeys) {
         const d = item[k];
         if (!d) continue;
 
-        // Status evaluasi per masing-masing diameter (bukan status all)
-        const isOpen = !d.status || d.status.trim().toLowerCase() !== 'close';
+        const st = (d.status || '-').trim().toLowerCase();
+        const isOpen = st === 'open' || st === '-';
         if (!isOpen) continue;
+
+        const drp = Number(d.drop) || 0;
+        const psap = Number(d.pasangSap) || 0;
+        const pman = Number(d.pasangManual) || 0;
+        const sld = Number(d.saldo) !== undefined && Number(d.saldo) !== null && !isNaN(Number(d.saldo))
+          ? Number(d.saldo)
+          : (drp - Math.max(pman, psap));
+        saldo += sld;
+      }
+    }
+
+    // 2. Order, Terpasang, % Kedatangan, % Pemasangan dari filteredOrderList
+    for (const item of filteredOrderList) {
+      for (const k of diaKeys) {
+        const d = item[k];
+        if (!d) continue;
 
         const ord = Number(d.order) || 0;
         const drp = Number(d.drop) || 0;
         const psap = Number(d.pasangSap) || 0;
         const pman = Number(d.pasangManual) || 0;
-        const bestPasang = Math.max(pman, psap);
-        const sld = Number(d.saldo) !== undefined && Number(d.saldo) !== null ? Number(d.saldo) : (drp - bestPasang);
 
-        // Saldo khusus tahun 2025 dan 2026
-        if (is2025or2026) {
-          saldo += sld;
+        const st = (d.status || '-').trim().toLowerCase();
+        const isOpen = st === 'open' || st === '-';
+        if (isOpen) {
+          openOrder += ord;
+          openDrop += drp;
+          openPasang += Math.max(pman, psap); // Terpasang Maksimal
         }
-
-        openOrder += ord;
-        openDrop += drp;
-        openPasang += bestPasang;
       }
     }
 
-    const effectiveKedatangan = openPasang > 0 ? openPasang : openDrop;
-    const pctKedatangan = openOrder > 0 ? (effectiveKedatangan / openOrder) * 100 : 0;
+    const pctKedatangan = openOrder > 0 ? (openDrop / openOrder) * 100 : 0;
     const pctPemasangan = openDrop > 0 ? (openPasang / openDrop) * 100 : 0;
 
     return {
-      orderYearly: order,
-      terpasangYearly: terpasangSap,
-      saldoCurrent: saldo,
-      pctKedatangan: parseFloat(pctKedatangan.toFixed(1)),
-      pctPemasangan: parseFloat(pctPemasangan.toFixed(1)),
+      orderYearly: summaryData?.kpi?.orderYearly ?? order,
+      terpasangYearly: summaryData?.kpi?.terpasangYearly ?? terpasangSap,
+      saldoCurrent: summaryData?.kpi?.saldoCurrent ?? saldo,
+      pctKedatangan: summaryData?.kpi?.pctKedatangan ?? parseFloat(pctKedatangan.toFixed(1)),
+      pctPemasangan: summaryData?.kpi?.pctPemasangan ?? parseFloat(pctPemasangan.toFixed(1)),
       totalOrderAll: summaryData?.kpi?.totalOrderAll || order,
       totalDropAll: summaryData?.kpi?.totalDropAll || 0,
       totalTerpasangAll: summaryData?.kpi?.totalTerpasangAll || terpasangSap,
     };
-  }, [summaryData, filteredOrderList, selectedDiameterFilter, searchQuery, selectedSearchLocations, selectedWilayah, selectedPrioritas, selectedStatus]);
+  }, [summaryData, listLokasiOrder, filteredOrderList, selectedDiameterFilter, searchQuery, selectedSearchLocations, selectedWilayah, selectedPrioritas, selectedStatusOpenClose, selectedStatusTanaman, selectedTanggalOrder]);
 
   // Ringkasan per Wilayah: Langsung terhubung dan mengikuti Tabel List Lokasi Order
   const sortedWilayahBreakdown = useMemo(() => {
@@ -685,65 +756,77 @@ export default function MonitorGorongGorongView() {
       ? [`d${selectedDiameterFilter}`]
       : ['d40', 'd60', 'd80', 'd100'];
 
-    for (const item of filteredOrderList) {
+    for (const item of listLokasiOrder) {
+      const itemYear = String(
+        item.tahun || (item.tanggalOrder && item.tanggalOrder !== '-' ? item.tanggalOrder.slice(0, 4) : '2026')
+      );
+      const is2025or2026 = itemYear === '2025' || itemYear === '2026';
+      const matchesYear = selectedYears.length > 0 ? selectedYears.includes(itemYear) : is2025or2026;
+      if (!matchesYear) continue;
+
       const wil = String(item.wilayah || '').trim().toUpperCase();
       // Hanya petak dengan wilayah resmi AW01 s/d AW07 yang dihitung ke ringkasan wilayah
       if (!map.has(wil)) continue;
       const entry = map.get(wil)!;
+      const isFilterClose = selectedStatusOpenClose.includes('Close') && !selectedStatusOpenClose.includes('Open');
       for (const k of diaKeys) {
         const d = item[k];
         if (!d) continue;
 
-        // Status open per masing-masing diameter (bukan status all)
-        const isOpen = !d.status || d.status.trim().toLowerCase() !== 'close';
-        if (!isOpen) continue;
+        // Status per masing-masing diameter: default Open ('-' atau 'open'), atau Close saat filter Close aktif
+        const st = (d.status || '-').trim().toLowerCase();
+        const matchesStatus = isFilterClose ? (st === 'close') : (st === 'open' || st === '-');
+        if (!matchesStatus) continue;
 
         const ord = Number(d.order) || 0;
         const drp = Number(d.drop) || 0;
         const psap = Number(d.pasangSap) || 0;
         const pman = Number(d.pasangManual) || 0;
-        const bestPasang = Math.max(pman, psap);
-        const sld = Number(d.saldo) !== undefined && Number(d.saldo) !== null ? Number(d.saldo) : (drp - bestPasang);
+        const pmax = Math.max(pman, psap);
+        const sld = Number(d.saldo) !== undefined && Number(d.saldo) !== null ? Number(d.saldo) : (drp - pmax);
 
         entry.order += ord;
         entry.drop += drp;
-        entry.pasang += psap; // DATA PASANG YANG SAP SAJA (untuk bar chart)
-        entry.totalPasang += psap; // DATA PASANG YANG SAP SAJA (untuk bar chart)
+        entry.pasang += pmax; // Nilai Terpasang Maksimal
+        entry.totalPasang += pmax; // Nilai Terpasang Maksimal
         entry.saldo += sld;
         entry.openOrder += ord;
         entry.openDrop += drp;
-        entry.openPasang += bestPasang; // MAX(Manual, SAP) untuk perhitungan %
+        entry.openPasang += pmax; // Terpasang Maksimal untuk perhitungan % Pasang
       }
     }
 
     const result = Array.from(map.values()).map((w) => {
-      const effectiveK = w.openPasang > 0 ? w.openPasang : w.openDrop;
-      const pctK = w.openOrder > 0 ? (effectiveK / w.openOrder) * 100 : 0;
+      const pctK = w.openOrder > 0 ? (w.openDrop / w.openOrder) * 100 : 0;
       const pctP = w.openDrop > 0 ? (w.openPasang / w.openDrop) * 100 : 0;
       return {
         wilayah: w.wilayah,
         order: w.order,
         drop: w.drop,
-        pasang: w.pasang, // SAP Saja
-        totalPasang: w.totalPasang, // SAP Saja
+        pasang: w.pasang, // Terpasang Max
+        totalPasang: w.totalPasang, // Terpasang Max
         saldo: w.saldo,
         pctKedatangan: parseFloat(pctK.toFixed(1)),
         pctPasang: parseFloat(pctP.toFixed(1)),
       };
     });
 
+    // Urutkan dari persentase kedatangan terendah ke tertinggi (garis hijau kedatangan)
     return result.sort((a, b) => {
       if (a.pctKedatangan !== b.pctKedatangan) {
         return a.pctKedatangan - b.pctKedatangan;
       }
-      return a.pctPasang - b.pctPasang;
+      return a.wilayah.localeCompare(b.wilayah);
     });
-  }, [filteredOrderList, selectedDiameterFilter]);
+  }, [listLokasiOrder, selectedDiameterFilter, selectedStatusOpenClose, selectedYears]);
 
-  // Data Grafik Tren Bulanan: Dihitung langsung dari baris-baris Tabel List Lokasi Order
+  // Data Grafik Tren Bulanan: Diambil langsung dari summaryData.monthlyData (terhubung langsung dengan tabel MasterDataDropGorongGorong, MasterDataOrderGorongGorong, dan MasterSapGorongGorong)
   const monthlyChartData = useMemo(() => {
+    if (summaryData?.monthlyData && summaryData.monthlyData.length === 12) {
+      return summaryData.monthlyData;
+    }
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-    const data = months.map((m, idx) => ({
+    return months.map((m, idx) => ({
       month: m,
       monthIndex: idx + 1,
       order: 0,
@@ -755,84 +838,7 @@ export default function MonitorGorongGorongView() {
       pctKedatangan: 0,
       pctPasang: 0,
     }));
-
-    const diaKeys = selectedDiameterFilter && selectedDiameterFilter !== 'ALL'
-      ? [`d${selectedDiameterFilter}`]
-      : ['d40', 'd60', 'd80', 'd100'];
-
-    for (const item of filteredOrderList) {
-      let rowOrd = 0;
-      let rowDrp = 0;
-      let rowSap = 0;
-      let rowMan = 0;
-
-      for (const k of diaKeys) {
-        const d = item[k];
-        if (!d) continue;
-        // Status open per masing-masing diameter (bukan status all)
-        const isOpen = !d.status || d.status.trim().toLowerCase() !== 'close';
-        if (!isOpen) continue;
-        rowOrd += Number(d.order) || 0;
-        rowDrp += Number(d.drop) || 0;
-        rowSap += Number(d.pasangSap) || 0;
-        rowMan += Number(d.pasangManual) || 0;
-      }
-
-      // Distribusi bulan Order dari tanggalOrder
-      if (item.tanggalOrder && item.tanggalOrder !== '-') {
-        const d = new Date(item.tanggalOrder);
-        if (!isNaN(d.getTime())) {
-          const m = d.getMonth();
-          if (m >= 0 && m < 12) {
-            data[m].order += rowOrd;
-          }
-        }
-      }
-
-      // Distribusi bulan Drop & Pasang dari tglTerakhirDrop
-      let dropDateStr: string | null = null;
-      for (const k of diaKeys) {
-        if (item[k]?.tglTerakhirDrop && item[k]?.tglTerakhirDrop !== '-') {
-          dropDateStr = item[k].tglTerakhirDrop;
-          break;
-        }
-      }
-      if (!dropDateStr && item.tanggalOrder && item.tanggalOrder !== '-') {
-        dropDateStr = item.tanggalOrder;
-      }
-
-      if (dropDateStr) {
-        const d = new Date(dropDateStr);
-        if (!isNaN(d.getTime())) {
-          const m = d.getMonth();
-          if (m >= 0 && m < 12) {
-            data[m].drop += rowDrp;
-            data[m].pasangSap += rowSap;
-            data[m].pasangManual += rowMan;
-          }
-        }
-      } else {
-        data[0].drop += rowDrp;
-        data[0].pasangSap += rowSap;
-        data[0].pasangManual += rowMan;
-      }
-    }
-
-    let runDrop = 0;
-    let runPasang = 0;
-    for (const m of data) {
-      m.totalPasang = m.pasangSap;
-      runDrop += m.drop;
-      runPasang += m.totalPasang;
-      m.saldo = Math.max(0, runDrop - runPasang);
-      const bestP = Math.max(m.pasangManual, m.pasangSap);
-      const effK = bestP > 0 ? bestP : m.drop;
-      m.pctKedatangan = m.order > 0 ? parseFloat(((effK / m.order) * 100).toFixed(1)) : 0;
-      m.pctPasang = m.drop > 0 ? parseFloat(((bestP / m.drop) * 100).toFixed(1)) : 0;
-    }
-
-    return data;
-  }, [filteredOrderList, selectedDiameterFilter]);
+  }, [summaryData?.monthlyData]);
 
   const filteredBelumOrderList = useMemo(() => {
     let list = listLokasiBelumOrder;
@@ -971,6 +977,40 @@ export default function MonitorGorongGorongView() {
     }
   };
 
+  // Handler update status diameter interaktif (Open / Cek / Close)
+  const handleUpdateDiameterStatus = async (lokasi: string, diameter: number, newStatus: string) => {
+    const normalized = (newStatus === 'Open' || newStatus === '-') ? '-' : newStatus;
+    const diaKey = `d${diameter}`;
+
+    // 1. Optimistic update local state in monitoringData
+    setMonitoringData((prev: any) => {
+      if (!prev || !prev.listLokasiOrder) return prev;
+      const updatedList = prev.listLokasiOrder.map((item: any) => {
+        if (item.lokasi === lokasi) {
+          const updatedDia = { ...(item[diaKey] || {}), status: normalized };
+          return { ...item, [diaKey]: updatedDia };
+        }
+        return item;
+      });
+      return { ...prev, listLokasiOrder: updatedList };
+    });
+
+    // 2. Kirim update ke backend database permanen
+    try {
+      const res = await fetch('/api/gorong-gorong/monitoring', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lokasi, diameter, status: normalized }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        console.error('Failed to update diameter status:', data.message);
+      }
+    } catch (err) {
+      console.error('Error updating diameter status:', err);
+    }
+  };
+
   // Export Excel (.xlsx) dengan header biru muda, rapi, dan filter aktif
   const handleExportExcel = async () => {
     setIsExporting(true);
@@ -978,7 +1018,8 @@ export default function MonitorGorongGorongView() {
       const params = new URLSearchParams();
       params.set('tab', activeTableTab);
       if (selectedWilayah.length > 0) params.set('wilayah', selectedWilayah.join(','));
-      if (selectedStatus.length > 0) params.set('status', selectedStatus.join(','));
+      if (selectedStatusOpenClose.length > 0) params.set('status', selectedStatusOpenClose.join(','));
+      if (selectedStatusTanaman.length > 0) params.set('statusTanaman', selectedStatusTanaman.join(','));
       if (selectedYears.length > 0) params.set('tahun', selectedYears.join(','));
       if (selectedPrioritas.length > 0) params.set('prioritas', selectedPrioritas.join(','));
       if (selectedDiameterFilter && selectedDiameterFilter !== 'ALL') params.set('diameter', String(selectedDiameterFilter));
@@ -1115,19 +1156,8 @@ export default function MonitorGorongGorongView() {
             ))}
           </div>
 
-          {/* Tombol Filter Tahun (Semua Tahun, 2025, 2026) */}
+          {/* Tombol Filter Tahun (2025, 2026) */}
           <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0">
-            <button
-              type="button"
-              onClick={() => setSelectedYears([])}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                selectedYears.length === 0
-                  ? 'bg-[#00873D] text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Semua Tahun
-            </button>
             {['2025', '2026'].map((yr) => (
               <button
                 key={yr}
@@ -1150,7 +1180,10 @@ export default function MonitorGorongGorongView() {
               type="button"
               onClick={() => {
                 setIsWilayahDropdownOpen((prev) => !prev);
-                setIsStatusDropdownOpen(false);
+                setIsStatusOpenCloseDropdownOpen(false);
+                setIsStatusTanamanDropdownOpen(false);
+                setIsTanggalOrderDropdownOpen(false);
+                setIsPrioritasDropdownOpen(false);
               }}
               title={selectedWilayah.length === 0 ? 'Semua Wilayah' : selectedWilayah.join(', ')}
               className="flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs whitespace-nowrap"
@@ -1453,16 +1486,61 @@ export default function MonitorGorongGorongView() {
                     return [`${Number(value).toLocaleString('id-ID')} pcs`, name];
                   }}
                 />
-                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
-                <Bar yAxisId="left" dataKey="order" name="Order" fill="#F58220" radius={[4, 4, 0, 0]} maxBarSize={32} />
-                <Bar yAxisId="left" dataKey="drop" name="Drop (Kedatangan)" fill="#00873D" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                <Legend
+                  content={() => (
+                    <div className="flex flex-wrap items-center justify-center gap-4 pt-2 text-[11px] font-semibold select-none">
+                      {[
+                        { key: 'order', label: 'Order', color: '#F58220', isLine: false },
+                        { key: 'drop', label: 'Drop (Kedatangan)', color: '#00873D', isLine: false },
+                        {
+                          key: 'totalPasang',
+                          label: chartViewMode === 'monthly' ? 'Terpasang (SAP)' : 'Terpasang (Max)',
+                          color: '#009EE2',
+                          isLine: false,
+                        },
+                        { key: 'pctKedatangan', label: '% Kedatangan', color: '#8B5CF6', isLine: true },
+                        { key: 'pctPasang', label: '% Pasang', color: '#0D9488', isLine: true },
+                      ].map((it) => {
+                        const isHidden = !!hiddenSeries[it.key];
+                        return (
+                          <span
+                            key={it.key}
+                            onClick={() => toggleSeries(it.key)}
+                            className={`inline-flex items-center gap-1.5 transition-all duration-200 cursor-pointer ${
+                              isHidden
+                                ? 'opacity-35 text-slate-400 dark:text-slate-500'
+                                : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                            title={`Klik untuk ${isHidden ? 'menampilkan' : 'menyembunyikan'} ${it.label}`}
+                          >
+                            {it.isLine ? (
+                              <span
+                                className="w-3.5 h-0.5 rounded-full shrink-0"
+                                style={{ backgroundColor: isHidden ? '#94a3b8' : it.color }}
+                              />
+                            ) : (
+                              <span
+                                className="w-2.5 h-2.5 rounded-xs shrink-0"
+                                style={{ backgroundColor: isHidden ? '#94a3b8' : it.color }}
+                              />
+                            )}
+                            <span>{it.label}</span>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                />
+                <Bar yAxisId="left" dataKey="order" name="Order" fill="#F58220" radius={[4, 4, 0, 0]} maxBarSize={32} hide={hiddenSeries['order']} />
+                <Bar yAxisId="left" dataKey="drop" name="Drop (Kedatangan)" fill="#00873D" radius={[4, 4, 0, 0]} maxBarSize={32} hide={hiddenSeries['drop']} />
                 <Bar
                   yAxisId="left"
                   dataKey="totalPasang"
-                  name="Terpasang (SAP)"
+                  name={chartViewMode === 'monthly' ? 'Terpasang (SAP)' : 'Terpasang (Max)'}
                   fill="#009EE2"
                   radius={[4, 4, 0, 0]}
                   maxBarSize={32}
+                  hide={hiddenSeries['totalPasang']}
                 />
                 <Line
                   yAxisId="right"
@@ -1473,6 +1551,7 @@ export default function MonitorGorongGorongView() {
                   strokeWidth={2.5}
                   dot={{ r: 3.5, fill: '#8B5CF6', strokeWidth: 1.5, stroke: '#fff' }}
                   activeDot={{ r: 6 }}
+                  hide={hiddenSeries['pctKedatangan']}
                 />
                 <Line
                   yAxisId="right"
@@ -1483,6 +1562,7 @@ export default function MonitorGorongGorongView() {
                   strokeWidth={2.5}
                   dot={{ r: 3.5, fill: '#0D9488', strokeWidth: 1.5, stroke: '#fff' }}
                   activeDot={{ r: 6 }}
+                  hide={hiddenSeries['pctPasang']}
                 />
               </ComposedChart>
             </ResponsiveContainer>
@@ -1588,50 +1668,120 @@ export default function MonitorGorongGorongView() {
             </span>
           </button>
 
-          {/* Filter Status (Dipindah posisinya disamping tombol List Lokasi Belum Order) */}
-          <div className="relative status-filter-container">
+          {/* Filter Status (Dropdown dengan opsi Semua Status, Open, Close) */}
+          <div className="relative status-openclose-filter-container">
             <button
               type="button"
               onClick={() => {
-                setIsStatusDropdownOpen((prev) => !prev);
+                setIsStatusOpenCloseDropdownOpen((prev) => !prev);
+                setIsStatusTanamanDropdownOpen(false);
+                setIsTanggalOrderDropdownOpen(false);
+                setIsPrioritasDropdownOpen(false);
                 setIsWilayahDropdownOpen(false);
               }}
-              className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs"
+              className="flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-[110px]"
             >
               <span>
-                {selectedStatus.length === 0
+                {selectedStatusOpenClose.length === 0
                   ? 'Status'
-                  : selectedStatus.join(', ')}
+                  : selectedStatusOpenClose.join(', ')}
               </span>
               <ChevronDown
                 className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
-                  isStatusDropdownOpen ? 'rotate-180' : 'rotate-0'
+                  isStatusOpenCloseDropdownOpen ? 'rotate-180' : 'rotate-0'
                 }`}
               />
             </button>
 
-            {isStatusDropdownOpen && (
+            {isStatusOpenCloseDropdownOpen && (
               <div className="absolute left-0 top-full mt-1.5 w-36 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100">
                 <button
                   type="button"
-                  onClick={() => setSelectedStatus([])}
-                  className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
-                    selectedStatus.length === 0
+                  onClick={() => setSelectedStatusOpenClose([])}
+                  className={`w-full px-3.5 py-2 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between whitespace-nowrap gap-2 ${
+                    selectedStatusOpenClose.length === 0
                       ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
                       : 'text-slate-700 dark:text-slate-300'
                   }`}
                 >
-                  <span>Semua Status</span>
-                  {selectedStatus.length === 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                  <span className="whitespace-nowrap">Semua Status</span>
+                  {selectedStatusOpenClose.length === 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D] shrink-0" />}
                 </button>
                 {['Open', 'Close'].map((st) => {
-                  const isSelected = selectedStatus.includes(st);
+                  const isSelected = selectedStatusOpenClose.includes(st);
                   return (
                     <button
                       key={st}
                       type="button"
                       onClick={() => {
-                        setSelectedStatus((prev) =>
+                        setSelectedStatusOpenClose((prev) =>
+                          prev.includes(st) ? prev.filter((item) => item !== st) : [...prev, st]
+                        );
+                      }}
+                      className={`w-full px-3.5 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
+                        isSelected
+                          ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
+                          : 'text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      <span>{st}</span>
+                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Filter Status Tanaman (NSBK, NSFC, FC, ST, dll) */}
+          <div className="relative status-tanaman-filter-container">
+            <button
+              type="button"
+              onClick={() => {
+                setIsStatusTanamanDropdownOpen((prev) => !prev);
+                setIsStatusOpenCloseDropdownOpen(false);
+                setIsTanggalOrderDropdownOpen(false);
+                setIsPrioritasDropdownOpen(false);
+                setIsWilayahDropdownOpen(false);
+              }}
+              className="flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-[170px]"
+            >
+              <span className="whitespace-nowrap">
+                {selectedStatusTanaman.length === 0
+                  ? 'Status Tanaman'
+                  : selectedStatusTanaman.length === 1
+                  ? selectedStatusTanaman[0]
+                  : `Status Tanaman (${selectedStatusTanaman.length})`}
+              </span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                  isStatusTanamanDropdownOpen ? 'rotate-180' : 'rotate-0'
+                }`}
+              />
+            </button>
+
+            {isStatusTanamanDropdownOpen && (
+              <div className="absolute left-0 top-full mt-1.5 w-60 min-w-[240px] max-h-60 overflow-y-auto py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100 custom-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => setSelectedStatusTanaman([])}
+                  className={`w-full px-3.5 py-2 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between whitespace-nowrap gap-2 ${
+                    selectedStatusTanaman.length === 0
+                      ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
+                      : 'text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <span className="whitespace-nowrap">Semua Status Tanaman</span>
+                  {selectedStatusTanaman.length === 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D] shrink-0" />}
+                </button>
+                {availableStatusTanamanOptions.map((st) => {
+                  const isSelected = selectedStatusTanaman.includes(st);
+                  return (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => {
+                        setSelectedStatusTanaman((prev) =>
                           prev.includes(st) ? prev.filter((item) => item !== st) : [...prev, st]
                         );
                       }}
@@ -1650,13 +1800,82 @@ export default function MonitorGorongGorongView() {
             )}
           </div>
 
+          {/* Filter Tanggal Order */}
+          <div className="relative tanggal-order-filter-container">
+            <button
+              type="button"
+              onClick={() => {
+                setIsTanggalOrderDropdownOpen((prev) => !prev);
+                setIsStatusOpenCloseDropdownOpen(false);
+                setIsStatusTanamanDropdownOpen(false);
+                setIsPrioritasDropdownOpen(false);
+                setIsWilayahDropdownOpen(false);
+              }}
+              className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs"
+            >
+              <span>
+                {selectedTanggalOrder.length === 0
+                  ? 'Tgl Order'
+                  : selectedTanggalOrder.length === 1
+                  ? selectedTanggalOrder[0]
+                  : `Tgl Order (${selectedTanggalOrder.length})`}
+              </span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                  isTanggalOrderDropdownOpen ? 'rotate-180' : 'rotate-0'
+                }`}
+              />
+            </button>
+
+            {isTanggalOrderDropdownOpen && (
+              <div className="absolute left-0 top-full mt-1.5 w-48 max-h-60 overflow-y-auto py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100 custom-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => setSelectedTanggalOrder([])}
+                  className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
+                    selectedTanggalOrder.length === 0
+                      ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
+                      : 'text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <span>Semua Tanggal</span>
+                  {selectedTanggalOrder.length === 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                </button>
+                {availableTanggalOrderOptions.map((tgl) => {
+                  const isSelected = selectedTanggalOrder.includes(tgl);
+                  return (
+                    <button
+                      key={tgl}
+                      type="button"
+                      onClick={() => {
+                        setSelectedTanggalOrder((prev) =>
+                          prev.includes(tgl) ? prev.filter((item) => item !== tgl) : [...prev, tgl]
+                        );
+                      }}
+                      className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
+                        isSelected
+                          ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
+                          : 'text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      <span className="font-mono text-[11px]">{tgl}</span>
+                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           {/* Filter Prioritas (Multi-select popup di samping tombol Filter Status) */}
           <div className="relative prioritas-filter-container">
             <button
               type="button"
               onClick={() => {
                 setIsPrioritasDropdownOpen((prev) => !prev);
-                setIsStatusDropdownOpen(false);
+                setIsStatusOpenCloseDropdownOpen(false);
+                setIsStatusTanamanDropdownOpen(false);
+                setIsTanggalOrderDropdownOpen(false);
                 setIsWilayahDropdownOpen(false);
               }}
               className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs"
@@ -2148,7 +2367,7 @@ export default function MonitorGorongGorongView() {
                             ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30'
                             : 'bg-amber-500/15 text-amber-600 border border-amber-500/30'
                         }`}>
-                          {item.statusAll}
+                          {item.statusAll === 'Close' ? 'Close' : (item.statusAll === '-' ? 'Open' : item.statusAll || 'Open')}
                         </span>
                       </td>
                       <td className="px-2.5 py-2 text-center font-mono border-r-2 border-b border-slate-300 dark:border-slate-700 w-[90px] min-w-[90px]">
@@ -2203,10 +2422,23 @@ export default function MonitorGorongGorongView() {
                                 <span>{d40?.pctPasang}%</span>
                               )}
                             </td>
-                            <td className="px-2.5 py-2 text-center border-r-2 border-b border-slate-300 dark:border-slate-700">
-                              <span className={`text-[10px] font-bold ${d40?.status === 'Close' ? 'text-emerald-600' : 'text-slate-500'}`}>
-                                {d40?.status || '-'}
-                              </span>
+                            <td className="px-1.5 py-1 text-center border-r-2 border-b border-slate-300 dark:border-slate-700">
+                              <select
+                                value={d40?.status === 'Close' ? 'Close' : d40?.status === 'Cek' ? 'Cek' : 'Open'}
+                                onChange={(e) => handleUpdateDiameterStatus(item.lokasi, 40, e.target.value)}
+                                className={`text-[10px] font-bold px-1.5 py-0.5 rounded border cursor-pointer transition-all outline-none ${
+                                  d40?.status === 'Close'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-700'
+                                    : d40?.status === 'Cek'
+                                    ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700'
+                                    : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700'
+                                }`}
+                                title={`Ubah status diameter 40 lokasi ${item.lokasi}`}
+                              >
+                                <option value="Open">Open</option>
+                                <option value="Cek">Cek</option>
+                                <option value="Close">Close</option>
+                              </select>
                             </td>
                           </>
                         );
@@ -2257,10 +2489,26 @@ export default function MonitorGorongGorongView() {
                                 <span>{d?.pctPasang}%</span>
                               )}
                             </td>
-                            <td className={`px-2.5 py-2 text-center border-b ${dIdx !== 2 ? 'border-r-2 border-slate-300 dark:border-slate-700' : 'border-r border-slate-200 dark:border-slate-700'}`}>
-                              <span className={`text-[10px] font-bold ${d?.status === 'Close' ? 'text-emerald-600' : 'text-slate-500'}`}>
-                                {d?.status || '-'}
-                              </span>
+                            <td className={`px-1.5 py-1 text-center border-b ${dIdx !== 2 ? 'border-r-2 border-slate-300 dark:border-slate-700' : 'border-r border-slate-200 dark:border-slate-700'}`}>
+                              <select
+                                value={d?.status === 'Close' ? 'Close' : d?.status === 'Cek' ? 'Cek' : 'Open'}
+                                onChange={(e) => {
+                                  const diaNum = diaKey === 'd60' ? 60 : diaKey === 'd80' ? 80 : 100;
+                                  handleUpdateDiameterStatus(item.lokasi, diaNum, e.target.value);
+                                }}
+                                className={`text-[10px] font-bold px-1.5 py-0.5 rounded border cursor-pointer transition-all outline-none ${
+                                  d?.status === 'Close'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-700'
+                                    : d?.status === 'Cek'
+                                    ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700'
+                                    : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700'
+                                }`}
+                                title={`Ubah status ${diaKey.toUpperCase()} lokasi ${item.lokasi}`}
+                              >
+                                <option value="Open">Open</option>
+                                <option value="Cek">Cek</option>
+                                <option value="Close">Close</option>
+                              </select>
                             </td>
                           </React.Fragment>
                         );

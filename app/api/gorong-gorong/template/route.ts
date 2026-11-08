@@ -299,6 +299,96 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    // =========================================================================
+    // SHEET 3: Data Drop (7 Kolom Resmi)
+    // =========================================================================
+    const wsDrop = workbook.addWorksheet('Data Drop', {
+      views: [{ state: 'frozen', xSplit: 2, ySplit: 4, showGridLines: true }],
+    });
+
+    // Row 1: Title
+    wsDrop.mergeCells('A1:G1');
+    const dropTitle = wsDrop.getCell('A1');
+    dropTitle.value = 'MASTER DATA DROP GORONG-GORONG (7 KOLOM)';
+    dropTitle.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF00873D' } };
+    dropTitle.alignment = { vertical: 'middle', horizontal: 'left' };
+    wsDrop.getRow(1).height = 25;
+
+    // Row 2: Empty
+    wsDrop.getRow(2).height = 8;
+
+    // Row 3: Super Header
+    wsDrop.mergeCells('A3:C3');
+    const supDropIdent = wsDrop.getCell('A3');
+    supDropIdent.value = 'IDENTITAS KEDATANGAN (DROP)';
+    supDropIdent.fill = headerFill;
+    supDropIdent.font = fontHeader;
+    supDropIdent.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    wsDrop.mergeCells('D3:G3');
+    const supDropDia = wsDrop.getCell('D3');
+    supDropDia.value = 'DIAMETER GORONG - GORONG DROP (PCS)';
+    supDropDia.fill = subHeaderFill;
+    supDropDia.font = fontHeader;
+    supDropDia.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    wsDrop.getRow(3).height = 20;
+
+    // Row 4: Column Headers (7 Kolom Resmi)
+    const dropColumns = [
+      'Lokasi',
+      'Wilayah',
+      'Tanggal',
+      'Diameter 40',
+      'Diameter 60',
+      'Diameter 80',
+      'Diameter 100',
+    ];
+
+    wsDrop.getRow(4).values = dropColumns;
+    wsDrop.getRow(4).height = 24;
+
+    for (let c = 1; c <= dropColumns.length; c++) {
+      const cell = wsDrop.getRow(4).getCell(c);
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: c <= 3 ? 'FF1E293B' : 'FF00873D' },
+      };
+      cell.font = fontSubHeader;
+      cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      cell.border = thinBorder;
+    }
+
+    // Set Column Widths (7 Kolom)
+    const dropWidths = [14, 12, 14, 14, 14, 14, 14];
+    dropWidths.forEach((w, idx) => {
+      wsDrop.getColumn(idx + 1).width = w;
+    });
+
+    // Sample Data Rows for Data Drop
+    const sampleDropRows = [
+      ['024K', 'AW02', '2026-02-10', 20, 10, 0, 0],
+      ['063G2', 'AW04', '2026-02-20', 40, 15, 5, 0],
+      ['083A', 'AW05', '2025-11-20', 10, 0, 0, 0],
+      ['020B', 'AW01', '2026-03-05', 25, 10, 0, 0],
+    ];
+
+    sampleDropRows.forEach((rowVals, rIdx) => {
+      const row = wsDrop.getRow(5 + rIdx);
+      row.values = rowVals;
+      row.height = 20;
+      for (let c = 1; c <= dropColumns.length; c++) {
+        const cell = row.getCell(c);
+        cell.font = { name: 'Calibri', size: 9 };
+        cell.border = thinBorder;
+        cell.alignment = {
+          vertical: 'middle',
+          horizontal: c === 1 || c === 2 || c === 3 ? 'center' : 'right',
+        };
+      }
+    });
+
     const buffer = await workbook.xlsx.writeBuffer();
 
     return new NextResponse(buffer, {

@@ -455,3 +455,21 @@ model MasterDataOrderGorongGorong {
   @@index([tanggal])
 }
 
+model MasterDataDropGorongGorong {
+  id           Int       @id @default(autoincrement())
+  lokasi       String
+  wilayah      String?   // Dari MasterStatusLokasi.strucPlant
+  tanggal      DateTime  // Hanya data tahun 2025 dan 2026, bukan 'x'
+  diameter40   Int       @default(0)
+  diameter60   Int       @default(0)
+  diameter80   Int       @default(0)
+  diameter100  Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([lokasi])
+  @@index([wilayah])
+  @@index([tanggal])
+}
+
+
