@@ -492,7 +492,7 @@ export async function GET(request: NextRequest) {
         filtered = filtered.filter((i) => qList.some((q) => i.lokasi.toUpperCase().includes(q) || i.wilayah.toUpperCase().includes(q)));
       }
 
-      const sheet = workbook.addWorksheet('List Lokasi Order', {
+      const sheet = workbook.addWorksheet('Lokasi Order', {
         views: [{ state: 'frozen', xSplit: 11, ySplit: 1 }],
       });
 
@@ -675,10 +675,10 @@ export async function GET(request: NextRequest) {
         { header: 'Lokasi', key: 'lokasi', width: 14 },
         { header: 'Wilayah', key: 'wilayah', width: 12 },
         { header: 'Tanggal', key: 'tanggal', width: 14 },
-        { header: 'Diameter 40', key: 'qtyD40', width: 14 },
-        { header: 'Diameter 60', key: 'qtyD60', width: 14 },
-        { header: 'Diameter 80', key: 'qtyD80', width: 14 },
-        { header: 'Diameter 100', key: 'qtyD100', width: 14 },
+        { header: 'Diameter 40', key: 'diameter40', width: 14 },
+        { header: 'Diameter 60', key: 'diameter60', width: 14 },
+        { header: 'Diameter 80', key: 'diameter80', width: 14 },
+        { header: 'Diameter 100', key: 'diameter100', width: 14 },
         { header: 'Lookup Status', key: 'lookupStatus', width: 16 },
       ];
       wsDataOrder.columns = orderColumns;
@@ -697,17 +697,24 @@ export async function GET(request: NextRequest) {
           lokasi: ord.lokasi,
           wilayah: ord.wilayah || '-',
           tanggal: ord.tanggal ? (ord.tanggal instanceof Date ? ord.tanggal.toISOString().slice(0, 10) : String(ord.tanggal).slice(0, 10)) : '-',
-          diameter40: ord.diameter40 || 0,
-          diameter60: ord.diameter60 || 0,
-          diameter80: ord.diameter80 || 0,
-          diameter100: ord.diameter100 || 0,
+          diameter40: Number(ord.diameter40) || 0,
+          diameter60: Number(ord.diameter60) || 0,
+          diameter80: Number(ord.diameter80) || 0,
+          diameter100: Number(ord.diameter100) || 0,
+          qtyD40: Number(ord.diameter40) || 0,
+          qtyD60: Number(ord.diameter60) || 0,
+          qtyD80: Number(ord.diameter80) || 0,
+          qtyD100: Number(ord.diameter100) || 0,
           lookupStatus: ord.lookupStatus || 'A. GOOD',
         });
         row.height = 20;
         const isOdd = idx % 2 === 1;
-        row.eachCell((cell) => {
+        row.eachCell((cell, colNumber) => {
           cell.font = { size: 9.5, name: 'Calibri' };
-          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          cell.alignment = {
+            vertical: 'middle',
+            horizontal: colNumber >= 5 && colNumber <= 8 ? 'right' : 'center',
+          };
           cell.border = cellBorder;
           if (isOdd) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
         });
@@ -742,16 +749,19 @@ export async function GET(request: NextRequest) {
           lokasi: drp.lokasi,
           wilayah: drp.wilayah || '-',
           tanggal: drp.tanggal ? (drp.tanggal instanceof Date ? drp.tanggal.toISOString().slice(0, 10) : String(drp.tanggal).slice(0, 10)) : '-',
-          diameter40: drp.diameter40 || 0,
-          diameter60: drp.diameter60 || 0,
-          diameter80: drp.diameter80 || 0,
-          diameter100: drp.diameter100 || 0,
+          diameter40: Number(drp.diameter40) || 0,
+          diameter60: Number(drp.diameter60) || 0,
+          diameter80: Number(drp.diameter80) || 0,
+          diameter100: Number(drp.diameter100) || 0,
         });
         row.height = 20;
         const isOdd = idx % 2 === 1;
-        row.eachCell((cell) => {
+        row.eachCell((cell, colNumber) => {
           cell.font = { size: 9.5, name: 'Calibri' };
-          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          cell.alignment = {
+            vertical: 'middle',
+            horizontal: colNumber >= 4 && colNumber <= 7 ? 'right' : 'center',
+          };
           cell.border = cellBorder;
           if (isOdd) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
         });
