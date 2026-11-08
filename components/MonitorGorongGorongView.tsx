@@ -1184,15 +1184,11 @@ export default function MonitorGorongGorongView() {
                 setIsTanggalOrderDropdownOpen(false);
                 setIsPrioritasDropdownOpen(false);
               }}
-              title={selectedWilayah.length === 0 ? 'Semua Wilayah' : selectedWilayah.join(', ')}
+              title={selectedWilayah.length === 0 ? 'Semua Wilayah' : selectedWilayah[0]}
               className="flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs whitespace-nowrap"
             >
               <span className="truncate max-w-[120px]">
-                {selectedWilayah.length === 0
-                  ? 'Semua Wilayah'
-                  : selectedWilayah.length === 1
-                  ? selectedWilayah[0]
-                  : `${selectedWilayah.length} Wilayah`}
+                {selectedWilayah.length === 0 ? 'Semua Wilayah' : selectedWilayah[0]}
               </span>
               <ChevronDown
                 className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
@@ -1207,6 +1203,7 @@ export default function MonitorGorongGorongView() {
                   type="button"
                   onClick={() => {
                     setSelectedWilayah([]);
+                    setIsWilayahDropdownOpen(false);
                   }}
                   className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
                     selectedWilayah.length === 0 ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30' : 'text-slate-700 dark:text-slate-300'
@@ -1222,9 +1219,8 @@ export default function MonitorGorongGorongView() {
                       key={w}
                       type="button"
                       onClick={() => {
-                        setSelectedWilayah((prev) =>
-                          prev.includes(w) ? prev.filter((item) => item !== w) : [...prev, w]
-                        );
+                        setSelectedWilayah((prev) => (prev.includes(w) ? [] : [w]));
+                        setIsWilayahDropdownOpen(false);
                       }}
                       className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
                         isSelected ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30' : 'text-slate-700 dark:text-slate-300'
@@ -1588,9 +1584,7 @@ export default function MonitorGorongGorongView() {
               <div
                 key={w.wilayah}
                 onClick={() => {
-                  setSelectedWilayah((prev) =>
-                    prev.includes(w.wilayah) ? prev.filter((item) => item !== w.wilayah) : [...prev, w.wilayah]
-                  );
+                  setSelectedWilayah((prev) => (prev.includes(w.wilayah) ? [] : [w.wilayah]));
                 }}
                 className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
                   selectedWilayah.includes(w.wilayah)
@@ -1683,7 +1677,7 @@ export default function MonitorGorongGorongView() {
               <span>
                 {selectedStatusOpenClose.length === 0
                   ? 'Status'
-                  : selectedStatusOpenClose.join(', ')}
+                  : selectedStatusOpenClose[0]}
               </span>
               <ChevronDown
                 className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
@@ -1696,7 +1690,10 @@ export default function MonitorGorongGorongView() {
               <div className="absolute left-0 top-full mt-1.5 w-36 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100">
                 <button
                   type="button"
-                  onClick={() => setSelectedStatusOpenClose([])}
+                  onClick={() => {
+                    setSelectedStatusOpenClose([]);
+                    setIsStatusOpenCloseDropdownOpen(false);
+                  }}
                   className={`w-full px-3.5 py-2 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between whitespace-nowrap gap-2 ${
                     selectedStatusOpenClose.length === 0
                       ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
@@ -1713,9 +1710,8 @@ export default function MonitorGorongGorongView() {
                       key={st}
                       type="button"
                       onClick={() => {
-                        setSelectedStatusOpenClose((prev) =>
-                          prev.includes(st) ? prev.filter((item) => item !== st) : [...prev, st]
-                        );
+                        setSelectedStatusOpenClose((prev) => (prev.includes(st) ? [] : [st]));
+                        setIsStatusOpenCloseDropdownOpen(false);
                       }}
                       className={`w-full px-3.5 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
                         isSelected
@@ -1748,9 +1744,7 @@ export default function MonitorGorongGorongView() {
               <span className="whitespace-nowrap">
                 {selectedStatusTanaman.length === 0
                   ? 'Status Tanaman'
-                  : selectedStatusTanaman.length === 1
-                  ? selectedStatusTanaman[0]
-                  : `Status Tanaman (${selectedStatusTanaman.length})`}
+                  : selectedStatusTanaman[0]}
               </span>
               <ChevronDown
                 className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
@@ -1763,7 +1757,10 @@ export default function MonitorGorongGorongView() {
               <div className="absolute left-0 top-full mt-1.5 w-60 min-w-[240px] max-h-60 overflow-y-auto py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100 custom-scrollbar">
                 <button
                   type="button"
-                  onClick={() => setSelectedStatusTanaman([])}
+                  onClick={() => {
+                    setSelectedStatusTanaman([]);
+                    setIsStatusTanamanDropdownOpen(false);
+                  }}
                   className={`w-full px-3.5 py-2 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between whitespace-nowrap gap-2 ${
                     selectedStatusTanaman.length === 0
                       ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
@@ -1780,9 +1777,8 @@ export default function MonitorGorongGorongView() {
                       key={st}
                       type="button"
                       onClick={() => {
-                        setSelectedStatusTanaman((prev) =>
-                          prev.includes(st) ? prev.filter((item) => item !== st) : [...prev, st]
-                        );
+                        setSelectedStatusTanaman((prev) => (prev.includes(st) ? [] : [st]));
+                        setIsStatusTanamanDropdownOpen(false);
                       }}
                       className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
                         isSelected
@@ -1815,9 +1811,7 @@ export default function MonitorGorongGorongView() {
               <span>
                 {selectedTanggalOrder.length === 0
                   ? 'Tgl Order'
-                  : selectedTanggalOrder.length === 1
-                  ? selectedTanggalOrder[0]
-                  : `Tgl Order (${selectedTanggalOrder.length})`}
+                  : selectedTanggalOrder[0]}
               </span>
               <ChevronDown
                 className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
@@ -1830,7 +1824,10 @@ export default function MonitorGorongGorongView() {
               <div className="absolute left-0 top-full mt-1.5 w-48 max-h-60 overflow-y-auto py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100 custom-scrollbar">
                 <button
                   type="button"
-                  onClick={() => setSelectedTanggalOrder([])}
+                  onClick={() => {
+                    setSelectedTanggalOrder([]);
+                    setIsTanggalOrderDropdownOpen(false);
+                  }}
                   className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
                     selectedTanggalOrder.length === 0
                       ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
@@ -1847,9 +1844,8 @@ export default function MonitorGorongGorongView() {
                       key={tgl}
                       type="button"
                       onClick={() => {
-                        setSelectedTanggalOrder((prev) =>
-                          prev.includes(tgl) ? prev.filter((item) => item !== tgl) : [...prev, tgl]
-                        );
+                        setSelectedTanggalOrder((prev) => (prev.includes(tgl) ? [] : [tgl]));
+                        setIsTanggalOrderDropdownOpen(false);
                       }}
                       className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
                         isSelected
@@ -1866,7 +1862,7 @@ export default function MonitorGorongGorongView() {
             )}
           </div>
 
-          {/* Filter Prioritas (Multi-select popup di samping tombol Filter Status) */}
+          {/* Filter Prioritas (Dropdown di samping tombol Filter Status) */}
           <div className="relative prioritas-filter-container">
             <button
               type="button"
@@ -1882,9 +1878,7 @@ export default function MonitorGorongGorongView() {
               <span>
                 {selectedPrioritas.length === 0
                   ? 'Prioritas'
-                  : selectedPrioritas.length === 1
-                  ? `Prioritas ${selectedPrioritas[0]}`
-                  : `Prio: ${selectedPrioritas.join(', ')}`}
+                  : `Prioritas ${selectedPrioritas[0]}`}
               </span>
               <ChevronDown
                 className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
@@ -1897,7 +1891,10 @@ export default function MonitorGorongGorongView() {
               <div className="absolute left-0 top-full mt-1.5 w-36 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100">
                 <button
                   type="button"
-                  onClick={() => setSelectedPrioritas([])}
+                  onClick={() => {
+                    setSelectedPrioritas([]);
+                    setIsPrioritasDropdownOpen(false);
+                  }}
                   className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
                     selectedPrioritas.length === 0
                       ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
@@ -1914,9 +1911,8 @@ export default function MonitorGorongGorongView() {
                       key={prio}
                       type="button"
                       onClick={() => {
-                        setSelectedPrioritas((prev) =>
-                          prev.includes(prio) ? prev.filter((item) => item !== prio) : [...prev, prio]
-                        );
+                        setSelectedPrioritas((prev) => (prev.includes(prio) ? [] : [prio]));
+                        setIsPrioritasDropdownOpen(false);
                       }}
                       className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
                         isSelected
