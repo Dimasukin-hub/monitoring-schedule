@@ -803,6 +803,12 @@ export async function syncLokasiBelumOrderToDb(): Promise<number> {
       select: {
         lokasi: true,
         year: true,
+        aplikasiTerakhir: true,
+        realBkr: true,
+        realBajak: true,
+        realMulaiTanam: true,
+        realSelesaiTanam: true,
+        rencBkr: true,
         activities: {
           where: { realisasiDate: { not: null } },
           select: { code: true, name: true, stepOrder: true, realisasiDate: true },
@@ -819,25 +825,56 @@ export async function syncLokasiBelumOrderToDb(): Promise<number> {
     orderedLokSet.add(o.lokasi.trim().toUpperCase());
   }
 
-  // Pemetaan Akt. BK MURNI dari tabel database Land saja (Newest <= Today, tidak mengambil dari MasterStatusLokasi)
+  // Pemetaan Akt. BK MURNI dari tabel database Land saja (kolom aplikasiTerakhir, Newest <= Today)
   const landAktMap = new Map<string, { formatted: string; stepOrder: number; date: Date }>();
+  const landsByLok = new Map<string, any[]>();
   for (const l of allLands) {
     const lok = l.lokasi.trim().toUpperCase();
-    const validActs = (l.activities || []).filter((a) => {
-      const d = parseRealDate(a.realisasiDate);
-      return d && d <= today;
-    });
+    if (!landsByLok.has(lok)) landsByLok.set(lok, []);
+    landsByLok.get(lok)!.push(l);
+  }
 
-    for (const a of validActs) {
-      const d = parseRealDate(a.realisasiDate)!;
-      const current = landAktMap.get(lok);
-      if (!current || d > current.date || (d.getTime() === current.date.getTime() && a.stepOrder > current.stepOrder)) {
-        landAktMap.set(lok, {
-          formatted: formatLandActivity(a),
-          stepOrder: a.stepOrder,
-          date: d,
-        });
+  for (const [lok, landList] of landsByLok.entries()) {
+    let chosenLand: any = null;
+    let chosenDate: Date | null = null;
+
+    for (const l of landList) {
+      const realDates = [
+        parseRealDate(l.realSelesaiTanam),
+        parseRealDate(l.realMulaiTanam),
+        parseRealDate(l.realBajak),
+        parseRealDate(l.realBkr),
+        ...(l.activities || []).map((a: any) => parseRealDate(a.realisasiDate)),
+      ].filter((d): d is Date => d !== null && d <= today);
+
+      let maxReal: Date | null = null;
+      for (const d of realDates) {
+        if (!maxReal || d > maxReal) maxReal = d;
       }
+
+      if (maxReal) {
+        if (!chosenDate || maxReal > chosenDate) {
+          chosenDate = maxReal;
+          chosenLand = l;
+        }
+      } else if (l.year && l.year <= today.getFullYear()) {
+        const fallbackDate = new Date(l.year, 11, 31);
+        if (fallbackDate <= today) {
+          if (!chosenDate || fallbackDate > chosenDate) {
+            chosenDate = fallbackDate;
+            chosenLand = l;
+          }
+        }
+      }
+    }
+
+    if (chosenLand && chosenLand.aplikasiTerakhir) {
+      const parsed = parseLandActivity(chosenLand.aplikasiTerakhir);
+      landAktMap.set(lok, {
+        formatted: parsed.formatted !== '-' ? parsed.formatted : chosenLand.aplikasiTerakhir,
+        stepOrder: parsed.stepOrder,
+        date: chosenDate || new Date(),
+      });
     }
   }
 
@@ -1166,7 +1203,6 @@ export async function syncMasterDataOrderFromWorkbook(
       area: area || null,
       lokasi: lokStr,
       wilayah,
-      keterangan: keterangan || null,
       tanggal,
       diameter40: Math.round(d40),
       diameter60: Math.round(d60),

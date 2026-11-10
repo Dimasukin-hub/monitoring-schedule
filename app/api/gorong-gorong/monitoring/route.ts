@@ -114,6 +114,12 @@ export async function GET(request: NextRequest) {
         select: {
           lokasi: true,
           year: true,
+          aplikasiTerakhir: true,
+          realBkr: true,
+          realBajak: true,
+          realMulaiTanam: true,
+          realSelesaiTanam: true,
+          rencBkr: true,
           activities: {
             where: { realisasiDate: { not: null } },
             select: { code: true, name: true, stepOrder: true, realisasiDate: true },
@@ -163,25 +169,56 @@ export async function GET(request: NextRequest) {
       return isNaN(res.getTime()) ? null : res;
     }
 
-    // Pemetaan Akt. BK MURNI dari tabel database Land saja (Newest <= Today, tidak mengambil dari MasterStatusLokasi)
+    // Pemetaan Akt. BK MURNI dari tabel database Land saja (kolom aplikasiTerakhir, Newest <= Today)
     const landAktMap = new Map<string, { formatted: string; stepOrder: number; date: Date }>();
+    const landsByLok = new Map<string, any[]>();
     for (const l of allLands) {
       const lok = l.lokasi.trim().toUpperCase();
-      const validActs = (l.activities || []).filter((a) => {
-        const d = parseRealDate(a.realisasiDate);
-        return d && d <= today;
-      });
+      if (!landsByLok.has(lok)) landsByLok.set(lok, []);
+      landsByLok.get(lok)!.push(l);
+    }
 
-      for (const a of validActs) {
-        const d = parseRealDate(a.realisasiDate)!;
-        const current = landAktMap.get(lok);
-        if (!current || d > current.date || (d.getTime() === current.date.getTime() && a.stepOrder > current.stepOrder)) {
-          landAktMap.set(lok, {
-            formatted: formatLandActivity(a),
-            stepOrder: a.stepOrder,
-            date: d,
-          });
+    for (const [lok, landList] of landsByLok.entries()) {
+      let chosenLand: any = null;
+      let chosenDate: Date | null = null;
+
+      for (const l of landList) {
+        const realDates = [
+          parseRealDate(l.realSelesaiTanam),
+          parseRealDate(l.realMulaiTanam),
+          parseRealDate(l.realBajak),
+          parseRealDate(l.realBkr),
+          ...(l.activities || []).map((a: any) => parseRealDate(a.realisasiDate)),
+        ].filter((d): d is Date => d !== null && d <= today);
+
+        let maxReal: Date | null = null;
+        for (const d of realDates) {
+          if (!maxReal || d > maxReal) maxReal = d;
         }
+
+        if (maxReal) {
+          if (!chosenDate || maxReal > chosenDate) {
+            chosenDate = maxReal;
+            chosenLand = l;
+          }
+        } else if (l.year && l.year <= today.getFullYear()) {
+          const fallbackDate = new Date(l.year, 11, 31);
+          if (fallbackDate <= today) {
+            if (!chosenDate || fallbackDate > chosenDate) {
+              chosenDate = fallbackDate;
+              chosenLand = l;
+            }
+          }
+        }
+      }
+
+      if (chosenLand && chosenLand.aplikasiTerakhir) {
+        const parsed = parseLandActivity(chosenLand.aplikasiTerakhir);
+        landAktMap.set(lok, {
+          formatted: parsed.formatted !== '-' ? parsed.formatted : chosenLand.aplikasiTerakhir,
+          stepOrder: parsed.stepOrder,
+          date: chosenDate || new Date(),
+        });
       }
     }
 
@@ -256,9 +293,9 @@ export async function GET(request: NextRequest) {
 
       const m = masterLokMap.get(lok);
       const dsm = dsmMap.get(lok);
-      // Kolom Akt. BK diambil dari tabel database Land saja (newest <= today, tidak dari MasterStatusLokasi)
+      // Kolom Akt. BK MURNI diambil dari tabel database Land saja (aplikasiTerakhir, newest <= today). Jika tidak ada di Land, dikosongkan/strip ('-').
       const landAkt = landAktMap.get(lok.toUpperCase());
-      const aktBk = snap?.aktBk || (landAkt ? landAkt.formatted : (m?.statusLengkap || '-'));
+      const aktBk = landAkt ? landAkt.formatted : '-';
 
       let wilayah = isLocationWithoutWilayah(lok)
         ? '-'
@@ -344,13 +381,25 @@ export async function GET(request: NextRequest) {
         }
 
         let trxManQty = 0;
+        let lastPasangDate: Date | null = null;
         for (const pm of trxData.manuals) {
-          trxManQty += (dia === 40 ? pm.qtyD40 : dia === 60 ? pm.qtyD60 : dia === 80 ? pm.qtyD80 : pm.qtyD100);
+          const q = (dia === 40 ? pm.qtyD40 : dia === 60 ? pm.qtyD60 : dia === 80 ? pm.qtyD80 : pm.qtyD100);
+          trxManQty += q;
+          if (q > 0 && pm.tanggal) {
+            const d = new Date(pm.tanggal);
+            if (!lastPasangDate || d > lastPasangDate) lastPasangDate = d;
+          }
         }
 
         let sapDbQty = 0;
         for (const s of sapRecords) {
-          if (s.diameter === dia) sapDbQty += s.qty;
+          if (s.diameter === dia) {
+            sapDbQty += s.qty;
+            if (s.tanggalRealisasi) {
+              const d = new Date(s.tanggalRealisasi);
+              if (!lastPasangDate || d > lastPasangDate) lastPasangDate = d;
+            }
+          }
         }
 
         const hasTrxActivity = trxOrdQty > 0 || trxDrpQty > 0 || trxManQty > 0 || sapDbQty > 0;
@@ -361,6 +410,7 @@ export async function GET(request: NextRequest) {
             order: null,
             drop: null,
             tglTerakhirDrop: '-',
+            tglTerakhirPasang: '-',
             sisaKebutuhan: null,
             pctKedatangan: '-',
             pasangManual: null,
@@ -384,13 +434,9 @@ export async function GET(request: NextRequest) {
         const sisaKebutuhanDia = ordQty - dropQty;
         const saldoDia = dropQty - totalPasangDia;
 
-        // Rumus % Kedatangan
+        // Rumus % Kedatangan: Hanya ada jika drop > 0 dan order > 0, murni (drop / order) * 100
         let pctKedatanganDia: number | string = '-';
-        if (totalPasangDia > 0) {
-          pctKedatanganDia = ordQty > 0 ? Math.round((totalPasangDia / ordQty) * 100) : '-';
-        } else if (ordQty > 0 && dropQty === 0) {
-          pctKedatanganDia = 'Belum';
-        } else if (ordQty > 0 && dropQty > 0) {
+        if (dropQty > 0 && ordQty > 0) {
           pctKedatanganDia = Math.round((dropQty / ordQty) * 100);
         } else {
           pctKedatanganDia = '-';
@@ -426,11 +472,13 @@ export async function GET(request: NextRequest) {
         totalDropSemua += dropQty;
 
         const tglDrop = lastDropDate ? lastDropDate.toISOString().slice(0, 10) : (dia === 40 ? (snap?.tglDropD40 || '-') : '-');
+        const tglPasang = lastPasangDate ? lastPasangDate.toISOString().slice(0, 10) : '-';
 
         diameterDetails[key] = {
           order: hasSnapOrd || trxOrdQty > 0 ? ordQty : null,
           drop: hasSnapDrp || trxDrpQty > 0 ? dropQty : null,
           tglTerakhirDrop: tglDrop,
+          tglTerakhirPasang: tglPasang,
           sisaKebutuhan: (hasSnapOrd || hasSnapDrp || trxOrdQty > 0 || trxDrpQty > 0) ? sisaKebutuhanDia : null,
           pctKedatangan: pctKedatanganDia,
           pasangManual: hasSnapMan || trxManQty > 0 ? manQty : null,
@@ -450,34 +498,33 @@ export async function GET(request: NextRequest) {
 
       let statusAll = isClosedInSnapshot ? 'Close' : '-';
 
-      // Evaluasi Prioritas:
-      // Prioritaskan nilai prioritas resmi dari database / snapshot (Prioritas 1, 4, 5, dll.)
-      let prioritas = '';
-      if (snap && snap.prioritas !== undefined && snap.prioritas !== null && snap.prioritas !== '') {
-        prioritas = snap.prioritas;
-      } else if (statusAll === 'Close') {
-        prioritas = '';
-      } else if (d40Order === null || d40Order === undefined || d40Order === 0) {
-        prioritas = '-';
-      } else {
-        const isFC = statusTanaman === 'FC' || statusTanaman?.endsWith('FC');
-        const isSchedule1 = aktBk.includes('24.Sls Tanam') || aktBk.toLowerCase().includes('selesai tanam') || aktBk.includes('23.Proses Tanam');
-        const isSchedule2 = aktBk.includes('22.Jalan & Saluran') || aktBk.includes('22.JALAN & SAL') || aktBk.includes('Jln&Sal') || aktBk.includes('Exmini') || aktBk.includes('SS1') || aktBk.includes('Subsoiler') || aktBk.includes('Ridger');
-        const d40Drop = diameterDetails['d40']?.drop || 0;
-        const d40PctDtg = d40Order > 0 ? (d40Drop / d40Order) : 0;
-        const d40TotalPsg = diameterDetails['d40']?.totalPasang || 0;
-        const d40PctPsgOrDtg = d40Order > 0 ? (d40TotalPsg > 0 ? d40TotalPsg / d40Order : d40Drop / d40Order) : 0;
+      // Evaluasi Prioritas & Transisi Otomatis
+      let prioritas = snap?.prioritas || '';
+      const totalDropNow = totalDropSemua;
+      const totalOrderNow = totalOrderSemua;
+      const d40DropNow = diameterDetails['d40']?.drop || 0;
+      const hasDropAny = totalDropNow > 0 || d40DropNow > 0;
+      const pctDropTotal = totalOrderNow > 0 ? (totalDropNow / totalOrderNow) * 100 : (totalDropNow > 0 ? 100 : 0);
+      const isDropAbove50 = pctDropTotal > 50;
 
-        if ((isFC || isSchedule1) && d40PctPsgOrDtg > 0.5) {
-          prioritas = '4';
-        } else if (isSchedule2 && d40Drop > 0) {
-          prioritas = '3';
-        } else if (isSchedule2 && d40Drop === 0) {
-          prioritas = '2';
-        } else if ((isFC || isSchedule1) && d40Drop === 0) {
-          prioritas = '1';
-        } else if ((isFC || statusTanaman?.endsWith('ST') || isSchedule1) && d40PctDtg < 0.5) {
-          prioritas = '1';
+      // Aturan transisi operasional baru:
+      // Prioritas 1: FC / Selesai Tanam dengan drop <= 50%
+      // Prioritas 4: FC / Selesai Tanam dengan drop > 50%
+      // Prioritas 2: Subsoil s.d. Jalan & Saluran Belum Drop
+      // Prioritas 3: Subsoil s.d. Jalan & Saluran Sudah Drop
+      const isFC = statusTanaman === 'FC' || statusTanaman?.endsWith('FC');
+      const isSchedule1 = aktBk.includes('24.Sls Tanam') || aktBk.toLowerCase().includes('selesai tanam') || aktBk.includes('23.Proses Tanam');
+      const isSchedule2 = aktBk.includes('22.Jalan & Saluran') || aktBk.includes('22.JALAN & SAL') || aktBk.includes('Jln&Sal') || aktBk.includes('Exmini') || aktBk.includes('SS1') || aktBk.includes('Subsoiler') || aktBk.includes('Ridger');
+
+      if (prioritas === '1' || prioritas === '4' || ((isFC || isSchedule1) && statusAll !== 'Close')) {
+        prioritas = isDropAbove50 ? '4' : '1';
+      } else if (prioritas === '2' || prioritas === '3' || (isSchedule2 && statusAll !== 'Close')) {
+        prioritas = hasDropAny ? '3' : '2';
+      } else if (!prioritas || prioritas === '') {
+        if (statusAll === 'Close') {
+          prioritas = '';
+        } else if (d40Order === null || d40Order === undefined || d40Order === 0) {
+          prioritas = '-';
         } else {
           prioritas = '5';
         }
@@ -507,41 +554,56 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Sort listLokasiOrder default:
-    // 1. Prioritas 1-5 (Ascending)
-    // 2. Status (Ascending)
-    // 3. Akt. BK (Descending)
-    // 4. DSM BK & DSM ST (Descending)
-    // 5. Tgl Order (Oldest ke Newest)
+    // Helper ekstrak angka terdepan dari string Akt. BK (misal "24. Selesai Tanam" -> 24)
+    const getAktBkNum = (str: string | null | undefined): number => {
+      if (!str) return -1;
+      const m = String(str).match(/^(\d+)/);
+      return m ? parseInt(m[1], 10) : -1;
+    };
+
+    // Locked Multi-tier Sort pada List Lokasi Order:
+    // 1. Prioritas urutan dari 1 (1, 2, 3, 4, 5, -, '')
+    // 2. Akt. BK dari urutan angka paling besar (descending)
+    // 3. Umur Bulan urutan angka paling besar (descending)
+    // 4. Status Tanaman urutan A-Z (ascending)
+    // 5. DSM BK urutan Z-A (descending)
+    // 6. DSM ST urutan Z-A (descending)
+    // 7. Tie-breaker Lokasi (ascending)
     listLokasiOrder.sort((a, b) => {
       const prioOrder: Record<string, number> = { '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '-': 6, '': 7 };
       const pA = prioOrder[a.prioritas] ?? 99;
       const pB = prioOrder[b.prioritas] ?? 99;
       if (pA !== pB) return pA - pB;
 
-      // Status (Ascending)
+      // 2. Akt. BK (urutan angka paling besar)
+      const numAktA = getAktBkNum(a.aktBk);
+      const numAktB = getAktBkNum(b.aktBk);
+      if (numAktA !== numAktB) return numAktB - numAktA;
+
+      // 3. Umur Bulan (urutan angka paling besar)
+      const uA = Number(a.umurBulan ?? 0);
+      const uB = Number(b.umurBulan ?? 0);
+      if (uA !== uB) return uB - uA;
+
+      // 4. Status Tanaman (A-Z)
       const stCmp = (a.status || '').localeCompare(b.status || '');
       if (stCmp !== 0) return stCmp;
 
-      // Akt. BK (Descending)
-      const aktCmp = (b.aktBk || '').localeCompare(a.aktBk || '');
-      if (aktCmp !== 0) return aktCmp;
-
-      // DSM BK (Descending)
+      // 5. DSM BK (Z-A / Descending)
       const dsmBkCmp = (b.dsmBk || '').localeCompare(a.dsmBk || '');
       if (dsmBkCmp !== 0) return dsmBkCmp;
 
-      // DSM ST (Descending)
+      // 6. DSM ST (Z-A / Descending)
       const dsmStCmp = (b.dsmSt || '').localeCompare(a.dsmSt || '');
       if (dsmStCmp !== 0) return dsmStCmp;
 
-      // Tgl Order (Oldest ke Newest / Ascending)
-      const tglA = a.tanggalOrder === '-' ? '9999-99-99' : a.tanggalOrder;
-      const tglB = b.tanggalOrder === '-' ? '9999-99-99' : b.tanggalOrder;
-      const tglCmp = tglA.localeCompare(tglB);
-      if (tglCmp !== 0) return tglCmp;
-
+      // 7. Lokasi (Ascending)
       return a.lokasi.localeCompare(b.lokasi);
+    });
+
+    // Beri fixedRank permanen berdasarkan urutan master list lengkap yang sudah disortir
+    listLokasiOrder.forEach((item, idx) => {
+      item.fixedRank = idx + 1;
     });
 
     // 4. Susun Tabel List Lokasi Belum Order (Prioritas dari Database LokasiBelumOrderGorongGorong)
@@ -592,6 +654,10 @@ export async function GET(request: NextRequest) {
     listLokasiBelumOrder.sort((a, b) => {
       if (a.wilayah !== b.wilayah) return a.wilayah.localeCompare(b.wilayah);
       return a.lokasi.localeCompare(b.lokasi);
+    });
+
+    listLokasiBelumOrder.forEach((item: any, idx: number) => {
+      item.fixedRank = idx + 1;
     });
 
     // Filter berdasarkan request query params

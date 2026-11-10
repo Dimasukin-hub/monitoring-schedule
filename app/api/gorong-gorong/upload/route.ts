@@ -83,26 +83,17 @@ export async function POST(request: NextRequest) {
       snapshotLocationCount = await syncLokasiOrderToDb(parsedSnapshot, isPartial ? 'partial' : 'full_replace');
       belumOrderLocationCount = await syncLokasiBelumOrderFromWorkbook(wb, isPartial ? 'partial' : 'full_replace');
 
-      // Sinkronisasi MasterStatusLokasi agar luas, status, wilayah di DB PostgreSQL langsung diperbarui
+      // Sinkronisasi MasterStatusLokasi hanya untuk petak yang sudah terdaftar (tidak menambah petak baru agar master tetap 1.110 lokasi)
       for (const item of Object.values(parsedSnapshot)) {
         const lok = item.lokasi.trim().toUpperCase();
         if (isExcludedGorongGorongLocation(lok)) continue;
-        await prisma.masterStatusLokasi.upsert({
+        await prisma.masterStatusLokasi.updateMany({
           where: { lokasi: lok },
-          update: {
-            strucPlant: item.wilayah || undefined,
-            status: item.statusTanaman || undefined,
-            luasNetto: item.luas != null ? item.luas : undefined,
-            umurBulan: item.umurBulan != null ? item.umurBulan : undefined,
-            umurRawat: item.umurBulan != null ? item.umurBulan : undefined,
-          },
-          create: {
-            lokasi: lok,
-            strucPlant: item.wilayah || null,
-            status: item.statusTanaman || null,
-            luasNetto: item.luas != null ? item.luas : null,
-            umurBulan: item.umurBulan != null ? item.umurBulan : null,
-            umurRawat: item.umurBulan != null ? item.umurBulan : null,
+          data: {
+            ...(item.wilayah ? { strucPlant: item.wilayah } : {}),
+            ...(item.statusTanaman ? { status: item.statusTanaman } : {}),
+            ...(item.luas != null ? { luasNetto: item.luas } : {}),
+            ...(item.umurBulan != null ? { umurBulan: item.umurBulan, umurRawat: item.umurBulan } : {}),
           },
         });
       }

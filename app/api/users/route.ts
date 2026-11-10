@@ -61,7 +61,9 @@ export async function GET(req: Request) {
     const stats = {
       total: users.length,
       adminCount: users.filter((u) => u.role === 'admin').length,
-      userCount: users.filter((u) => u.role === 'user').length,
+      userWilayahCount: users.filter((u) => u.role === 'user_wilayah').length,
+      userFeCount: users.filter((u) => u.role === 'user_fe').length,
+      userCount: users.filter((u) => u.role === 'user' || u.role === 'user_wilayah' || u.role === 'user_fe').length,
     };
 
     return NextResponse.json({
@@ -119,7 +121,8 @@ export async function POST(req: Request) {
 
     const cleanUsername = rawUsername.trim().toLowerCase();
     const cleanName = rawName?.trim() || cleanUsername;
-    const role = rawRole === 'admin' ? 'admin' : 'user';
+    const validRoles = ['admin', 'user', 'user_fe', 'user_wilayah'];
+    const role = validRoles.includes(rawRole) ? rawRole : 'user_wilayah';
 
     // Periksa apakah username sudah terpakai
     const existing = await prisma.user.findFirst({

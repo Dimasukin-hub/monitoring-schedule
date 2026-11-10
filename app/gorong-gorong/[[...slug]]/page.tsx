@@ -8,6 +8,8 @@ import FormOrderGorongGorongView from '@/components/FormOrderGorongGorongView';
 import MasterStatusLokasiView from '@/components/MasterStatusLokasiView';
 import MasterWaterloggingView from '@/components/MasterWaterloggingView';
 import MasterSapUploadView from '@/components/MasterSapUploadView';
+import MasterOrderView from '@/components/MasterOrderView';
+import MasterDropView from '@/components/MasterDropView';
 import UserManagementView from '@/components/UserManagementView';
 import { useAuth } from '@/components/AuthProvider';
 import {
@@ -113,6 +115,8 @@ export default function GorongGorongPage() {
         const subTitles: Record<string, string> = {
           master_status_lokasi: 'Master Status Lokasi',
           master_waterlogging: 'Master Waterlogging',
+          master_order: 'Master Data Order',
+          master_drop: 'Master Data Drop',
           master_sap: 'Upload Realisasi SAP',
         };
         const sub = subTitles[masterDataSubTab];
@@ -139,8 +143,8 @@ export default function GorongGorongPage() {
         activeTabTitle={getTabTitle()}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 p-4 sm:p-6 md:p-8 space-y-6 md:space-y-8 overflow-y-auto max-w-[1700px] w-full mx-auto">
+      {/* Main Content Area - Full Width Margin Sampai Samping */}
+      <main className="flex-1 p-2 sm:p-4 md:p-5 space-y-5 md:space-y-6 overflow-y-auto w-full">
         {/* 1. MENU: MONITOR GORONG-GORONG (Ringkasan Saldo, Kebutuhan & Dropping 4 Diameter) */}
         <div className={activeTab === 'monitor_gorong_gorong' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
           <MonitorGorongGorongView />
@@ -164,7 +168,17 @@ export default function GorongGorongPage() {
               <MasterWaterloggingView />
             </div>
 
-            {/* 3.3 SUB MENU: UPLOAD DATA REALISASI SAP */}
+            {/* 3.3 SUB MENU: MASTER DATA ORDER */}
+            <div className={masterDataSubTab === 'master_order' ? 'block' : 'hidden'}>
+              <MasterOrderView />
+            </div>
+
+            {/* 3.4 SUB MENU: MASTER DATA DROP */}
+            <div className={masterDataSubTab === 'master_drop' ? 'block' : 'hidden'}>
+              <MasterDropView />
+            </div>
+
+            {/* 3.5 SUB MENU: UPLOAD DATA REALISASI SAP */}
             <div className={masterDataSubTab === 'master_sap' ? 'block' : 'hidden'}>
               <MasterSapUploadView />
             </div>

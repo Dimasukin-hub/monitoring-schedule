@@ -4,7 +4,7 @@ export interface AuthUser {
   id: number;
   name: string;
   email: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'user' | 'user_fe' | 'user_wilayah';
   avatar?: string | null;
 }
 
@@ -40,6 +40,22 @@ export const DEFAULT_USERS: Array<AuthUser & { password: string }> = [
     email: 'user@ggf.co.id',
     password: 'user123',
     role: 'user',
+    avatar: null,
+  },
+  {
+    id: 5,
+    name: 'User Wilayah',
+    email: 'wilayah',
+    password: 'wilayah123',
+    role: 'user_wilayah',
+    avatar: null,
+  },
+  {
+    id: 6,
+    name: 'User FE',
+    email: 'fe',
+    password: 'fe123',
+    role: 'user_fe',
     avatar: null,
   },
 ];
@@ -91,6 +107,38 @@ export async function ensureDefaultUsersInDb() {
       });
     }
 
+    const wilayahUser = await prisma.user.findFirst({
+      where: {
+        OR: [{ email: 'wilayah' }, { name: 'User Wilayah' }],
+      },
+    });
+    if (!wilayahUser) {
+      await prisma.user.create({
+        data: {
+          name: 'User Wilayah',
+          email: 'wilayah',
+          password: 'wilayah123',
+          role: 'user_wilayah',
+        },
+      });
+    }
+
+    const feUser = await prisma.user.findFirst({
+      where: {
+        OR: [{ email: 'fe' }, { name: 'User FE' }],
+      },
+    });
+    if (!feUser) {
+      await prisma.user.create({
+        data: {
+          name: 'User FE',
+          email: 'fe',
+          password: 'fe123',
+          role: 'user_fe',
+        },
+      });
+    }
+
     hasSeededUsers = true;
   } catch (error) {
     console.warn('ensureDefaultUsersInDb warning:', error);
@@ -119,7 +167,7 @@ export async function findUserByEmail(identifier: string) {
         name: user.name,
         email: user.email,
         password: user.password,
-        role: (user.role === 'admin' ? 'admin' : 'user') as 'admin' | 'user',
+        role: user.role as any,
         avatar: (user as any).avatar || null,
       };
     }
@@ -133,7 +181,9 @@ export async function findUserByEmail(identifier: string) {
       u.email.toLowerCase() === clean ||
       u.name.toLowerCase() === clean ||
       (clean === 'admin' && (u.email === 'admin@ggf.co.id' || u.email === 'admin')) ||
-      (clean === 'user' && (u.email === 'user@ggf.co.id' || u.email === 'user'))
+      (clean === 'user' && (u.email === 'user@ggf.co.id' || u.email === 'user')) ||
+      (clean === 'wilayah' && u.email === 'wilayah') ||
+      (clean === 'fe' && u.email === 'fe')
   );
   return fallback || null;
 }
@@ -144,7 +194,7 @@ export async function createUser(data: {
   name: string;
   email: string;
   password: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'user' | 'user_fe' | 'user_wilayah';
 }) {
   const cleanEmail = data.email.toLowerCase().trim();
   const cleanName = data.name.trim();
@@ -162,7 +212,7 @@ export async function createUser(data: {
       id: created.id,
       name: created.name,
       email: created.email,
-      role: (created.role === 'admin' ? 'admin' : 'user') as 'admin' | 'user',
+      role: created.role as any,
     };
   } catch (error) {
     console.warn('Prisma DB error in createUser, creating in-memory user:', error);

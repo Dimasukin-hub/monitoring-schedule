@@ -1,7 +1,20 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, ChevronLeft, ChevronRight, ChevronDown, XCircle, RefreshCw } from 'lucide-react';
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  XCircle,
+  RefreshCw,
+  Download,
+  Upload,
+  FileSpreadsheet,
+  CheckCircle2,
+  AlertCircle,
+  X,
+} from 'lucide-react';
 
 const ALL_STATUS_LIST = [
   'BMBK', 'BMST', 'BMSM', 'JBBM', 'JBNY', 'JBSM', 'JGBK', 'KLBK', 'KLBM', 'KLSM',
@@ -31,6 +44,14 @@ export default function MasterStatusLokasiView() {
   // Custom Dropdown Open States
   const [isWilayahDropdownOpen, setIsWilayahDropdownOpen] = useState<boolean>(false);
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState<boolean>(false);
+
+  // Export & Upload Modal States
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
+  const [uploadMode, setUploadMode] = useState<'full_replace' | 'partial'>('full_replace');
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [uploadResult, setUploadResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Click outside listener
   useEffect(() => {
@@ -93,6 +114,64 @@ export default function MasterStatusLokasiView() {
     return new Date(dateStr).toISOString().slice(0, 10);
   };
 
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true);
+      const params = new URLSearchParams();
+      if (selectedWilayah.length > 0) params.set('wilayah', selectedWilayah.join(','));
+      if (selectedStatus.length > 0) params.set('status', selectedStatus.join(','));
+      if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
+
+      const res = await fetch(`/api/gorong-gorong/master-lokasi/export?${params.toString()}`);
+      if (!res.ok) throw new Error('Gagal mengekspor berkas Excel');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Master_Status_Lokasi_PG1_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e: any) {
+      alert('Gagal mengekspor Excel: ' + (e.message || 'Terjadi kesalahan'));
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadFile) {
+      alert('Pilih berkas Excel terlebih dahulu!');
+      return;
+    }
+    try {
+      setIsUploading(true);
+      setUploadResult(null);
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      formData.append('mode', uploadMode);
+
+      const res = await fetch('/api/gorong-gorong/master-lokasi/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success) {
+        setUploadResult({ success: true, message: data.message });
+        setUploadFile(null);
+        await loadData(1, true);
+      } else {
+        setUploadResult({ success: false, message: data.message || 'Gagal mengunggah berkas' });
+      }
+    } catch (e: any) {
+      setUploadResult({ success: false, message: e.message || 'Terjadi kesalahan sistem' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header Info */}
@@ -109,10 +188,45 @@ export default function MasterStatusLokasiView() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="px-3.5 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 text-xs font-bold shadow-2xs">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="px-3.5 py-2 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 text-xs font-bold shadow-2xs">
             Total: {totalCount} Lokasi
           </span>
+
+          <a
+            href="/api/gorong-gorong/master-lokasi/template"
+            download="Template_Master_Status_Lokasi.xlsx"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold cursor-pointer transition-all shadow-xs"
+            title="Unduh format template Excel kosong Master Status Lokasi"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Template Excel</span>
+          </a>
+
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            disabled={isExporting}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold cursor-pointer transition-all shadow-xs hover:border-emerald-500/50"
+            title="Unduh seluruh data master status lokasi ke file Excel"
+          >
+            {isExporting ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#00873D]" /> : <Download className="w-3.5 h-3.5 text-[#00873D]" />}
+            <span>{isExporting ? 'Mengekspor...' : 'Unduh Excel'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setIsUploadModalOpen(true);
+              setUploadResult(null);
+              setUploadFile(null);
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#00873D] hover:bg-[#007033] text-white text-xs font-bold cursor-pointer transition-all shadow-xs hover:shadow-emerald-600/20"
+            title="Unggah berkas Excel untuk memperbarui master status lokasi"
+          >
+            <Upload className="w-3.5 h-3.5" />
+            <span>Upload Excel</span>
+          </button>
         </div>
       </div>
 
@@ -402,6 +516,196 @@ export default function MasterStatusLokasiView() {
           </div>
         </div>
       </div>
+
+      {/* Modal Upload Excel */}
+      {isUploadModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <FileSpreadsheet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                    Upload Excel Master Status Lokasi
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Pilih mode upload dan unggah berkas .xlsx
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsUploadModalOpen(false);
+                  setUploadResult(null);
+                  setUploadFile(null);
+                }}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleUploadSubmit} className="p-6 space-y-5">
+              {/* Template Helper Box */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs">
+                <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
+                  <FileSpreadsheet className="w-4 h-4 shrink-0 text-emerald-600" />
+                  <span className="text-[11px] font-medium">Belum memiliki format berkas? Gunakan template resmi kosong.</span>
+                </div>
+                <a
+                  href="/api/gorong-gorong/master-lokasi/template"
+                  download="Template_Master_Status_Lokasi.xlsx"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-xs cursor-pointer transition-colors shrink-0"
+                >
+                  <Download className="w-3 h-3" />
+                  <span>Unduh Template</span>
+                </a>
+              </div>
+
+              {/* Mode Selection */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  Metode Upload:
+                </label>
+                <div className="grid grid-cols-1 gap-2.5">
+                  <label
+                    className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                      uploadMode === 'full_replace'
+                        ? 'bg-red-500/5 border-red-500/40 text-slate-900 dark:text-slate-100'
+                        : 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="uploadMode"
+                      value="full_replace"
+                      checked={uploadMode === 'full_replace'}
+                      onChange={() => setUploadMode('full_replace')}
+                      className="mt-0.5 text-red-600 focus:ring-red-500"
+                    />
+                    <div>
+                      <div className="text-xs font-bold flex items-center gap-1.5 text-red-700 dark:text-red-400">
+                        Replace All (Ganti Semua Data)
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                        Seluruh data Master Status Lokasi di database akan diganti total dengan baris yang ada di berkas Excel ini.
+                      </p>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                      uploadMode === 'partial'
+                        ? 'bg-blue-500/5 border-blue-500/40 text-slate-900 dark:text-slate-100'
+                        : 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="uploadMode"
+                      value="partial"
+                      checked={uploadMode === 'partial'}
+                      onChange={() => setUploadMode('partial')}
+                      className="mt-0.5 text-blue-600 focus:ring-blue-500"
+                    />
+                    <div>
+                      <div className="text-xs font-bold flex items-center gap-1.5 text-blue-700 dark:text-blue-400">
+                        Replace Parsial (Update Sebagian)
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                        Hanya baris lokasi yang ada di berkas Excel yang diperbarui/ditambahkan. Data lokasi lainnya di database tetap utuh.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* File Selector */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  Berkas Excel (.xlsx / .xls):
+                </label>
+                <input
+                  type="file"
+                  accept=".xlsx, .xls"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) setUploadFile(f);
+                  }}
+                  className="block w-full text-xs text-slate-500 dark:text-slate-400
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-xl file:border-0
+                    file:text-xs file:font-semibold
+                    file:bg-emerald-500/10 file:text-emerald-700 dark:file:text-emerald-300
+                    hover:file:bg-emerald-500/20 file:cursor-pointer
+                    border border-slate-200 dark:border-slate-700 rounded-xl p-1 bg-slate-50/50 dark:bg-slate-800/50"
+                />
+                {uploadFile && (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 flex items-center gap-1">
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Terpilih: <b>{uploadFile.name}</b> ({(uploadFile.size / 1024).toFixed(1)} KB)</span>
+                  </p>
+                )}
+              </div>
+
+              {/* Result Notice */}
+              {uploadResult && (
+                <div
+                  className={`p-3.5 rounded-xl text-xs flex items-start gap-2.5 ${
+                    uploadResult.success
+                      ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-200'
+                      : 'bg-red-500/10 border border-red-500/30 text-red-800 dark:text-red-200'
+                  }`}
+                >
+                  {uploadResult.success ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+                  )}
+                  <div>{uploadResult.message}</div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsUploadModalOpen(false);
+                    setUploadResult(null);
+                    setUploadFile(null);
+                  }}
+                  className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUploading || !uploadFile}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#00873D] hover:bg-[#007033] text-white text-xs font-bold cursor-pointer transition-all shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUploading ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Mengunggah...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Mulai Unggah</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

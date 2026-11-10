@@ -62,6 +62,8 @@ export const FORM_INPUT_SUB_MENUS = ORDER_WILAYAH_SUB_MENUS;
 export const MASTER_DATA_SUB_MENUS: SubMenuItem[] = [
   { id: 'master_status_lokasi', label: 'Master Status Lokasi' },
   { id: 'master_waterlogging', label: 'Master Waterlogging' },
+  { id: 'master_order', label: 'Master Data Order' },
+  { id: 'master_drop', label: 'Master Data Drop' },
   { id: 'master_sap', label: 'Upload Data Realisasi SAP' },
 ];
 

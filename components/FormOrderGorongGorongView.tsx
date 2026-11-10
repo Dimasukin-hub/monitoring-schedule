@@ -39,7 +39,7 @@ const INDONESIAN_MONTHS = [
 ];
 
 export default function FormOrderGorongGorongView() {
-  const { user, isAdmin, isUser } = useAuth();
+  const { user, isAdmin, isUser, isUserFE, isUserWilayah } = useAuth();
 
   // State Form Multi-Lokasi: Default 3 Slot
   const createEmptySlot = (id: string): LocationSlot => ({
@@ -66,6 +66,15 @@ export default function FormOrderGorongGorongView() {
   const [tanggal, setTanggal] = useState<string>('');
   const [isCalendarOpen, setIsCalendarOpen] = useState<boolean>(false);
   const [keterangan, setKeterangan] = useState<string>('');
+
+  // Auto-set default jenis transaksi sesuai role user
+  useEffect(() => {
+    if (isUserFE) {
+      setJenisTransaksi('DROP');
+    } else if (isUserWilayah) {
+      setJenisTransaksi('ORDER');
+    }
+  }, [isUserFE, isUserWilayah]);
 
   // Calendar View State
   const initialDate = new Date();
@@ -296,8 +305,8 @@ export default function FormOrderGorongGorongView() {
         qtyD100: parseInt(s.qtyD100 || '0', 10),
         tanggal,
         keterangan,
-        createdBy: user?.name || (isAdmin ? 'Admin' : 'User Wilayah'),
-        userRole: isAdmin ? 'ADMIN' : 'USER_WILAYAH',
+        createdBy: user?.name || (isAdmin ? 'Admin' : (isUserFE ? 'User FE' : 'User Wilayah')),
+        userRole: isAdmin ? 'ADMIN' : (isUserFE ? 'USER_FE' : 'USER_WILAYAH'),
       }));
 
       const res = await fetch('/api/gorong-gorong/order', {
@@ -378,7 +387,11 @@ export default function FormOrderGorongGorongView() {
               Hak Akses
             </span>
             <span className="text-xs font-black text-slate-800 dark:text-slate-200">
-              {isAdmin ? 'Admin (Akses Penuh: Order, Drop, Pasang)' : 'User Wilayah (Khusus Order)'}
+              {isAdmin
+                ? 'Admin (Akses Penuh: Order, Drop, Pasang)'
+                : isUserFE
+                ? 'User FE (Khusus Drop)'
+                : 'User Wilayah (Order & Pasang Manual)'}
             </span>
           </div>
         </div>
@@ -416,7 +429,7 @@ export default function FormOrderGorongGorongView() {
 
               <div
                 onClick={() => setIsJenisDropdownOpen((prev) => !prev)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center justify-between cursor-pointer shadow-2xs hover:border-[#00873D] transition-colors"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-600 text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center justify-between cursor-pointer shadow-2xs hover:border-[#00873D] transition-colors"
               >
                 <span className={!jenisTransaksi ? 'text-slate-400 font-normal' : ''}>
                   {jenisTransaksi === 'ORDER'
@@ -435,57 +448,62 @@ export default function FormOrderGorongGorongView() {
               </div>
 
               {isJenisDropdownOpen && (
-                <div className="absolute left-0 right-0 top-full mt-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-150">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setJenisTransaksi('ORDER');
-                      setIsJenisDropdownOpen(false);
-                    }}
-                    className={`w-full px-4 py-2.5 text-left text-xs font-bold flex items-center justify-between cursor-pointer transition-colors ${
-                      jenisTransaksi === 'ORDER'
-                        ? 'bg-[#00873D]/10 text-[#00873D]'
-                        : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
-                    }`}
-                  >
-                    <span>Order</span>
-                    {jenisTransaksi === 'ORDER' && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
-                  </button>
+                <div className="absolute left-0 right-0 top-full mt-1.5 rounded-xl bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 shadow-xl z-50 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-150">
+                  {/* Order: Ditampilkan untuk Admin dan User Wilayah */}
+                  {(isAdmin || isUserWilayah || (!isUserFE && !isAdmin)) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setJenisTransaksi('ORDER');
+                        setIsJenisDropdownOpen(false);
+                      }}
+                      className={`w-full px-4 py-2.5 text-left text-xs font-bold flex items-center justify-between cursor-pointer transition-colors ${
+                        jenisTransaksi === 'ORDER'
+                          ? 'bg-[#00873D]/10 text-[#00873D]'
+                          : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
+                      }`}
+                    >
+                      <span>Order</span>
+                      {jenisTransaksi === 'ORDER' && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                    </button>
+                  )}
 
-                  {isAdmin && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setJenisTransaksi('DROP');
-                          setIsJenisDropdownOpen(false);
-                        }}
-                        className={`w-full px-4 py-2.5 text-left text-xs font-bold flex items-center justify-between cursor-pointer transition-colors ${
-                          jenisTransaksi === 'DROP'
-                            ? 'bg-[#00873D]/10 text-[#00873D]'
-                            : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
-                        }`}
-                      >
-                        <span>Drop</span>
-                        {jenisTransaksi === 'DROP' && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
-                      </button>
+                  {/* Drop: Ditampilkan untuk Admin dan User FE */}
+                  {(isAdmin || isUserFE) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setJenisTransaksi('DROP');
+                        setIsJenisDropdownOpen(false);
+                      }}
+                      className={`w-full px-4 py-2.5 text-left text-xs font-bold flex items-center justify-between cursor-pointer transition-colors ${
+                        jenisTransaksi === 'DROP'
+                          ? 'bg-[#00873D]/10 text-[#00873D]'
+                          : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
+                      }`}
+                    >
+                      <span>Drop</span>
+                      {jenisTransaksi === 'DROP' && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                    </button>
+                  )}
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setJenisTransaksi('PASANG_MANUAL');
-                          setIsJenisDropdownOpen(false);
-                        }}
-                        className={`w-full px-4 py-2.5 text-left text-xs font-bold flex items-center justify-between cursor-pointer transition-colors ${
-                          jenisTransaksi === 'PASANG_MANUAL'
-                            ? 'bg-[#00873D]/10 text-[#00873D]'
-                            : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
-                        }`}
-                      >
-                        <span>Pasang Manual</span>
-                        {jenisTransaksi === 'PASANG_MANUAL' && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
-                      </button>
-                    </>
+                  {/* Pasang Manual: Ditampilkan untuk Admin dan User Wilayah */}
+                  {(isAdmin || isUserWilayah || (!isUserFE && !isAdmin)) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setJenisTransaksi('PASANG_MANUAL');
+                        setIsJenisDropdownOpen(false);
+                      }}
+                      className={`w-full px-4 py-2.5 text-left text-xs font-bold flex items-center justify-between cursor-pointer transition-colors ${
+                        jenisTransaksi === 'PASANG_MANUAL'
+                          ? 'bg-[#00873D]/10 text-[#00873D]'
+                          : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
+                      }`}
+                    >
+                      <span>Pasang Manual</span>
+                      {jenisTransaksi === 'PASANG_MANUAL' && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                    </button>
                   )}
                 </div>
               )}
@@ -500,7 +518,7 @@ export default function FormOrderGorongGorongView() {
 
               <div
                 onClick={() => setIsCalendarOpen((prev) => !prev)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-slate-100 flex items-center justify-between cursor-pointer shadow-2xs hover:border-[#00873D] transition-colors"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-600 text-xs font-semibold text-slate-900 dark:text-slate-100 flex items-center justify-between cursor-pointer shadow-2xs hover:border-[#00873D] transition-colors"
               >
                 <span className={!tanggal ? 'text-slate-400' : ''}>{formatDateDisplay(tanggal)}</span>
                 <Calendar className="w-4 h-4 text-slate-400" />
@@ -594,7 +612,7 @@ export default function FormOrderGorongGorongView() {
               return (
                 <div
                   key={slot.id}
-                  className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-800/30 border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-3 sm:space-y-3.5 relative"
+                  className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-800/30 border-2 border-slate-200 dark:border-slate-700 shadow-2xs space-y-3 sm:space-y-3.5 relative"
                 >
                   <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                     <span className="text-xs font-black text-[#00873D] dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -654,7 +672,7 @@ export default function FormOrderGorongGorongView() {
                           }}
                           onFocus={() => updateSlot(slot.id, { isDropdownOpen: true })}
                           placeholder=""
-                          className="w-full pl-3.5 pr-9 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00873D]"
+                          className="w-full pl-3.5 pr-9 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/70 border-2 border-slate-300 dark:border-slate-600 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#00873D] focus:ring-1 focus:ring-[#00873D]"
                         />
 
                         {slot.searchLokasiInput ? (
@@ -680,7 +698,7 @@ export default function FormOrderGorongGorongView() {
 
                       {/* Dropdown Options */}
                       {slot.isDropdownOpen && (
-                        <div className="absolute left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 scrollbar-thin">
+                        <div className="absolute left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto rounded-xl bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 scrollbar-thin">
                           {filteredLokasiOptions.length === 0 ? (
                             <div className="px-3 py-2 text-xs text-slate-400 text-center">Lokasi tidak ditemukan</div>
                           ) : (
@@ -718,7 +736,7 @@ export default function FormOrderGorongGorongView() {
                         readOnly
                         value={slot.autoWilayah || ''}
                         placeholder=""
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-100/80 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-not-allowed"
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-100/80 dark:bg-slate-800/40 border-2 border-slate-300 dark:border-slate-600 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -734,7 +752,7 @@ export default function FormOrderGorongGorongView() {
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                       {/* Kotak 1: Ø40 */}
-                      <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 focus-within:border-emerald-500 transition-all text-center sm:text-left">
+                      <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-emerald-500/5 dark:bg-emerald-500/10 border-2 border-emerald-500/40 dark:border-emerald-500/60 focus-within:border-emerald-500 transition-all text-center sm:text-left shadow-2xs">
                         <span className="text-[10px] sm:text-[11px] font-extrabold text-emerald-800 dark:text-emerald-300 block mb-0.5 sm:mb-1 truncate">
                           Diameter 40 (Ø40)
                         </span>
@@ -749,11 +767,11 @@ export default function FormOrderGorongGorongView() {
                           placeholder="0"
                           className="w-full text-center text-base sm:text-lg font-mono font-black text-slate-900 dark:text-white bg-transparent focus:outline-none py-0.5 sm:py-1"
                         />
-                        <span className="text-[9px] sm:text-[10px] text-slate-400 block text-center mt-0.5">pcs</span>
+                        <span className="text-[9px] sm:text-[10px] text-slate-400 block text-center mt-0.5 font-semibold">pcs</span>
                       </div>
 
                       {/* Kotak 2: Ø60 */}
-                      <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 focus-within:border-blue-500 transition-all text-center sm:text-left">
+                      <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-blue-500/5 dark:bg-blue-500/10 border-2 border-blue-500/40 dark:border-blue-500/60 focus-within:border-blue-500 transition-all text-center sm:text-left shadow-2xs">
                         <span className="text-[10px] sm:text-[11px] font-extrabold text-blue-800 dark:text-blue-300 block mb-0.5 sm:mb-1 truncate">
                           Diameter 60 (Ø60)
                         </span>
@@ -768,11 +786,11 @@ export default function FormOrderGorongGorongView() {
                           placeholder="0"
                           className="w-full text-center text-base sm:text-lg font-mono font-black text-slate-900 dark:text-white bg-transparent focus:outline-none py-0.5 sm:py-1"
                         />
-                        <span className="text-[9px] sm:text-[10px] text-slate-400 block text-center mt-0.5">pcs</span>
+                        <span className="text-[9px] sm:text-[10px] text-slate-400 block text-center mt-0.5 font-semibold">pcs</span>
                       </div>
 
                       {/* Kotak 3: Ø80 */}
-                      <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 focus-within:border-amber-500 transition-all text-center sm:text-left">
+                      <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-amber-500/5 dark:bg-amber-500/10 border-2 border-amber-500/40 dark:border-amber-500/60 focus-within:border-amber-500 transition-all text-center sm:text-left shadow-2xs">
                         <span className="text-[10px] sm:text-[11px] font-extrabold text-amber-800 dark:text-amber-300 block mb-0.5 sm:mb-1 truncate">
                           Diameter 80 (Ø80)
                         </span>
@@ -787,11 +805,11 @@ export default function FormOrderGorongGorongView() {
                           placeholder="0"
                           className="w-full text-center text-base sm:text-lg font-mono font-black text-slate-900 dark:text-white bg-transparent focus:outline-none py-0.5 sm:py-1"
                         />
-                        <span className="text-[9px] sm:text-[10px] text-slate-400 block text-center mt-0.5">pcs</span>
+                        <span className="text-[9px] sm:text-[10px] text-slate-400 block text-center mt-0.5 font-semibold">pcs</span>
                       </div>
 
                       {/* Kotak 4: Ø100 */}
-                      <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-purple-500/5 dark:bg-purple-500/10 border border-purple-500/20 focus-within:border-purple-500 transition-all text-center sm:text-left">
+                      <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-purple-500/5 dark:bg-purple-500/10 border-2 border-purple-500/40 dark:border-purple-500/60 focus-within:border-purple-500 transition-all text-center sm:text-left shadow-2xs">
                         <span className="text-[10px] sm:text-[11px] font-extrabold text-purple-800 dark:text-purple-300 block mb-0.5 sm:mb-1 truncate">
                           Diameter 100 (Ø100)
                         </span>
@@ -806,7 +824,7 @@ export default function FormOrderGorongGorongView() {
                           placeholder="0"
                           className="w-full text-center text-base sm:text-lg font-mono font-black text-slate-900 dark:text-white bg-transparent focus:outline-none py-0.5 sm:py-1"
                         />
-                        <span className="text-[9px] sm:text-[10px] text-slate-400 block text-center mt-0.5">pcs</span>
+                        <span className="text-[9px] sm:text-[10px] text-slate-400 block text-center mt-0.5 font-semibold">pcs</span>
                       </div>
                     </div>
                   </div>
@@ -825,7 +843,7 @@ export default function FormOrderGorongGorongView() {
               value={keterangan}
               onChange={(e) => setKeterangan(e.target.value)}
               placeholder=""
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00873D]"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border-2 border-slate-300 dark:border-slate-600 text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#00873D] focus:ring-1 focus:ring-[#00873D]"
             />
           </div>
 

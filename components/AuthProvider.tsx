@@ -3,22 +3,26 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+export type UserRole = 'admin' | 'user' | 'user_fe' | 'user_wilayah';
+
 export interface AuthUser {
   id: number;
   name: string;
   email: string;
-  role: 'admin' | 'user';
+  role: UserRole;
   avatar?: string | null;
 }
 
 interface AuthContextType {
   user: AuthUser | null;
-  role: 'admin' | 'user' | null;
+  role: UserRole | null;
   isAdmin: boolean;
   isUser: boolean;
+  isUserFE: boolean;
+  isUserWilayah: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
-  register: (name: string, email: string, password: string, role: 'admin' | 'user') => Promise<{ success: boolean; message?: string }>;
+  register: (name: string, email: string, password: string, role: UserRole) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
   setUserDirectly: (user: AuthUser | null) => void;
 }
@@ -28,6 +32,8 @@ const AuthContext = createContext<AuthContextType>({
   role: null,
   isAdmin: false,
   isUser: false,
+  isUserFE: false,
+  isUserWilayah: false,
   isLoading: true,
   login: async () => ({ success: false }),
   register: async () => ({ success: false }),
@@ -83,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (name: string, email: string, password: string, role: 'admin' | 'user') => {
+  const register = async (name: string, email: string, password: string, role: UserRole) => {
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -124,7 +130,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const role = user?.role || null;
   const isAdmin = role === 'admin';
-  const isUser = role === 'user';
+  const isUserFE = role === 'user_fe';
+  const isUserWilayah = role === 'user_wilayah' || role === 'user';
+  const isUser = !isAdmin;
 
   return (
     <AuthContext.Provider
@@ -133,6 +141,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role,
         isAdmin,
         isUser,
+        isUserFE,
+        isUserWilayah,
         isLoading,
         login,
         register,

@@ -24,6 +24,7 @@ import {
   UploadCloud,
   FileSpreadsheet,
   X,
+  PieChart as LucidePieChart,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -37,8 +38,79 @@ import {
   CartesianGrid,
   LineChart,
   Line,
+  PieChart,
+  Pie,
+  Cell,
 } from 'recharts';
 import MasterLokasiDetailDrawer from '@/components/MasterLokasiDetailDrawer';
+
+const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+const MONTH_NAMES_FULL = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+];
+
+// Custom Tooltip Pop-up Grafik Urut Sesuai Permintaan:
+// 1. Order, 2. Drop, 3. Terpasang (SAP), 4. % Kedatangan, 5. % Pasang
+const CustomChartTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload || !payload.length) return null;
+  const data = payload[0]?.payload || {};
+  return (
+    <div className="bg-[#0f172a] text-white p-3.5 rounded-2xl border border-white/15 shadow-2xl text-xs space-y-1.5 min-w-[190px] z-50">
+      <div className="font-black text-sm text-slate-100 pb-1.5 border-b border-slate-700/80 tracking-tight">
+        {label}
+      </div>
+      <div className="flex items-center justify-between gap-4 font-bold text-[#F58220]">
+        <span>Order :</span>
+        <span className="font-mono">{Number(data.order || 0).toLocaleString('id-ID')} pcs</span>
+      </div>
+      <div className="flex items-center justify-between gap-4 font-bold text-[#00873D] dark:text-emerald-400">
+        <span>Drop (Kedatangan) :</span>
+        <span className="font-mono">{Number(data.drop || 0).toLocaleString('id-ID')} pcs</span>
+      </div>
+      <div className="flex items-center justify-between gap-4 font-bold text-[#009EE2]">
+        <span>Terpasang (SAP) :</span>
+        <span className="font-mono">{Number(data.totalPasang || 0).toLocaleString('id-ID')} pcs</span>
+      </div>
+      <div className="flex items-center justify-between gap-4 font-bold text-[#8B5CF6]">
+        <span>% Kedatangan :</span>
+        <span className="font-mono">{data.pctKedatangan != null && data.pctKedatangan !== '-' ? `${data.pctKedatangan}%` : '-'}</span>
+      </div>
+      <div className="flex items-center justify-between gap-4 font-bold text-[#0D9488]">
+        <span>% Pasang :</span>
+        <span className="font-mono">{data.pctPasang != null && data.pctPasang !== '-' ? `${data.pctPasang}%` : '-'}</span>
+      </div>
+    </div>
+  );
+};
+
+// Custom Tooltip Pop-up Donut Chart Luas FC Open (100% Solid Non-Tembus Pandang, persentase + luas)
+const CustomDonutTooltip = ({ active, payload }: any) => {
+  if (!active || !payload || !payload.length) return null;
+  const data = payload[0];
+  const item = data?.payload || {};
+  const label = item.label || item.name || `Umur ${item.umurBulan ?? '-'} Bln`;
+  const luas = Number(item.luas ?? data.value ?? 0);
+  const persentase = item.persentase != null ? Number(item.persentase) : 0;
+  const color = item.color || data.fill || '#10B981';
+
+  return (
+    <div className="bg-[#0f172a] text-white p-2.5 rounded-xl border border-slate-700 shadow-2xl text-xs space-y-1.5 min-w-[135px] z-50 pointer-events-none">
+      <div className="flex items-center gap-2 font-bold pb-1 border-b border-slate-700/80">
+        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+        <span className="text-sm font-black text-slate-100">{label}</span>
+      </div>
+      <div className="flex items-center justify-between gap-3 pt-0.5 font-bold">
+        <span className="text-slate-400 font-medium">Persentase:</span>
+        <span className="font-mono text-emerald-400 font-black text-sm">{persentase.toFixed(2)}%</span>
+      </div>
+      <div className="flex items-center justify-between gap-3 font-bold">
+        <span className="text-slate-400 font-medium">Luas FC:</span>
+        <span className="font-mono text-slate-200 font-bold">{luas.toFixed(2)} Ha</span>
+      </div>
+    </div>
+  );
+};
 
 // In-memory module cache agar navigasi antar menu 0 ms instan tanpa loading dari awal lagi
 let cachedSummaryData: any = null;
@@ -59,6 +131,31 @@ export default function MonitorGorongGorongView() {
   const [masterLocationsList, setMasterLocationsList] = useState<string[]>([]);
   const [selectedDiameterFilter, setSelectedDiameterFilter] = useState<number | 'ALL'>(40);
   const [chartViewMode, setChartViewMode] = useState<'monthly' | 'wilayah'>('monthly');
+
+  // Filter Baru: Status Diameter (Semua, Open, Cek, Close)
+  const [selectedStatusDiameter, setSelectedStatusDiameter] = useState<string>('');
+  const [isStatusDiameterDropdownOpen, setIsStatusDiameterDropdownOpen] = useState<boolean>(false);
+
+  // Filter Baru: Akt. BK
+  const [selectedAktBk, setSelectedAktBk] = useState<string[]>([]);
+  const [isAktBkDropdownOpen, setIsAktBkDropdownOpen] = useState<boolean>(false);
+
+  // Filter Baru: DSM BK
+  const [selectedDsmBk, setSelectedDsmBk] = useState<string[]>([]);
+  const [isDsmBkDropdownOpen, setIsDsmBkDropdownOpen] = useState<boolean>(false);
+
+  // Filter Baru: DSM ST
+  const [selectedDsmSt, setSelectedDsmSt] = useState<string[]>([]);
+  const [isDsmStDropdownOpen, setIsDsmStDropdownOpen] = useState<boolean>(false);
+
+  // Filter Baru: Month Range Picker untuk Tanggal Order
+  const [orderMonthRange, setOrderMonthRange] = useState<{ startMonth: number; endMonth: number; year: number } | null>(null);
+  const [pickerYear, setPickerYear] = useState<number>(2026);
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState<boolean>(false);
+
+  // Switcher Panel Samping: Donut FC Open (Ha) vs List Wilayah
+  const [rightPanelMode, setRightPanelMode] = useState<'donut' | 'wilayah'>('donut');
+
   const [hiddenSeries, setHiddenSeries] = useState<Record<string, boolean>>({
     order: false,
     drop: false,
@@ -103,14 +200,27 @@ export default function MonitorGorongGorongView() {
       if (!target.closest('.status-openclose-filter-container')) {
         setIsStatusOpenCloseDropdownOpen(false);
       }
+      if (!target.closest('.status-diameter-filter-container')) {
+        setIsStatusDiameterDropdownOpen(false);
+      }
       if (!target.closest('.status-tanaman-filter-container')) {
         setIsStatusTanamanDropdownOpen(false);
       }
-      if (!target.closest('.tanggal-order-filter-container')) {
+      if (!target.closest('.tanggal-order-filter-container') && !target.closest('.monthpicker-container')) {
         setIsTanggalOrderDropdownOpen(false);
+        setIsMonthPickerOpen(false);
       }
       if (!target.closest('.prioritas-filter-container')) {
         setIsPrioritasDropdownOpen(false);
+      }
+      if (!target.closest('.aktbk-filter-container')) {
+        setIsAktBkDropdownOpen(false);
+      }
+      if (!target.closest('.dsmbk-filter-container')) {
+        setIsDsmBkDropdownOpen(false);
+      }
+      if (!target.closest('.dsmst-filter-container')) {
+        setIsDsmStDropdownOpen(false);
       }
       if (!target.closest('.multisearch-container')) {
         setIsSearchDropdownOpen(false);
@@ -387,21 +497,143 @@ export default function MonitorGorongGorongView() {
     return Array.from(set).sort();
   }, [listLokasiOrder]);
 
+  // Kumpulan Akt. BK yang tersedia secara dinamis
+  const availableAktBkOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of listLokasiOrder) {
+      if (item.aktBk && item.aktBk !== '-') {
+        set.add(item.aktBk.trim());
+      }
+    }
+    return Array.from(set).sort();
+  }, [listLokasiOrder]);
+
+  // Kumpulan DSM BK yang tersedia secara dinamis (Dide-duplikasi & Huruf Standar Kapital)
+  const availableDsmBkOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of listLokasiOrder) {
+      const val = String(item.dsmBk || '').trim().toUpperCase();
+      if (val && val !== '-') {
+        set.add(val);
+      }
+    }
+    return Array.from(set).sort();
+  }, [listLokasiOrder]);
+
+  // Kumpulan DSM ST yang tersedia secara dinamis (Dide-duplikasi & Huruf Standar Kapital)
+  const availableDsmStOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of listLokasiOrder) {
+      const val = String(item.dsmSt || '').trim().toUpperCase();
+      if (val && val !== '-') {
+        set.add(val);
+      }
+    }
+    return Array.from(set).sort();
+  }, [listLokasiOrder]);
+
+  // Grafik Donat Luas FC Open (Ha) Berdasarkan Kelompok Umur Bulan:
+  // Menampilkan total luas lahan dengan status tanaman FC yang status per diameternya masih Open (termasuk status '-' non-close).
+  // Reaktif mengikuti pilihan diameter dan tahun.
+  const donutFcOpenData = useMemo(() => {
+    const umurLuasMap: Record<number, number> = {};
+    let totalLuasOpenFc = 0;
+
+    const checkIsOpen = (diaObj: any) => {
+      if (!diaObj) return false;
+      const s = String(diaObj.status || '').toLowerCase().trim();
+      return s === 'open' || s === '-' || (s !== 'close' && s !== 'cek');
+    };
+
+    for (const item of listLokasiOrder) {
+      if (String(item.statusAll || '').toLowerCase() === 'close') continue;
+
+      const itemYr = item.tahun || (item.tanggalOrder && item.tanggalOrder !== '-' ? item.tanggalOrder.slice(0, 4) : '2026');
+      if (selectedYears.length > 0 && !selectedYears.includes(itemYr)) continue;
+
+      const st = String(item.status || '').trim().toUpperCase();
+      if (!st.includes('FC')) continue;
+
+      let isOpenDiameter = false;
+      if (selectedDiameterFilter === 'ALL') {
+        const d40Open = checkIsOpen(item.d40);
+        const d60Open = checkIsOpen(item.d60) && ((item.d60?.order || 0) > 0 || (item.d60?.drop || 0) > 0);
+        const d80Open = checkIsOpen(item.d80) && ((item.d80?.order || 0) > 0 || (item.d80?.drop || 0) > 0);
+        const d100Open = checkIsOpen(item.d100) && ((item.d100?.order || 0) > 0 || (item.d100?.drop || 0) > 0);
+        isOpenDiameter = d40Open || d60Open || d80Open || d100Open;
+      } else {
+        const diaKey = `d${selectedDiameterFilter}`;
+        const diaObj = item[diaKey];
+        if (String(selectedDiameterFilter) === '40') {
+          isOpenDiameter = checkIsOpen(diaObj);
+        } else {
+          isOpenDiameter = checkIsOpen(diaObj) && ((diaObj?.order || 0) > 0 || (diaObj?.drop || 0) > 0);
+        }
+      }
+
+      if (isOpenDiameter) {
+        const luas = Number(item.luas ?? 0);
+        totalLuasOpenFc += luas;
+        const u = Number(item.umurBulan ?? 0);
+        umurLuasMap[u] = (umurLuasMap[u] || 0) + luas;
+      }
+    }
+
+    const COLORS = [
+      '#10B981', '#009EE2', '#F58220', '#8B5CF6', '#EC4899',
+      '#06B6D4', '#EAB308', '#6366F1', '#14B8A6', '#F43F5E'
+    ];
+
+    const chartData = Object.entries(umurLuasMap)
+      .map(([uStr, luas], idx) => {
+        const uNum = Number(uStr);
+        const persentase = totalLuasOpenFc > 0 ? (luas / totalLuasOpenFc) * 100 : 0;
+        return {
+          umurBulan: uNum,
+          name: `${uNum} Bln`,
+          label: `Umur ${uNum} Bln`,
+          luas: Number(luas.toFixed(2)),
+          persentase: Number(persentase.toFixed(2)),
+          color: COLORS[idx % COLORS.length],
+        };
+      })
+      .filter((d) => d.luas > 0)
+      .sort((a, b) => a.umurBulan - b.umurBulan);
+
+    return {
+      totalLuas: Number(totalLuasOpenFc.toFixed(2)),
+      chartData,
+    };
+  }, [listLokasiOrder, selectedYears, selectedDiameterFilter]);
+
+  // Helper ekstrak angka terdepan dari string Akt. BK (misal "24. Selesai Tanam" -> 24)
+  const getAktBkNum = (str: string | null | undefined): number => {
+    if (!str) return -1;
+    const m = String(str).match(/^(\d+)/);
+    return m ? parseInt(m[1], 10) : -1;
+  };
+
   // Filter client-side untuk pencarian cepat & multi-tier sorting
   const filteredOrderList = useMemo(() => {
     let list = listLokasiOrder;
     const hasSearchLocations = selectedSearchLocations.length > 0;
     const q = searchQuery.toUpperCase().trim();
 
-    // Catatan: Header Tahun mengontrol kartu KPI dan grafik tren.
-    // Tabel List Lokasi Order mempertahankan seluruh 261 petak resmi (121 Open + 140 Close)
-    // agar petak dari tahun 2025 yang berstatus Open (12 petak) tetap tampil penuh saat filter Open diklik.
-
     // Filter berdasarkan wilayah yang dipilih
     if (selectedWilayah.length > 0) {
       list = list.filter((item: any) => {
         const itemWil = String(item.wilayah || '').trim().toUpperCase();
         return selectedWilayah.some((w) => itemWil.includes(w.toUpperCase()));
+      });
+    }
+
+    // Filter berdasarkan pilihan tahun di header atas (2025 / 2026)
+    if (selectedYears.length > 0) {
+      list = list.filter((item: any) => {
+        const itemYr = String(
+          item.tahun || (item.tanggalOrder && item.tanggalOrder !== '-' ? item.tanggalOrder.slice(0, 4) : '2026')
+        );
+        return selectedYears.includes(itemYr);
       });
     }
 
@@ -413,16 +645,51 @@ export default function MonitorGorongGorongView() {
       });
     }
 
-    // Filter berdasarkan status Open / Close
+    // Filter berdasarkan status Open / Close (HANYA berfokus pada statusAll)
     if (selectedStatusOpenClose.length > 0) {
       list = list.filter((item: any) => {
-        const rawStatusAll = (item.statusAll || item.status || '-').trim().toLowerCase();
-        const isLocClosed = rawStatusAll === 'close';
-        const isLocOpen = rawStatusAll === 'open' || rawStatusAll === '-';
+        const sAll = String(item.statusAll || 'Open').trim().toLowerCase();
+        const isLocClosed = sAll === 'close';
+        const isLocOpen = sAll === 'open' || !isLocClosed;
 
         const matchOpen = selectedStatusOpenClose.some((sel) => sel.toLowerCase() === 'open') && isLocOpen;
         const matchClose = selectedStatusOpenClose.some((sel) => sel.toLowerCase() === 'close') && isLocClosed;
         return matchOpen || matchClose;
+      });
+    }
+
+    // Filter baru: Status Diameter (Open, Cek, Close) berfokus pada status per diameter
+    if (selectedStatusDiameter) {
+      const targetStatus = selectedStatusDiameter.trim().toLowerCase();
+      list = list.filter((item: any) => {
+        if (targetStatus === 'open' && String(item.statusAll || '').toLowerCase() === 'close') {
+          return false;
+        }
+
+        const checkDiaStatus = (diaObj: any) => {
+          if (!diaObj) return false;
+          const s = String(diaObj.status || '').toLowerCase().trim();
+          if (targetStatus === 'open') {
+            return s === 'open' || s === '-' || (s !== 'close' && s !== 'cek');
+          } else if (targetStatus === 'close') {
+            return s === 'close';
+          } else if (targetStatus === 'cek') {
+            return s === 'cek';
+          }
+          return s === targetStatus;
+        };
+
+        if (selectedDiameterFilter === 'ALL') {
+          return (
+            checkDiaStatus(item.d40) ||
+            checkDiaStatus(item.d60) ||
+            checkDiaStatus(item.d80) ||
+            checkDiaStatus(item.d100)
+          );
+        } else {
+          const diaKey = `d${selectedDiameterFilter}`;
+          return checkDiaStatus(item[diaKey]);
+        }
       });
     }
 
@@ -434,11 +701,54 @@ export default function MonitorGorongGorongView() {
       });
     }
 
-    // Filter berdasarkan tanggal order yang dipilih
-    if (selectedTanggalOrder.length > 0) {
+    // Filter baru: Tanggal Order Month Range (Januari 2026 – Mei 2026)
+    if (orderMonthRange) {
+      list = list.filter((item: any) => {
+        if (!item.tanggalOrder || item.tanggalOrder === '-') return false;
+        try {
+          const d = new Date(item.tanggalOrder);
+          if (isNaN(d.getTime())) return false;
+          const y = d.getFullYear();
+          const m = d.getMonth();
+          if (y !== orderMonthRange.year) return false;
+          const minM = Math.min(orderMonthRange.startMonth, orderMonthRange.endMonth);
+          const maxM = Math.max(orderMonthRange.startMonth, orderMonthRange.endMonth);
+          return m >= minM && m <= maxM;
+        } catch {
+          return false;
+        }
+      });
+    } else if (selectedTanggalOrder.length > 0) {
+      // Fallback filter tanggal individual
       list = list.filter((item: any) => {
         const itemDate = String(item.tanggalOrder || '').trim();
         return selectedTanggalOrder.includes(itemDate);
+      });
+    }
+
+    // Filter baru: Akt. BK
+    if (selectedAktBk.length > 0) {
+      list = list.filter((item: any) => {
+        const a = String(item.aktBk || '').trim();
+        return selectedAktBk.includes(a);
+      });
+    }
+
+    // Filter baru: DSM BK (case-insensitive)
+    if (selectedDsmBk.length > 0) {
+      const selBkUpper = selectedDsmBk.map((s) => s.trim().toUpperCase());
+      list = list.filter((item: any) => {
+        const d = String(item.dsmBk || '').trim().toUpperCase();
+        return selBkUpper.includes(d);
+      });
+    }
+
+    // Filter baru: DSM ST (case-insensitive)
+    if (selectedDsmSt.length > 0) {
+      const selStUpper = selectedDsmSt.map((s) => s.trim().toUpperCase());
+      list = list.filter((item: any) => {
+        const d = String(item.dsmSt || '').trim().toUpperCase();
+        return selStUpper.includes(d);
       });
     }
 
@@ -465,7 +775,7 @@ export default function MonitorGorongGorongView() {
     const prioOrder: Record<string, number> = { '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '-': 6, '': 7 };
 
     const sorted = [...list].sort((a: any, b: any) => {
-      // 7 Kolom Eksisting: Pertahankan Sesuai Aslinya (Jangan Diotak-Atik)
+      // Sort kolom kustom jika user mengklik header spesifik
       if (sortBy === 'prioritas') {
         const pA = prioOrder[a.prioritas] ?? 99;
         const pB = prioOrder[b.prioritas] ?? 99;
@@ -476,6 +786,9 @@ export default function MonitorGorongGorongView() {
         const cmp = sA.localeCompare(sB);
         if (cmp !== 0) return sortOrder === 'asc' ? cmp : -cmp;
       } else if (sortBy === 'aktBk') {
+        const numAktA = getAktBkNum(a.aktBk);
+        const numAktB = getAktBkNum(b.aktBk);
+        if (numAktA !== numAktB) return sortOrder === 'asc' ? numAktA - numAktB : numAktB - numAktA;
         const aA = a.aktBk || '';
         const aB = b.aktBk || '';
         const cmp = aA.localeCompare(aB);
@@ -498,9 +811,7 @@ export default function MonitorGorongGorongView() {
       } else if (sortBy === 'lokasi') {
         const cmp = a.lokasi.localeCompare(b.lokasi);
         if (cmp !== 0) return sortOrder === 'asc' ? cmp : -cmp;
-      }
-      // Kolom Tambahan yang Ditambahkan Fitur Sort
-      else if (sortBy === 'wilayah') {
+      } else if (sortBy === 'wilayah') {
         const cmp = (a.wilayah || '').localeCompare(b.wilayah || '');
         if (cmp !== 0) return sortOrder === 'asc' ? cmp : -cmp;
       } else if (sortBy === 'luas') {
@@ -525,7 +836,7 @@ export default function MonitorGorongGorongView() {
         sortBy.startsWith('d100_')
       ) {
         const parts = sortBy.split('_');
-        const diaKey = parts[0]; // 'd40' | 'd60' | 'd80' | 'd100'
+        const diaKey = parts[0];
         const col = parts.slice(1).join('_');
         const objA = a[diaKey] || {};
         const objB = b[diaKey] || {};
@@ -539,18 +850,8 @@ export default function MonitorGorongGorongView() {
           const vB = Number(objB.drop ?? 0);
           if (vA !== vB) return sortOrder === 'asc' ? vA - vB : vB - vA;
         } else if (col === 'tglDrop') {
-          const vA =
-            objA.tglTerakhirDrop === '-' || !objA.tglTerakhirDrop
-              ? sortOrder === 'asc'
-                ? '9999-99-99'
-                : '0000-00-00'
-              : objA.tglTerakhirDrop;
-          const vB =
-            objB.tglTerakhirDrop === '-' || !objB.tglTerakhirDrop
-              ? sortOrder === 'asc'
-                ? '9999-99-99'
-                : '0000-00-00'
-              : objB.tglTerakhirDrop;
+          const vA = objA.tglTerakhirDrop === '-' || !objA.tglTerakhirDrop ? (sortOrder === 'asc' ? '9999-99-99' : '0000-00-00') : objA.tglTerakhirDrop;
+          const vB = objB.tglTerakhirDrop === '-' || !objB.tglTerakhirDrop ? (sortOrder === 'asc' ? '9999-99-99' : '0000-00-00') : objB.tglTerakhirDrop;
           const cmp = vA.localeCompare(vB);
           if (cmp !== 0) return sortOrder === 'asc' ? cmp : -cmp;
         } else if (col === 'sisa') {
@@ -585,22 +886,28 @@ export default function MonitorGorongGorongView() {
         }
       }
 
-      // Default Multi-Tier Sorting:
-      // 1. Prioritas 1-5 (Ascending)
-      // 2. Status (Ascending)
-      // 3. Akt. BK (Descending)
-      // 4. DSM BK & DSM ST (Descending)
-      // 5. Tgl Order (Oldest ke Newest)
-      // 6. Lokasi (Ascending)
+      // Default Locked Multi-Tier Sort Hierarchy Sesuai Aturan Sistem:
+      // 1. Prioritas urutan dari 1 (1, 2, 3, 4, 5, -, '')
+      // 2. Akt. BK dari urutan angka paling besar (descending)
+      // 3. Umur Bulan urutan angka paling besar (descending)
+      // 4. Status Tanaman urutan A-Z (ascending)
+      // 5. DSM BK urutan Z-A (descending)
+      // 6. DSM ST urutan Z-A (descending)
+      // 7. Lokasi A-Z (ascending)
       const pA = prioOrder[a.prioritas] ?? 99;
       const pB = prioOrder[b.prioritas] ?? 99;
       if (pA !== pB) return pA - pB;
 
+      const numAktA = getAktBkNum(a.aktBk);
+      const numAktB = getAktBkNum(b.aktBk);
+      if (numAktA !== numAktB) return numAktB - numAktA;
+
+      const uA = Number(a.umurBulan ?? 0);
+      const uB = Number(b.umurBulan ?? 0);
+      if (uA !== uB) return uB - uA;
+
       const stCmp = (a.status || '').localeCompare(b.status || '');
       if (stCmp !== 0) return stCmp;
-
-      const aktCmp = (b.aktBk || '').localeCompare(a.aktBk || '');
-      if (aktCmp !== 0) return aktCmp;
 
       const dsmBkCmp = (b.dsmBk || '').localeCompare(a.dsmBk || '');
       if (dsmBkCmp !== 0) return dsmBkCmp;
@@ -608,16 +915,29 @@ export default function MonitorGorongGorongView() {
       const dsmStCmp = (b.dsmSt || '').localeCompare(a.dsmSt || '');
       if (dsmStCmp !== 0) return dsmStCmp;
 
-      const tglA = a.tanggalOrder === '-' ? '9999-99-99' : a.tanggalOrder;
-      const tglB = b.tanggalOrder === '-' ? '9999-99-99' : b.tanggalOrder;
-      const tglCmp = tglA.localeCompare(tglB);
-      if (tglCmp !== 0) return tglCmp;
-
       return a.lokasi.localeCompare(b.lokasi);
     });
 
     return sorted;
-  }, [listLokasiOrder, selectedSearchLocations, searchQuery, sortBy, sortOrder, selectedYears, selectedPrioritas, selectedStatusOpenClose, selectedStatusTanaman, selectedTanggalOrder, selectedWilayah, selectedDiameterFilter]);
+  }, [
+    listLokasiOrder,
+    selectedSearchLocations,
+    searchQuery,
+    sortBy,
+    sortOrder,
+    selectedYears,
+    selectedPrioritas,
+    selectedStatusOpenClose,
+    selectedStatusDiameter,
+    selectedStatusTanaman,
+    selectedTanggalOrder,
+    orderMonthRange,
+    selectedAktBk,
+    selectedDsmBk,
+    selectedDsmSt,
+    selectedWilayah,
+    selectedDiameterFilter,
+  ]);
 
   // 5 KPI Cards: Sesuai aturan arsitektur data:
   // Card 1 (Total Order): MasterDataOrderGorongGorong khusus Tahun 2026
@@ -1381,10 +1701,63 @@ export default function MonitorGorongGorongView() {
         </div>
       </div>
 
-      {/* 3. PANEL GRAFIK KOMPARASI & TREN TERPADU (BULANAN & AW01-AW07) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Grafik Utama: Combo Chart Dual-Axis (2 Kolom) */}
-        <div className="lg:col-span-2 p-5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs backdrop-blur-md flex flex-col justify-between">
+      {/* 3. PANEL GRAFIK KOMPARASI & TREN TERPADU (DONUT FC OPEN, TREN BULANAN/WILAYAH, & LIST WILAYAH) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+        {/* PANEL KIRI: Grafik Donat Proporsi Luas FC Open (Ha) Berdasarkan Kelompok Umur Bulan (Ukuran Proporsional Penuh) */}
+        <div className="lg:col-span-3 p-4 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs backdrop-blur-md flex flex-col justify-between">
+          <div className="flex items-center justify-end w-full mb-1">
+            <span className="text-xs font-extrabold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-2xs">
+              {selectedDiameterFilter === 'ALL' ? 'Semua Ø' : `Ø${selectedDiameterFilter}`} • {selectedYears[0] || '2026'}
+            </span>
+          </div>
+
+          <div className="flex flex-col items-center justify-center flex-1 py-1">
+            {donutFcOpenData.chartData.length === 0 ? (
+              <div className="text-center py-10 text-slate-400 text-xs font-semibold">
+                Tidak ada lahan FC berstatus Open untuk Ø{selectedDiameterFilter} ({selectedYears[0] || '2026'}).
+              </div>
+            ) : (
+              <div className="w-full flex flex-col items-center justify-center py-2">
+                <div className="relative w-[230px] h-[230px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={donutFcOpenData.chartData}
+                        dataKey="luas"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={65}
+                        outerRadius={102}
+                        paddingAngle={3}
+                        stroke="none"
+                      >
+                        {donutFcOpenData.chartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        content={<CustomDonutTooltip />}
+                        wrapperStyle={{ zIndex: 9999, outline: 'none' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                      {donutFcOpenData.totalLuas}
+                    </span>
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5">
+                      Ha Open FC
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* PANEL TENGAH: Grafik Tren Bulanan & Per Wilayah (Chart Utama di Tengah) */}
+        <div className="lg:col-span-6 p-4 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs backdrop-blur-md flex flex-col justify-between">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -1462,25 +1835,7 @@ export default function MonitorGorongGorongView() {
                   stroke="#8B5CF6"
                   domain={[0, (dataMax: number) => Math.max(100, Math.ceil(dataMax * 1.15))]}
                 />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
-                    color: '#fff',
-                    fontSize: '12px',
-                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
-                  }}
-                  formatter={(value: any, name: any) => {
-                    if (name === '% Kedatangan' || name === '% Pasang') {
-                      return [`${value}%`, name];
-                    }
-                    if (name === 'Order') {
-                      return [`${Number(value).toLocaleString('id-ID')} pcs`, name];
-                    }
-                    return [`${Number(value).toLocaleString('id-ID')} pcs`, name];
-                  }}
-                />
+                <Tooltip content={<CustomChartTooltip />} />
                 <Legend
                   content={() => (
                     <div className="flex flex-wrap items-center justify-center gap-4 pt-2 text-[11px] font-semibold select-none">
@@ -1564,29 +1919,31 @@ export default function MonitorGorongGorongView() {
           </div>
         </div>
 
-        {/* Panel Samping: Rincian Cepat Pemenuhan per Wilayah (1 Kolom) */}
-        <div className="p-5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs backdrop-blur-md flex flex-col justify-between">
+        {/* PANEL KANAN: Card Ringkasan per Wilayah / List Wilayah (AW01 - AW07) */}
+        <div className="lg:col-span-3 p-4 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs backdrop-blur-md flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[#009EE2]" />
-                Ringkasan per Wilayah
+            <div className="flex items-center justify-between mb-1.5">
+              <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-[#009EE2]" />
+                <span>Ringkasan per Wilayah</span>
               </h3>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                AW01 - AW07
+              <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                AW01 s/d AW07
               </span>
             </div>
-            <p className="text-[11px] text-slate-500 mb-3">Persentase kedatangan dan pemasangan per wilayah kebun</p>
+            <p className="text-[10.5px] text-slate-500 mb-2 leading-tight">
+              Persentase kedatangan dan pemasangan per wilayah kebun
+            </p>
           </div>
 
-          <div className="space-y-2.5 max-h-[280px] overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
             {sortedWilayahBreakdown.map((w: any) => (
               <div
                 key={w.wilayah}
                 onClick={() => {
                   setSelectedWilayah((prev) => (prev.includes(w.wilayah) ? [] : [w.wilayah]));
                 }}
-                className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                className={`p-2 rounded-xl border transition-all cursor-pointer ${
                   selectedWilayah.includes(w.wilayah)
                     ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-[#00873D]'
                     : 'bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200/60 dark:border-slate-700/60'
@@ -1600,7 +1957,7 @@ export default function MonitorGorongGorongView() {
                       <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />
                     )}
                   </div>
-                  <span className="text-slate-500 font-mono text-[11px]">
+                  <span className="text-slate-500 font-mono text-[10.5px]">
                     {w.pasang} / {w.drop} pcs
                   </span>
                 </div>
@@ -1661,22 +2018,27 @@ export default function MonitorGorongGorongView() {
             </span>
           </button>
 
-          {/* Filter Status (Dropdown dengan opsi Semua Status, Open, Close) */}
+          {/* Filter Status All (Hanya fokus pada statusAll: Open atau Close) */}
           <div className="relative status-openclose-filter-container">
             <button
               type="button"
               onClick={() => {
                 setIsStatusOpenCloseDropdownOpen((prev) => !prev);
+                setIsStatusDiameterDropdownOpen(false);
                 setIsStatusTanamanDropdownOpen(false);
                 setIsTanggalOrderDropdownOpen(false);
+                setIsMonthPickerOpen(false);
                 setIsPrioritasDropdownOpen(false);
                 setIsWilayahDropdownOpen(false);
+                setIsAktBkDropdownOpen(false);
+                setIsDsmBkDropdownOpen(false);
+                setIsDsmStDropdownOpen(false);
               }}
               className="flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-[110px]"
             >
               <span>
                 {selectedStatusOpenClose.length === 0
-                  ? 'Status'
+                  ? 'Status All'
                   : selectedStatusOpenClose[0]}
               </span>
               <ChevronDown
@@ -1700,7 +2062,7 @@ export default function MonitorGorongGorongView() {
                       : 'text-slate-700 dark:text-slate-300'
                   }`}
                 >
-                  <span className="whitespace-nowrap">Semua Status</span>
+                  <span className="whitespace-nowrap">Semua Status All</span>
                   {selectedStatusOpenClose.length === 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D] shrink-0" />}
                 </button>
                 {['Open', 'Close'].map((st) => {
@@ -1728,6 +2090,75 @@ export default function MonitorGorongGorongView() {
             )}
           </div>
 
+          {/* Filter Status Diameter (Open, Cek, Close) */}
+          <div className="relative status-diameter-filter-container">
+            <button
+              type="button"
+              onClick={() => {
+                setIsStatusDiameterDropdownOpen((prev) => !prev);
+                setIsStatusOpenCloseDropdownOpen(false);
+                setIsStatusTanamanDropdownOpen(false);
+                setIsTanggalOrderDropdownOpen(false);
+                setIsMonthPickerOpen(false);
+                setIsPrioritasDropdownOpen(false);
+                setIsWilayahDropdownOpen(false);
+                setIsAktBkDropdownOpen(false);
+                setIsDsmBkDropdownOpen(false);
+                setIsDsmStDropdownOpen(false);
+              }}
+              className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-[125px] ${
+                selectedStatusDiameter
+                  ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-[#00873D] text-[#00873D] font-bold'
+                  : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
+              }`}
+            >
+              <span>{selectedStatusDiameter ? `Status Ø: ${selectedStatusDiameter}` : 'Status Diameter'}</span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                  isStatusDiameterDropdownOpen ? 'rotate-180' : 'rotate-0'
+                }`}
+              />
+            </button>
+
+            {isStatusDiameterDropdownOpen && (
+              <div className="absolute left-0 top-full mt-1.5 w-44 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedStatusDiameter('');
+                    setIsStatusDiameterDropdownOpen(false);
+                  }}
+                  className={`w-full px-3.5 py-2 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
+                    !selectedStatusDiameter
+                      ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
+                      : 'text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <span>Semua Status Ø</span>
+                  {!selectedStatusDiameter && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                </button>
+                {['Open', 'Cek', 'Close'].map((st) => (
+                  <button
+                    key={st}
+                    type="button"
+                    onClick={() => {
+                      setSelectedStatusDiameter(selectedStatusDiameter === st ? '' : st);
+                      setIsStatusDiameterDropdownOpen(false);
+                    }}
+                    className={`w-full px-3.5 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
+                      selectedStatusDiameter === st
+                        ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
+                        : 'text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <span>{st}</span>
+                    {selectedStatusDiameter === st && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Filter Status Tanaman (NSBK, NSFC, FC, ST, dll) */}
           <div className="relative status-tanaman-filter-container">
             <button
@@ -1735,9 +2166,14 @@ export default function MonitorGorongGorongView() {
               onClick={() => {
                 setIsStatusTanamanDropdownOpen((prev) => !prev);
                 setIsStatusOpenCloseDropdownOpen(false);
+                setIsStatusDiameterDropdownOpen(false);
                 setIsTanggalOrderDropdownOpen(false);
+                setIsMonthPickerOpen(false);
                 setIsPrioritasDropdownOpen(false);
                 setIsWilayahDropdownOpen(false);
+                setIsAktBkDropdownOpen(false);
+                setIsDsmBkDropdownOpen(false);
+                setIsDsmStDropdownOpen(false);
               }}
               className="flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-[170px]"
             >
@@ -1768,7 +2204,7 @@ export default function MonitorGorongGorongView() {
                   }`}
                 >
                   <span className="whitespace-nowrap">Semua Status Tanaman</span>
-                  {selectedStatusTanaman.length === 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D] shrink-0" />}
+                  {selectedStatusTanaman.length === 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
                 </button>
                 {availableStatusTanamanOptions.map((st) => {
                   const isSelected = selectedStatusTanaman.includes(st);
@@ -1795,83 +2231,143 @@ export default function MonitorGorongGorongView() {
             )}
           </div>
 
-          {/* Filter Tanggal Order */}
-          <div className="relative tanggal-order-filter-container">
+          {/* Filter Tanggal Order: Month Range Picker (Sesuai Gambar 1) */}
+          <div className="relative monthpicker-container">
             <button
               type="button"
               onClick={() => {
-                setIsTanggalOrderDropdownOpen((prev) => !prev);
+                setIsMonthPickerOpen((prev) => !prev);
                 setIsStatusOpenCloseDropdownOpen(false);
+                setIsStatusDiameterDropdownOpen(false);
                 setIsStatusTanamanDropdownOpen(false);
                 setIsPrioritasDropdownOpen(false);
                 setIsWilayahDropdownOpen(false);
+                setIsAktBkDropdownOpen(false);
+                setIsDsmBkDropdownOpen(false);
+                setIsDsmStDropdownOpen(false);
               }}
-              className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs"
+              className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-colors shadow-2xs ${
+                orderMonthRange
+                  ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-[#00873D] text-[#00873D] font-bold'
+                  : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
+              }`}
             >
-              <span>
-                {selectedTanggalOrder.length === 0
-                  ? 'Tgl Order'
-                  : selectedTanggalOrder[0]}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                <span>
+                  {orderMonthRange
+                    ? `${MONTH_NAMES_SHORT[orderMonthRange.startMonth]} – ${MONTH_NAMES_SHORT[orderMonthRange.endMonth]} ${orderMonthRange.year}`
+                    : 'Rentang Bulan Order'}
+                </span>
+              </div>
               <ChevronDown
                 className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
-                  isTanggalOrderDropdownOpen ? 'rotate-180' : 'rotate-0'
+                  isMonthPickerOpen ? 'rotate-180' : 'rotate-0'
                 }`}
               />
             </button>
 
-            {isTanggalOrderDropdownOpen && (
-              <div className="absolute left-0 top-full mt-1.5 w-48 max-h-60 overflow-y-auto py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100 custom-scrollbar">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedTanggalOrder([]);
-                    setIsTanggalOrderDropdownOpen(false);
-                  }}
-                  className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
-                    selectedTanggalOrder.length === 0
-                      ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
-                      : 'text-slate-700 dark:text-slate-300'
-                  }`}
-                >
-                  <span>Semua Tanggal</span>
-                  {selectedTanggalOrder.length === 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
-                </button>
-                {availableTanggalOrderOptions.map((tgl) => {
-                  const isSelected = selectedTanggalOrder.includes(tgl);
-                  return (
-                    <button
-                      key={tgl}
-                      type="button"
-                      onClick={() => {
-                        setSelectedTanggalOrder((prev) => (prev.includes(tgl) ? [] : [tgl]));
-                        setIsTanggalOrderDropdownOpen(false);
-                      }}
-                      className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
-                        isSelected
-                          ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
-                          : 'text-slate-700 dark:text-slate-300'
-                      }`}
-                    >
-                      <span className="font-mono text-[11px]">{tgl}</span>
-                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
-                    </button>
-                  );
-                })}
+            {isMonthPickerOpen && (
+              <div className="absolute left-0 top-full mt-1.5 w-72 p-3.5 rounded-2xl bg-[#1e2330] text-white border border-slate-700/80 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100">
+                {/* Header: Year Nav */}
+                <div className="flex items-center justify-between px-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setPickerYear((y) => y - 1)}
+                    className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    <ChevronUp className="w-4 h-4 -rotate-90" />
+                  </button>
+                  <span className="text-sm font-bold tracking-tight text-white">{pickerYear}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPickerYear((y) => y + 1)}
+                    className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    <ChevronDown className="w-4 h-4 -rotate-90" />
+                  </button>
+                </div>
+
+                {/* Grid 12 Bulan (3 kolom x 4 baris) */}
+                <div className="grid grid-cols-3 gap-1.5 my-2">
+                  {MONTH_NAMES_SHORT.map((mName, mIdx) => {
+                    const isSelectedYear = orderMonthRange && orderMonthRange.year === pickerYear;
+                    const s = isSelectedYear ? Math.min(orderMonthRange.startMonth, orderMonthRange.endMonth) : -1;
+                    const e = isSelectedYear ? Math.max(orderMonthRange.startMonth, orderMonthRange.endMonth) : -1;
+                    const isStart = isSelectedYear && mIdx === s;
+                    const isEnd = isSelectedYear && mIdx === e;
+                    const inRange = isSelectedYear && mIdx >= s && mIdx <= e;
+
+                    let btnClass = 'text-slate-300 hover:bg-slate-800/80 hover:text-white';
+                    if (isStart || isEnd) {
+                      btnClass = 'bg-[#00873D] text-white font-black shadow-xs';
+                    } else if (inRange) {
+                      btnClass = 'bg-[#00873D]/30 text-emerald-300 font-bold';
+                    }
+
+                    return (
+                      <button
+                        key={mName}
+                        type="button"
+                        onClick={() => {
+                          if (!orderMonthRange || (orderMonthRange.startMonth !== orderMonthRange.endMonth)) {
+                            setOrderMonthRange({ startMonth: mIdx, endMonth: mIdx, year: pickerYear });
+                          } else {
+                            const first = orderMonthRange.startMonth;
+                            setOrderMonthRange({
+                              startMonth: Math.min(first, mIdx),
+                              endMonth: Math.max(first, mIdx),
+                              year: pickerYear,
+                            });
+                          }
+                        }}
+                        className={`py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${btnClass}`}
+                      >
+                        {mName}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Footer Controls */}
+                <div className="pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOrderMonthRange(null);
+                      setIsMonthPickerOpen(false);
+                    }}
+                    className="text-rose-400 hover:text-rose-300 font-semibold cursor-pointer"
+                  >
+                    Reset Filter
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsMonthPickerOpen(false)}
+                    className="px-3 py-1 rounded-lg bg-[#00873D] hover:bg-[#007033] text-white font-bold cursor-pointer"
+                  >
+                    Terapkan
+                  </button>
+                </div>
               </div>
             )}
           </div>
 
-          {/* Filter Prioritas (Dropdown di samping tombol Filter Status) */}
+          {/* Filter Prioritas */}
           <div className="relative prioritas-filter-container">
             <button
               type="button"
               onClick={() => {
                 setIsPrioritasDropdownOpen((prev) => !prev);
                 setIsStatusOpenCloseDropdownOpen(false);
+                setIsStatusDiameterDropdownOpen(false);
                 setIsStatusTanamanDropdownOpen(false);
                 setIsTanggalOrderDropdownOpen(false);
+                setIsMonthPickerOpen(false);
                 setIsWilayahDropdownOpen(false);
+                setIsAktBkDropdownOpen(false);
+                setIsDsmBkDropdownOpen(false);
+                setIsDsmStDropdownOpen(false);
               }}
               className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs"
             >
@@ -1925,6 +2421,210 @@ export default function MonitorGorongGorongView() {
                     </button>
                   );
                 })}
+              </div>
+            )}
+          </div>
+
+          {/* Filter Akt. BK */}
+          <div className="relative aktbk-filter-container">
+            <button
+              type="button"
+              onClick={() => {
+                setIsAktBkDropdownOpen((prev) => !prev);
+                setIsStatusOpenCloseDropdownOpen(false);
+                setIsStatusDiameterDropdownOpen(false);
+                setIsStatusTanamanDropdownOpen(false);
+                setIsMonthPickerOpen(false);
+                setIsPrioritasDropdownOpen(false);
+                setIsWilayahDropdownOpen(false);
+                setIsDsmBkDropdownOpen(false);
+                setIsDsmStDropdownOpen(false);
+              }}
+              className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-[110px] ${
+                selectedAktBk.length > 0
+                  ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-[#00873D] text-[#00873D] font-bold'
+                  : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
+              }`}
+            >
+              <span>{selectedAktBk.length === 0 ? 'Akt. BK' : selectedAktBk[0]}</span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                  isAktBkDropdownOpen ? 'rotate-180' : 'rotate-0'
+                }`}
+              />
+            </button>
+
+            {isAktBkDropdownOpen && (
+              <div className="absolute left-0 top-full mt-1.5 w-60 max-h-60 overflow-y-auto py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100 custom-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedAktBk([]);
+                    setIsAktBkDropdownOpen(false);
+                  }}
+                  className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
+                    selectedAktBk.length === 0
+                      ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
+                      : 'text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <span>Semua Akt. BK</span>
+                  {selectedAktBk.length === 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                </button>
+                {availableAktBkOptions.map((akt) => (
+                  <button
+                    key={akt}
+                    type="button"
+                    onClick={() => {
+                      setSelectedAktBk((prev) => (prev.includes(akt) ? [] : [akt]));
+                      setIsAktBkDropdownOpen(false);
+                    }}
+                    className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
+                      selectedAktBk.includes(akt)
+                        ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
+                        : 'text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <span className="truncate">{akt}</span>
+                    {selectedAktBk.includes(akt) && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Filter DSM BK */}
+          <div className="relative dsmbk-filter-container">
+            <button
+              type="button"
+              onClick={() => {
+                setIsDsmBkDropdownOpen((prev) => !prev);
+                setIsStatusOpenCloseDropdownOpen(false);
+                setIsStatusDiameterDropdownOpen(false);
+                setIsStatusTanamanDropdownOpen(false);
+                setIsMonthPickerOpen(false);
+                setIsPrioritasDropdownOpen(false);
+                setIsWilayahDropdownOpen(false);
+                setIsAktBkDropdownOpen(false);
+                setIsDsmStDropdownOpen(false);
+              }}
+              className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-[100px] ${
+                selectedDsmBk.length > 0
+                  ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-[#00873D] text-[#00873D] font-bold'
+                  : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
+              }`}
+            >
+              <span>{selectedDsmBk.length === 0 ? 'DSM BK' : selectedDsmBk[0]}</span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                  isDsmBkDropdownOpen ? 'rotate-180' : 'rotate-0'
+                }`}
+              />
+            </button>
+
+            {isDsmBkDropdownOpen && (
+              <div className="absolute left-0 top-full mt-1.5 w-44 max-h-60 overflow-y-auto py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100 custom-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedDsmBk([]);
+                    setIsDsmBkDropdownOpen(false);
+                  }}
+                  className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
+                    selectedDsmBk.length === 0
+                      ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
+                      : 'text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <span>Semua DSM BK</span>
+                  {selectedDsmBk.length === 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                </button>
+                {availableDsmBkOptions.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => {
+                      setSelectedDsmBk((prev) => (prev.includes(d) ? [] : [d]));
+                      setIsDsmBkDropdownOpen(false);
+                    }}
+                    className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
+                      selectedDsmBk.includes(d)
+                        ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
+                        : 'text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <span>{d}</span>
+                    {selectedDsmBk.includes(d) && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Filter DSM ST */}
+          <div className="relative dsmst-filter-container">
+            <button
+              type="button"
+              onClick={() => {
+                setIsDsmStDropdownOpen((prev) => !prev);
+                setIsStatusOpenCloseDropdownOpen(false);
+                setIsStatusDiameterDropdownOpen(false);
+                setIsStatusTanamanDropdownOpen(false);
+                setIsMonthPickerOpen(false);
+                setIsPrioritasDropdownOpen(false);
+                setIsWilayahDropdownOpen(false);
+                setIsAktBkDropdownOpen(false);
+                setIsDsmBkDropdownOpen(false);
+              }}
+              className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-[100px] ${
+                selectedDsmSt.length > 0
+                  ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-[#00873D] text-[#00873D] font-bold'
+                  : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
+              }`}
+            >
+              <span>{selectedDsmSt.length === 0 ? 'DSM ST' : selectedDsmSt[0]}</span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                  isDsmStDropdownOpen ? 'rotate-180' : 'rotate-0'
+                }`}
+              />
+            </button>
+
+            {isDsmStDropdownOpen && (
+              <div className="absolute left-0 top-full mt-1.5 w-44 max-h-60 overflow-y-auto py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100 custom-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedDsmSt([]);
+                    setIsDsmStDropdownOpen(false);
+                  }}
+                  className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
+                    selectedDsmSt.length === 0
+                      ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
+                      : 'text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <span>Semua DSM ST</span>
+                  {selectedDsmSt.length === 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                </button>
+                {availableDsmStOptions.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => {
+                      setSelectedDsmSt((prev) => (prev.includes(d) ? [] : [d]));
+                      setIsDsmStDropdownOpen(false);
+                    }}
+                    className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
+                      selectedDsmSt.includes(d)
+                        ? 'text-[#00873D] font-bold bg-emerald-50/50 dark:bg-emerald-950/30'
+                        : 'text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <span>{d}</span>
+                    {selectedDsmSt.includes(d) && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -2294,7 +2994,7 @@ export default function MonitorGorongGorongView() {
                       <td className={`sticky left-0 z-20 w-[45px] min-w-[45px] max-w-[45px] text-center font-mono text-[11px] text-slate-500 border-r border-b border-slate-200 dark:border-slate-800 px-1 py-2 ${
                         idx % 2 === 1 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-900'
                       } group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors`}>
-                        {idx + 1}
+                        {item.fixedRank ?? idx + 1}
                       </td>
                       <td className={`sticky left-[45px] z-20 w-[85px] min-w-[85px] max-w-[85px] text-center font-bold border-r border-b border-slate-200 dark:border-slate-800 px-1 py-1.5 ${
                         idx % 2 === 1 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-900'
@@ -2680,7 +3380,7 @@ export default function MonitorGorongGorongView() {
                         idx % 2 === 1 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-900'
                       }`}
                     >
-                      <td className="px-4 py-2 font-mono text-slate-400 text-center border-r border-b border-slate-200 dark:border-slate-800">{idx + 1}</td>
+                      <td className="px-4 py-2 font-mono text-slate-400 text-center border-r border-b border-slate-200 dark:border-slate-800">{item.fixedRank ?? idx + 1}</td>
                       <td className="px-4 py-2 font-bold text-center border-r border-b border-slate-200 dark:border-slate-800">{item.wilayah}</td>
                       <td className="px-3 py-1.5 font-bold text-center border-r border-b border-slate-200 dark:border-slate-800">
                         <button

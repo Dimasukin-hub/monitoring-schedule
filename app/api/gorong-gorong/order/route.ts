@@ -87,11 +87,21 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (it.userRole === 'USER_WILAYAH' && cleanJenis !== 'ORDER') {
+      if (it.userRole === 'USER_WILAYAH' && cleanJenis !== 'ORDER' && cleanJenis !== 'PASANG_MANUAL') {
         return NextResponse.json(
           {
             success: false,
-            message: 'Akses Ditolak: User Wilayah hanya berhak membuat transaksi ORDER.',
+            message: 'Akses Ditolak: User Wilayah hanya berhak membuat transaksi ORDER dan PASANG MANUAL.',
+          },
+          { status: 403 }
+        );
+      }
+
+      if (it.userRole === 'USER_FE' && cleanJenis !== 'DROP') {
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'Akses Ditolak: User FE hanya berhak membuat transaksi DROP.',
           },
           { status: 403 }
         );
@@ -151,6 +161,101 @@ export async function POST(request: NextRequest) {
     const created = await prisma.$transaction(
       validatedData.map((data) => prisma.transaksiGorongGorong.create({ data }))
     );
+
+    // Sinkronisasi pembaruan kuantiti dan transisi prioritas otomatis ke tabel LokasiOrderGorongGorong
+    for (const d of validatedData) {
+      try {
+        const existingLokasiOrder = await prisma.lokasiOrderGorongGorong.findUnique({
+          where: { lokasi: d.lokasi },
+        });
+
+        const tglStr = d.tanggal ? (typeof d.tanggal === 'string' ? d.tanggal : d.tanggal.toISOString().slice(0, 10)) : '-';
+
+        if (existingLokasiOrder) {
+          const updateData: any = {};
+          if (d.jenisTransaksi === 'DROP') {
+            if (d.qtyD40 > 0) {
+              updateData.dropD40 = (existingLokasiOrder.dropD40 || 0) + d.qtyD40;
+              updateData.tglDropD40 = tglStr;
+            }
+            if (d.qtyD60 > 0) updateData.dropD60 = (existingLokasiOrder.dropD60 || 0) + d.qtyD60;
+            if (d.qtyD80 > 0) updateData.dropD80 = (existingLokasiOrder.dropD80 || 0) + d.qtyD80;
+            if (d.qtyD100 > 0) updateData.dropD100 = (existingLokasiOrder.dropD100 || 0) + d.qtyD100;
+
+            // Hitung total order dan drop terkini untuk evaluasi transisi prioritas
+            const ord40 = updateData.orderD40 ?? existingLokasiOrder.orderD40 ?? 0;
+            const ord60 = updateData.orderD60 ?? existingLokasiOrder.orderD60 ?? 0;
+            const ord80 = updateData.orderD80 ?? existingLokasiOrder.orderD80 ?? 0;
+            const ord100 = updateData.orderD100 ?? existingLokasiOrder.orderD100 ?? 0;
+            const totOrd = ord40 + ord60 + ord80 + ord100;
+
+            const drp40 = updateData.dropD40 ?? existingLokasiOrder.dropD40 ?? 0;
+            const drp60 = updateData.dropD60 ?? existingLokasiOrder.dropD60 ?? 0;
+            const drp80 = updateData.dropD80 ?? existingLokasiOrder.dropD80 ?? 0;
+            const drp100 = updateData.dropD100 ?? existingLokasiOrder.dropD100 ?? 0;
+            const totDrp = drp40 + drp60 + drp80 + drp100;
+
+            const pctDrop = totOrd > 0 ? (totDrp / totOrd) * 100 : (totDrp > 0 ? 100 : 0);
+
+            // Transisi prioritas operasional baru:
+            // P1 -> P4 jika drop > 50% (jika drop <= 50% tetap P1)
+            // P2 -> P3 jika sudah drop
+            if (existingLokasiOrder.prioritas === '1' || existingLokasiOrder.prioritas === '4') {
+              updateData.prioritas = pctDrop > 50 ? '4' : '1';
+            } else if (existingLokasiOrder.prioritas === '2') {
+              updateData.prioritas = '3';
+            }
+          } else if (d.jenisTransaksi === 'ORDER') {
+            if (d.qtyD40 > 0) updateData.orderD40 = (existingLokasiOrder.orderD40 || 0) + d.qtyD40;
+            if (d.qtyD60 > 0) updateData.orderD60 = (existingLokasiOrder.orderD60 || 0) + d.qtyD60;
+            if (d.qtyD80 > 0) updateData.orderD80 = (existingLokasiOrder.orderD80 || 0) + d.qtyD80;
+            if (d.qtyD100 > 0) updateData.orderD100 = (existingLokasiOrder.orderD100 || 0) + d.qtyD100;
+            if (!existingLokasiOrder.tanggalOrder || existingLokasiOrder.tanggalOrder === '-') {
+              updateData.tanggalOrder = tglStr;
+            }
+          } else if (d.jenisTransaksi === 'PASANG_MANUAL') {
+            if (d.qtyD40 > 0) updateData.pasangManD40 = (existingLokasiOrder.pasangManD40 || 0) + d.qtyD40;
+            if (d.qtyD60 > 0) updateData.pasangManD60 = (existingLokasiOrder.pasangManD60 || 0) + d.qtyD60;
+            if (d.qtyD80 > 0) updateData.pasangManD80 = (existingLokasiOrder.pasangManD80 || 0) + d.qtyD80;
+            if (d.qtyD100 > 0) updateData.pasangManD100 = (existingLokasiOrder.pasangManD100 || 0) + d.qtyD100;
+          }
+
+          if (Object.keys(updateData).length > 0) {
+            await prisma.lokasiOrderGorongGorong.update({
+              where: { lokasi: d.lokasi },
+              data: updateData,
+            });
+          }
+        } else {
+          // Lokasi baru masuk ke list lokasi order
+          let prio = d.jenisTransaksi === 'DROP' ? '4' : '1';
+          await prisma.lokasiOrderGorongGorong.create({
+            data: {
+              lokasi: d.lokasi,
+              wilayah: d.wilayah,
+              prioritas: prio,
+              tanggalOrder: d.jenisTransaksi === 'ORDER' ? tglStr : '-',
+              statusAll: '-',
+              orderD40: d.jenisTransaksi === 'ORDER' ? d.qtyD40 : 0,
+              dropD40: d.jenisTransaksi === 'DROP' ? d.qtyD40 : 0,
+              tglDropD40: d.jenisTransaksi === 'DROP' ? tglStr : null,
+              pasangManD40: d.jenisTransaksi === 'PASANG_MANUAL' ? d.qtyD40 : 0,
+              orderD60: d.jenisTransaksi === 'ORDER' ? d.qtyD60 : 0,
+              dropD60: d.jenisTransaksi === 'DROP' ? d.qtyD60 : 0,
+              pasangManD60: d.jenisTransaksi === 'PASANG_MANUAL' ? d.qtyD60 : 0,
+              orderD80: d.jenisTransaksi === 'ORDER' ? d.qtyD80 : 0,
+              dropD80: d.jenisTransaksi === 'DROP' ? d.qtyD80 : 0,
+              pasangManD80: d.jenisTransaksi === 'PASANG_MANUAL' ? d.qtyD80 : 0,
+              orderD100: d.jenisTransaksi === 'ORDER' ? d.qtyD100 : 0,
+              dropD100: d.jenisTransaksi === 'DROP' ? d.qtyD100 : 0,
+              pasangManD100: d.jenisTransaksi === 'PASANG_MANUAL' ? d.qtyD100 : 0,
+            },
+          });
+        }
+      } catch (err) {
+        console.warn(`Failed to sync LokasiOrderGorongGorong for ${d.lokasi}:`, err);
+      }
+    }
 
     const lokasiNames = validatedData.map((d) => d.lokasi).join(', ');
     return NextResponse.json({

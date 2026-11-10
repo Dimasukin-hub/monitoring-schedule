@@ -92,8 +92,21 @@ export async function GET(request: NextRequest) {
       prisma.masterStatusLokasi.findMany({}),
       prisma.masterWaterlogging.findMany({}),
       prisma.land.findMany({
-        orderBy: { year: 'asc' },
-        select: { lokasi: true, aplikasiTerakhir: true },
+        orderBy: { year: 'desc' },
+        select: {
+          lokasi: true,
+          year: true,
+          aplikasiTerakhir: true,
+          realBkr: true,
+          realBajak: true,
+          realMulaiTanam: true,
+          realSelesaiTanam: true,
+          rencBkr: true,
+          activities: {
+            where: { realisasiDate: { not: null } },
+            select: { code: true, name: true, stepOrder: true, realisasiDate: true },
+          },
+        },
       }),
       prisma.transaksiGorongGorong.findMany({
         orderBy: { tanggal: 'asc' },
@@ -121,10 +134,76 @@ export async function GET(request: NextRequest) {
       dsmMap.set(w.lokasi.trim(), w);
     }
 
-    const landAktMap = new Map<string, string>();
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
+    function parseRealDate(s: string | null | undefined): Date | null {
+      if (!s) return null;
+      const str = String(s).trim();
+      if (!str || str === '-' || str === '0') return null;
+      if (str.includes('/')) {
+        const parts = str.split('/');
+        if (parts.length === 3) {
+          const d = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10) - 1;
+          const y = parseInt(parts[2], 10);
+          const res = new Date(y, m, d);
+          return isNaN(res.getTime()) ? null : res;
+        }
+      }
+      const res = new Date(str);
+      return isNaN(res.getTime()) ? null : res;
+    }
+
+    // Pemetaan Akt. BK MURNI dari tabel database Land saja (kolom aplikasiTerakhir, Newest <= Today)
+    const landAktMap = new Map<string, { formatted: string; stepOrder: number }>();
+    const landsByLok = new Map<string, any[]>();
     for (const l of allLands) {
-      if (l.aplikasiTerakhir) {
-        landAktMap.set(l.lokasi.trim(), l.aplikasiTerakhir);
+      const lok = l.lokasi.trim().toUpperCase();
+      if (!landsByLok.has(lok)) landsByLok.set(lok, []);
+      landsByLok.get(lok)!.push(l);
+    }
+
+    for (const [lok, landList] of landsByLok.entries()) {
+      let chosenLand: any = null;
+      let chosenDate: Date | null = null;
+
+      for (const l of landList) {
+        const realDates = [
+          parseRealDate(l.realSelesaiTanam),
+          parseRealDate(l.realMulaiTanam),
+          parseRealDate(l.realBajak),
+          parseRealDate(l.realBkr),
+          ...(l.activities || []).map((a: any) => parseRealDate(a.realisasiDate)),
+        ].filter((d): d is Date => d !== null && d <= today);
+
+        let maxReal: Date | null = null;
+        for (const d of realDates) {
+          if (!maxReal || d > maxReal) maxReal = d;
+        }
+
+        if (maxReal) {
+          if (!chosenDate || maxReal > chosenDate) {
+            chosenDate = maxReal;
+            chosenLand = l;
+          }
+        } else if (l.year && l.year <= today.getFullYear()) {
+          const fallbackDate = new Date(l.year, 11, 31);
+          if (fallbackDate <= today) {
+            if (!chosenDate || fallbackDate > chosenDate) {
+              chosenDate = fallbackDate;
+              chosenLand = l;
+            }
+          }
+        }
+      }
+
+      if (chosenLand && chosenLand.aplikasiTerakhir) {
+        const parsed = parseLandActivity(chosenLand.aplikasiTerakhir);
+        landAktMap.set(lok, {
+          formatted: parsed.formatted !== '-' ? parsed.formatted : chosenLand.aplikasiTerakhir,
+          stepOrder: parsed.stepOrder,
+        });
       }
     }
 
@@ -217,8 +296,8 @@ export async function GET(request: NextRequest) {
 
         const m = masterLokMap.get(lok);
         const dsm = dsmMap.get(lok);
-        const rawAktBk = snap?.aktBk || landAktMap.get(lok) || (m ? m.statusLengkap : null) || '-';
-        const aktBk = parseLandActivity(rawAktBk).formatted;
+        const landAkt = landAktMap.get(lok.toUpperCase());
+        const aktBk = landAkt ? landAkt.formatted : '-';
         let wilayah = isLocationWithoutWilayah(lok)
           ? '-'
           : (snap?.wilayah || m?.strucPlant || trxData.orders[0]?.wilayah || trxData.drops[0]?.wilayah || trxData.manuals[0]?.wilayah || '-');
@@ -337,11 +416,7 @@ export async function GET(request: NextRequest) {
           const saldoDia = dropQty - totalPasangDia;
 
           let pctKedatanganDia: number | string = '-';
-          if (totalPasangDia > 0) {
-            pctKedatanganDia = ordQty > 0 ? Math.round((totalPasangDia / ordQty) * 100) : '-';
-          } else if (ordQty > 0 && dropQty === 0) {
-            pctKedatanganDia = 'Belum';
-          } else if (ordQty > 0 && dropQty > 0) {
+          if (dropQty > 0 && ordQty > 0) {
             pctKedatanganDia = Math.round((dropQty / ordQty) * 100);
           } else {
             pctKedatanganDia = '-';
@@ -399,32 +474,26 @@ export async function GET(request: NextRequest) {
 
         let statusAll = isClosedInSnapshot ? 'Close' : '-';
 
-        let prioritas = '';
-        if (statusAll === 'Close') {
-          prioritas = '';
-        } else if (d40Order === null || d40Order === undefined || d40Order === 0) {
-          prioritas = '-';
-        } else if (snap && snap.prioritas !== undefined && snap.prioritas !== null && snap.prioritas !== '') {
-          prioritas = snap.prioritas;
-        } else {
-          const isFC = statusTanaman === 'FC' || statusTanaman?.endsWith('FC');
-          const isSchedule1 = aktBk.includes('24.Sls Tanam') || aktBk.toLowerCase().includes('selesai tanam') || aktBk.includes('23.Proses Tanam');
-          const isSchedule2 = aktBk.includes('22.Jalan & Saluran') || aktBk.includes('22.JALAN & SAL') || aktBk.includes('Jln&Sal') || aktBk.includes('Exmini') || aktBk.includes('SS1') || aktBk.includes('Subsoiler') || aktBk.includes('Ridger');
-          const d40Drop = diameterDetails['d40']?.drop || 0;
-          const d40PctDtg = d40Order > 0 ? (d40Drop / d40Order) : 0;
-          const d40TotalPsg = diameterDetails['d40']?.totalPasang || 0;
-          const d40PctPsgOrDtg = d40Order > 0 ? (d40TotalPsg > 0 ? d40TotalPsg / d40Order : d40Drop / d40Order) : 0;
+        let prioritas = snap?.prioritas || '';
+        const totalDropNow = (diameterDetails['d40']?.drop || 0) + (diameterDetails['d60']?.drop || 0) + (diameterDetails['d80']?.drop || 0) + (diameterDetails['d100']?.drop || 0);
+        const totalOrderNow = (diameterDetails['d40']?.order || 0) + (diameterDetails['d60']?.order || 0) + (diameterDetails['d80']?.order || 0) + (diameterDetails['d100']?.order || 0);
+        const hasDropAny = totalDropNow > 0;
+        const pctDropTotal = totalOrderNow > 0 ? (totalDropNow / totalOrderNow) * 100 : (totalDropNow > 0 ? 100 : 0);
+        const isDropAbove50 = pctDropTotal > 50;
 
-          if ((isFC || isSchedule1) && d40PctPsgOrDtg > 0.5) {
-            prioritas = '4';
-          } else if (isSchedule2 && d40Drop > 0) {
-            prioritas = '3';
-          } else if (isSchedule2 && d40Drop === 0) {
-            prioritas = '2';
-          } else if ((isFC || isSchedule1) && d40Drop === 0) {
-            prioritas = '1';
-          } else if ((isFC || statusTanaman?.endsWith('ST') || isSchedule1) && d40PctDtg < 0.5) {
-            prioritas = '1';
+        const isFC = statusTanaman === 'FC' || statusTanaman?.endsWith('FC');
+        const isSchedule1 = aktBk.includes('24.Sls Tanam') || aktBk.toLowerCase().includes('selesai tanam') || aktBk.includes('23.Proses Tanam');
+        const isSchedule2 = aktBk.includes('22.Jalan & Saluran') || aktBk.includes('22.JALAN & SAL') || aktBk.includes('Jln&Sal') || aktBk.includes('Exmini') || aktBk.includes('SS1') || aktBk.includes('Subsoiler') || aktBk.includes('Ridger');
+
+        if (prioritas === '1' || prioritas === '4' || ((isFC || isSchedule1) && statusAll !== 'Close')) {
+          prioritas = isDropAbove50 ? '4' : '1';
+        } else if (prioritas === '2' || prioritas === '3' || (isSchedule2 && statusAll !== 'Close')) {
+          prioritas = hasDropAny ? '3' : '2';
+        } else if (!prioritas || prioritas === '') {
+          if (statusAll === 'Close') {
+            prioritas = '';
+          } else if (d40Order === null || d40Order === undefined || d40Order === 0) {
+            prioritas = '-';
           } else {
             prioritas = '5';
           }
@@ -451,13 +520,43 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      // Sort
+      // Helper ekstrak angka Akt. BK
+      const getAktBkNum = (str: string | null | undefined): number => {
+        if (!str) return -1;
+        const m = String(str).match(/^(\d+)/);
+        return m ? parseInt(m[1], 10) : -1;
+      };
+
+      // Locked Multi-tier Sort
       listLokasiOrder.sort((a, b) => {
         const prioOrder: Record<string, number> = { '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '-': 6, '': 7 };
         const pA = prioOrder[a.prioritas] ?? 99;
         const pB = prioOrder[b.prioritas] ?? 99;
         if (pA !== pB) return pA - pB;
+
+        const numAktA = getAktBkNum(a.aktBk);
+        const numAktB = getAktBkNum(b.aktBk);
+        if (numAktA !== numAktB) return numAktB - numAktA;
+
+        const uA = Number(a.umurBulan ?? 0);
+        const uB = Number(b.umurBulan ?? 0);
+        if (uA !== uB) return uB - uA;
+
+        const stCmp = (a.status || '').localeCompare(b.status || '');
+        if (stCmp !== 0) return stCmp;
+
+        const dsmBkCmp = (b.dsmBk || '').localeCompare(a.dsmBk || '');
+        if (dsmBkCmp !== 0) return dsmBkCmp;
+
+        const dsmStCmp = (b.dsmSt || '').localeCompare(a.dsmSt || '');
+        if (dsmStCmp !== 0) return dsmStCmp;
+
         return a.lokasi.localeCompare(b.lokasi);
+      });
+
+      // Beri fixedRank permanen
+      listLokasiOrder.forEach((item, idx) => {
+        item.fixedRank = idx + 1;
       });
 
       // Filter
@@ -576,7 +675,7 @@ export async function GET(request: NextRequest) {
 
       filtered.forEach((item, idx) => {
         const rowData = {
-          no: idx + 1,
+          no: item.fixedRank || (idx + 1),
           lokasi: item.lokasi,
           wilayah: item.wilayah || '-',
           luas: item.luas ? parseFloat(item.luas.toFixed(2)) : 0,

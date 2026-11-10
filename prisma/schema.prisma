@@ -440,7 +440,6 @@ model MasterDataOrderGorongGorong {
   area         String?
   lokasi       String
   wilayah      String?   // Dari MasterStatusLokasi.strucPlant
-  keterangan   String?
   tanggal      DateTime? // Tanggal order
   diameter40   Int       @default(0)
   diameter60   Int       @default(0)

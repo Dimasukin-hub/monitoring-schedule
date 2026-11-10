@@ -97,9 +97,10 @@ export async function PUT(
       }
     }
 
-    if (role && (role === 'admin' || role === 'user')) {
-      // Jika mencoba mengubah admin menjadi user, pastikan masih ada admin lain
-      if (existingUser.role === 'admin' && role === 'user') {
+    const validRoles = ['admin', 'user', 'user_fe', 'user_wilayah'];
+    if (role && validRoles.includes(role)) {
+      // Jika mencoba mengubah admin menjadi non-admin, pastikan masih ada admin lain
+      if (existingUser.role === 'admin' && role !== 'admin') {
         const adminCount = await prisma.user.count({
           where: { role: 'admin' },
         });

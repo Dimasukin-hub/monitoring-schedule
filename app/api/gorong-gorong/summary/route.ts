@@ -55,6 +55,15 @@ export async function GET(request: NextRequest) {
       }),
       prisma.lokasiOrderGorongGorong.findMany({}),
       prisma.masterDataOrderGorongGorong.findMany({
+        select: {
+          lokasi: true,
+          wilayah: true,
+          tanggal: true,
+          diameter40: true,
+          diameter60: true,
+          diameter80: true,
+          diameter100: true,
+        },
         orderBy: { tanggal: 'asc' },
       }),
       prisma.masterDataDropGorongGorong.findMany({
@@ -350,11 +359,33 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 2. Card Total Terpasang (Tahun aktif dari MasterSapGorongGorong kolom qty via referensiLokasi)
+    // Helper mapping AW01..AW07 ke "Wilayah 1".."Wilayah 7"
+    const mapAwToPj = (w: string) => {
+      const match = w.match(/AW0?(\d+)/i);
+      if (match) {
+        return `Wilayah ${parseInt(match[1], 10)}`;
+      }
+      return w;
+    };
+
+    const activeWilList = wilayah && wilayah !== 'ALL'
+      ? wilayah.split(',').map((w) => w.trim().toUpperCase()).filter(Boolean)
+      : [];
+    const pjToMatch = activeWilList.map(mapAwToPj);
+
+    // 2. Card Total Terpasang (Tahun aktif dari MasterSapGorongGorong kolom qty via penanggungJawab)
     let terpasangSapYearly = 0;
     let terpasangSapAll = 0;
     for (const s of allSap) {
       if (selectedDia && s.diameter !== selectedDia) continue;
+
+      // Filter wilayah dari penanggungJawab (Wilayah 1 - 7 sama dengan AW01 - AW07)
+      if (pjToMatch.length > 0) {
+        const pj = (s.penanggungJawab || '').trim();
+        const matchesWil = pjToMatch.some((wName) => pj.toLowerCase().includes(wName.toLowerCase()));
+        if (!matchesWil) continue;
+      }
+
       const d = s.tanggalRealisasi ? new Date(s.tanggalRealisasi) : null;
       const yr = d ? d.getFullYear() : 2026;
       terpasangSapAll += s.qty;

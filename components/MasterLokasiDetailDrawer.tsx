@@ -192,61 +192,27 @@ export default function MasterLokasiDetailDrawer({
             </div>
           ) : (
             <>
-              {/* 1. Metric Cards: Luas Lahan */}
-              <div>
-                <div className="flex items-center gap-2 mb-2.5">
-                  <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                    Dimensi Lahan (Hektar)
-                  </h3>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50">
-                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block">
-                      Luas Bruto
-                    </span>
-                    <span className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-100 font-mono mt-1 block">
-                      {masterData?.luasBruto ? `${masterData.luasBruto.toFixed(2)} Ha` : '-'}
-                    </span>
-                  </div>
-                  <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50">
-                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block">
-                      Luas Aktif
-                    </span>
-                    <span className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-100 font-mono mt-1 block">
-                      {masterData?.luasAktif ? `${masterData.luasAktif.toFixed(2)} Ha` : '-'}
-                    </span>
-                  </div>
-                  <div className="p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-2xs">
-                    <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 block">
-                      Luas Netto
-                    </span>
-                    <span className="text-base sm:text-lg font-extrabold text-[#00873D] dark:text-emerald-400 font-mono mt-1 block">
-                      {masterData?.luasNetto ? `${masterData.luasNetto.toFixed(2)} Ha` : '-'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. Informasi Bibit & Rawat */}
+              {/* 1. STATUS PER LOKASI: Tanggal Rawat, Umur Bulan, Jenis Bibit, Kelas Bibit */}
               <div>
                 <div className="flex items-center gap-2 mb-2.5">
                   <Sprout className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                    Karakteristik Bibit & Riwayat Rawat
+                    Status Per Lokasi
                   </h3>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40">
-                    <span className="text-[10px] font-semibold text-slate-400 block">Bibit</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono mt-1 block truncate">
-                      {masterData?.bibit || '-'}
+                    <span className="text-[10px] font-semibold text-slate-400 block">Tanggal Rawat</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono mt-1 block">
+                      {formatDate(masterData?.tglRawat)}
                     </span>
                   </div>
                   <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40">
-                    <span className="text-[10px] font-semibold text-slate-400 block">Kelas Bibit</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 block">
-                      {masterData?.kelas || '-'}
+                    <span className="text-[10px] font-semibold text-slate-400 block">Umur Bulan</span>
+                    <span className="text-xs font-bold text-[#00873D] dark:text-emerald-400 font-mono mt-1 block">
+                      {masterData?.umurBulan !== null && masterData?.umurBulan !== undefined
+                        ? `${masterData.umurBulan} Bln`
+                        : (orderData?.umurBulan ? `${orderData.umurBulan} Bln` : '-')}
                     </span>
                   </div>
                   <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40">
@@ -256,118 +222,29 @@ export default function MasterLokasiDetailDrawer({
                     </span>
                   </div>
                   <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40">
-                    <span className="text-[10px] font-semibold text-slate-400 block">Tanggal Rawat</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono mt-1 block">
-                      {formatDate(masterData?.tglRawat)}
-                    </span>
-                  </div>
-                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40">
-                    <span className="text-[10px] font-semibold text-slate-400 block">Hari</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono mt-1 block">
-                      {masterData?.hari ?? '-'}
-                    </span>
-                  </div>
-                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40">
-                    <span className="text-[10px] font-semibold text-slate-400 block">Bulan</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono mt-1 block">
-                      {masterData?.bulan ?? '-'}
-                    </span>
-                  </div>
-                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40">
-                    <span className="text-[10px] font-semibold text-slate-400 block">Umur Rawat</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono mt-1 block">
-                      {masterData?.umurRawat !== null && masterData?.umurRawat !== undefined ? `${masterData.umurRawat} Bln` : '-'}
-                    </span>
-                  </div>
-                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40">
-                    <span className="text-[10px] font-semibold text-slate-400 block">Umur Bulan</span>
-                    <span className="text-xs font-bold text-[#00873D] dark:text-emerald-400 font-mono mt-1 block">
-                      {masterData?.umurBulan !== null && masterData?.umurBulan !== undefined ? `${masterData.umurBulan} Bln` : '-'}
+                    <span className="text-[10px] font-semibold text-slate-400 block">Kelas Bibit</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 block">
+                      {masterData?.kelas || '-'}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* 3. Jadwal & Rencana Forcing */}
-              <div>
-                <div className="flex items-center gap-2 mb-2.5">
-                  <Flame className="w-4 h-4 text-amber-500" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                    Jadwal & Rencana Forcing
-                  </h3>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40">
-                    <span className="text-[10px] font-semibold text-slate-400 block">Forcing STD</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono mt-1 block">
-                      {formatDate(masterData?.forcingStd)}
-                    </span>
-                  </div>
-                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40">
-                    <span className="text-[10px] font-semibold text-slate-400 block">Forcing Prod 2026</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono mt-1 block">
-                      {formatDate(masterData?.forcingProd2026)}
-                    </span>
-                  </div>
-                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40">
-                    <span className="text-[10px] font-semibold text-slate-400 block">Forcing 2027</span>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <span className="text-xs font-bold text-blue-600 dark:text-blue-400 font-mono">
-                        {formatDate(masterData?.forcing2027)}
-                      </span>
-                      {masterData?.ketForcing2027 && (
-                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase ${
-                          masterData.ketForcing2027 === 'real'
-                            ? 'bg-emerald-500/15 text-emerald-600'
-                            : 'bg-amber-500/15 text-amber-600'
-                        }`}>
-                          {masterData.ketForcing2027}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40">
-                    <span className="text-[10px] font-semibold text-slate-400 block">Fix Forcing</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono mt-1 block">
-                      {formatDate(masterData?.fixForcing)}
-                    </span>
-                  </div>
-                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40">
-                    <span className="text-[10px] font-semibold text-slate-400 block">Forcing Gabungan</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono mt-1 block">
-                      {formatDate(masterData?.forcingGabungan)}
-                    </span>
-                  </div>
-                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40">
-                    <span className="text-[10px] font-semibold text-slate-400 block">Umur F Std</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono mt-1 block">
-                      {masterData?.umurFStd ?? '-'}
-                    </span>
-                  </div>
-                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40">
-                    <span className="text-[10px] font-semibold text-slate-400 block">Umur F Prod</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono mt-1 block">
-                      {masterData?.umurFProd ?? '-'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* 4. Ringkasan Pemasangan Gorong-Gorong di Lokasi Ini */}
+              {/* 2. STATUS GORONG GORONG */}
               {orderData && (
                 <div>
                   <div className="flex items-center justify-between mb-2.5">
                     <div className="flex items-center gap-2">
                       <Activity className="w-4 h-4 text-[#00873D]" />
                       <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                        Status Gorong-Gorong di Lokasi Ini
+                        Status Gorong Gorong
                       </h3>
                     </div>
                     {orderData.prioritas && (
                       <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                        orderData.prioritas === 'P1'
+                        orderData.prioritas === '1' || orderData.prioritas === 'P1'
                           ? 'bg-rose-500/15 text-rose-600 border border-rose-500/30'
-                          : orderData.prioritas === 'P2'
+                          : orderData.prioritas === '2' || orderData.prioritas === 'P2'
                           ? 'bg-amber-500/15 text-amber-600 border border-amber-500/30'
                           : 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30'
                       }`}>
@@ -395,72 +272,49 @@ export default function MasterLokasiDetailDrawer({
                     </div>
                   </div>
 
-                  {/* Tabel Mini 4 Diameter */}
-                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xs">
+                  {/* Tabel Status Gorong Gorong Freeze Panes */}
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-x-auto shadow-2xs">
                     <table className="w-full text-center border-collapse text-xs whitespace-nowrap">
                       <thead className="bg-slate-100/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 font-bold border-b border-slate-200 dark:border-slate-700">
                         <tr>
-                          <th className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-700">Diameter</th>
-                          <th className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-700">Order (pcs)</th>
-                          <th className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-700">Drop (pcs)</th>
-                          <th className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-700">% Kedatangan</th>
-                          <th className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-700">Terpasang (pcs)</th>
-                          <th className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-700">Saldo (pcs)</th>
-                          <th className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-700">% Pasang</th>
-                          <th className="px-2.5 py-2">Status</th>
+                          <th className="sticky left-0 z-20 bg-slate-100 dark:bg-slate-800 px-3.5 py-2.5 border-r border-slate-200 dark:border-slate-700 text-center">
+                            Ukuran Diameter
+                          </th>
+                          <th className="px-3.5 py-2.5 border-r border-slate-200 dark:border-slate-700 text-center">
+                            Tanggal Drop
+                          </th>
+                          <th className="px-3.5 py-2.5 border-r border-slate-200 dark:border-slate-700 text-center">
+                            Tanggal Pasang
+                          </th>
+                          <th className="px-3.5 py-2.5 border-r border-slate-200 dark:border-slate-700 text-center text-emerald-700 dark:text-emerald-400">
+                            Drop (pcs)
+                          </th>
+                          <th className="px-3.5 py-2.5 text-center text-blue-700 dark:text-blue-400">
+                            Terpasang (pcs)
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
                         {[40, 60, 80, 100].map((dia) => {
                           const det = orderData[`d${dia}`] || orderData.details?.[`d${dia}`] || {};
-                          const isClose = det.status === 'Close';
+                          const tglDrop = det.tglTerakhirDrop && det.tglTerakhirDrop !== '-' ? formatDate(det.tglTerakhirDrop) : '-';
+                          const tglPasang = det.tglTerakhirPasang && det.tglTerakhirPasang !== '-' ? formatDate(det.tglTerakhirPasang) : '-';
                           return (
                             <tr key={dia} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                              <td className="px-2.5 py-2 font-bold font-mono text-[#00873D] border-r border-slate-200/70 dark:border-slate-800/70">
+                              <td className="sticky left-0 z-10 bg-white dark:bg-slate-900 px-3.5 py-2.5 font-bold font-mono text-[#00873D] border-r border-slate-200/70 dark:border-slate-800/70 text-center">
                                 D{dia}
                               </td>
-                              <td className="px-2.5 py-2 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
-                                {det.order ?? 0}
+                              <td className="px-3.5 py-2.5 font-mono text-slate-600 dark:text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70 text-center">
+                                {tglDrop}
                               </td>
-                              <td className="px-2.5 py-2 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
+                              <td className="px-3.5 py-2.5 font-mono text-slate-600 dark:text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70 text-center">
+                                {tglPasang}
+                              </td>
+                              <td className="px-3.5 py-2.5 font-mono font-bold text-emerald-600 dark:text-emerald-400 border-r border-slate-200/70 dark:border-slate-800/70 text-center">
                                 {det.drop ?? 0}
                               </td>
-                              <td className="px-2.5 py-2 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
-                                {det.pctKedatangan === 'Belum' ? (
-                                  <span className="inline-block px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-bold text-[10px]">
-                                    Belum
-                                  </span>
-                                ) : det.pctKedatangan === '-' || det.pctKedatangan === '' || det.pctKedatangan === undefined || det.pctKedatangan === null ? (
-                                  <span className="text-slate-400 font-medium">-</span>
-                                ) : (
-                                  <span>{det.pctKedatangan}%</span>
-                                )}
-                              </td>
-                              <td className="px-2.5 py-2 font-mono font-bold text-emerald-600 dark:text-emerald-400 border-r border-slate-200/70 dark:border-slate-800/70">
+                              <td className="px-3.5 py-2.5 font-mono font-bold text-blue-600 dark:text-blue-400 text-center">
                                 {det.totalPasang ?? 0}
-                              </td>
-                              <td className="px-2.5 py-2 font-mono font-bold text-amber-600 dark:text-amber-400 border-r border-slate-200/70 dark:border-slate-800/70">
-                                {det.saldo ?? 0}
-                              </td>
-                              <td className="px-2.5 py-2 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
-                                {det.pctPasang === 'Check' ? (
-                                  <span className="inline-block px-1.5 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 font-bold text-[10px] animate-pulse">
-                                    Check
-                                  </span>
-                                ) : det.pctPasang === '-' || det.pctPasang === '' || det.pctPasang === undefined || det.pctPasang === null ? (
-                                  <span className="text-slate-400 font-medium">-</span>
-                                ) : (
-                                  <span>{det.pctPasang}%</span>
-                                )}
-                              </td>
-                              <td className="px-2.5 py-2">
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                  isClose
-                                    ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30'
-                                    : 'bg-amber-500/15 text-amber-600 border border-amber-500/30'
-                                }`}>
-                                  {det.status || '-'}
-                                </span>
                               </td>
                             </tr>
                           );
