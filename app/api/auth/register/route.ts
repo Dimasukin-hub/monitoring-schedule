@@ -56,13 +56,17 @@ export async function POST(req: Request) {
       );
     }
 
-    // Buat user baru dengan role 'user'
+    // Tentukan role (user_wilayah, user_fe, atau user biasa; dilarang mendaftar admin secara bebas)
+    const allowedRoles = ['user_wilayah', 'user_fe', 'user'];
+    const targetRole = allowedRoles.includes(body.role) ? body.role : 'user';
+
+    // Buat user baru dengan role yang sesuai
     const newUser = await prisma.user.create({
       data: {
         name: cleanName,
         email: cleanUsername,
         password: rawPassword.trim(),
-        role: 'user',
+        role: targetRole,
       },
     });
 

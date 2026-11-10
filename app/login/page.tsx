@@ -18,6 +18,8 @@ import {
   Tractor,
   ArrowRight,
   ChevronLeft,
+  UserPlus,
+  BadgeCheck,
 } from 'lucide-react';
 
 export type SelectedRole = 'admin' | 'user_wilayah' | 'user_fe';
@@ -58,15 +60,26 @@ const ROLE_DETAILS = {
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, user } = useAuth();
+  const { login, register, user } = useAuth();
 
   // State Pilihan Role (null = belum pilih, tampilkan 3 kartu)
   const [selectedRole, setSelectedRole] = useState<SelectedRole | null>(null);
+
+  // Mode Register vs Login (hanya aktif untuk user_wilayah & user_fe)
+  const [isRegistering, setIsRegistering] = useState<boolean>(false);
 
   // Form States Login
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Form States Register
+  const [regName, setRegName] = useState('');
+  const [regUsername, setRegUsername] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regConfirmPassword, setRegConfirmPassword] = useState('');
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
 
   // UI States
   const [errorMsg, setErrorMsg] = useState('');
@@ -110,19 +123,29 @@ function LoginContent() {
   // Handle Pilih Role
   const handleSelectRole = (role: SelectedRole) => {
     setSelectedRole(role);
+    setIsRegistering(false);
     setErrorMsg('');
     setSuccessMsg('');
     setUsername(ROLE_DETAILS[role].defaultUsername);
     setPassword('');
+    setRegName('');
+    setRegUsername('');
+    setRegPassword('');
+    setRegConfirmPassword('');
   };
 
   // Handle Kembali ke Pilihan Role
   const handleBackToRoleSelection = () => {
     setSelectedRole(null);
+    setIsRegistering(false);
     setErrorMsg('');
     setSuccessMsg('');
     setUsername('');
     setPassword('');
+    setRegName('');
+    setRegUsername('');
+    setRegPassword('');
+    setRegConfirmPassword('');
   };
 
   // Handle Submit Login
@@ -143,6 +166,64 @@ function LoginContent() {
       }, 350);
     } else {
       setErrorMsg(res.message || 'Username atau kata sandi tidak sesuai.');
+    }
+  };
+
+  // Handle Submit Register (untuk User Wilayah & User FE)
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    if (!selectedRole || selectedRole === 'admin') {
+      setErrorMsg('Pendaftaran mandiri akun administrator tidak diperbolehkan.');
+      return;
+    }
+
+    const cleanUsername = regUsername.trim().toLowerCase();
+    const cleanName = regName.trim();
+
+    if (!cleanUsername) {
+      setErrorMsg('Username wajib diisi.');
+      return;
+    }
+
+    if (cleanUsername.length < 3) {
+      setErrorMsg('Username minimal 3 karakter.');
+      return;
+    }
+
+    if (/\s/.test(cleanUsername)) {
+      setErrorMsg('Username tidak boleh mengandung spasi.');
+      return;
+    }
+
+    if (!regPassword || regPassword.length < 8) {
+      setErrorMsg('Kata sandi minimal 8 karakter.');
+      return;
+    }
+
+    if (regPassword !== regConfirmPassword) {
+      setErrorMsg('Konfirmasi kata sandi tidak cocok.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    const res = await register(
+      cleanName || cleanUsername,
+      cleanUsername,
+      regPassword,
+      selectedRole
+    );
+    setIsSubmitting(false);
+
+    if (res.success) {
+      setSuccessMsg('Pendaftaran akun berhasil! Mengalihkan ke sistem...');
+      setTimeout(() => {
+        router.push(targetUrl);
+      }, 450);
+    } else {
+      setErrorMsg(res.message || 'Gagal mendaftarkan akun baru.');
     }
   };
 
@@ -313,16 +394,180 @@ function LoginContent() {
               </button>
             </div>
           </div>
-        ) : (
+        ) : isRegistering ? (
           /* ============================================================== */
-          /* TAHAP 2: FORM LOGIN (SESUAI PERAN YANG DIPILIH)                */
+          /* TAHAP 2B: FORM DAFTAR AKUN BARU (USER WILAYAH / USER FE)       */
           /* ============================================================== */
           <div className="mt-4">
             <div className="text-center mb-5">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border mb-2 shadow-2xs">
-                <span className={`w-2 h-2 rounded-full ${
-                  selectedRole === 'admin' ? 'bg-emerald-500' : selectedRole === 'user_wilayah' ? 'bg-amber-500' : 'bg-blue-500'
-                }`} />
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    selectedRole === 'user_wilayah' ? 'bg-amber-500' : 'bg-blue-500'
+                  }`}
+                />
+                <span className="text-slate-700 dark:text-slate-300 font-extrabold">
+                  Pendaftaran: {currentRoleInfo?.title}
+                </span>
+              </div>
+
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                Daftar Akun {currentRoleInfo?.title}
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium max-w-xs mx-auto">
+                Lengkapi informasi berikut untuk membuat akun operasional baru
+              </p>
+            </div>
+
+            <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
+              {/* Nama Lengkap */}
+              <div>
+                <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+                  Nama Lengkap
+                </label>
+                <div className="flex items-center w-full px-4 py-3 rounded-2xl bg-[#f0f5ff] dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 focus-within:ring-2 focus-within:ring-[#008f68]/30 focus-within:border-[#008f68] transition-all">
+                  <BadgeCheck className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
+                  <input
+                    type="text"
+                    required
+                    value={regName}
+                    onChange={(e) => setRegName(e.target.value)}
+                    placeholder="Contoh: Ahmad Fauzi"
+                    className="bg-transparent flex-1 text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none placeholder:text-slate-400/80"
+                  />
+                </div>
+              </div>
+
+              {/* Username */}
+              <div>
+                <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+                  Username <span className="text-[10px] font-normal text-slate-500">(min. 3 huruf, tanpa spasi)</span>
+                </label>
+                <div className="flex items-center w-full px-4 py-3 rounded-2xl bg-[#f0f5ff] dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 focus-within:ring-2 focus-within:ring-[#008f68]/30 focus-within:border-[#008f68] transition-all">
+                  <UserIcon className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
+                  <input
+                    type="text"
+                    required
+                    value={regUsername}
+                    onChange={(e) => setRegUsername(e.target.value)}
+                    placeholder="Contoh: ahmad_fe atau wilayah_03"
+                    className="bg-transparent flex-1 text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none placeholder:text-slate-400/80"
+                  />
+                </div>
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+                  Kata Sandi <span className="text-[10px] font-normal text-slate-500">(min. 8 karakter)</span>
+                </label>
+                <div className="flex items-center w-full px-4 py-3 rounded-2xl bg-[#f0f5ff] dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 focus-within:ring-2 focus-within:ring-[#008f68]/30 focus-within:border-[#008f68] transition-all">
+                  <Lock className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
+                  <input
+                    type={showRegPassword ? 'text' : 'password'}
+                    required
+                    value={regPassword}
+                    onChange={(e) => setRegPassword(e.target.value)}
+                    placeholder="Minimal 8 karakter"
+                    className="bg-transparent flex-1 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none placeholder:text-slate-400/80"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegPassword(!showRegPassword)}
+                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer p-0.5 ml-2"
+                  >
+                    {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Konfirmasi Password */}
+              <div>
+                <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+                  Ulangi Kata Sandi
+                </label>
+                <div className="flex items-center w-full px-4 py-3 rounded-2xl bg-[#f0f5ff] dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 focus-within:ring-2 focus-within:ring-[#008f68]/30 focus-within:border-[#008f68] transition-all">
+                  <Lock className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
+                  <input
+                    type={showRegConfirmPassword ? 'text' : 'password'}
+                    required
+                    value={regConfirmPassword}
+                    onChange={(e) => setRegConfirmPassword(e.target.value)}
+                    placeholder="Ulangi kata sandi"
+                    className="bg-transparent flex-1 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none placeholder:text-slate-400/80"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
+                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer p-0.5 ml-2"
+                  >
+                    {showRegConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Tombol Submit Register */}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-3.5 px-4 rounded-2xl bg-[#00873D] hover:bg-[#007033] active:scale-[0.99] text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 mt-5"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <UserPlus className="w-4 h-4" />
+                )}
+                <span>
+                  {isSubmitting ? 'Mendaftarkan Akun...' : `Daftar Akun ${currentRoleInfo?.title}`}
+                </span>
+              </button>
+
+              {/* Pindah ke Form Login */}
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-center">
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  Sudah memiliki akun?{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRegistering(false);
+                      setErrorMsg('');
+                      setSuccessMsg('');
+                    }}
+                    className="font-bold text-[#00873D] dark:text-emerald-400 hover:underline cursor-pointer ml-1 inline-flex items-center gap-1"
+                  >
+                    <span>Login di sini</span>
+                  </button>
+                </p>
+              </div>
+
+              {/* Tombol Ganti Peran */}
+              <div className="text-center pt-1">
+                <button
+                  type="button"
+                  onClick={handleBackToRoleSelection}
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:underline cursor-pointer"
+                >
+                  ← Ingin mendaftar dengan peran lain?
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
+          /* ============================================================== */
+          /* TAHAP 2A: FORM LOGIN (SESUAI PERAN YANG DIPILIH)               */
+          /* ============================================================== */
+          <div className="mt-4">
+            <div className="text-center mb-5">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border mb-2 shadow-2xs">
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    selectedRole === 'admin'
+                      ? 'bg-emerald-500'
+                      : selectedRole === 'user_wilayah'
+                      ? 'bg-amber-500'
+                      : 'bg-blue-500'
+                  }`}
+                />
                 <span className="text-slate-700 dark:text-slate-300 font-extrabold">
                   Peran: {currentRoleInfo?.title}
                 </span>
@@ -385,8 +630,31 @@ function LoginContent() {
                 className="w-full py-3.5 px-4 rounded-2xl bg-[#00873D] hover:bg-[#007033] active:scale-[0.99] text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 mt-6"
               >
                 {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>{isSubmitting ? 'Memproses...' : `Masuk sebagai ${currentRoleInfo?.title}`}</span>
+                <span>
+                  {isSubmitting ? 'Memproses...' : `Masuk sebagai ${currentRoleInfo?.title}`}
+                </span>
               </button>
+
+              {/* Pendaftaran Akun untuk User Wilayah & User FE */}
+              {selectedRole !== 'admin' && (
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-center">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    Belum mempunyai akun {currentRoleInfo?.title}?{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsRegistering(true);
+                        setErrorMsg('');
+                        setSuccessMsg('');
+                      }}
+                      className="font-bold text-[#00873D] dark:text-emerald-400 hover:underline cursor-pointer ml-1 inline-flex items-center gap-1"
+                    >
+                      <UserPlus className="w-3.5 h-3.5 inline" />
+                      <span>Daftar akun di sini</span>
+                    </button>
+                  </p>
+                </div>
+              )}
 
               {/* Tombol Ganti Peran */}
               <div className="text-center pt-2">
