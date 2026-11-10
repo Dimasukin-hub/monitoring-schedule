@@ -265,13 +265,15 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
 
           {/* Card 2: Portal Monitor Gorong-Gorong */}
           <Link
-            href="/gorong-gorong/monitor-gorong-gorong"
+            href={user ? '/gorong-gorong/monitor-gorong-gorong' : '/login?callbackUrl=/gorong-gorong/monitor-gorong-gorong'}
             prefetch={false}
             onClick={() => {
               if (typeof window !== 'undefined') {
                 sessionStorage.setItem('ggf_active_portal', '/gorong-gorong/monitor-gorong-gorong');
               }
-              onSelectPortal?.('gorong_gorong');
+              if (user) {
+                onSelectPortal?.('gorong_gorong');
+              }
             }}
             className="group relative flex flex-col justify-between p-7 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border-2 border-slate-200/90 dark:border-slate-800 hover:border-blue-600 dark:hover:border-blue-500 shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer overflow-hidden text-left"
           >
@@ -372,7 +374,7 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
 
               <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-2">
                 <Link
-                  href="/login?callbackUrl=/labita/executive-summary/pengolahan-lahan"
+                  href="/login?role=admin&callbackUrl=/labita/executive-summary/pengolahan-lahan"
                   className="w-full sm:flex-1 py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white text-xs font-bold text-center transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Lock className="w-3.5 h-3.5" />

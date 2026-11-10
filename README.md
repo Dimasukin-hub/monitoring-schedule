@@ -6,7 +6,7 @@ Sistem Portal Terpadu Operasional & Monitoring Kebun Plantation Group 1 (PG1) PT
 
 ## 🌐 Production Domain & Routing
 
-* **Domain Utama:** `https://establishmentandplanting.estatepg1.online`
+* **Domain Utama:** `https://fieldestablishment.estatepg1.online`
 
 ### Struktur Rute (*Next.js App Router*):
 * `GET /` : **Portal Landing Page** — Halaman utama pemilihan portal operasional.
@@ -36,11 +36,11 @@ npm run start
 
 ## ⚙️ Konfigurasi Nginx di VPS
 
-File konfigurasi Nginx di VPS (`/etc/nginx/sites-available/estatepg1`):
+File konfigurasi Nginx di VPS (`/etc/nginx/sites-available/monitoring_schedule`):
 
 ```nginx
 server {
-    server_name establishmentandplanting.estatepg1.online;
+    server_name fieldestablishment.estatepg1.online;
 
     location / {
         proxy_pass http://localhost:3000;
@@ -58,10 +58,10 @@ server {
 
 ### Mengaktifkan & Memasang SSL (Certbot):
 ```bash
-sudo ln -s /etc/nginx/sites-available/estatepg1 /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/monitoring_schedule /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
-sudo certbot --nginx -d establishmentandplanting.estatepg1.online
+sudo certbot --nginx -d fieldestablishment.estatepg1.online
 ```
 
 ---

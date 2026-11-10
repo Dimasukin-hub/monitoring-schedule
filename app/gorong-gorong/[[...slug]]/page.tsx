@@ -19,9 +19,16 @@ import {
 } from '@/lib/portalRoutes';
 
 export default function GorongGorongPage() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isLoading: authLoading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+
+  // Guard login: jika pengguna belum login, arahkan ke halaman login
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace(`/login?callbackUrl=${encodeURIComponent(pathname || '/gorong-gorong/monitor-gorong-gorong')}`);
+    }
+  }, [authLoading, user, pathname, router]);
 
   // Inisialisasi awal berdasarkan URL saat ini
   const initial = parseGorongGorongPathname(pathname || '/gorong-gorong');
