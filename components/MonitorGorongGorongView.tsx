@@ -3487,7 +3487,7 @@ export default function MonitorGorongGorongView() {
                   </div>
                 </button>
 
-                {/* Opsi 2: Replace Parsial (Per Baris / Nomor) */}
+                {/* Opsi 2: Tambah Data (Data Baru) */}
                 <button
                   type="button"
                   onClick={() => setUploadMode('partial')}
@@ -3506,10 +3506,10 @@ export default function MonitorGorongGorongView() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-blue-700 dark:text-blue-300">
-                      Replace Parsial (Per Baris / Nomor)
+                      Tambah Data (Data Baru)
                     </p>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                      Hanya me-replace baris/lokasi yang terdapat di dalam file Excel. Baris lokasi lainnya tetap aman tidak terhapus.
+                      Hanya menambahkan baris data baru dari berkas Excel. Seluruh data lama di database tetap aman dan tidak terhapus.
                     </p>
                   </div>
                 </button>
@@ -3606,7 +3606,7 @@ export default function MonitorGorongGorongView() {
                     <p className="font-bold text-sm">Sinkronisasi Excel Berhasil!</p>
                   </div>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-200/70 dark:bg-emerald-800/80 text-emerald-900 dark:text-emerald-100">
-                    {uploadResult.mode === 'full_replace' ? 'Replace Seluruh Data' : 'Update Parsial (Smart Merge)'}
+                    {uploadResult.mode === 'full_replace' ? 'Replace Seluruh Data' : 'Tambah Data Baru'}
                   </span>
                 </div>
                 <p className="text-xs text-slate-600 dark:text-slate-300">

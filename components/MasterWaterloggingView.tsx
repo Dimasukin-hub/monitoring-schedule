@@ -538,10 +538,10 @@ export default function MasterWaterloggingView() {
                     />
                     <div>
                       <div className="text-xs font-bold flex items-center gap-1.5 text-cyan-700 dark:text-cyan-400">
-                        Replace Parsial (Update Sebagian)
+                        Tambah Data (Data Baru)
                       </div>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
-                        Hanya baris lokasi yang ada di berkas Excel yang diperbarui/ditambahkan. Data lokasi lainnya di database tetap utuh.
+                        Hanya menambahkan baris data baru dari berkas Excel ke database. Seluruh data lama lainnya di database tetap utuh dan aman.
                       </p>
                     </div>
                   </label>
@@ -620,7 +620,9 @@ export default function MasterWaterloggingView() {
                   ) : (
                     <>
                       <Upload className="w-3.5 h-3.5" />
-                      <span>Mulai Unggah</span>
+                      <span>
+                        {uploadMode === 'full_replace' ? 'Upload & Replace Semua Data' : 'Upload & Tambah Data'}
+                      </span>
                     </>
                   )}
                 </button>

@@ -289,9 +289,9 @@ export default function MasterSapUploadView() {
                 {uploadMode === 'partial' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
               </div>
               <div>
-                <p className="text-xs font-bold">Replace Parsial (Per Baris / Nomor)</p>
+                <p className="text-xs font-bold text-violet-700 dark:text-violet-300">Tambah Data (Data Baru)</p>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                  Hanya memperbarui baris lokasi yang ada di file Excel tanpa menghapus atau mengubah baris lokasi lainnya.
+                  Hanya menambahkan baris data transaksi SAP baru dari file Excel ke database tanpa menghapus data lainnya.
                 </p>
               </div>
             </button>
@@ -339,7 +339,7 @@ export default function MasterSapUploadView() {
               <p className="text-xs text-slate-400 mt-0.5">
                 {uploadMode === 'full_replace'
                   ? 'Mode: Replace Semua Data (All) — seluruh data lama digantikan file ini'
-                  : 'Mode: Replace Parsial (Per Baris / Nomor) — hanya baris lokasi dalam file yang diperbarui'}
+                  : 'Mode: Tambah Data (Data Baru) — menambahkan baris data baru ke database tanpa menghapus data lama'}
               </p>
             </div>
           </div>
@@ -353,7 +353,7 @@ export default function MasterSapUploadView() {
               <div className="flex items-center justify-between">
                 <p className="font-bold text-sm">Berhasil Mengunggah Data SAP!</p>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-200/70 dark:bg-emerald-800/80 text-emerald-900 dark:text-emerald-100">
-                  {uploadResult.mode === 'partial' ? 'Replace Parsial (Per Baris)' : 'Replace Semua Data (All)'}
+                  {uploadResult.mode === 'partial' ? 'Tambah Data Baru' : 'Replace Semua Data (All)'}
                 </span>
               </div>
               <p>

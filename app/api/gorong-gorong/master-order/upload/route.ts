@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: isPartial
-        ? `Berhasil memperbarui/mengunggah parsial ${totalProcessed} data Master Order ke database!`
+        ? `Berhasil menambahkan ${totalProcessed} data baru Master Order ke database!`
         : `Berhasil me-replace total seluruh ${totalProcessed} data Master Order di database dengan data terbaru!`,
       count: totalProcessed,
     });

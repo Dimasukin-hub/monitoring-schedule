@@ -246,7 +246,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: isPartial
-        ? `Replace Parsial Berhasil: ${parsedRecords.length} lokasi berhasil diperbarui. Total data master: ${currentTotal} lokasi.`
+        ? `Tambah Data Berhasil: ${parsedRecords.length} data lokasi berhasil ditambahkan. Total data master: ${currentTotal} lokasi.`
         : `Replace All Berhasil: Seluruh data lama telah digantikan dengan ${parsedRecords.length} lokasi baru dari Excel. Total data master: ${currentTotal} lokasi.`,
       data: {
         processedCount: parsedRecords.length,
