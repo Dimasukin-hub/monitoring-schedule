@@ -17,7 +17,6 @@ import {
   MapPin,
   Tractor,
   ArrowRight,
-  ChevronLeft,
   UserPlus,
   BadgeCheck,
 } from 'lucide-react';
@@ -254,17 +253,6 @@ function LoginContent() {
             <ArrowLeft className="w-4 h-4" />
             <span>Kembali ke Portal Utama</span>
           </Link>
-
-          {selectedRole && (
-            <button
-              type="button"
-              onClick={handleBackToRoleSelection}
-              className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-              <span>Ganti Peran</span>
-            </button>
-          )}
         </div>
 
         {/* Top Brand Logo */}
@@ -522,6 +510,17 @@ function LoginContent() {
                 </span>
               </button>
 
+              {/* Tombol Ganti Peran */}
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={handleBackToRoleSelection}
+                  className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:underline cursor-pointer"
+                >
+                  Ganti Peran
+                </button>
+              </div>
+
               {/* Pindah ke Form Login */}
               <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-center">
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
@@ -538,17 +537,6 @@ function LoginContent() {
                     <span>Login di sini</span>
                   </button>
                 </p>
-              </div>
-
-              {/* Tombol Ganti Peran */}
-              <div className="text-center pt-1">
-                <button
-                  type="button"
-                  onClick={handleBackToRoleSelection}
-                  className="text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:underline cursor-pointer"
-                >
-                  ← Ingin mendaftar dengan peran lain?
-                </button>
               </div>
             </form>
           </div>
@@ -630,10 +618,19 @@ function LoginContent() {
                 className="w-full py-3.5 px-4 rounded-2xl bg-[#00873D] hover:bg-[#007033] active:scale-[0.99] text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 mt-6"
               >
                 {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>
-                  {isSubmitting ? 'Memproses...' : `Masuk sebagai ${currentRoleInfo?.title}`}
-                </span>
+                <span>{isSubmitting ? 'Memproses...' : 'Login'}</span>
               </button>
+
+              {/* Tombol Ganti Peran */}
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={handleBackToRoleSelection}
+                  className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:underline cursor-pointer"
+                >
+                  Ganti Peran
+                </button>
+              </div>
 
               {/* Pendaftaran Akun untuk User Wilayah & User FE */}
               {selectedRole !== 'admin' && (
@@ -655,17 +652,6 @@ function LoginContent() {
                   </p>
                 </div>
               )}
-
-              {/* Tombol Ganti Peran */}
-              <div className="text-center pt-2">
-                <button
-                  type="button"
-                  onClick={handleBackToRoleSelection}
-                  className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:underline cursor-pointer"
-                >
-                  ← Ingin login dengan peran lain? Pilih disini
-                </button>
-              </div>
             </form>
           </div>
         )}
