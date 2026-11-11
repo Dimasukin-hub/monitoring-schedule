@@ -20,21 +20,25 @@ export interface LokasiSnapshot {
   orderD40?: number | null;
   dropD40?: number | null;
   tglDropD40?: string | null;
+  pindahD40?: number | null;
   pasangManD40?: number | null;
   pasangSapD40?: number | null;
   statusD40?: string | null;
   orderD60?: number | null;
   dropD60?: number | null;
+  pindahD60?: number | null;
   pasangManD60?: number | null;
   pasangSapD60?: number | null;
   statusD60?: string | null;
   orderD80?: number | null;
   dropD80?: number | null;
+  pindahD80?: number | null;
   pasangManD80?: number | null;
   pasangSapD80?: number | null;
   statusD80?: string | null;
   orderD100?: number | null;
   dropD100?: number | null;
+  pindahD100?: number | null;
   pasangManD100?: number | null;
   pasangSapD100?: number | null;
   statusD100?: string | null;
@@ -641,21 +645,25 @@ export async function loadSnapshotFromDb(): Promise<Record<string, LokasiSnapsho
         orderD40: r.orderD40,
         dropD40: r.dropD40,
         tglDropD40: r.tglDropD40,
+        pindahD40: (r as any).pindahD40 ?? 0,
         pasangManD40: r.pasangManD40,
         pasangSapD40: r.pasangSapD40,
         statusD40: r.statusD40,
         orderD60: r.orderD60,
         dropD60: r.dropD60,
+        pindahD60: (r as any).pindahD60 ?? 0,
         pasangManD60: r.pasangManD60,
         pasangSapD60: r.pasangSapD60,
         statusD60: r.statusD60,
         orderD80: r.orderD80,
         dropD80: r.dropD80,
+        pindahD80: (r as any).pindahD80 ?? 0,
         pasangManD80: r.pasangManD80,
         pasangSapD80: r.pasangSapD80,
         statusD80: r.statusD80,
         orderD100: r.orderD100,
         dropD100: r.dropD100,
+        pindahD100: (r as any).pindahD100 ?? 0,
         pasangManD100: r.pasangManD100,
         pasangSapD100: r.pasangSapD100,
         statusD100: r.statusD100,
@@ -698,21 +706,25 @@ export async function syncLokasiOrderToDb(
       orderD40: item.orderD40 ?? null,
       dropD40: item.dropD40 ?? null,
       tglDropD40: item.tglDropD40 ?? null,
+      pindahD40: item.pindahD40 ?? 0,
       pasangManD40: item.pasangManD40 ?? null,
       pasangSapD40: item.pasangSapD40 ?? null,
       statusD40: item.statusD40 ?? null,
       orderD60: item.orderD60 ?? null,
       dropD60: item.dropD60 ?? null,
+      pindahD60: item.pindahD60 ?? 0,
       pasangManD60: item.pasangManD60 ?? null,
       pasangSapD60: item.pasangSapD60 ?? null,
       statusD60: item.statusD60 ?? null,
       orderD80: item.orderD80 ?? null,
       dropD80: item.dropD80 ?? null,
+      pindahD80: item.pindahD80 ?? 0,
       pasangManD80: item.pasangManD80 ?? null,
       pasangSapD80: item.pasangSapD80 ?? null,
       statusD80: item.statusD80 ?? null,
       orderD100: item.orderD100 ?? null,
       dropD100: item.dropD100 ?? null,
+      pindahD100: item.pindahD100 ?? 0,
       pasangManD100: item.pasangManD100 ?? null,
       pasangSapD100: item.pasangSapD100 ?? null,
       statusD100: item.statusD100 ?? null,
@@ -743,21 +755,25 @@ export async function syncLokasiOrderToDb(
         orderD40: item.orderD40 ?? null,
         dropD40: item.dropD40 ?? null,
         tglDropD40: item.tglDropD40 ?? null,
+        pindahD40: item.pindahD40 ?? 0,
         pasangManD40: item.pasangManD40 ?? null,
         pasangSapD40: item.pasangSapD40 ?? null,
         statusD40: item.statusD40 ?? null,
         orderD60: item.orderD60 ?? null,
         dropD60: item.dropD60 ?? null,
+        pindahD60: item.pindahD60 ?? 0,
         pasangManD60: item.pasangManD60 ?? null,
         pasangSapD60: item.pasangSapD60 ?? null,
         statusD60: item.statusD60 ?? null,
         orderD80: item.orderD80 ?? null,
         dropD80: item.dropD80 ?? null,
+        pindahD80: item.pindahD80 ?? 0,
         pasangManD80: item.pasangManD80 ?? null,
         pasangSapD80: item.pasangSapD80 ?? null,
         statusD80: item.statusD80 ?? null,
         orderD100: item.orderD100 ?? null,
         dropD100: item.dropD100 ?? null,
+        pindahD100: item.pindahD100 ?? 0,
         pasangManD100: item.pasangManD100 ?? null,
         pasangSapD100: item.pasangSapD100 ?? null,
         statusD100: item.statusD100 ?? null,

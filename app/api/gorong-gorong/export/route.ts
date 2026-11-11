@@ -352,6 +352,8 @@ export async function GET(request: NextRequest) {
 
           const snapOrdRaw = dia === 40 ? snap?.orderD40 : dia === 60 ? snap?.orderD60 : dia === 80 ? snap?.orderD80 : snap?.orderD100;
           const snapDrpRaw = dia === 40 ? snap?.dropD40 : dia === 60 ? snap?.dropD60 : dia === 80 ? snap?.dropD80 : snap?.dropD100;
+          const snapPindahRaw = dia === 40 ? (snap as any)?.pindahD40 : dia === 60 ? (snap as any)?.pindahD60 : dia === 80 ? (snap as any)?.pindahD80 : (snap as any)?.pindahD100;
+          const pindahQty = snapPindahRaw !== null && snapPindahRaw !== undefined ? Number(snapPindahRaw) : 0;
           const snapManRaw = dia === 40 ? snap?.pasangManD40 : dia === 60 ? snap?.pasangManD60 : dia === 80 ? snap?.pasangManD80 : snap?.pasangManD100;
           const snapSapRaw = dia === 40 ? snap?.pasangSapD40 : dia === 60 ? snap?.pasangSapD60 : dia === 80 ? snap?.pasangSapD80 : snap?.pasangSapD100;
 
@@ -406,9 +408,9 @@ export async function GET(request: NextRequest) {
             continue;
           }
 
-          const ordQty = (hasSnapOrd ? snapOrdRaw! : 0) + trxOrdQty;
-          const dropQty = (hasSnapDrp ? snapDrpRaw! : 0) + trxDrpQty;
-          const manQty = (hasSnapMan ? snapManRaw! : 0) + trxManQty;
+          const ordQty = hasSnapOrd ? snapOrdRaw! : trxOrdQty;
+          const dropQty = hasSnapDrp ? snapDrpRaw! : trxDrpQty;
+          const manQty = hasSnapMan ? snapManRaw! : trxManQty;
           const sapQty = (hasSnapSap && snapSapRaw !== null && snapSapRaw !== undefined) ? snapSapRaw : sapDbQty;
 
           const totalPasangDia = Math.max(manQty, sapQty);
@@ -456,6 +458,7 @@ export async function GET(request: NextRequest) {
             order: hasSnapOrd || trxOrdQty > 0 ? ordQty : null,
             drop: hasSnapDrp || trxDrpQty > 0 ? dropQty : null,
             tglTerakhirDrop: tglDrop,
+            pindah: pindahQty !== 0 ? pindahQty : ((hasSnapDrp || trxDrpQty > 0) ? 0 : null),
             sisaKebutuhan: (hasSnapOrd || hasSnapDrp || trxOrdQty > 0 || trxDrpQty > 0) ? sisaKebutuhanDia : null,
             pctKedatangan: pctKedatanganDia,
             pasangManual: hasSnapMan || trxManQty > 0 ? manQty : null,
@@ -614,6 +617,7 @@ export async function GET(request: NextRequest) {
         { header: 'Ø40 Order', key: 'd40_order', width: 11 },
         { header: 'Ø40 Drop', key: 'd40_drop', width: 11 },
         { header: 'Ø40 Tgl Drop', key: 'd40_tglDrop', width: 13 },
+        { header: 'Ø40 Pindah', key: 'd40_pindah', width: 11 },
         { header: 'Ø40 Sisa', key: 'd40_sisa', width: 10 },
         { header: 'Ø40 % Dtg', key: 'd40_pctDtg', width: 11 },
         { header: 'Ø40 P.Man', key: 'd40_pman', width: 11 },
@@ -624,6 +628,7 @@ export async function GET(request: NextRequest) {
         // Ø60
         { header: 'Ø60 Order', key: 'd60_order', width: 11 },
         { header: 'Ø60 Drop', key: 'd60_drop', width: 11 },
+        { header: 'Ø60 Pindah', key: 'd60_pindah', width: 11 },
         { header: 'Ø60 Sisa', key: 'd60_sisa', width: 10 },
         { header: 'Ø60 % Dtg', key: 'd60_pctDtg', width: 11 },
         { header: 'Ø60 P.SAP', key: 'd60_psap', width: 11 },
@@ -634,6 +639,7 @@ export async function GET(request: NextRequest) {
         // Ø80
         { header: 'Ø80 Order', key: 'd80_order', width: 11 },
         { header: 'Ø80 Drop', key: 'd80_drop', width: 11 },
+        { header: 'Ø80 Pindah', key: 'd80_pindah', width: 11 },
         { header: 'Ø80 Sisa', key: 'd80_sisa', width: 10 },
         { header: 'Ø80 % Dtg', key: 'd80_pctDtg', width: 11 },
         { header: 'Ø80 P.SAP', key: 'd80_psap', width: 11 },
@@ -644,6 +650,7 @@ export async function GET(request: NextRequest) {
         // Ø100
         { header: 'Ø100 Order', key: 'd100_order', width: 11 },
         { header: 'Ø100 Drop', key: 'd100_drop', width: 11 },
+        { header: 'Ø100 Pindah', key: 'd100_pindah', width: 11 },
         { header: 'Ø100 Sisa', key: 'd100_sisa', width: 10 },
         { header: 'Ø100 % Dtg', key: 'd100_pctDtg', width: 11 },
         { header: 'Ø100 P.SAP', key: 'd100_psap', width: 11 },
@@ -692,6 +699,7 @@ export async function GET(request: NextRequest) {
           d40_order: item.d40?.order ?? 0,
           d40_drop: item.d40?.drop ?? 0,
           d40_tglDrop: item.d40?.tglTerakhirDrop || '-',
+          d40_pindah: item.d40?.pindah ?? 0,
           d40_sisa: item.d40?.sisaKebutuhan ?? 0,
           d40_pctDtg: formatPercentStr(item.d40?.pctKedatangan),
           d40_pman: item.d40?.pasangManual ?? 0,
@@ -702,6 +710,7 @@ export async function GET(request: NextRequest) {
           // Ø60
           d60_order: item.d60?.order ?? 0,
           d60_drop: item.d60?.drop ?? 0,
+          d60_pindah: item.d60?.pindah ?? 0,
           d60_sisa: item.d60?.sisaKebutuhan ?? 0,
           d60_pctDtg: formatPercentStr(item.d60?.pctKedatangan),
           d60_psap: item.d60?.pasangSap ?? 0,
@@ -712,6 +721,7 @@ export async function GET(request: NextRequest) {
           // Ø80
           d80_order: item.d80?.order ?? 0,
           d80_drop: item.d80?.drop ?? 0,
+          d80_pindah: item.d80?.pindah ?? 0,
           d80_sisa: item.d80?.sisaKebutuhan ?? 0,
           d80_pctDtg: formatPercentStr(item.d80?.pctKedatangan),
           d80_psap: item.d80?.pasangSap ?? 0,
@@ -722,6 +732,7 @@ export async function GET(request: NextRequest) {
           // Ø100
           d100_order: item.d100?.order ?? 0,
           d100_drop: item.d100?.drop ?? 0,
+          d100_pindah: item.d100?.pindah ?? 0,
           d100_sisa: item.d100?.sisaKebutuhan ?? 0,
           d100_pctDtg: formatPercentStr(item.d100?.pctKedatangan),
           d100_psap: item.d100?.pasangSap ?? 0,

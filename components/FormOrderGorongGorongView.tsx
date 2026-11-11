@@ -27,6 +27,17 @@ interface LocationSlot {
   autoWilayah: string;
   searchLokasiInput: string;
   isDropdownOpen: boolean;
+
+  selectedLokasiPengirim: string;
+  autoWilayahPengirim: string;
+  searchLokasiPengirimInput: string;
+  isDropdownPengirimOpen: boolean;
+
+  selectedLokasiPenerima: string;
+  autoWilayahPenerima: string;
+  searchLokasiPenerimaInput: string;
+  isDropdownPenerimaOpen: boolean;
+
   qtyD40: string;
   qtyD60: string;
   qtyD80: string;
@@ -48,6 +59,17 @@ export default function FormOrderGorongGorongView() {
     autoWilayah: '',
     searchLokasiInput: '',
     isDropdownOpen: false,
+
+    selectedLokasiPengirim: '',
+    autoWilayahPengirim: '',
+    searchLokasiPengirimInput: '',
+    isDropdownPengirimOpen: false,
+
+    selectedLokasiPenerima: '',
+    autoWilayahPenerima: '',
+    searchLokasiPenerimaInput: '',
+    isDropdownPenerimaOpen: false,
+
     qtyD40: '',
     qtyD60: '',
     qtyD80: '',
@@ -124,9 +146,14 @@ export default function FormOrderGorongGorongView() {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (!target.closest('.lokasi-dropdown-container')) {
+      if (!target.closest('.lokasi-pengirim-dropdown-container') && !target.closest('.lokasi-penerima-dropdown-container') && !target.closest('.lokasi-dropdown-container')) {
         setSlots((prev) =>
-          prev.map((s) => (s.isDropdownOpen ? { ...s, isDropdownOpen: false } : s))
+          prev.map((s) => ({
+            ...s,
+            isDropdownOpen: false,
+            isDropdownPengirimOpen: false,
+            isDropdownPenerimaOpen: false,
+          }))
         );
       }
       if (!target.closest('.jenis-dropdown-container')) {
@@ -247,32 +274,47 @@ export default function FormOrderGorongGorongView() {
 
     // Auto-resolve slots yang diketik manual jika belum dipilih lewat dropdown
     const resolvedSlots = slots.map((s) => {
-      let selectedLok = s.selectedLokasi;
-      let autoWil = s.autoWilayah;
+      let pengirim = s.selectedLokasiPengirim;
+      let wilPengirim = s.autoWilayahPengirim;
+      if (!pengirim && s.searchLokasiPengirimInput.trim()) {
+        const cleanInput = s.searchLokasiPengirimInput.trim().toUpperCase();
+        const found = masterLokasiList.find((m) => m.lokasi.trim().toUpperCase() === cleanInput);
+        pengirim = found ? found.lokasi : cleanInput;
+        wilPengirim = found?.strucPlant || 'AW01';
+      }
 
-      if (!selectedLok && s.searchLokasiInput.trim()) {
+      let penerima = s.selectedLokasiPenerima || s.selectedLokasi;
+      let wilPenerima = s.autoWilayahPenerima || s.autoWilayah;
+      if (!penerima && s.searchLokasiPenerimaInput.trim()) {
+        const cleanInput = s.searchLokasiPenerimaInput.trim().toUpperCase();
+        const found = masterLokasiList.find((m) => m.lokasi.trim().toUpperCase() === cleanInput);
+        penerima = found ? found.lokasi : cleanInput;
+        wilPenerima = found?.strucPlant || 'AW01';
+      } else if (!penerima && s.searchLokasiInput.trim()) {
         const cleanInput = s.searchLokasiInput.trim().toUpperCase();
-        const found = masterLokasiList.find(
-          (m) => m.lokasi.trim().toUpperCase() === cleanInput
-        );
-        selectedLok = found ? found.lokasi : cleanInput;
-        autoWil = found?.strucPlant || 'AW01';
+        const found = masterLokasiList.find((m) => m.lokasi.trim().toUpperCase() === cleanInput);
+        penerima = found ? found.lokasi : cleanInput;
+        wilPenerima = found?.strucPlant || 'AW01';
       }
 
       return {
         ...s,
-        selectedLokasi: selectedLok,
-        autoWilayah: autoWil,
+        selectedLokasiPengirim: pengirim,
+        autoWilayahPengirim: wilPengirim,
+        selectedLokasiPenerima: penerima,
+        autoWilayahPenerima: wilPenerima,
       };
     });
 
-    // Filter slot yang terisi lokasi
-    const filledSlots = resolvedSlots.filter((s) => s.selectedLokasi.trim() !== '');
+    // Filter slot yang terisi lokasi (pengirim atau penerima)
+    const filledSlots = resolvedSlots.filter(
+      (s) => s.selectedLokasiPenerima.trim() !== '' || s.selectedLokasiPengirim.trim() !== ''
+    );
 
     if (filledSlots.length === 0) {
       setNotification({
         type: 'error',
-        message: 'Silakan pilih minimal 1 lokasi dan isi jumlah gorong-gorong.',
+        message: 'Silakan pilih lokasi pengirim dan/atau lokasi penerima, serta isi jumlah gorong-gorong.',
       });
       return;
     }
@@ -285,9 +327,10 @@ export default function FormOrderGorongGorongView() {
       const n100 = parseInt(s.qtyD100 || '0', 10);
 
       if (n40 === 0 && n60 === 0 && n80 === 0 && n100 === 0) {
+        const targetName = s.selectedLokasiPenerima || s.selectedLokasiPengirim;
         setNotification({
           type: 'error',
-          message: `Minimal salah satu diameter (Ø40, Ø60, Ø80, atau Ø100) pada lokasi ${s.selectedLokasi} harus diisi lebih dari 0.`,
+          message: `Minimal salah satu diameter (Ø40, Ø60, Ø80, atau Ø100) pada lokasi ${targetName} harus diisi lebih dari 0.`,
         });
         return;
       }
@@ -295,19 +338,29 @@ export default function FormOrderGorongGorongView() {
 
     setIsSubmitting(true);
     try {
-      const payloadItems = filledSlots.map((s) => ({
-        lokasi: s.selectedLokasi,
-        wilayah: s.autoWilayah,
-        jenisTransaksi,
-        qtyD40: parseInt(s.qtyD40 || '0', 10),
-        qtyD60: parseInt(s.qtyD60 || '0', 10),
-        qtyD80: parseInt(s.qtyD80 || '0', 10),
-        qtyD100: parseInt(s.qtyD100 || '0', 10),
-        tanggal,
-        keterangan,
-        createdBy: user?.name || (isAdmin ? 'Admin' : (isUserFE ? 'User FE' : 'User Wilayah')),
-        userRole: isAdmin ? 'ADMIN' : (isUserFE ? 'USER_FE' : 'USER_WILAYAH'),
-      }));
+      const payloadItems = filledSlots.map((s) => {
+        const destLok = s.selectedLokasiPenerima || s.selectedLokasiPengirim;
+        const srcLok = s.selectedLokasiPengirim && s.selectedLokasiPenerima && s.selectedLokasiPengirim !== s.selectedLokasiPenerima
+          ? s.selectedLokasiPengirim
+          : null;
+        const wil = s.autoWilayahPenerima || s.autoWilayahPengirim || 'AW01';
+
+        return {
+          lokasi: destLok,
+          lokasiPenerima: destLok,
+          lokasiPengirim: srcLok,
+          wilayah: wil,
+          jenisTransaksi,
+          qtyD40: parseInt(s.qtyD40 || '0', 10),
+          qtyD60: parseInt(s.qtyD60 || '0', 10),
+          qtyD80: parseInt(s.qtyD80 || '0', 10),
+          qtyD100: parseInt(s.qtyD100 || '0', 10),
+          tanggal,
+          keterangan,
+          createdBy: user?.name || (isAdmin ? 'Admin' : (isUserFE ? 'User FE' : 'User Wilayah')),
+          userRole: isAdmin ? 'ADMIN' : (isUserFE ? 'USER_FE' : 'USER_WILAYAH'),
+        };
+      });
 
       const res = await fetch('/api/gorong-gorong/order', {
         method: 'POST',
@@ -603,9 +656,15 @@ export default function FormOrderGorongGorongView() {
           {/* DAFTAR SLOT LOKASI (DEFAULT 3 SLOT) */}
           <div className="space-y-4">
             {slots.map((slot, index) => {
-              const filteredLokasiOptions = masterLokasiList
+              const filteredPengirimOptions = masterLokasiList
                 .filter((item) =>
-                  item.lokasi.toUpperCase().includes((slot.searchLokasiInput || '').toUpperCase())
+                  item.lokasi.toUpperCase().includes((slot.searchLokasiPengirimInput || '').toUpperCase())
+                )
+                .slice(0, 30);
+
+              const filteredPenerimaOptions = masterLokasiList
+                .filter((item) =>
+                  item.lokasi.toUpperCase().includes((slot.searchLokasiPenerimaInput || '').toUpperCase())
                 )
                 .slice(0, 30);
 
@@ -632,62 +691,69 @@ export default function FormOrderGorongGorongView() {
                     )}
                   </div>
 
-                  {/* Baris 1: Pilih Lokasi & Wilayah */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-4">
-                    {/* Pilih Lokasi */}
-                    <div className="relative lokasi-dropdown-container">
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-[#00873D]" />
-                        <span>Pilih Lokasi *</span>
-                      </label>
+                  {/* Dua Kotak Pilih Lokasi: Lokasi Pengirim (Asal) & Lokasi Penerima (Tujuan) */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                    {/* Kotak 1: Lokasi Pengirim (Asal) */}
+                    <div className="relative lokasi-pengirim-dropdown-container">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-rose-500" />
+                          <span>Lokasi Pengirim (Asal)</span>
+                        </label>
+                        {slot.autoWilayahPengirim && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800">
+                            Wilayah: {slot.autoWilayahPengirim}
+                          </span>
+                        )}
+                      </div>
                       <div className="relative">
                         <input
                           type="text"
-                          value={slot.searchLokasiInput}
+                          value={slot.searchLokasiPengirimInput}
                           onChange={(e) => {
                             const val = e.target.value;
                             const match = masterLokasiList.find(
                               (item) => item.lokasi.trim().toUpperCase() === val.trim().toUpperCase()
                             );
                             updateSlot(slot.id, {
-                              searchLokasiInput: val,
-                              isDropdownOpen: true,
-                              selectedLokasi: match ? match.lokasi : val.trim().toUpperCase(),
-                              autoWilayah: match ? (match.strucPlant || 'AW01') : slot.autoWilayah,
+                              searchLokasiPengirimInput: val,
+                              isDropdownPengirimOpen: true,
+                              selectedLokasiPengirim: match ? match.lokasi : val.trim().toUpperCase(),
+                              autoWilayahPengirim: match ? (match.strucPlant || 'AW01') : slot.autoWilayahPengirim,
                             });
                           }}
                           onBlur={() => {
-                            if (slot.searchLokasiInput.trim()) {
+                            if (slot.searchLokasiPengirimInput.trim()) {
                               const match = masterLokasiList.find(
-                                (item) => item.lokasi.trim().toUpperCase() === slot.searchLokasiInput.trim().toUpperCase()
+                                (item) => item.lokasi.trim().toUpperCase() === slot.searchLokasiPengirimInput.trim().toUpperCase()
                               );
                               if (match) {
                                 updateSlot(slot.id, {
-                                  selectedLokasi: match.lokasi,
-                                  autoWilayah: match.strucPlant || 'AW01',
-                                  searchLokasiInput: match.lokasi,
+                                  selectedLokasiPengirim: match.lokasi,
+                                  autoWilayahPengirim: match.strucPlant || 'AW01',
+                                  searchLokasiPengirimInput: match.lokasi,
                                 });
                               }
                             }
                           }}
-                          onFocus={() => updateSlot(slot.id, { isDropdownOpen: true })}
-                          placeholder=""
-                          className="w-full pl-3.5 pr-9 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/70 border-2 border-slate-300 dark:border-slate-600 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#00873D] focus:ring-1 focus:ring-[#00873D]"
+                          onFocus={() => updateSlot(slot.id, { isDropdownPengirimOpen: true })}
+                          placeholder="Pilih lokasi pengirim / asal..."
+                          className="w-full pl-3.5 pr-9 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/70 border-2 border-slate-300 dark:border-slate-600 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
                         />
 
-                        {slot.searchLokasiInput ? (
+                        {slot.searchLokasiPengirimInput ? (
                           <button
                             type="button"
                             onClick={() => {
                               updateSlot(slot.id, {
-                                searchLokasiInput: '',
-                                selectedLokasi: '',
-                                autoWilayah: '',
-                                isDropdownOpen: false,
+                                searchLokasiPengirimInput: '',
+                                selectedLokasiPengirim: '',
+                                autoWilayahPengirim: '',
+                                isDropdownPengirimOpen: false,
                               });
                             }}
                             className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-0.5"
-                            title="Hapus / Reset Lokasi"
+                            title="Hapus / Reset Lokasi Pengirim"
                           >
                             <XCircle className="w-4 h-4" />
                           </button>
@@ -696,22 +762,120 @@ export default function FormOrderGorongGorongView() {
                         )}
                       </div>
 
-                      {/* Dropdown Options */}
-                      {slot.isDropdownOpen && (
+                      {/* Dropdown Options Pengirim */}
+                      {slot.isDropdownPengirimOpen && (
                         <div className="absolute left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto rounded-xl bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 scrollbar-thin">
-                          {filteredLokasiOptions.length === 0 ? (
+                          {filteredPengirimOptions.length === 0 ? (
                             <div className="px-3 py-2 text-xs text-slate-400 text-center">Lokasi tidak ditemukan</div>
                           ) : (
-                            filteredLokasiOptions.map((opt) => (
+                            filteredPengirimOptions.map((opt) => (
                               <button
-                                key={opt.lokasi}
+                                key={`pengirim-${opt.lokasi}`}
                                 type="button"
                                 onClick={() => {
                                   updateSlot(slot.id, {
-                                    selectedLokasi: opt.lokasi,
-                                    autoWilayah: opt.strucPlant || 'AW01',
-                                    searchLokasiInput: opt.lokasi,
-                                    isDropdownOpen: false,
+                                    selectedLokasiPengirim: opt.lokasi,
+                                    autoWilayahPengirim: opt.strucPlant || 'AW01',
+                                    searchLokasiPengirimInput: opt.lokasi,
+                                    isDropdownPengirimOpen: false,
+                                  });
+                                }}
+                                className="w-full px-3.5 py-2 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between cursor-pointer transition-colors"
+                              >
+                                <span className="font-bold text-rose-600 dark:text-rose-400">{opt.lokasi}</span>
+                                <span className="text-[11px] text-slate-500 font-semibold">{opt.strucPlant || 'AW01'}</span>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Kotak 2: Lokasi Penerima (Tujuan) */}
+                    <div className="relative lokasi-penerima-dropdown-container">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-[#00873D]" />
+                          <span>Lokasi Penerima (Tujuan) *</span>
+                        </label>
+                        {slot.autoWilayahPenerima && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-[#00873D] dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                            Wilayah: {slot.autoWilayahPenerima}
+                          </span>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={slot.searchLokasiPenerimaInput}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const match = masterLokasiList.find(
+                              (item) => item.lokasi.trim().toUpperCase() === val.trim().toUpperCase()
+                            );
+                            updateSlot(slot.id, {
+                              searchLokasiPenerimaInput: val,
+                              isDropdownPenerimaOpen: true,
+                              selectedLokasiPenerima: match ? match.lokasi : val.trim().toUpperCase(),
+                              autoWilayahPenerima: match ? (match.strucPlant || 'AW01') : slot.autoWilayahPenerima,
+                            });
+                          }}
+                          onBlur={() => {
+                            if (slot.searchLokasiPenerimaInput.trim()) {
+                              const match = masterLokasiList.find(
+                                (item) => item.lokasi.trim().toUpperCase() === slot.searchLokasiPenerimaInput.trim().toUpperCase()
+                              );
+                              if (match) {
+                                updateSlot(slot.id, {
+                                  selectedLokasiPenerima: match.lokasi,
+                                  autoWilayahPenerima: match.strucPlant || 'AW01',
+                                  searchLokasiPenerimaInput: match.lokasi,
+                                });
+                              }
+                            }
+                          }}
+                          onFocus={() => updateSlot(slot.id, { isDropdownPenerimaOpen: true })}
+                          placeholder="Pilih lokasi penerima / tujuan..."
+                          className="w-full pl-3.5 pr-9 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/70 border-2 border-slate-300 dark:border-slate-600 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#00873D] focus:ring-1 focus:ring-[#00873D]"
+                        />
+
+                        {slot.searchLokasiPenerimaInput ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updateSlot(slot.id, {
+                                searchLokasiPenerimaInput: '',
+                                selectedLokasiPenerima: '',
+                                autoWilayahPenerima: '',
+                                isDropdownPenerimaOpen: false,
+                              });
+                            }}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-0.5"
+                            title="Hapus / Reset Lokasi Penerima"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        )}
+                      </div>
+
+                      {/* Dropdown Options Penerima */}
+                      {slot.isDropdownPenerimaOpen && (
+                        <div className="absolute left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto rounded-xl bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 scrollbar-thin">
+                          {filteredPenerimaOptions.length === 0 ? (
+                            <div className="px-3 py-2 text-xs text-slate-400 text-center">Lokasi tidak ditemukan</div>
+                          ) : (
+                            filteredPenerimaOptions.map((opt) => (
+                              <button
+                                key={`penerima-${opt.lokasi}`}
+                                type="button"
+                                onClick={() => {
+                                  updateSlot(slot.id, {
+                                    selectedLokasiPenerima: opt.lokasi,
+                                    autoWilayahPenerima: opt.strucPlant || 'AW01',
+                                    searchLokasiPenerimaInput: opt.lokasi,
+                                    isDropdownPenerimaOpen: false,
                                   });
                                 }}
                                 className="w-full px-3.5 py-2 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between cursor-pointer transition-colors"
@@ -723,21 +887,6 @@ export default function FormOrderGorongGorongView() {
                           )}
                         </div>
                       )}
-                    </div>
-
-                    {/* Wilayah (Kosong Bersih jika belum memilih) */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-                        <Layers className="w-3.5 h-3.5 text-[#F58220]" />
-                        <span>Wilayah</span>
-                      </label>
-                      <input
-                        type="text"
-                        readOnly
-                        value={slot.autoWilayah || ''}
-                        placeholder=""
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-100/80 dark:bg-slate-800/40 border-2 border-slate-300 dark:border-slate-600 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-not-allowed"
-                      />
                     </div>
                   </div>
 
@@ -960,7 +1109,15 @@ export default function FormOrderGorongGorongView() {
                       </span>
                     </td>
                     <td className="px-3.5 py-2 font-bold text-slate-900 dark:text-slate-100 border-r border-b border-slate-200 dark:border-slate-800 text-center">
-                      {item.lokasi}
+                      {item.lokasiAsal ? (
+                        <div className="inline-flex items-center justify-center gap-1 font-mono text-xs">
+                          <span className="text-rose-600 dark:text-rose-400 font-bold" title="Lokasi Pengirim">{item.lokasiAsal}</span>
+                          <span className="text-slate-400 text-[10px]">→</span>
+                          <span className="text-[#00873D] dark:text-emerald-400 font-bold" title="Lokasi Penerima">{item.lokasi}</span>
+                        </div>
+                      ) : (
+                        item.lokasi
+                      )}
                     </td>
                     <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 text-center font-medium">
                       {item.wilayah || '-'}

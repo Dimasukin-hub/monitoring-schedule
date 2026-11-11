@@ -345,6 +345,8 @@ model TransaksiGorongGorong {
   id             Int      @id @default(autoincrement())
   jenisTransaksi String   // "ORDER" | "DROP" | "PASANG_MANUAL"
   lokasi         String
+  lokasiAsal     String?
+  lokasiTujuan   String?
   wilayah        String?
   tanggal        DateTime @default(now())
   qtyD40         Int      @default(0) // Max 3 digit: 0-999
@@ -384,6 +386,7 @@ model LokasiOrderGorongGorong {
   orderD40        Int?
   dropD40         Int?
   tglDropD40      String?
+  pindahD40       Int?     @default(0)
   pasangManD40    Int?
   pasangSapD40    Int?
   statusD40       String?
@@ -391,6 +394,7 @@ model LokasiOrderGorongGorong {
   // Diameter 60
   orderD60        Int?
   dropD60         Int?
+  pindahD60       Int?     @default(0)
   pasangManD60    Int?
   pasangSapD60    Int?
   statusD60       String?
@@ -398,6 +402,7 @@ model LokasiOrderGorongGorong {
   // Diameter 80
   orderD80        Int?
   dropD80         Int?
+  pindahD80       Int?     @default(0)
   pasangManD80    Int?
   pasangSapD80    Int?
   statusD80       String?
@@ -405,6 +410,7 @@ model LokasiOrderGorongGorong {
   // Diameter 100
   orderD100        Int?
   dropD100         Int?
+  pindahD100       Int?     @default(0)
   pasangManD100    Int?
   pasangSapD100    Int?
   statusD100       String?

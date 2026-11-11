@@ -355,6 +355,8 @@ export async function GET(request: NextRequest) {
         // Data dasar dari snapshot Excel
         const snapOrdRaw = dia === 40 ? snap?.orderD40 : dia === 60 ? snap?.orderD60 : dia === 80 ? snap?.orderD80 : snap?.orderD100;
         const snapDrpRaw = dia === 40 ? snap?.dropD40 : dia === 60 ? snap?.dropD60 : dia === 80 ? snap?.dropD80 : snap?.dropD100;
+        const snapPindahRaw = dia === 40 ? (snap as any)?.pindahD40 : dia === 60 ? (snap as any)?.pindahD60 : dia === 80 ? (snap as any)?.pindahD80 : (snap as any)?.pindahD100;
+        const pindahQty = snapPindahRaw !== null && snapPindahRaw !== undefined ? Number(snapPindahRaw) : 0;
         const snapManRaw = dia === 40 ? snap?.pasangManD40 : dia === 60 ? snap?.pasangManD60 : dia === 80 ? snap?.pasangManD80 : snap?.pasangManD100;
         const snapSapRaw = dia === 40 ? snap?.pasangSapD40 : dia === 60 ? snap?.pasangSapD60 : dia === 80 ? snap?.pasangSapD80 : snap?.pasangSapD100;
 
@@ -410,6 +412,7 @@ export async function GET(request: NextRequest) {
             order: null,
             drop: null,
             tglTerakhirDrop: '-',
+            pindah: null,
             tglTerakhirPasang: '-',
             sisaKebutuhan: null,
             pctKedatangan: '-',
@@ -423,10 +426,10 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        // Jika diameter aktif, gabungkan baseline snapshot + transaksi form input
-        const ordQty = (hasSnapOrd ? snapOrdRaw! : 0) + trxOrdQty;
-        const dropQty = (hasSnapDrp ? snapDrpRaw! : 0) + trxDrpQty;
-        const manQty = (hasSnapMan ? snapManRaw! : 0) + trxManQty;
+        // Jika diameter aktif, utamakan baseline database snapshot yang tersinkronisasi
+        const ordQty = hasSnapOrd ? snapOrdRaw! : trxOrdQty;
+        const dropQty = hasSnapDrp ? snapDrpRaw! : trxDrpQty;
+        const manQty = hasSnapMan ? snapManRaw! : trxManQty;
         const sapQty = (hasSnapSap && snapSapRaw !== null && snapSapRaw !== undefined) ? snapSapRaw : sapDbQty;
 
         // Rumus Terpasang = MAX(Pasang Manual, Pasang SAP)
@@ -478,6 +481,7 @@ export async function GET(request: NextRequest) {
           order: hasSnapOrd || trxOrdQty > 0 ? ordQty : null,
           drop: hasSnapDrp || trxDrpQty > 0 ? dropQty : null,
           tglTerakhirDrop: tglDrop,
+          pindah: pindahQty !== 0 ? pindahQty : ((hasSnapDrp || trxDrpQty > 0) ? 0 : null),
           tglTerakhirPasang: tglPasang,
           sisaKebutuhan: (hasSnapOrd || hasSnapDrp || trxOrdQty > 0 || trxDrpQty > 0) ? sisaKebutuhanDia : null,
           pctKedatangan: pctKedatanganDia,

@@ -849,6 +849,10 @@ export default function MonitorGorongGorongView() {
           const vA = Number(objA.drop ?? 0);
           const vB = Number(objB.drop ?? 0);
           if (vA !== vB) return sortOrder === 'asc' ? vA - vB : vB - vA;
+        } else if (col === 'pindah') {
+          const vA = Number(objA.pindah ?? 0);
+          const vB = Number(objB.pindah ?? 0);
+          if (vA !== vB) return sortOrder === 'asc' ? vA - vB : vB - vA;
         } else if (col === 'tglDrop') {
           const vA = objA.tglTerakhirDrop === '-' || !objA.tglTerakhirDrop ? (sortOrder === 'asc' ? '9999-99-99' : '0000-00-00') : objA.tglTerakhirDrop;
           const vB = objB.tglTerakhirDrop === '-' || !objB.tglTerakhirDrop ? (sortOrder === 'asc' ? '9999-99-99' : '0000-00-00') : objB.tglTerakhirDrop;
@@ -2886,23 +2890,23 @@ export default function MonitorGorongGorongView() {
                   </th>
 
                   {/* 4 Grup Diameter Header (100% Solid Warna Pekat) */}
-                  <th colSpan={10} className="sticky top-0 z-30 px-3 py-2 text-center border-r-2 border-b border-slate-300 dark:border-slate-700 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold">
+                  <th colSpan={11} className="sticky top-0 z-30 px-3 py-2 text-center border-r-2 border-b border-slate-300 dark:border-slate-700 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold">
                     DIAMETER 40 CM (Ø40)
                   </th>
-                  <th colSpan={9} className="sticky top-0 z-30 px-3 py-2 text-center border-r-2 border-b border-slate-300 dark:border-slate-700 bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 font-bold">
+                  <th colSpan={10} className="sticky top-0 z-30 px-3 py-2 text-center border-r-2 border-b border-slate-300 dark:border-slate-700 bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 font-bold">
                     DIAMETER 60 CM (Ø60)
                   </th>
-                  <th colSpan={9} className="sticky top-0 z-30 px-3 py-2 text-center border-r-2 border-b border-slate-300 dark:border-slate-700 bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-bold">
+                  <th colSpan={10} className="sticky top-0 z-30 px-3 py-2 text-center border-r-2 border-b border-slate-300 dark:border-slate-700 bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-bold">
                     DIAMETER 80 CM (Ø80)
                   </th>
-                  <th colSpan={9} className="sticky top-0 z-30 px-3 py-2 text-center border-b border-slate-200 dark:border-slate-700 bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 font-bold">
+                  <th colSpan={10} className="sticky top-0 z-30 px-3 py-2 text-center border-b border-slate-200 dark:border-slate-700 bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 font-bold">
                     DIAMETER 100 CM (Ø100)
                   </th>
                 </tr>
 
                 {/* Baris Header Bawah: Sub-Diameter */}
                 <tr className="h-[34px] text-[10.5px]">
-                  {/* DIAMETER 40: 10 Kolom */}
+                  {/* DIAMETER 40: 11 Kolom */}
                   <th onClick={() => handleSort('d40_order')} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none">
                     <div className="inline-flex items-center justify-center gap-0.5"><span>Jml. Order</span>{renderSortArrows('d40_order')}</div>
                   </th>
@@ -2911,6 +2915,9 @@ export default function MonitorGorongGorongView() {
                   </th>
                   <th onClick={() => handleSort('d40_tglDrop')} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2.5 py-2 text-center font-bold cursor-pointer select-none">
                     <div className="inline-flex items-center justify-center gap-0.5"><span>Tanggal Terakhir Drop</span>{renderSortArrows('d40_tglDrop')}</div>
+                  </th>
+                  <th onClick={() => handleSort('d40_pindah')} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold text-violet-600 dark:text-violet-400 cursor-pointer select-none">
+                    <div className="inline-flex items-center justify-center gap-0.5"><span>Pindah Lokasi</span>{renderSortArrows('d40_pindah')}</div>
                   </th>
                   <th onClick={() => handleSort('d40_sisa')} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold text-rose-600 dark:text-rose-400 cursor-pointer select-none">
                     <div className="inline-flex items-center justify-center gap-0.5"><span>Sisa Kebutuhan</span>{renderSortArrows('d40_sisa')}</div>
@@ -2934,7 +2941,7 @@ export default function MonitorGorongGorongView() {
                     <div className="inline-flex items-center justify-center gap-0.5"><span>Status</span>{renderSortArrows('d40_status')}</div>
                   </th>
 
-                  {/* DIAMETER 60, 80, 100: Masing-masing 9 Kolom */}
+                  {/* DIAMETER 60, 80, 100: Masing-masing 10 Kolom */}
                   {[60, 80, 100].map((dia) => (
                     <React.Fragment key={dia}>
                       <th onClick={() => handleSort(`d${dia}_order`)} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none">
@@ -2942,6 +2949,9 @@ export default function MonitorGorongGorongView() {
                       </th>
                       <th onClick={() => handleSort(`d${dia}_drop`)} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none">
                         <div className="inline-flex items-center justify-center gap-0.5"><span>Drop</span>{renderSortArrows(`d${dia}_drop`)}</div>
+                      </th>
+                      <th onClick={() => handleSort(`d${dia}_pindah`)} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold text-violet-600 dark:text-violet-400 cursor-pointer select-none">
+                        <div className="inline-flex items-center justify-center gap-0.5"><span>Pindah Lokasi</span>{renderSortArrows(`d${dia}_pindah`)}</div>
                       </th>
                       <th onClick={() => handleSort(`d${dia}_sisa`)} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold text-rose-600 dark:text-rose-400 cursor-pointer select-none">
                         <div className="inline-flex items-center justify-center gap-0.5"><span>Sisa Kebutuhan</span>{renderSortArrows(`d${dia}_sisa`)}</div>
@@ -2971,14 +2981,14 @@ export default function MonitorGorongGorongView() {
               <tbody className="text-slate-800 dark:text-slate-200">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={50} className="px-4 py-12 text-center text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                    <td colSpan={54} className="px-4 py-12 text-center text-slate-400 border-b border-slate-200 dark:border-slate-800">
                       <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-[#00873D]" />
                       <span>Memuat data monitoring gorong-gorong...</span>
                     </td>
                   </tr>
                 ) : filteredOrderList.length === 0 ? (
                   <tr>
-                    <td colSpan={50} className="px-4 py-12 text-center text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                    <td colSpan={54} className="px-4 py-12 text-center text-slate-400 border-b border-slate-200 dark:border-slate-800">
                       Tidak ada data lokasi order yang cocok dengan filter.
                     </td>
                   </tr>
@@ -3083,6 +3093,15 @@ export default function MonitorGorongGorongView() {
                             <td className="px-2.5 py-2 text-center font-mono text-[10px] text-slate-400 border-r border-b border-slate-200 dark:border-slate-800">
                               {d40?.tglTerakhirDrop || '-'}
                             </td>
+                            <td className={`px-2 py-2 text-center font-mono font-semibold border-r border-b border-slate-200 dark:border-slate-800 ${
+                              d40?.pindah && d40.pindah < 0
+                                ? 'text-rose-600 dark:text-rose-400'
+                                : d40?.pindah && d40.pindah > 0
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-slate-400 font-normal'
+                            }`}>
+                              {d40?.pindah !== null && d40?.pindah !== undefined && d40.pindah !== 0 ? (d40.pindah > 0 ? `+${d40.pindah}` : d40.pindah) : '-'}
+                            </td>
                             <td className="px-2 py-2 text-center font-mono text-rose-500 font-semibold border-r border-b border-slate-200 dark:border-slate-800">
                               {d40?.sisaKebutuhan !== null && d40?.sisaKebutuhan !== undefined ? d40.sisaKebutuhan : '-'}
                             </td>
@@ -3149,6 +3168,15 @@ export default function MonitorGorongGorongView() {
                             </td>
                             <td className="px-2 py-2 text-center font-mono text-emerald-600 dark:text-emerald-400 font-semibold border-r border-b border-slate-200 dark:border-slate-800">
                               {d?.drop !== null && d?.drop !== undefined ? d.drop : '-'}
+                            </td>
+                            <td className={`px-2 py-2 text-center font-mono font-semibold border-r border-b border-slate-200 dark:border-slate-800 ${
+                              d?.pindah && d.pindah < 0
+                                ? 'text-rose-600 dark:text-rose-400'
+                                : d?.pindah && d.pindah > 0
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-slate-400 font-normal'
+                            }`}>
+                              {d?.pindah !== null && d?.pindah !== undefined && d.pindah !== 0 ? (d.pindah > 0 ? `+${d.pindah}` : d.pindah) : '-'}
                             </td>
                             <td className="px-2 py-2 text-center font-mono text-rose-500 font-semibold border-r border-b border-slate-200 dark:border-slate-800">
                               {d?.sisaKebutuhan !== null && d?.sisaKebutuhan !== undefined ? d.sisaKebutuhan : '-'}
