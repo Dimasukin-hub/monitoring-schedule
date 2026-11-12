@@ -6,8 +6,8 @@ function getAdminSession(req: Request) {
   try {
     // 1. Periksa header x-user-role dari client state
     const roleHeader = req.headers.get('x-user-role');
-    if (roleHeader === 'admin') {
-      return { role: 'admin', name: req.headers.get('x-user-username') || 'admin' };
+    if (roleHeader === 'admin' || roleHeader === 'super_admin') {
+      return { role: roleHeader, name: req.headers.get('x-user-username') || roleHeader };
     }
 
     // 2. Periksa cookie ggf_session
@@ -15,14 +15,14 @@ function getAdminSession(req: Request) {
     const match = cookieHeader.match(/ggf_session=([^;]+)/);
     if (match) {
       const session = JSON.parse(decodeURIComponent(match[1]));
-      if (session && session.role === 'admin') {
+      if (session && (session.role === 'admin' || session.role === 'super_admin')) {
         return session;
       }
     }
 
     // 3. Fallback jika dalam development / local environment
     if (process.env.NODE_ENV !== 'production') {
-      return { role: 'admin', name: 'admin' };
+      return { role: 'super_admin', name: 'superadmin' };
     }
 
     return null;
@@ -68,6 +68,14 @@ export async function PUT(
       );
     }
 
+    // Jika yang melakukan update bukan Super Admin, dilarang mengubah akun Admin atau Super Admin
+    if (admin.role !== 'super_admin' && (existingUser.role === 'admin' || existingUser.role === 'super_admin')) {
+      return NextResponse.json(
+        { success: false, message: 'Akses ditolak. Hanya Super Admin yang berhak mengubah akun Admin atau Super Admin.' },
+        { status: 403 }
+      );
+    }
+
     // Siapkan data update
     const updateData: any = {};
 
@@ -97,8 +105,29 @@ export async function PUT(
       }
     }
 
-    const validRoles = ['admin', 'user', 'user_fe', 'user_wilayah'];
+    const validRoles = ['super_admin', 'admin', 'user', 'user_fe', 'user_wilayah'];
     if (role && validRoles.includes(role)) {
+      // Jika yang melakukan update bukan Super Admin, dilarang menaikkan role menjadi Admin atau Super Admin
+      if (admin.role !== 'super_admin' && (role === 'admin' || role === 'super_admin')) {
+        return NextResponse.json(
+          { success: false, message: 'Akses ditolak. Hanya Super Admin yang berhak memberikan role Admin atau Super Admin.' },
+          { status: 403 }
+        );
+      }
+
+      // Jika mencoba mengubah super_admin menjadi non-super_admin, pastikan masih ada super_admin lain
+      if (existingUser.role === 'super_admin' && role !== 'super_admin') {
+        const superAdminCount = await prisma.user.count({
+          where: { role: 'super_admin' },
+        });
+        if (superAdminCount <= 1) {
+          return NextResponse.json(
+            { success: false, message: 'Tidak dapat mengubah role. Harus ada minimal satu Super Admin dalam sistem.' },
+            { status: 400 }
+          );
+        }
+      }
+
       // Jika mencoba mengubah admin menjadi non-admin, pastikan masih ada admin lain
       if (existingUser.role === 'admin' && role !== 'admin') {
         const adminCount = await prisma.user.count({
@@ -198,6 +227,35 @@ export async function DELETE(
         { success: false, message: 'Pengguna tidak ditemukan.' },
         { status: 404 }
       );
+    }
+
+    // Jika yang menghapus bukan Super Admin, dilarang menghapus akun Admin atau Super Admin
+    if (admin.role !== 'super_admin' && (existingUser.role === 'admin' || existingUser.role === 'super_admin')) {
+      return NextResponse.json(
+        { success: false, message: 'Akses ditolak. Hanya Super Admin yang berhak menghapus akun Admin atau Super Admin.' },
+        { status: 403 }
+      );
+    }
+
+    // Lindungi akun Super Admin bawaan sistem
+    if (existingUser.email === 'superadmin' || existingUser.email === 'superadmin@ggf.co.id') {
+      return NextResponse.json(
+        { success: false, message: 'Akun Super Admin bawaan sistem tidak dapat dihapus.' },
+        { status: 400 }
+      );
+    }
+
+    // Jika yang dihapus super_admin, pastikan masih ada super_admin tersisa
+    if (existingUser.role === 'super_admin') {
+      const superAdminCount = await prisma.user.count({
+        where: { role: 'super_admin' },
+      });
+      if (superAdminCount <= 1) {
+        return NextResponse.json(
+          { success: false, message: 'Tidak dapat menghapus satu-satunya akun Super Admin tersisa.' },
+          { status: 400 }
+        );
+      }
     }
 
     // Jika yang dihapus admin, pastikan masih ada admin tersisa

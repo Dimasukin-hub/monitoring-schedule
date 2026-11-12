@@ -1,15 +1,33 @@
 import { prisma } from './prisma';
 
+export type UserRole = 'super_admin' | 'admin' | 'user' | 'user_fe' | 'user_wilayah';
+
 export interface AuthUser {
   id: number;
   name: string;
   email: string;
-  role: 'admin' | 'user' | 'user_fe' | 'user_wilayah';
+  role: UserRole;
   avatar?: string | null;
 }
 
 // Akun Default (Fallback & Quick Login)
 export const DEFAULT_USERS: Array<AuthUser & { password: string }> = [
+  {
+    id: 0,
+    name: 'Super Admin',
+    email: 'superadmin',
+    password: 'superadmin123',
+    role: 'super_admin',
+    avatar: null,
+  },
+  {
+    id: 100,
+    name: 'Super Admin GGF',
+    email: 'superadmin@ggf.co.id',
+    password: 'superadmin123',
+    role: 'super_admin',
+    avatar: null,
+  },
   {
     id: 1,
     name: 'admin',
@@ -65,6 +83,28 @@ let hasSeededUsers = false;
 export async function ensureDefaultUsersInDb() {
   if (hasSeededUsers) return;
   try {
+    const superAdminUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: 'superadmin' },
+          { email: 'superadmin@ggf.co.id' },
+          { name: 'superadmin' },
+          { name: 'Super Admin' },
+        ],
+      },
+    });
+
+    if (!superAdminUser) {
+      await prisma.user.create({
+        data: {
+          name: 'Super Admin',
+          email: 'superadmin',
+          password: 'superadmin123',
+          role: 'super_admin',
+        },
+      });
+    }
+
     const adminUser = await prisma.user.findFirst({
       where: {
         OR: [
@@ -155,6 +195,7 @@ export async function findUserByEmail(identifier: string) {
         OR: [
           { email: { equals: clean, mode: 'insensitive' as const } },
           { name: { equals: clean, mode: 'insensitive' as const } },
+          ...(clean === 'superadmin' ? [{ email: { equals: 'superadmin@ggf.co.id', mode: 'insensitive' as const } }] : []),
           ...(clean === 'admin' ? [{ email: { equals: 'admin@ggf.co.id', mode: 'insensitive' as const } }] : []),
           ...(clean === 'user' ? [{ email: { equals: 'user@ggf.co.id', mode: 'insensitive' as const } }] : []),
         ],
@@ -180,6 +221,7 @@ export async function findUserByEmail(identifier: string) {
     (u) =>
       u.email.toLowerCase() === clean ||
       u.name.toLowerCase() === clean ||
+      (clean === 'superadmin' && (u.email === 'superadmin@ggf.co.id' || u.email === 'superadmin')) ||
       (clean === 'admin' && (u.email === 'admin@ggf.co.id' || u.email === 'admin')) ||
       (clean === 'user' && (u.email === 'user@ggf.co.id' || u.email === 'user')) ||
       (clean === 'wilayah' && u.email === 'wilayah') ||
@@ -194,7 +236,7 @@ export async function createUser(data: {
   name: string;
   email: string;
   password: string;
-  role: 'admin' | 'user' | 'user_fe' | 'user_wilayah';
+  role: UserRole;
 }) {
   const cleanEmail = data.email.toLowerCase().trim();
   const cleanName = data.name.trim();

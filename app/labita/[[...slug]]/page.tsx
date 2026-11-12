@@ -41,10 +41,21 @@ import {
 } from '@/lib/portalRoutes';
 
 export default function LabitaDashboardPage() {
-  const { user, isAdmin } = useAuth();
-  const { isLocalhost, canAccessLabita, isClient, authLoading } = usePortalAccess();
+  const { user, isAdmin, isLoading: authLoading } = useAuth();
+  const { canAccessLabita } = usePortalAccess();
   const pathname = usePathname();
   const router = useRouter();
+
+  // Guard login: jika pengguna belum login sebagai Administrator, arahkan langsung ke login admin
+  useEffect(() => {
+    if (!authLoading && (!user || !isAdmin)) {
+      router.replace(
+        `/login?role=admin&callbackUrl=${encodeURIComponent(
+          pathname || '/labita/executive-summary/pengolahan-lahan'
+        )}`
+      );
+    }
+  }, [authLoading, user, isAdmin, pathname, router]);
 
   // Inisialisasi awal berdasarkan URL
   const initial = parseLabitaPathname(pathname || '/labita');
@@ -231,125 +242,16 @@ export default function LabitaDashboardPage() {
     }
   };
 
-  // State loading sementara otentikasi di domain online
-  if (isClient && !isLocalhost && authLoading) {
+  // Tampilan loading / pemeriksaan hak akses sebelum diarahkan ke login admin
+  if (authLoading || !user || !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
           <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-            Memeriksa hak akses portal...
+            Memeriksa hak akses Administrator...
           </span>
         </div>
-      </div>
-    );
-  }
-
-  // Tampilan Under Development jika diakses di server online & bukan Admin
-  if (isClient && !authLoading && !canAccessLabita) {
-    return (
-      <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-700 dark:selection:text-emerald-200 transition-colors duration-200">
-        {/* Minimalist Top Header */}
-        <header className="px-6 py-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              title="Kembali ke Halaman Utama"
-              className="w-9 h-9 rounded-xl overflow-hidden bg-white border border-slate-200/90 dark:border-slate-700/80 flex items-center justify-center p-1 shadow-xs hover:ring-2 hover:ring-emerald-400/40 transition-all cursor-pointer"
-            >
-              <img
-                src="/assets/logo.png"
-                alt="Great Giant Foods"
-                className="w-full h-full object-contain"
-              />
-            </Link>
-            <div className="flex flex-col">
-              <span className="text-[11px] font-extrabold tracking-tight text-slate-800 dark:text-slate-100 leading-none uppercase">
-                PORTAL LABITA
-              </span>
-              <span className="text-[9px] text-[#00873D] dark:text-emerald-400 font-semibold tracking-wider uppercase">
-                Plantation Group 1
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <a
-              href="https://estatepg1.online"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
-              title="Kembali ke Halaman Utama estatepg1.online"
-            >
-              <LayoutGrid className="w-3.5 h-3.5 text-[#00873D]" />
-              <span>Portal Utama</span>
-            </a>
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Pilih Portal Lain</span>
-            </Link>
-          </div>
-        </header>
-
-        {/* Centered Under Development Hero */}
-        <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 sm:p-10 shadow-xl text-center space-y-6 animate-in fade-in zoom-in-95 duration-200">
-            {/* Top Icon Badge */}
-            <div className="mx-auto w-20 h-20 rounded-3xl bg-amber-500/15 border-2 border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-inner">
-              <Clock className="w-10 h-10 animate-pulse" />
-            </div>
-
-            {/* Title & Desc */}
-            <div className="space-y-2.5">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 text-[11px] font-bold">
-                <Lock className="w-3 h-3" />
-                <span>Under Development &amp; Maintenance</span>
-              </div>
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                Portal Labita Sedang Dalam Pengembangan
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed max-w-md mx-auto">
-                Portal operasional pengolahan lahan &amp; penanaman nanas PG1 saat ini sedang dalam proses penyempurnaan fitur dan sinkronisasi data. Akses publik via domain online sementara dinonaktifkan.
-              </p>
-            </div>
-
-            {/* Access Rules Info Box */}
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 text-left space-y-2 text-xs">
-              <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
-                <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                <span>Status Hak Akses Portal:</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                  <span className="block text-slate-400 dark:text-slate-500 font-medium">Lingkungan Lokal</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">Localhost (Buka 100%)</span>
-                </div>
-                <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                  <span className="block text-slate-400 dark:text-slate-500 font-medium">Domain Publik</span>
-                  <span className="font-bold text-amber-600 dark:text-amber-400">Khusus Administrator</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-              <Link
-                href={`/login?callbackUrl=${encodeURIComponent(pathname || '/labita/executive-summary/pengolahan-lahan')}`}
-                className="w-full sm:flex-1 py-3 px-5 rounded-2xl bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-              >
-                <Lock className="w-4 h-4" />
-                <span>Login Administrator</span>
-              </Link>
-              <Link
-                href="/gorong-gorong/monitor-gorong-gorong"
-                className="w-full sm:w-auto py-3 px-5 rounded-2xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors cursor-pointer"
-              >
-                Portal Gorong-Gorong
-              </Link>
-            </div>
-          </div>
-        </main>
       </div>
     );
   }
@@ -429,10 +331,42 @@ export default function LabitaDashboardPage() {
 
           {/* 1.2 SUB MENU: TANAM */}
           <div className={executiveSubTab === 'tanam' ? 'space-y-8' : 'hidden'}>
-            <ProsesTanamSection
+            {/* KARTU KPI REALISASI & PROSES TANAM */}
+            <KpiCards
+              data={summaryData}
+              selectedYear={stokYear}
+              selectedMonth={stokMonth}
+              onSelectStokFilter={(yr, m) => {
+                setStokYear(yr);
+                setStokMonth(m);
+              }}
+              selectedPeriod={selectedPeriod}
+              onSelectPeriod={(p) => setSelectedPeriod(p)}
               chartsData={chartsData}
               onSelectLand={(loc) => setSelectedLandId(loc)}
+              selectedWilayah={selectedWilayah}
+              setSelectedWilayah={setSelectedWilayah}
+              availableWilayahs={summaryData?.availableWilayahs || []}
+              activeSubTab="tanam"
             />
+
+            {/* TABEL REALISASI TANAM KEMARIN */}
+            <RealTanamKemarinTable />
+
+            {/* SEBARAN BIBIT PER BULAN */}
+            <SebaranBibitBulanChart />
+
+            {/* KOMPOSISI REALISASI BIBIT TANAM & BENCHMARK HARIAN */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+              <RealTanamBibitDonutChart />
+              <TanamBenchmarkChart />
+            </div>
+
+            {/* LIST LOKASI PROSES TANAM & SELESAI TANAM */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+              <ListLokasiProsesTanamTable />
+              <ListLokasiSelesaiTanamTable />
+            </div>
           </div>
         </div>
 
@@ -467,18 +401,6 @@ export default function LabitaDashboardPage() {
           {/* 3.1 SUB MENU: REAL TANAM NANAS */}
           <div className={plantingSubTab === 'real_tanam_nanas' ? 'space-y-8' : 'hidden'}>
             <PlantingView />
-
-            {/* TABEL REALISASI TANAM KEMARIN */}
-            <RealTanamKemarinTable />
-
-            {/* SEBARAN BIBIT PER BULAN */}
-            <SebaranBibitBulanChart />
-
-            {/* KOMPOSISI REALISASI BIBIT TANAM & BENCHMARK HARIAN */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-              <RealTanamBibitDonutChart />
-              <TanamBenchmarkChart />
-            </div>
           </div>
 
           {/* 3.2 SUB MENU: INPUT REAL TANAM & PETIK NANAS */}
@@ -488,10 +410,10 @@ export default function LabitaDashboardPage() {
 
           {/* 3.3 SUB MENU: PROSES TANAM & SELESAI TANAM */}
           <div className={plantingSubTab === 'proses_selesai_tanam' ? 'space-y-8' : 'hidden'}>
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
-              <ListLokasiProsesTanamTable />
-              <ListLokasiSelesaiTanamTable />
-            </div>
+            <ProsesTanamSection
+              chartsData={chartsData}
+              onSelectLand={(loc) => setSelectedLandId(loc)}
+            />
           </div>
 
           {/* 3.4 SUB MENU: UPDATE TANAM (Khusus Admin) */}

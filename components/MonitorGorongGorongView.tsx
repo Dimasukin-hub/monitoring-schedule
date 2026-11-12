@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useAuth } from '@/components/AuthProvider';
 import {
   TrendingUp,
   Package,
@@ -117,6 +118,7 @@ let cachedSummaryData: any = null;
 let cachedMonitoringData: any = null;
 
 export default function MonitorGorongGorongView() {
+  const { user, isAdmin } = useAuth();
   const [activeTableTab, setActiveTableTab] = useState<'order' | 'belum_order'>('order');
   const [selectedWilayah, setSelectedWilayah] = useState<string[]>([]);
   const [selectedStatusOpenClose, setSelectedStatusOpenClose] = useState<string[]>([]);
@@ -1303,6 +1305,7 @@ export default function MonitorGorongGorongView() {
 
   // Handler update status diameter interaktif (Open / Cek / Close)
   const handleUpdateDiameterStatus = async (lokasi: string, diameter: number, newStatus: string) => {
+    if (!isAdmin) return;
     const normalized = (newStatus === 'Open' || newStatus === '-') ? '-' : newStatus;
     const diaKey = `d${diameter}`;
 
@@ -1323,7 +1326,11 @@ export default function MonitorGorongGorongView() {
     try {
       const res = await fetch('/api/gorong-gorong/monitoring', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': user?.role || '',
+          'x-user-username': user?.email || '',
+        },
         body: JSON.stringify({ lokasi, diameter, status: normalized }),
       });
       const data = await res.json();
@@ -3137,22 +3144,36 @@ export default function MonitorGorongGorongView() {
                               )}
                             </td>
                             <td className="px-1.5 py-1 text-center border-r-2 border-b border-slate-300 dark:border-slate-700">
-                              <select
-                                value={d40?.status === 'Close' ? 'Close' : d40?.status === 'Cek' ? 'Cek' : 'Open'}
-                                onChange={(e) => handleUpdateDiameterStatus(item.lokasi, 40, e.target.value)}
-                                className={`text-[10px] font-bold px-1.5 py-0.5 rounded border cursor-pointer transition-all outline-none ${
-                                  d40?.status === 'Close'
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-700'
-                                    : d40?.status === 'Cek'
-                                    ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700'
-                                    : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700'
-                                }`}
-                                title={`Ubah status diameter 40 lokasi ${item.lokasi}`}
-                              >
-                                <option value="Open">Open</option>
-                                <option value="Cek">Cek</option>
-                                <option value="Close">Close</option>
-                              </select>
+                              {isAdmin ? (
+                                <select
+                                  value={d40?.status === 'Close' ? 'Close' : d40?.status === 'Cek' ? 'Cek' : 'Open'}
+                                  onChange={(e) => handleUpdateDiameterStatus(item.lokasi, 40, e.target.value)}
+                                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded border cursor-pointer transition-all outline-none ${
+                                    d40?.status === 'Close'
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-700'
+                                      : d40?.status === 'Cek'
+                                      ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700'
+                                      : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700'
+                                  }`}
+                                  title={`Ubah status diameter 40 lokasi ${item.lokasi}`}
+                                >
+                                  <option value="Open">Open</option>
+                                  <option value="Cek">Cek</option>
+                                  <option value="Close">Close</option>
+                                </select>
+                              ) : (
+                                <span
+                                  className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border cursor-default select-none ${
+                                    d40?.status === 'Close'
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-700'
+                                      : d40?.status === 'Cek'
+                                      ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700'
+                                      : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700'
+                                  }`}
+                                >
+                                  {d40?.status === 'Close' ? 'Close' : d40?.status === 'Cek' ? 'Cek' : 'Open'}
+                                </span>
+                              )}
                             </td>
                           </>
                         );
@@ -3213,25 +3234,39 @@ export default function MonitorGorongGorongView() {
                               )}
                             </td>
                             <td className={`px-1.5 py-1 text-center border-b ${dIdx !== 2 ? 'border-r-2 border-slate-300 dark:border-slate-700' : 'border-r border-slate-200 dark:border-slate-700'}`}>
-                              <select
-                                value={d?.status === 'Close' ? 'Close' : d?.status === 'Cek' ? 'Cek' : 'Open'}
-                                onChange={(e) => {
-                                  const diaNum = diaKey === 'd60' ? 60 : diaKey === 'd80' ? 80 : 100;
-                                  handleUpdateDiameterStatus(item.lokasi, diaNum, e.target.value);
-                                }}
-                                className={`text-[10px] font-bold px-1.5 py-0.5 rounded border cursor-pointer transition-all outline-none ${
-                                  d?.status === 'Close'
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-700'
-                                    : d?.status === 'Cek'
-                                    ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700'
-                                    : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700'
-                                }`}
-                                title={`Ubah status ${diaKey.toUpperCase()} lokasi ${item.lokasi}`}
-                              >
-                                <option value="Open">Open</option>
-                                <option value="Cek">Cek</option>
-                                <option value="Close">Close</option>
-                              </select>
+                              {isAdmin ? (
+                                <select
+                                  value={d?.status === 'Close' ? 'Close' : d?.status === 'Cek' ? 'Cek' : 'Open'}
+                                  onChange={(e) => {
+                                    const diaNum = diaKey === 'd60' ? 60 : diaKey === 'd80' ? 80 : 100;
+                                    handleUpdateDiameterStatus(item.lokasi, diaNum, e.target.value);
+                                  }}
+                                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded border cursor-pointer transition-all outline-none ${
+                                    d?.status === 'Close'
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-700'
+                                      : d?.status === 'Cek'
+                                      ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700'
+                                      : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700'
+                                  }`}
+                                  title={`Ubah status ${diaKey.toUpperCase()} lokasi ${item.lokasi}`}
+                                >
+                                  <option value="Open">Open</option>
+                                  <option value="Cek">Cek</option>
+                                  <option value="Close">Close</option>
+                                </select>
+                              ) : (
+                                <span
+                                  className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border cursor-default select-none ${
+                                    d?.status === 'Close'
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-700'
+                                      : d?.status === 'Cek'
+                                      ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700'
+                                      : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700'
+                                  }`}
+                                >
+                                  {d?.status === 'Close' ? 'Close' : d?.status === 'Cek' ? 'Cek' : 'Open'}
+                                </span>
+                              )}
                             </td>
                           </React.Fragment>
                         );

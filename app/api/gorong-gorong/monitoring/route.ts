@@ -742,6 +742,28 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
+    // Verifikasi Hak Akses: Hanya Admin atau Super Admin yang boleh mengubah status diameter
+    const roleHeader = request.headers.get('x-user-role');
+    const cookieHeader = request.headers.get('cookie') || '';
+    let isAuthorized = roleHeader === 'admin' || roleHeader === 'super_admin';
+    if (!isAuthorized) {
+      const match = cookieHeader.match(/ggf_session=([^;]+)/);
+      if (match) {
+        try {
+          const session = JSON.parse(decodeURIComponent(match[1]));
+          if (session && (session.role === 'admin' || session.role === 'super_admin')) {
+            isAuthorized = true;
+          }
+        } catch {}
+      }
+    }
+    if (!isAuthorized && process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        { success: false, message: 'Akses ditolak. Hanya Admin atau Super Admin yang dapat mengubah status diameter.' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { lokasi, diameter, status } = body;
 

@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Info,
   Trash2,
+  Download,
 } from 'lucide-react';
 
 interface UploadLandExcelModalProps {
@@ -162,26 +163,37 @@ export default function UploadLandExcelModal({
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <span>Upload & Replace Data Lahan</span>
+                <span>Upload &amp; Replace Data Lahan</span>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-100 dark:bg-teal-900/60 text-teal-800 dark:text-teal-300">
-                  Master Schedule
+                  Template Resmi
                 </span>
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Pembaruan data dari Sheet &quot;Master&quot; (Schedule 2026 Update)
+                Pembaruan data lahan melalui template Excel resmi (Replace All)
               </p>
             </div>
           </div>
-          {!isLoading && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-              title="Tutup Modal"
+          <div className="flex items-center gap-2">
+            <a
+              href="/api/lands/template"
+              download="Template_Data_Lahan_PG1.xlsx"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-teal-500/40 hover:border-teal-500 bg-white dark:bg-slate-800 hover:bg-teal-50/80 dark:hover:bg-slate-700/80 text-teal-700 dark:text-teal-300 text-xs font-bold transition-all shadow-2xs hover:shadow-xs cursor-pointer"
+              title="Unduh Template Excel Data Lahan Resmi"
             >
-              <X className="w-5 h-5" />
-            </button>
-          )}
+              <Download className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+              <span>Download Template</span>
+            </a>
+            {!isLoading && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                title="Tutup Modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Modal Body */}
@@ -229,12 +241,12 @@ export default function UploadLandExcelModal({
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Alert / Warning Info */}
-              <div className="p-3.5 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-300">
-                <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="p-3.5 rounded-xl bg-teal-50/90 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-900/50 flex items-start gap-2.5 text-xs text-teal-900 dark:text-teal-200">
+                <Info className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <span className="font-bold">Mekanisme Replace All:</span>
-                  <p className="leading-relaxed opacity-90">
-                    Seluruh baris data lahan di database akan diganti dengan data terbaru dari Sheet <span className="font-bold">&quot;Master&quot;</span>. Rumus jadwal rencana, penyesuaian realisasi, stok tahapan, dan grafik dashboard akan otomatis dihitung ulang.
+                  <span className="font-bold">Mekanisme Replace All (Otomatis Dihitung):</span>
+                  <p className="leading-relaxed opacity-95">
+                    Seluruh baris data lahan di database akan diganti dengan data terbaru dari template Excel. Rumus jadwal rencana berantai, status aktivitas, stok tahapan, dan grafik dashboard akan otomatis dihitung ulang secara akurat oleh sistem backend.
                   </p>
                 </div>
               </div>
@@ -263,11 +275,10 @@ export default function UploadLandExcelModal({
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all duration-150 flex flex-col items-center justify-center gap-3 ${
-                    isDragging
+                  className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all duration-150 flex flex-col items-center justify-center gap-3 ${isDragging
                       ? 'border-teal-500 bg-teal-50/50 dark:bg-teal-950/40 scale-[0.99]'
                       : 'border-slate-300 dark:border-slate-700 hover:border-teal-400 dark:hover:border-teal-600 bg-slate-50/60 dark:bg-slate-950/50 hover:bg-slate-50 dark:hover:bg-slate-950'
-                  }`}
+                    }`}
                 >
                   <div className="w-12 h-12 rounded-2xl bg-teal-500/10 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400 flex items-center justify-center">
                     <UploadCloud className="w-6 h-6" />
@@ -314,14 +325,14 @@ export default function UploadLandExcelModal({
               )}
 
               {/* File Format Checklist Reference */}
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-1.5 text-[11px] text-slate-500 dark:text-slate-400">
                 <span className="font-bold text-slate-700 dark:text-slate-300 block">
-                  Ketentuan File Master Schedule (Multi-Sheet Adaptif):
+                  Ketentuan Format File Template Data Lahan:
                 </span>
-                <ul className="list-disc list-inside space-y-0.5 leading-relaxed">
-                  <li>Harus memiliki Sheet bernama <span className="font-semibold text-slate-700 dark:text-slate-200">&quot;Master&quot;</span> untuk data petak lahan & 20 aktivitas.</li>
-                  <li>Jika terdapat Sheet <span className="font-semibold text-slate-700 dark:text-slate-200">&quot;Stok Lahan&quot;</span>, angka resmi kartu stok & grafik bulanan otomatis disinkronkan tanpa selisih.</li>
-                  <li>Sheet lain di dalam workbook tidak akan mengganggu dan diabaikan secara otomatis.</li>
+                <ul className="list-disc list-inside space-y-1 leading-relaxed">
+                  <li>Gunakan template resmi Data Lahan (1 sheet tunggal, isian nilai murni tanpa rumus).</li>
+                  <li>Format tanggal yang didukung: <span className="font-semibold text-slate-700 dark:text-slate-200">DD/MM/YYYY</span> (contoh: <code className="px-1 py-0.5 rounded bg-slate-200/70 dark:bg-slate-800 text-[10px] font-mono">15/01/2026</code>).</li>
+                  <li>Sistem backend otomatis menghitung jadwal rencana berantai, aktivitas terakhir, progress tanam, serta stok tahapan (BK, BJK, SN, Tanam).</li>
                 </ul>
               </div>
 

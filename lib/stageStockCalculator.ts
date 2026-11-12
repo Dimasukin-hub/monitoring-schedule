@@ -223,24 +223,13 @@ export async function recalculateAndPersistStageStocks(targetYear: number = 2026
   // 3. Terapkan delta dinamis saat pengguna memasukkan / mengubah tanggal realisasi:
   for (const l of lands) {
     const base = lands2026Baselines[l.lokasi];
-    if (!base) continue;
-
-    const netto = Number(l.luasNetto) || base.netto;
+    const netto = Number(l.luasNetto) || (base ? base.netto : 0);
     const details = (typeof l.aplikasiDetails === 'object' && l.aplikasiDetails !== null) ? (l.aplikasiDetails as any) : {};
 
     // 3a. Bongkar (Chopper / RH1)
     const realBkrStr = l.realBkr || details.realChopper || details.realRh1 || null;
     const curBkrMonth = parseDateToMonth(realBkrStr, targetYear);
-    const baseBkrMonth = base.baseRealBkrMonth ?? null;
-
-    if (curBkrMonth !== baseBkrMonth) {
-      if (baseBkrMonth && baseBkrMonth >= 1 && baseBkrMonth <= 12) {
-        monthlyBongkar[baseBkrMonth] -= netto;
-      }
-      if (curBkrMonth && curBkrMonth >= 1 && curBkrMonth <= 12) {
-        monthlyBongkar[curBkrMonth] += netto;
-      }
-    }
+    const baseBkrMonth = base ? base.baseRealBkrMonth ?? null : null;
 
     // 3b. Bajak (MB 5 BTR, MB 25, Howard, Nardi, Hr Eks Mb, dll)
     const realBjkStr =
@@ -253,7 +242,43 @@ export async function recalculateAndPersistStageStocks(targetYear: number = 2026
       details.realHrEksMb ||
       null;
     const curBjkMonth = parseDateToMonth(realBjkStr, targetYear);
-    const baseBjkMonth = base.baseRealBajakMonth ?? null;
+    const baseBjkMonth = base ? base.baseRealBajakMonth ?? null : null;
+
+    // 3c. Siap Tanam / SN (realSiapTanam, realJalanSal, siapTanam, bulanSn)
+    const effectiveSnStr =
+      (details.realSiapTanam && details.realSiapTanam !== '-' && details.realSiapTanam !== '0')
+        ? details.realSiapTanam
+        : (details.realJalanSal && details.realJalanSal !== '-' && details.realJalanSal !== '0')
+        ? details.realJalanSal
+        : (details.siapTanam && details.siapTanam !== '-' && details.siapTanam !== '0')
+        ? details.siapTanam
+        : (l.bulanSn && l.bulanSn !== '-' && l.bulanSn !== '0' ? l.bulanSn : null);
+    const curSnMonth = parseDateToMonth(effectiveSnStr, targetYear);
+    const baseSnMonth = base ? base.baseRealSnMonth ?? null : null;
+
+    if (!base) {
+      // Petak baru yang belum ada di baseline snapshot: tambahkan realisasinya langsung
+      if (netto <= 0) continue;
+      if (curBkrMonth && curBkrMonth >= 1 && curBkrMonth <= 12) {
+        monthlyBongkar[curBkrMonth] += netto;
+      }
+      if (curBjkMonth && curBjkMonth >= 1 && curBjkMonth <= 12) {
+        monthlyBajak[curBjkMonth] += netto;
+      }
+      if (curSnMonth && curSnMonth >= 1 && curSnMonth <= 12) {
+        monthlySN[curSnMonth] += netto;
+      }
+      continue;
+    }
+
+    if (curBkrMonth !== baseBkrMonth) {
+      if (baseBkrMonth && baseBkrMonth >= 1 && baseBkrMonth <= 12) {
+        monthlyBongkar[baseBkrMonth] -= netto;
+      }
+      if (curBkrMonth && curBkrMonth >= 1 && curBkrMonth <= 12) {
+        monthlyBongkar[curBkrMonth] += netto;
+      }
+    }
 
     if (curBjkMonth !== baseBjkMonth) {
       if (baseBjkMonth && baseBjkMonth >= 1 && baseBjkMonth <= 12) {
@@ -263,18 +288,6 @@ export async function recalculateAndPersistStageStocks(targetYear: number = 2026
         monthlyBajak[curBjkMonth] += netto;
       }
     }
-
-    // 3c. Siap Tanam / SN (realSiapTanam, realJalanSal, siapTanam)
-    const effectiveSnStr =
-      (details.realSiapTanam && details.realSiapTanam !== '-' && details.realSiapTanam !== '0')
-        ? details.realSiapTanam
-        : (details.realJalanSal && details.realJalanSal !== '-' && details.realJalanSal !== '0')
-        ? details.realJalanSal
-        : (details.siapTanam && details.siapTanam !== '-' && details.siapTanam !== '0')
-        ? details.siapTanam
-        : null;
-    const curSnMonth = parseDateToMonth(effectiveSnStr, targetYear);
-    const baseSnMonth = base.baseRealSnMonth ?? null;
 
     if (curSnMonth !== baseSnMonth) {
       if (baseSnMonth && baseSnMonth >= 1 && baseSnMonth <= 12) {

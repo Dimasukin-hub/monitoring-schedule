@@ -5,8 +5,7 @@ import { useAuth } from '@/components/AuthProvider';
 
 /**
  * Hook untuk mengecek status akses Portal Labita:
- * 1. Di lingkungan localhost / 127.0.0.1 -> Selalu diizinkan (Development Mode).
- * 2. Di server online / domain publik -> Dibatasi khusus untuk Administrator (Under Development).
+ * Khusus dibuka jika pengguna sudah terautentikasi sebagai Administrator (Admin / Super Admin).
  */
 export function usePortalAccess() {
   const { user, isAdmin, isLoading: authLoading } = useAuth();
@@ -40,8 +39,8 @@ export function usePortalAccess() {
   // Status Under Development berlaku di domain online jika bukan localhost
   const isLabitaUnderDev = isClient && !isLocalhost;
 
-  // Akses dibuka jika di localhost ATAU jika sudah login sebagai Admin
-  const canAccessLabita = isLocalhost || (!authLoading && isAdmin);
+  // Akses Portal Labita khusus untuk Administrator
+  const canAccessLabita = !authLoading && Boolean(user && isAdmin);
 
   return {
     isClient,

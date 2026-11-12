@@ -8,6 +8,7 @@ import {
   Lock,
   User as UserIcon,
   ShieldCheck,
+  ShieldAlert,
   Eye,
   EyeOff,
   ArrowLeft,
@@ -21,9 +22,19 @@ import {
   BadgeCheck,
 } from 'lucide-react';
 
-export type SelectedRole = 'admin' | 'user_wilayah' | 'user_fe';
+export type SelectedRole = 'super_admin' | 'admin' | 'user_wilayah' | 'user_fe';
 
 const ROLE_DETAILS = {
+  super_admin: {
+    title: 'Super Administrator',
+    subtitle: 'Login Super Admin untuk kendali penuh sistem, hak akses user, dan konfigurasi master data',
+    badge: 'Super Admin',
+    badgeColor: 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/20',
+    iconColor: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30',
+    icon: ShieldAlert,
+    defaultUsername: 'superadmin',
+    description: 'Akses tingkat tertinggi: seluruh modul, kontrol hak akses user, dan master data.',
+  },
   admin: {
     title: 'Administrator',
     subtitle: 'Login Administrator untuk mengelola seluruh data analitik, master data, dan konfigurasi',
@@ -59,9 +70,9 @@ const ROLE_DETAILS = {
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, register, user } = useAuth();
+  const { login, register, user, isAdmin } = useAuth();
 
-  // State Pilihan Role (null = belum pilih, tampilkan 3 kartu)
+  // State Pilihan Role (null = belum pilih, tampilkan kartu peran)
   const [selectedRole, setSelectedRole] = useState<SelectedRole | null>(null);
 
   // Mode Register vs Login (hanya aktif untuk user_wilayah & user_fe)
@@ -102,22 +113,35 @@ function LoginContent() {
       }
     }
 
-    // Auto-select role jika ada parameter URL (misal: ?role=admin)
-    if (paramRole === 'admin') {
+    // Auto-select role jika ada parameter URL (misal: ?role=super_admin atau ?role=admin)
+    if (paramRole === 'super_admin' || paramRole === 'superadmin') {
+      setSelectedRole('super_admin');
+      setUsername('superadmin');
+    } else if (paramRole === 'admin') {
       setSelectedRole('admin');
+      setUsername('admin');
     } else if (paramRole === 'user_wilayah' || paramRole === 'wilayah') {
       setSelectedRole('user_wilayah');
+      setUsername('wilayah');
     } else if (paramRole === 'user_fe' || paramRole === 'fe') {
       setSelectedRole('user_fe');
+      setUsername('fe');
     }
   }, [searchParams]);
 
-  // Redirect jika sudah login
+  // Redirect jika sudah login dan berhak mengakses targetUrl
   useEffect(() => {
     if (user) {
+      const isLabitaTarget = targetUrl.startsWith('/labita');
+      if (isLabitaTarget && !isAdmin) {
+        // User saat ini bukan admin sedangkan Labita khusus admin; biarkan login sebagai Admin
+        setSelectedRole('admin');
+        setUsername('admin');
+        return;
+      }
       router.push(targetUrl);
     }
-  }, [user, router, targetUrl]);
+  }, [user, isAdmin, router, targetUrl]);
 
   // Handle Pilih Role
   const handleSelectRole = (role: SelectedRole) => {
@@ -174,7 +198,7 @@ function LoginContent() {
     setErrorMsg('');
     setSuccessMsg('');
 
-    if (!selectedRole || selectedRole === 'admin') {
+    if (!selectedRole || selectedRole === 'admin' || selectedRole === 'super_admin') {
       setErrorMsg('Pendaftaran mandiri akun administrator tidak diperbolehkan.');
       return;
     }
@@ -285,6 +309,16 @@ function LoginContent() {
           </div>
         )}
 
+        {/* Notifikasi jika user aktif saat ini non-admin dan mencoba masuk ke Portal Labita */}
+        {user && !isAdmin && targetUrl.startsWith('/labita') && (
+          <div className="mt-4 p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300 text-xs flex items-start gap-2.5 animate-in fade-in">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+            <span>
+              Akun aktif saat ini (<strong>{user.name || user.email}</strong>) bukan Administrator. Portal Labita khusus dibuka untuk Administrator. Silakan login menggunakan akun Admin.
+            </span>
+          </div>
+        )}
+
         {/* ============================================================== */}
         {/* TAHAP 1: PILIH PERAN TERLEBIH DAHULU (ADMIN / WILAYAH / FE) */}
         {/* ============================================================== */}
@@ -300,7 +334,34 @@ function LoginContent() {
             </div>
 
             <div className="grid grid-cols-1 gap-3">
-              {/* Pilihan 1: Administrator */}
+              {/* Pilihan 1: Super Administrator */}
+              <button
+                type="button"
+                onClick={() => handleSelectRole('super_admin')}
+                className="group w-full p-4 rounded-2xl border-2 border-slate-200/90 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-400 bg-slate-50/70 hover:bg-indigo-50/20 dark:bg-slate-800/50 dark:hover:bg-slate-800 transition-all text-left flex items-center justify-between cursor-pointer shadow-xs hover:shadow-md"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-500/30 group-hover:scale-110 transition-transform">
+                    <ShieldAlert className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                        Super Administrator
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
+                        Super Admin
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+                      Kendali penuh sistem, hak akses user tingkat tertinggi &amp; konfigurasi master
+                    </p>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 group-hover:translate-x-1 transition-all shrink-0 ml-2" />
+              </button>
+
+              {/* Pilihan 2: Administrator */}
               <button
                 type="button"
                 onClick={() => handleSelectRole('admin')}
@@ -549,7 +610,9 @@ function LoginContent() {
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border mb-2 shadow-2xs">
                 <span
                   className={`w-2 h-2 rounded-full ${
-                    selectedRole === 'admin'
+                    selectedRole === 'super_admin'
+                      ? 'bg-indigo-500'
+                      : selectedRole === 'admin'
                       ? 'bg-emerald-500'
                       : selectedRole === 'user_wilayah'
                       ? 'bg-amber-500'
@@ -632,8 +695,8 @@ function LoginContent() {
                 </button>
               </div>
 
-              {/* Pendaftaran Akun untuk User Wilayah & User FE */}
-              {selectedRole !== 'admin' && (
+              {/* Pendaftaran Akun untuk User Wilayah & User FE (Admin & Super Admin dinonaktifkan) */}
+              {selectedRole !== 'admin' && selectedRole !== 'super_admin' && (
                 <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-center">
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                     Belum mempunyai akun {currentRoleInfo?.title}?{' '}

@@ -7,8 +7,8 @@ function getAdminSession(req: Request) {
   try {
     // 1. Periksa header x-user-role dari client state
     const roleHeader = req.headers.get('x-user-role');
-    if (roleHeader === 'admin') {
-      return { role: 'admin', name: req.headers.get('x-user-username') || 'admin' };
+    if (roleHeader === 'admin' || roleHeader === 'super_admin') {
+      return { role: roleHeader, name: req.headers.get('x-user-username') || roleHeader };
     }
 
     // 2. Periksa cookie ggf_session
@@ -16,14 +16,14 @@ function getAdminSession(req: Request) {
     const match = cookieHeader.match(/ggf_session=([^;]+)/);
     if (match) {
       const session = JSON.parse(decodeURIComponent(match[1]));
-      if (session && session.role === 'admin') {
+      if (session && (session.role === 'admin' || session.role === 'super_admin')) {
         return session;
       }
     }
 
     // 3. Fallback jika dalam development / local environment
     if (process.env.NODE_ENV !== 'production') {
-      return { role: 'admin', name: 'admin' };
+      return { role: 'super_admin', name: 'superadmin' };
     }
 
     return null;
@@ -60,6 +60,7 @@ export async function GET(req: Request) {
 
     const stats = {
       total: users.length,
+      superAdminCount: users.filter((u) => u.role === 'super_admin').length,
       adminCount: users.filter((u) => u.role === 'admin').length,
       userWilayahCount: users.filter((u) => u.role === 'user_wilayah').length,
       userFeCount: users.filter((u) => u.role === 'user_fe').length,
@@ -121,8 +122,16 @@ export async function POST(req: Request) {
 
     const cleanUsername = rawUsername.trim().toLowerCase();
     const cleanName = rawName?.trim() || cleanUsername;
-    const validRoles = ['admin', 'user', 'user_fe', 'user_wilayah'];
+    const validRoles = ['super_admin', 'admin', 'user', 'user_fe', 'user_wilayah'];
     const role = validRoles.includes(rawRole) ? rawRole : 'user_wilayah';
+
+    // Jika yang membuat bukan Super Admin, dilarang membuat akun Admin atau Super Admin
+    if (admin.role !== 'super_admin' && (role === 'admin' || role === 'super_admin')) {
+      return NextResponse.json(
+        { success: false, message: 'Akses ditolak. Hanya Super Admin yang berhak membuat akun Admin atau Super Admin.' },
+        { status: 403 }
+      );
+    }
 
     // Periksa apakah username sudah terpakai
     const existing = await prisma.user.findFirst({

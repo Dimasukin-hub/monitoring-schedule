@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-export type UserRole = 'admin' | 'user' | 'user_fe' | 'user_wilayah';
+export type UserRole = 'super_admin' | 'admin' | 'user' | 'user_fe' | 'user_wilayah';
 
 export interface AuthUser {
   id: number;
@@ -16,6 +16,7 @@ export interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   role: UserRole | null;
+  isSuperAdmin: boolean;
   isAdmin: boolean;
   isUser: boolean;
   isUserFE: boolean;
@@ -30,6 +31,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   role: null,
+  isSuperAdmin: false,
   isAdmin: false,
   isUser: false,
   isUserFE: false,
@@ -129,7 +131,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const role = user?.role || null;
-  const isAdmin = role === 'admin';
+  const isSuperAdmin = role === 'super_admin';
+  const isAdmin = role === 'admin' || role === 'super_admin';
   const isUserFE = role === 'user_fe';
   const isUserWilayah = role === 'user_wilayah' || role === 'user';
   const isUser = !isAdmin;
@@ -139,6 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         role,
+        isSuperAdmin,
         isAdmin,
         isUser,
         isUserFE,
