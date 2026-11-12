@@ -132,14 +132,18 @@ function LoginContent() {
   // Redirect jika sudah login dan berhak mengakses targetUrl
   useEffect(() => {
     if (user) {
-      const isLabitaTarget = targetUrl.startsWith('/labita');
+      let finalTarget = targetUrl;
+      const isLabitaTarget = finalTarget.startsWith('/labita');
       if (isLabitaTarget && !isAdmin) {
         // User saat ini bukan admin sedangkan Labita khusus admin; biarkan login sebagai Admin
         setSelectedRole('admin');
         setUsername('admin');
         return;
       }
-      router.push(targetUrl);
+      if (!isAdmin && (finalTarget === '/gorong-gorong/monitor-gorong-gorong' || finalTarget === '/gorong-gorong')) {
+        finalTarget = '/gorong-gorong/form-input/order-gorong-gorong';
+      }
+      router.push(finalTarget);
     }
   }, [user, isAdmin, router, targetUrl]);
 

@@ -26,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="id" className="h-full dark" suppressHydrationWarning>
+    <html lang="id" className="h-full light" suppressHydrationWarning>
       <body className={`${inter.className} min-h-full bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased selection:bg-emerald-500/30 selection:text-emerald-200 transition-colors duration-200`}>
         <AuthProvider>
           <ThemeProvider>{children}</ThemeProvider>

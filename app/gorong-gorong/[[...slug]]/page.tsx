@@ -26,7 +26,7 @@ export default function GorongGorongPage() {
   // Guard login: jika pengguna belum login, arahkan ke halaman login
   useEffect(() => {
     if (!authLoading && !user) {
-      router.replace(`/login?callbackUrl=${encodeURIComponent(pathname || '/gorong-gorong/monitor-gorong-gorong')}`);
+      router.replace(`/login?callbackUrl=${encodeURIComponent(pathname || '/gorong-gorong')}`);
     }
   }, [authLoading, user, pathname, router]);
 
@@ -41,6 +41,15 @@ export default function GorongGorongPage() {
     if (!pathname) return;
     const parsed = parseGorongGorongPathname(pathname);
 
+    // Jika non-admin (User Wilayah / User FE) mencoba membuka monitor atau rute root, arahkan langsung ke form input
+    if (!authLoading && user && !isAdmin) {
+      if (pathname === '/gorong-gorong' || pathname === GORONG_GORONG_ROUTES.monitor || parsed.activeTab === 'monitor_gorong_gorong' || parsed.activeTab === 'master_data' || parsed.activeTab === 'user_management') {
+        setActiveTab('form_input');
+        router.replace(GORONG_GORONG_ROUTES.formInput);
+        return;
+      }
+    }
+
     // Jika URL adalah rute induk (misal: /gorong-gorong atau /gorong-gorong/master-data), arahkan ke rute spesifiknya
     if (parsed.redirectTo && parsed.redirectTo !== pathname) {
       router.replace(parsed.redirectTo);
@@ -54,7 +63,7 @@ export default function GorongGorongPage() {
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('ggf_active_portal', pathname);
     }
-  }, [pathname, router]);
+  }, [pathname, router, authLoading, user, isAdmin]);
 
   // Dukung tombol Back / Forward browser tanpa reload
   useEffect(() => {
@@ -70,14 +79,15 @@ export default function GorongGorongPage() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Guard tab master data & user management khusus Admin
+  // Guard tab untuk non-admin: User Wilayah & User FE hanya boleh mengakses form input
   useEffect(() => {
-    if (!isAdmin) {
-      if (activeTab === 'master_data' || activeTab === 'user_management') {
-        router.replace(GORONG_GORONG_ROUTES.monitor);
+    if (!authLoading && user && !isAdmin) {
+      if (activeTab === 'monitor_gorong_gorong' || activeTab === 'master_data' || activeTab === 'user_management') {
+        setActiveTab('form_input');
+        router.replace(GORONG_GORONG_ROUTES.formInput);
       }
     }
-  }, [isAdmin, activeTab, router]);
+  }, [authLoading, user, isAdmin, activeTab, router]);
 
   // Handler navigasi instan: ubah state langsung (0 ms jeda) dan perbarui URL di address bar
   const handleTabChange = (newTab: string) => {

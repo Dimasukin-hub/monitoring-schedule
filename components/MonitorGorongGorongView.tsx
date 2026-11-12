@@ -178,15 +178,6 @@ export default function MonitorGorongGorongView() {
   const [isPrioritasDropdownOpen, setIsPrioritasDropdownOpen] = useState<boolean>(false);
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
-  // Upload States
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
-  const [uploadMode, setUploadMode] = useState<'full_replace' | 'partial'>('full_replace');
-  const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [uploadResult, setUploadResult] = useState<any | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [dragActive, setDragActive] = useState<boolean>(false);
-  const fileUploadInputRef = useRef<HTMLInputElement>(null);
-
   const [summaryData, setSummaryData] = useState<any>(cachedSummaryData);
   const [monitoringData, setMonitoringData] = useState<any>(cachedMonitoringData);
   const [isLoading, setIsLoading] = useState<boolean>(!cachedMonitoringData);
@@ -1380,65 +1371,6 @@ export default function MonitorGorongGorongView() {
     }
   };
 
-  // Upload Excel (.xlsx/.xls) dengan mode Smart Merge atau Full Replace
-  const handleUploadExcel = async (file: File) => {
-    if (!file.name.match(/\.(xlsx|xls)$/i)) {
-      setUploadError('File harus berupa dokumen Excel (.xlsx / .xls)');
-      return;
-    }
-
-    setIsUploading(true);
-    setUploadError(null);
-    setUploadResult(null);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('mode', uploadMode);
-      formData.append('uploadedBy', 'Admin');
-
-      const res = await fetch('/api/gorong-gorong/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        cachedSummaryData = null;
-        cachedMonitoringData = null;
-        setUploadResult(data.summary);
-        // Refresh seluruh data dashboard, kartu KPI, grafik, dan kedua tabel secara real-time
-        await loadData(true);
-      } else {
-        setUploadError(data.message || 'Gagal memproses file Excel.');
-      }
-    } catch (err: any) {
-      setUploadError(err.message || 'Terjadi kesalahan saat mengunggah file.');
-    } finally {
-      setIsUploading(false);
-      if (fileUploadInputRef.current) fileUploadInputRef.current.value = '';
-    }
-  };
-
-  const handleDragUpload = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
-  };
-
-  const handleDropUpload = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleUploadExcel(e.dataTransfer.files[0]);
-    }
-  };
-
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* 1. HEADER SECTION & FILTER BAR */}
@@ -1566,18 +1498,8 @@ export default function MonitorGorongGorongView() {
             )}
           </div>
 
-          {/* Group Action Buttons: Template Excel, Export Excel & Upload Excel */}
+          {/* Action Button: Export Excel */}
           <div className="inline-flex items-center gap-2 shrink-0 flex-nowrap">
-            <a
-              href="/api/gorong-gorong/template"
-              download="Template_Upload_Monitor_Gorong_Gorong_Aktual.xlsx"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold transition-all shadow-2xs hover:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
-              title="Unduh template Excel resmi lengkap dengan seluruh data aktual (Sheet Lokasi Order 261 baris, Data Order 246 baris, Data Drop 356 baris)"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-[#00873D]" />
-              <span>Template Excel</span>
-            </a>
-
             <button
               onClick={handleExportExcel}
               disabled={isExporting}
@@ -1586,19 +1508,6 @@ export default function MonitorGorongGorongView() {
             >
               <Download className={`w-3.5 h-3.5 ${isExporting ? 'animate-bounce' : ''}`} />
               <span>{isExporting ? 'Mengekspor...' : 'Export Excel'}</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setIsUploadModalOpen(true);
-                setUploadResult(null);
-                setUploadError(null);
-              }}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold transition-all shadow-xs hover:shadow-sm cursor-pointer shrink-0 whitespace-nowrap"
-              title="Upload file Excel untuk memperbarui & me-replace data Monitor Gorong-Gorong 100% sekaligus"
-            >
-              <UploadCloud className="w-3.5 h-3.5" />
-              <span>Upload Excel</span>
             </button>
           </div>
         </div>
@@ -2878,26 +2787,16 @@ export default function MonitorGorongGorongView() {
                   <th
                     rowSpan={2}
                     onClick={() => handleSort('statusAll')}
-                    className="sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2.5 py-2 text-center font-bold w-[75px] min-w-[75px] cursor-pointer select-none"
+                    className="sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r-2 border-b border-slate-300 dark:border-slate-700 px-2.5 py-2 text-center font-bold w-[75px] min-w-[75px] cursor-pointer select-none"
                   >
                     <div className="inline-flex items-center justify-center gap-1">
                       <span>Status All</span>
                       {renderSortArrows('statusAll')}
                     </div>
                   </th>
-                  <th
-                    rowSpan={2}
-                    onClick={() => handleSort('ratioPerHa')}
-                    className="sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 border-r-2 border-b border-slate-300 dark:border-slate-700 px-2.5 py-2 text-center font-bold w-[90px] min-w-[90px] cursor-pointer select-none"
-                  >
-                    <div className="inline-flex items-center justify-center gap-1">
-                      <span>Ratio Gorong2 / Ha</span>
-                      {renderSortArrows('ratioPerHa')}
-                    </div>
-                  </th>
 
                   {/* 4 Grup Diameter Header (100% Solid Warna Pekat) */}
-                  <th colSpan={11} className="sticky top-0 z-30 px-3 py-2 text-center border-r-2 border-b border-slate-300 dark:border-slate-700 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold">
+                  <th colSpan={12} className="sticky top-0 z-30 px-3 py-2 text-center border-r-2 border-b border-slate-300 dark:border-slate-700 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold">
                     DIAMETER 40 CM (Ø40)
                   </th>
                   <th colSpan={10} className="sticky top-0 z-30 px-3 py-2 text-center border-r-2 border-b border-slate-300 dark:border-slate-700 bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 font-bold">
@@ -2913,7 +2812,10 @@ export default function MonitorGorongGorongView() {
 
                 {/* Baris Header Bawah: Sub-Diameter */}
                 <tr className="h-[34px] text-[10.5px]">
-                  {/* DIAMETER 40: 11 Kolom */}
+                  {/* DIAMETER 40: 12 Kolom */}
+                  <th onClick={() => handleSort('ratioPerHa')} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none">
+                    <div className="inline-flex items-center justify-center gap-0.5"><span>Ratio / Ha</span>{renderSortArrows('ratioPerHa')}</div>
+                  </th>
                   <th onClick={() => handleSort('d40_order')} className="sticky top-[34px] z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-2 py-2 text-center font-bold cursor-pointer select-none">
                     <div className="inline-flex items-center justify-center gap-0.5"><span>Jml. Order</span>{renderSortArrows('d40_order')}</div>
                   </th>
@@ -3073,7 +2975,7 @@ export default function MonitorGorongGorongView() {
                       </td>
 
                       {/* Kolom Bebas Geser ke Samping */}
-                      <td className="px-2.5 py-2 text-center border-r border-b border-slate-200 dark:border-slate-800 w-[75px] min-w-[75px]">
+                      <td className="px-2.5 py-2 text-center border-r-2 border-b border-slate-300 dark:border-slate-700 w-[75px] min-w-[75px]">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
                           item.statusAll === 'Close'
                             ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30'
@@ -3082,15 +2984,15 @@ export default function MonitorGorongGorongView() {
                           {item.statusAll === 'Close' ? 'Close' : (item.statusAll === '-' ? 'Open' : item.statusAll || 'Open')}
                         </span>
                       </td>
-                      <td className="px-2.5 py-2 text-center font-mono border-r-2 border-b border-slate-300 dark:border-slate-700 w-[90px] min-w-[90px]">
-                        {item.ratioPerHa !== null && item.ratioPerHa !== undefined && item.ratioPerHa > 0 ? Math.round(Number(item.ratioPerHa)) : '-'}
-                      </td>
 
-                      {/* DIAMETER 40 (10 Kolom) */}
+                      {/* DIAMETER 40 (12 Kolom) */}
                       {(() => {
                         const d40 = item.d40;
                         return (
                           <>
+                            <td className="px-2 py-2 text-center font-mono border-r border-b border-slate-200 dark:border-slate-800">
+                              {item.ratioPerHa !== null && item.ratioPerHa !== undefined && item.ratioPerHa > 0 ? Math.round(Number(item.ratioPerHa)) : '-'}
+                            </td>
                             <td className="px-2 py-2 text-center font-mono font-bold border-r border-b border-slate-200 dark:border-slate-800">
                               {d40?.order !== null && d40?.order !== undefined ? d40.order : '-'}
                             </td>
@@ -3478,246 +3380,6 @@ export default function MonitorGorongGorongView() {
       lokasi={selectedDetailLokasi}
       orderData={selectedOrderRow}
     />
-
-    {/* ============================================================== */}
-    {/* MODAL UPLOAD EXCEL MONITORING GORONG-GORONG                    */}
-    {/* ============================================================== */}
-    {isUploadModalOpen && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 ring-1 ring-violet-500/20">
-                <UploadCloud className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Upload Excel Monitoring Gorong-Gorong
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Sinkronisasi & pembaruan data rekapitulasi order, drop, pasang, serta status lokasi.
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsUploadModalOpen(false)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Modal Body */}
-          <div className="p-6 overflow-y-auto space-y-5">
-            {/* Pilihan Opsi Upload: Replace All vs Replace Parsial */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-2">
-                Pilih Opsi Upload:
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Opsi 1: Replace Semua Data (All) */}
-                <button
-                  type="button"
-                  onClick={() => setUploadMode('full_replace')}
-                  className={`p-3.5 rounded-xl text-left border transition-all cursor-pointer flex items-start gap-3 ${
-                    uploadMode === 'full_replace'
-                      ? 'border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-950 dark:text-emerald-100 ring-1 ring-emerald-500'
-                      : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-850'
-                  }`}
-                >
-                  <div
-                    className={`w-4 h-4 rounded-full mt-0.5 border flex items-center justify-center shrink-0 ${
-                      uploadMode === 'full_replace' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-400'
-                    }`}
-                  >
-                    {uploadMode === 'full_replace' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-xs font-bold">Replace Semua Data (All)</p>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-emerald-200 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200">
-                        Default
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                      Me-replace 100% seluruh data tabel, transaksi, dan SAP sekaligus dari file Excel master.
-                    </p>
-                  </div>
-                </button>
-
-                {/* Opsi 2: Tambah Data (Data Baru) */}
-                <button
-                  type="button"
-                  onClick={() => setUploadMode('partial')}
-                  className={`p-3.5 rounded-xl text-left border transition-all cursor-pointer flex items-start gap-3 ${
-                    uploadMode === 'partial'
-                      ? 'border-blue-600 bg-blue-50/70 dark:bg-blue-950/40 text-blue-950 dark:text-blue-100 ring-1 ring-blue-500'
-                      : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-850'
-                  }`}
-                >
-                  <div
-                    className={`w-4 h-4 rounded-full mt-0.5 border flex items-center justify-center shrink-0 ${
-                      uploadMode === 'partial' ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-400'
-                    }`}
-                  >
-                    {uploadMode === 'partial' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-blue-700 dark:text-blue-300">
-                      Tambah Data (Data Baru)
-                    </p>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                      Hanya menambahkan baris data baru dari berkas Excel. Seluruh data lama di database tetap aman dan tidak terhapus.
-                    </p>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            {/* Banner Unduh Template Excel */}
-            <div className="flex items-center justify-between p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 shadow-2xs">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-[#00873D] text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <FileSpreadsheet className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                    Belum memiliki template Excel?
-                  </p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Unduh template resmi lengkap data aktual (Lokasi Order, Data Order, Data Drop)
-                  </p>
-                </div>
-              </div>
-              <a
-                href="/api/gorong-gorong/template"
-                download="Template_Upload_Monitor_Gorong_Gorong_Aktual.xlsx"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#00873D] hover:bg-[#006e31] text-white text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Unduh Template</span>
-              </a>
-            </div>
-
-            {/* Drag & Drop Card */}
-            <div
-              onDragEnter={handleDragUpload}
-              onDragLeave={handleDragUpload}
-              onDragOver={handleDragUpload}
-              onDrop={handleDropUpload}
-              onClick={() => fileUploadInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
-                dragActive
-                  ? 'border-violet-500 bg-violet-500/10 scale-[1.005]'
-                  : 'border-violet-300 dark:border-violet-800/60 hover:border-violet-500 hover:bg-violet-500/5 bg-slate-50/60 dark:bg-slate-900/50'
-              }`}
-            >
-              <input
-                ref={fileUploadInputRef}
-                type="file"
-                accept=".xlsx, .xls"
-                onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    handleUploadExcel(e.target.files[0]);
-                  }
-                }}
-                className="hidden"
-              />
-              <div className="flex flex-col items-center justify-center gap-2.5">
-                <div className="w-12 h-12 rounded-full bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center">
-                  {isUploading ? (
-                    <RefreshCw className="w-6 h-6 animate-spin" />
-                  ) : (
-                    <UploadCloud className="w-6 h-6" />
-                  )}
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                    {isUploading
-                      ? 'Sedang memproses & menyinkronkan data Excel...'
-                      : 'Klik atau seret file Excel Monitor Gorong-Gorong ke sini'}
-                  </p>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Mendukung berkas Excel (.xlsx / .xls)
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Error Alert */}
-            {uploadError && (
-              <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 flex items-start gap-2.5 text-xs animate-in fade-in duration-200">
-                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-bold">Gagal Mengunggah Berkas</p>
-                  <p className="mt-0.5">{uploadError}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Upload Success Card */}
-            {uploadResult && (
-              <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 space-y-2 animate-in fade-in duration-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                    <p className="font-bold text-sm">Sinkronisasi Excel Berhasil!</p>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-200/70 dark:bg-emerald-800/80 text-emerald-900 dark:text-emerald-100">
-                    {uploadResult.mode === 'full_replace' ? 'Replace Seluruh Data' : 'Tambah Data Baru'}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600 dark:text-slate-300">
-                  Data telah diperbarui secara instan. Seluruh kartu KPI, grafik, dan tabel telah menyesuaikan hasil sinkronisasi.
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px]">
-                  <div className="p-2.5 rounded-xl bg-emerald-100/70 dark:bg-emerald-900/50">
-                    <p className="text-slate-500 dark:text-slate-400">Lokasi Order</p>
-                    <p className="font-bold text-emerald-800 dark:text-emerald-200 text-sm mt-0.5">
-                      {(uploadResult.snapshotLocationCount || uploadResult.totalLocations || 0)} lokasi
-                    </p>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-emerald-100/70 dark:bg-emerald-900/50">
-                    <p className="text-slate-500 dark:text-slate-400">Total Order</p>
-                    <p className="font-bold text-emerald-800 dark:text-emerald-200 text-sm mt-0.5">
-                      {(uploadResult.totalOrderPcs || uploadResult.totalPcs || 0).toLocaleString()} pcs
-                    </p>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-emerald-100/70 dark:bg-emerald-900/50">
-                    <p className="text-slate-500 dark:text-slate-400">Lokasi Belum Order</p>
-                    <p className="font-bold text-emerald-800 dark:text-emerald-200 text-sm mt-0.5">
-                      {(uploadResult.belumOrderLocationCount ?? 0)} lokasi
-                    </p>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-emerald-100/70 dark:bg-emerald-900/50">
-                    <p className="text-slate-500 dark:text-slate-400">Realisasi SAP</p>
-                    <p className="font-bold text-emerald-800 dark:text-emerald-200 text-sm mt-0.5">
-                      {(uploadResult.sapRecordCount || 0).toLocaleString()} data <span className="text-[10px] text-emerald-600 font-semibold">(Aman)</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Modal Footer */}
-          <div className="flex items-center justify-end gap-3 px-6 py-3.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
-            <button
-              type="button"
-              onClick={() => setIsUploadModalOpen(false)}
-              className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-            >
-              Tutup
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
   </div>
 );
 }

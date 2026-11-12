@@ -237,11 +237,22 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
 
           {/* Card 2: Portal Monitor Gorong-Gorong */}
           <Link
-            href={user ? '/gorong-gorong/monitor-gorong-gorong' : '/login?callbackUrl=/gorong-gorong/monitor-gorong-gorong'}
+            href={
+              user
+                ? isAdmin
+                  ? '/gorong-gorong/monitor-gorong-gorong'
+                  : '/gorong-gorong/form-input/order-gorong-gorong'
+                : '/login?callbackUrl=/gorong-gorong'
+            }
             prefetch={false}
             onClick={() => {
+              const target = user
+                ? isAdmin
+                  ? '/gorong-gorong/monitor-gorong-gorong'
+                  : '/gorong-gorong/form-input/order-gorong-gorong'
+                : '/gorong-gorong';
               if (typeof window !== 'undefined') {
-                sessionStorage.setItem('ggf_active_portal', '/gorong-gorong/monitor-gorong-gorong');
+                sessionStorage.setItem('ggf_active_portal', target);
               }
               if (user) {
                 onSelectPortal?.('gorong_gorong');

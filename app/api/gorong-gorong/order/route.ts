@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { syncLokasiOrderDatabase } from '@/lib/gorongGorongSyncService';
 
 // GET: Ambil riwayat transaksi terkini
 export async function GET(request: NextRequest) {
@@ -345,6 +346,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Sinkronisasi tabel database lokasiordergoronggorong agar selalu konsisten
+    try {
+      await syncLokasiOrderDatabase();
+    } catch (syncErr) {
+      console.warn('Warning syncing database after order transaction:', syncErr);
+    }
+
     const lokasiNames = validatedData.map((d) => d.lokasi).join(', ');
     return NextResponse.json({
       success: true,
@@ -472,6 +480,12 @@ export async function DELETE(request: NextRequest) {
     await prisma.transaksiGorongGorong.delete({
       where: { id },
     });
+
+    try {
+      await syncLokasiOrderDatabase();
+    } catch (syncErr) {
+      console.warn('Warning syncing database after delete transaction:', syncErr);
+    }
 
     return NextResponse.json({
       success: true,

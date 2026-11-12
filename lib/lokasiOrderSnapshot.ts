@@ -1247,6 +1247,13 @@ export async function syncMasterDataOrderFromWorkbook(
     }
   }
 
+  try {
+    const { syncLokasiOrderDatabase } = await import('@/lib/gorongGorongSyncService');
+    await syncLokasiOrderDatabase();
+  } catch (err) {
+    console.warn('Warning auto-syncing lokasi order after master order update:', err);
+  }
+
   return dataOrderRows.length;
 }
 
@@ -1413,6 +1420,13 @@ export async function syncMasterDataDropFromWorkbook(
       const chunk = dataDropRows.slice(i, i + 200);
       await prisma.masterDataDropGorongGorong.createMany({ data: chunk });
     }
+  }
+
+  try {
+    const { syncLokasiOrderDatabase } = await import('@/lib/gorongGorongSyncService');
+    await syncLokasiOrderDatabase();
+  } catch (err) {
+    console.warn('Warning auto-syncing lokasi order after master drop update:', err);
   }
 
   return dataDropRows.length;

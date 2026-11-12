@@ -49,21 +49,21 @@ if (typeof window !== 'undefined') {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('dark');
+  const [theme, setThemeState] = useState<Theme>('light');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Read saved theme from localStorage or default to dark
+    // Read saved theme from localStorage or default to light
     try {
       const savedTheme = localStorage.getItem('theme') as Theme | null;
       if (savedTheme === 'light' || savedTheme === 'dark') {
         setThemeState(savedTheme);
         applyTheme(savedTheme);
       } else {
-        applyTheme('dark');
+        applyTheme('light');
       }
     } catch {
-      applyTheme('dark');
+      applyTheme('light');
     }
     setMounted(true);
   }, []);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import * as XLSX from 'xlsx';
+import { syncLokasiOrderDatabase } from '@/lib/gorongGorongSyncService';
 
 export const dynamic = 'force-dynamic';
 
@@ -194,6 +195,12 @@ export async function POST(request: NextRequest) {
     }
 
     const currentTotal = await prisma.masterWaterlogging.count();
+
+    try {
+      await syncLokasiOrderDatabase();
+    } catch (syncErr) {
+      console.warn('Warning syncing database after master waterlogging upload:', syncErr);
+    }
 
     return NextResponse.json({
       success: true,

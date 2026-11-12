@@ -217,7 +217,7 @@ export default function Header({
   setMasterDataSubTab,
 }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
-  const { user, isAdmin, isSuperAdmin, logout, setUserDirectly } = useAuth();
+  const { user, isAdmin, isSuperAdmin, isUserFE, isUserWilayah, logout, setUserDirectly } = useAuth();
   const currentPathname = usePathname();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [showPhotoMenu, setShowPhotoMenu] = useState(false);
@@ -237,6 +237,12 @@ export default function Header({
   const displayedMenuItems = baseItems.filter((item) => {
     if (item.id === 'user_management' || item.id === 'master_data') {
       return Boolean(user && isAdmin);
+    }
+    if (currentPortal === 'gorong_gorong' && item.id === 'monitor_gorong_gorong') {
+      // Sembunyikan menu Monitor Gorong-Gorong untuk User Wilayah dan User FE
+      if (user?.role === 'user_wilayah' || user?.role === 'user_fe' || user?.role === 'user' || isUserWilayah || isUserFE || !isAdmin) {
+        return false;
+      }
     }
     return true;
   });
