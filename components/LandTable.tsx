@@ -2332,7 +2332,7 @@ export default function LandTable({
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-visible glass-panel flex flex-col shadow-xs transition-colors">
       {/* Header Controls & Multi-Filter Bar (Bab 20 PRD) */}
-      <div className="p-5 border-b border-slate-200 dark:border-slate-800 space-y-4 relative z-30">
+      <div className="p-3.5 sm:p-5 border-b border-slate-200 dark:border-slate-800 space-y-3 sm:space-y-4 relative z-30 w-full max-w-full">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -2835,7 +2835,7 @@ export default function LandTable({
       {/* Table Data with Grouped Header (Bab 18 & 19 PRD + Revisi Aplikasi) - Freeze Panes from Wilayah to Selesai Tanam */}
       <div
         ref={tableContainerRef}
-        className="overflow-auto scroll-smooth max-h-[calc(100vh-325px)] min-h-[420px]"
+        className="overflow-auto scroll-smooth max-h-[calc(100vh-325px)] min-h-[420px] touch-pan-x w-full max-w-full"
       >
         <table className="min-w-full text-left text-xs border-separate border-spacing-0">
           <colgroup>

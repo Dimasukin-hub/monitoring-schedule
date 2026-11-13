@@ -339,15 +339,15 @@ export default function Header({
   };
 
   return (
-    <header className="flex flex-col shrink-0 select-none bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 transition-colors duration-200 shadow-2xs">
+    <header className="flex flex-col shrink-0 select-none bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 transition-colors duration-200 shadow-2xs w-full max-w-full overflow-x-hidden">
       {/* Header Paling Atas (Row 1): Logo GGF, Menu Utama, & Tombol Admin / Profil */}
-      <div className="px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
+      <div className="px-3 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-4 w-full max-w-full overflow-hidden">
         {/* Sisi Kiri: Logo GGF Kotak Putih & Label Portal */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           <Link
             href="/"
             title="Kembali ke Halaman Pilih Portal"
-            className="w-9 h-9 rounded-xl overflow-hidden bg-white border border-slate-200/90 dark:border-slate-700/80 flex items-center justify-center p-1 shadow-xs hover:ring-2 hover:ring-emerald-400/40 transition-all cursor-pointer"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden bg-white border border-slate-200/90 dark:border-slate-700/80 flex items-center justify-center p-1 shadow-xs hover:ring-2 hover:ring-emerald-400/40 transition-all cursor-pointer shrink-0"
           >
             <img
               src="/assets/logo.png"
@@ -366,7 +366,7 @@ export default function Header({
         </div>
 
         {/* Sisi Tengah: Menu Utama (Menu Update hanya muncul setelah Login Admin) */}
-        <nav className="flex-1 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth px-2">
+        <nav className="flex-1 flex items-center justify-start sm:justify-center gap-3 sm:gap-6 md:gap-8 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth px-1.5 touch-pan-x min-w-0">
           {displayedMenuItems.map((item) => {
             const isActive = activeTab === item.id || (item.id === 'form_input' && activeTab === 'order_wilayah') || (item.id === 'order_wilayah' && activeTab === 'form_input');
             const itemTheme = MENU_THEMES[item.id] || MENU_THEMES[activeTab] || MENU_THEMES.executive_summary;
@@ -404,7 +404,7 @@ export default function Header({
                     }
                   }
                 }}
-                className={`relative py-2 px-1 text-xs sm:text-[13px] tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
+                className={`relative py-1.5 sm:py-2 px-1 text-[11.5px] sm:text-xs md:text-[13px] tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
                   isActive
                     ? `${itemTheme.activeText} font-semibold`
                     : `text-slate-600 dark:text-slate-400 ${itemTheme.hoverText} font-normal`
@@ -424,20 +424,21 @@ export default function Header({
         </nav>
 
         {/* Sisi Kanan: Tombol Portal Utama & Profil User */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           {/* Tombol Portal Utama: Mengarah ke Halaman Utama estatepg1.online */}
           <a
             href="https://estatepg1.online"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-bold transition-all shadow-2xs hover:shadow-xs cursor-pointer shrink-0"
+            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-[11px] sm:text-xs font-bold transition-all shadow-2xs hover:shadow-xs cursor-pointer shrink-0"
             title="Kembali ke Halaman Utama estatepg1.online"
             aria-label="Kembali ke Halaman Utama estatepg1.online"
           >
             <LayoutGrid className="w-3.5 h-3.5 text-[#00873D]" />
-            <span>Portal Utama</span>
+            <span className="hidden sm:inline">Portal Utama</span>
+            <span className="sm:hidden text-[10px]">Portal</span>
           </a>
 
           {user ? (
-            <div className="relative flex items-center gap-2" ref={profileRef}>
+            <div className="relative flex items-center gap-1.5 sm:gap-2" ref={profileRef}>
               {/* Foto Profil Bulat (Sebelah Kiri) Berdiri Sendiri Tanpa Kotak Oval Pembungkus */}
               <button
                 type="button"
@@ -445,7 +446,7 @@ export default function Header({
                   setIsProfileOpen((prev) => !prev);
                   setShowPhotoMenu(false);
                 }}
-                className={`w-8 h-8 rounded-full overflow-hidden flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700 text-white text-xs font-bold uppercase shadow-2xs hover:ring-2 transition-all cursor-pointer ${
+                className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700 text-white text-xs font-bold uppercase shadow-2xs hover:ring-2 transition-all cursor-pointer ${
                   isSuperAdmin ? 'bg-indigo-600 hover:ring-indigo-400/40' : isAdmin ? 'bg-emerald-600 hover:ring-emerald-400/40' : 'bg-sky-600 hover:ring-sky-400/40'
                 }`}
                 title={`Profil ${isSuperAdmin ? 'Super Admin' : isAdmin ? 'Admin' : 'User'}`}
@@ -648,7 +649,7 @@ export default function Header({
 
       {/* Row 2: Sub Menu untuk Executive Summary (Pengolahan Lahan, Tanam) */}
       {activeTab === 'executive_summary' && (
-        <div className="px-6 py-1.5 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
+        <div className="px-3 sm:px-6 py-1.5 flex items-center justify-start sm:justify-center gap-3.5 sm:gap-6 md:gap-8 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth w-full max-w-full touch-pan-x">
           {EXECUTIVE_SUB_MENUS.map((item) => {
             const isActive = (executiveSubTab || 'pengolahan_lahan') === item.id;
             const subHref = getLabitaRoute('executive_summary', item.id);
@@ -658,7 +659,7 @@ export default function Header({
                 href={subHref}
                 prefetch={false}
                 onClick={() => setExecutiveSubTab?.(item.id)}
-                className={`relative py-1 px-1 text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
+                className={`relative py-1 px-1 text-[11.5px] sm:text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
                   isActive
                     ? `${currentTheme.subActiveText} font-semibold`
                     : `text-slate-500 dark:text-slate-400 ${currentTheme.subHoverText} font-normal`
@@ -680,7 +681,7 @@ export default function Header({
 
       {/* Row 2: Sub Menu untuk Pengolahan Lahan Bibit Tanam (List Stok Lahan, Data Lahan) */}
       {activeTab === 'pengolahan_lahan_bibit_tanam' && (
-        <div className="px-6 py-1.5 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
+        <div className="px-3 sm:px-6 py-1.5 flex items-center justify-start sm:justify-center gap-3.5 sm:gap-6 md:gap-8 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth w-full max-w-full touch-pan-x">
           {PENGOLAHAN_SUB_MENUS.map((item) => {
             const isActive = currentSubTab === item.id;
             const subHref = getLabitaRoute('pengolahan_lahan_bibit_tanam', item.id);
@@ -690,7 +691,7 @@ export default function Header({
                 href={subHref}
                 prefetch={false}
                 onClick={() => handleSetSubTab?.(item.id)}
-                className={`relative py-1 px-1 text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
+                className={`relative py-1 px-1 text-[11.5px] sm:text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
                   isActive
                     ? `${currentTheme.subActiveText} font-semibold`
                     : `text-slate-500 dark:text-slate-400 ${currentTheme.subHoverText} font-normal`
@@ -712,7 +713,7 @@ export default function Header({
 
       {/* Row 2: Sub Menu untuk Planting (Real Tanam Nanas, Input Real Tanam & Petik Nanas, Proses Tanam & Selesai Tanam, Update) */}
       {activeTab === 'planting' && (
-        <div className="px-6 py-1.5 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
+        <div className="px-3 sm:px-6 py-1.5 flex items-center justify-start sm:justify-center gap-3.5 sm:gap-6 md:gap-8 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth w-full max-w-full touch-pan-x">
           {PLANTING_SUB_MENUS.filter((item) => {
             if (item.id === 'update') {
               return Boolean(user && isAdmin);
@@ -727,7 +728,7 @@ export default function Header({
                 href={subHref}
                 prefetch={false}
                 onClick={() => setPlantingSubTab?.(item.id)}
-                className={`relative py-1 px-1 text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
+                className={`relative py-1 px-1 text-[11.5px] sm:text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
                   isActive
                     ? `${currentTheme.subActiveText} font-semibold`
                     : `text-slate-500 dark:text-slate-400 ${currentTheme.subHoverText} font-normal`
@@ -749,7 +750,7 @@ export default function Header({
 
       {/* Row 2: Sub Menu untuk Order Wilayah / Form Input */}
       {(activeTab === 'order_wilayah' || activeTab === 'form_input') && (
-        <div className="px-6 py-1.5 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
+        <div className="px-3 sm:px-6 py-1.5 flex items-center justify-start sm:justify-center gap-3.5 sm:gap-6 md:gap-8 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth w-full max-w-full touch-pan-x">
           {ORDER_WILAYAH_SUB_MENUS.map((item) => {
             const isActive = (orderWilayahSubTab || 'order_gorong_gorong') === item.id;
             const subHref = getGorongGorongRoute('form_input', item.id);
@@ -762,7 +763,7 @@ export default function Header({
                   e.preventDefault();
                   setOrderWilayahSubTab?.(item.id);
                 }}
-                className={`relative py-1 px-1 text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
+                className={`relative py-1 px-1 text-[11.5px] sm:text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
                   isActive
                     ? `${currentTheme.subActiveText} font-semibold`
                     : `text-slate-500 dark:text-slate-400 ${currentTheme.subHoverText} font-normal`
@@ -784,7 +785,7 @@ export default function Header({
 
       {/* Row 2: Sub Menu untuk Master Data (Master Status Lokasi, Master Waterlogging, Upload Data Realisasi SAP) */}
       {activeTab === 'master_data' && (
-        <div className="px-6 py-1.5 flex items-center justify-center gap-5 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth">
+        <div className="px-3 sm:px-6 py-1.5 flex items-center justify-start sm:justify-center gap-3.5 sm:gap-6 md:gap-8 lg:gap-11 overflow-x-auto no-scrollbar scroll-smooth w-full max-w-full touch-pan-x">
           {MASTER_DATA_SUB_MENUS.map((item) => {
             const isActive = (masterDataSubTab || 'master_status_lokasi') === item.id;
             const subHref = getGorongGorongRoute('master_data', item.id);
@@ -797,7 +798,7 @@ export default function Header({
                   e.preventDefault();
                   setMasterDataSubTab?.(item.id);
                 }}
-                className={`relative py-1 px-1 text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
+                className={`relative py-1 px-1 text-[11.5px] sm:text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
                   isActive
                     ? `${currentTheme.subActiveText} font-semibold`
                     : `text-slate-500 dark:text-slate-400 ${currentTheme.subHoverText} font-normal`

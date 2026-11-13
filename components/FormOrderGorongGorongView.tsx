@@ -472,31 +472,31 @@ export default function FormOrderGorongGorongView() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto animate-in fade-in duration-300">
+    <div className="space-y-4 sm:space-y-6 max-w-5xl mx-auto w-full max-w-full overflow-x-hidden animate-in fade-in duration-300">
       {/* 1. HEADER INFO & ROLE BADGE */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs backdrop-blur-md">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-3.5 sm:p-5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs backdrop-blur-md">
         <div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#F58220] shadow-[0_0_8px_#F58220]" />
-            <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-              Form Order & Input Gorong-Gorong
+            <span className="w-2.5 h-2.5 rounded-full bg-[#F58220] shadow-[0_0_8px_#F58220] shrink-0" />
+            <h2 className="text-base sm:text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight break-words">
+              Form Order &amp; Input Gorong-Gorong
             </h2>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
+          <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium leading-relaxed break-words">
             Formulir pencatatan permintaan kebutuhan (Order), konfirmasi pengiriman (Drop), dan pemasangan manual di lapangan.
           </p>
         </div>
 
         {/* User Role Indicator (Sejajar dan muat rapi dalam card) */}
-        <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shrink-0">
+        <div className="inline-flex items-center gap-2 sm:gap-2.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shrink-0 max-w-full">
           <div className="p-1.5 rounded-lg bg-[#00873D]/15 text-[#00873D] shrink-0">
             {isAdmin ? <Shield className="w-4 h-4" /> : <User className="w-4 h-4" />}
           </div>
-          <div className="text-left whitespace-nowrap">
+          <div className="text-left min-w-0">
             <span className="text-[10px] block text-slate-400 font-bold uppercase tracking-wider leading-none mb-0.5">
               Hak Akses
             </span>
-            <span className="text-xs font-black text-slate-800 dark:text-slate-200">
+            <span className="text-xs font-black text-slate-800 dark:text-slate-200 break-words">
               {isAdmin
                 ? 'Admin (Akses Penuh: Order, Drop, Pasang)'
                 : isUserFE
@@ -510,7 +510,7 @@ export default function FormOrderGorongGorongView() {
       {/* NOTIFIKASI FEEDBACK */}
       {notification && (
         <div
-          className={`p-4 rounded-xl flex items-center gap-3 border text-xs font-semibold animate-in slide-in-from-top-2 duration-200 ${
+          className={`p-3.5 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3 border text-xs font-semibold animate-in slide-in-from-top-2 duration-200 ${
             notification.type === 'success'
               ? 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border-emerald-500/30'
               : 'bg-rose-500/10 text-rose-800 dark:text-rose-300 border-rose-500/30'
@@ -521,12 +521,12 @@ export default function FormOrderGorongGorongView() {
           ) : (
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
           )}
-          <span>{notification.message}</span>
+          <span className="break-words">{notification.message}</span>
         </div>
       )}
 
       {/* 2. KARTU FORMULIR INPUT */}
-      <div className="p-4 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-xs backdrop-blur-md">
+      <div className="p-3.5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-xs backdrop-blur-md w-full max-w-full">
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Header Global: Jenis Data & Tanggal Transaksi */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5 p-3 sm:p-4 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60">
@@ -1263,14 +1263,14 @@ export default function FormOrderGorongGorongView() {
       </div>
 
       {/* 3. TABEL RIWAYAT INPUT (Alignment Tengah, Header Diameter, Kolom No) */}
-      <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-xs">
+      <div className="p-3.5 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-xs w-full max-w-full overflow-hidden">
         <div className="mb-4">
           <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
             Riwayat Input
           </h3>
         </div>
 
-        <div className="overflow-x-auto max-h-[420px] scrollbar-thin rounded-xl border border-slate-200 dark:border-slate-800">
+        <div className="overflow-x-auto max-h-[420px] scrollbar-thin rounded-xl border border-slate-200 dark:border-slate-800 touch-pan-x w-full max-w-full">
           <table className="w-full text-center border-separate border-spacing-0 text-xs whitespace-nowrap">
             <thead className="text-slate-700 dark:text-slate-200 font-bold">
               {/* Header Tier 1: Grup Header Diameter */}

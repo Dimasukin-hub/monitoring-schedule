@@ -1372,23 +1372,23 @@ export default function MonitorGorongGorongView() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden animate-in fade-in duration-300">
       {/* 1. HEADER SECTION & FILTER BAR */}
-      <div className="relative z-30 flex flex-col xl:flex-row xl:items-center justify-between gap-4 p-5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs backdrop-blur-md">
+      <div className="relative z-30 flex flex-col xl:flex-row xl:items-center justify-between gap-3 sm:gap-4 p-3.5 sm:p-5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs backdrop-blur-md">
         <div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#00873D] shadow-[0_0_8px_#00873D]" />
-            <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-              Monitoring Saldo & Kebutuhan Gorong-Gorong PG1
+            <span className="w-2.5 h-2.5 rounded-full bg-[#00873D] shadow-[0_0_8px_#00873D] shrink-0" />
+            <h2 className="text-base sm:text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight break-words">
+              Monitoring Saldo &amp; Kebutuhan Gorong-Gorong PG1
             </h2>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
-            Pemantauan real-time rekapitulasi order, kedatangan (drop), realisasi pasang (manual & SAP), serta saldo fisik di lapangan per lokasi.
+          <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium leading-relaxed break-words">
+            Pemantauan real-time rekapitulasi order, kedatangan (drop), realisasi pasang (manual &amp; SAP), serta saldo fisik di lapangan per lokasi.
           </p>
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2 shrink-0 flex-nowrap py-0.5">
+        <div className="flex items-center flex-wrap gap-2 shrink-0 py-0.5">
           {/* Tombol Page Diameter (Semua Diameter, Ø40, Ø60, Ø80, Ø100) */}
           <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0">
             <button
@@ -1514,7 +1514,7 @@ export default function MonitorGorongGorongView() {
       </div>
 
       {/* 2. BARIS 5 KARTU KPI SUMMARIZED (YEARLY & CURRENT) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 w-full">
         {/* Card 1: Jumlah Order (Yearly) */}
         <div className="relative overflow-hidden p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 shadow-xs backdrop-blur-sm group hover:border-emerald-500/40 transition-all">
           <div className="flex items-center justify-between">
@@ -2666,8 +2666,8 @@ export default function MonitorGorongGorongView() {
       {/* 5. KONTEN TABEL */}
       {activeTableTab === 'order' ? (
         /* TABEL 1: LIST LOKASI ORDER LENGKAP DENGAN 4 DIAMETER */
-        <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-hidden">
-          <div className="overflow-x-auto max-h-[620px] scrollbar-thin border border-slate-200 dark:border-slate-800">
+        <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-hidden w-full max-w-full">
+          <div className="overflow-x-auto max-h-[620px] scrollbar-thin border border-slate-200 dark:border-slate-800 touch-pan-x w-full max-w-full">
             <table className="w-full text-center border-separate border-spacing-0 text-[11px] whitespace-nowrap">
               {/* Header 2 Tingkat */}
               <thead className="text-slate-700 dark:text-slate-200 font-bold">
@@ -3271,7 +3271,7 @@ export default function MonitorGorongGorongView() {
               </span>
             </div>
 
-          <div className="overflow-x-auto max-h-[580px] scrollbar-thin border border-slate-200 dark:border-slate-800">
+          <div className="overflow-x-auto max-h-[580px] scrollbar-thin border border-slate-200 dark:border-slate-800 touch-pan-x w-full max-w-full">
             <table className="w-full text-center border-separate border-spacing-0 text-xs whitespace-nowrap">
               <thead className="text-slate-700 dark:text-slate-200 font-bold">
                 <tr className="h-[34px]">

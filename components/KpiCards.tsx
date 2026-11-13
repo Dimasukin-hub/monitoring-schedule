@@ -737,18 +737,18 @@ export default function KpiCards({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4 w-full max-w-full overflow-hidden">
       {/* 1. SUB MENU: PENGOLAHAN LAHAN (Urutan Opsi 1: Stok Bongkar & Stok Bajak Kompak di Kiri, Stok Siap Tanam Besar di Kanan) */}
       {(activeSubTab === 'pengolahan_lahan' || !activeSubTab) && (
-        <div className="relative overflow-visible rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200/90 dark:border-emerald-500/25 p-5 glass-panel shadow-xs transition-colors">
+        <div className="relative overflow-visible rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200/90 dark:border-emerald-500/25 p-3.5 sm:p-5 glass-panel shadow-xs transition-colors w-full max-w-full">
           {/* Top Header of Pengolahan Lahan with Year/Month Filter */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/70 dark:border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/15 dark:bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
-                <Boxes className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-500/15 dark:bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                <Boxes className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <span className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+                <span className="text-[11px] sm:text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
                   PENGOLAHAN LAHAN • STOK LAHAN 2026
                 </span>
               </div>
@@ -887,15 +887,15 @@ export default function KpiCards({
           </div>
 
           {/* CARDS ROW (Opsi 1: Kiri 2 Card Kompak Bongkar & Bajak, Kanan Card Besar Siap Tanam SN) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 mt-3 sm:mt-4">
             {/* SISI KIRI (lg:col-span-6): 2 Card Kompak (Stok Bongkar & Stok Bajak) setara ukuran Real Tanam Bulanan & Proses Tanam */}
-            <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {/* CARD 1: STOK BONGKAR */}
               <div
                 onMouseEnter={() => handleCardMouseEnter('BK')}
                 onMouseLeave={handleCardMouseLeave}
                 onClick={() => setHoveredCard((prev) => (prev === 'BK' ? null : 'BK'))}
-                className={`relative overflow-visible rounded-2xl bg-white dark:bg-slate-950/80 border border-amber-300/80 dark:border-amber-500/30 p-5 glass-panel flex flex-col justify-between shadow-xs transition-all cursor-pointer hover:border-amber-400 dark:hover:border-amber-500/60 ${
+                className={`relative overflow-visible rounded-2xl bg-white dark:bg-slate-950/80 border border-amber-300/80 dark:border-amber-500/30 p-3.5 sm:p-5 glass-panel flex flex-col justify-between shadow-xs transition-all cursor-pointer hover:border-amber-400 dark:hover:border-amber-500/60 ${
                   hoveredCard === 'BK' ? 'z-40 ring-2 ring-amber-400/40 shadow-md' : 'z-10'
                 }`}
               >
@@ -969,7 +969,7 @@ export default function KpiCards({
                 onMouseEnter={() => handleCardMouseEnter('BJK')}
                 onMouseLeave={handleCardMouseLeave}
                 onClick={() => setHoveredCard((prev) => (prev === 'BJK' ? null : 'BJK'))}
-                className={`relative overflow-visible rounded-2xl bg-white dark:bg-slate-950/80 border border-blue-200 dark:border-blue-500/30 p-5 glass-panel flex flex-col justify-between shadow-xs transition-all cursor-pointer hover:border-blue-300 dark:hover:border-blue-500/60 ${
+                className={`relative overflow-visible rounded-2xl bg-white dark:bg-slate-950/80 border border-blue-200 dark:border-blue-500/30 p-3.5 sm:p-5 glass-panel flex flex-col justify-between shadow-xs transition-all cursor-pointer hover:border-blue-300 dark:hover:border-blue-500/60 ${
                   hoveredCard === 'BJK' ? 'z-40 ring-2 ring-blue-400/40 shadow-md' : 'z-10'
                 }`}
               >
@@ -1044,7 +1044,7 @@ export default function KpiCards({
               onMouseEnter={() => handleCardMouseEnter('SN')}
               onMouseLeave={handleCardMouseLeave}
               onClick={() => setHoveredCard((prev) => (prev === 'SN' ? null : 'SN'))}
-              className={`lg:col-span-6 relative overflow-visible rounded-2xl bg-white dark:bg-slate-900 border border-emerald-300/80 dark:border-emerald-500/30 p-5 glass-panel flex flex-col justify-between shadow-xs transition-all cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-500/60 ${
+              className={`lg:col-span-6 relative overflow-visible rounded-2xl bg-white dark:bg-slate-900 border border-emerald-300/80 dark:border-emerald-500/30 p-3.5 sm:p-5 glass-panel flex flex-col justify-between shadow-xs transition-all cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-500/60 ${
                 hoveredCard === 'SN' ? 'z-40 ring-2 ring-emerald-400/40 shadow-md' : 'z-10'
               }`}
             >
@@ -1118,9 +1118,9 @@ export default function KpiCards({
 
       {/* 2. SUB MENU: TANAM (Card Realisasi Tanam, Real Tanam Bulanan, dan Card Proses Tanam) */}
       {activeSubTab === 'tanam' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 w-full">
           {/* CARD 1: REALISASI TANAM TAHUNAN (Kiri - Ukuran Asli 50% / lg:col-span-6) */}
-          <div className="lg:col-span-6 relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-cyan-200 dark:border-cyan-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
+          <div className="lg:col-span-6 relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-cyan-200 dark:border-cyan-500/20 p-3.5 sm:p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
             <div className="flex items-center justify-between gap-2 h-7 mb-3">
               <span className="text-xs font-bold text-cyan-700 dark:text-cyan-400 uppercase tracking-wider truncate block">
                 REALISASI TANAM
@@ -1177,9 +1177,9 @@ export default function KpiCards({
           </div>
 
           {/* KOLOM KANAN: REAL TANAM BULANAN & PROSES TANAM (lg:col-span-6) */}
-          <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {/* SUB-KARTU 1: REAL TANAM BULANAN */}
-            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
+            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-500/20 p-3.5 sm:p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
               <div className="flex items-center justify-between gap-2 h-7 mb-3">
                 <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider truncate block">
                   REAL TANAM BULANAN
@@ -1231,7 +1231,7 @@ export default function KpiCards({
             </div>
 
             {/* SUB-KARTU 2: PROSES TANAM */}
-            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-500/20 p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
+            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-500/20 p-3.5 sm:p-5 glass-panel flex flex-col justify-between shadow-xs transition-colors">
               <div className="flex items-center justify-between gap-2 h-7 mb-3">
                 <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider truncate block">
                   PROSES TANAM

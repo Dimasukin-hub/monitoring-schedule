@@ -147,7 +147,7 @@ export default function GorongGorongPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-blue-500/30 selection:text-blue-700 dark:selection:text-blue-200 transition-colors duration-200">
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-blue-500/30 selection:text-blue-700 dark:selection:text-blue-200 transition-colors duration-200 w-full max-w-full overflow-x-hidden">
       {/* Top Header dengan Branding Gorong-Gorong & Navigasi Tab */}
       <Header
         currentPortal="gorong_gorong"
@@ -161,7 +161,7 @@ export default function GorongGorongPage() {
       />
 
       {/* Main Content Area - Full Width Margin Sampai Samping */}
-      <main className="flex-1 p-2 sm:p-4 md:p-5 space-y-5 md:space-y-6 overflow-y-auto w-full">
+      <main className="flex-1 p-2 sm:p-4 md:p-5 space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
         {/* 1. MENU: MONITOR GORONG-GORONG (Ringkasan Saldo, Kebutuhan & Dropping 4 Diameter) */}
         <div className={activeTab === 'monitor_gorong_gorong' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
           <MonitorGorongGorongView />
