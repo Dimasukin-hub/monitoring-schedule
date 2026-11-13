@@ -292,8 +292,8 @@ export default function LabitaDashboardPage() {
         totalLands={summaryData?.totalLands || 0}
       />
 
-      {/* Main Full-Width Content Area */}
-      <main className="flex-1 p-2.5 sm:p-5 md:p-8 space-y-4 sm:space-y-6 md:space-y-8 max-w-[1700px] w-full mx-auto overflow-x-hidden">
+      {/* Main Full-Width Content Area - Margin Dipepetkan Rapi ke Sisi Layar */}
+      <main className="flex-1 p-2 sm:p-4 md:p-5 space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
         {/* 1. MENU: EXECUTIVE SUMMARY (Dengan 2 Sub-Menu: Pengolahan Lahan & Tanam) */}
         <div className={activeTab === 'executive_summary' ? 'space-y-8 animate-in fade-in duration-150' : 'hidden'}>
           {/* 1.1 SUB MENU: PENGOLAHAN LAHAN */}
@@ -350,11 +350,11 @@ export default function LabitaDashboardPage() {
               activeSubTab="tanam"
             />
 
-            {/* TABEL REALISASI TANAM KEMARIN */}
-            <RealTanamKemarinTable />
-
-            {/* SEBARAN BIBIT PER BULAN */}
-            <SebaranBibitBulanChart />
+            {/* SEBARAN BIBIT / BULAN (KIRI) & TABEL REAL TANAM KEMARIN (KANAN) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-stretch">
+              <SebaranBibitBulanChart />
+              <RealTanamKemarinTable />
+            </div>
 
             {/* KOMPOSISI REALISASI BIBIT TANAM & BENCHMARK HARIAN */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">

@@ -1061,14 +1061,25 @@ export async function syncLokasiBelumOrderFromWorkbook(
   return belumOrderRecords.length;
 }
 
+function cleanNumberQty(val: any): number {
+  if (val === null || val === undefined) return 0;
+  if (typeof val === 'number') return isNaN(val) ? 0 : Math.round(val);
+  const str = String(val).trim();
+  if (!str || str === '-' || str === '.') return 0;
+  const cleaned = str.replace(/[^0-9.-]/g, '');
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : Math.round(num);
+}
+
 export async function syncMasterDataOrderFromWorkbook(
   wb: XLSX.WorkBook,
   mode: 'full_replace' | 'partial' = 'full_replace'
 ): Promise<number> {
   const sheetNames = wb.SheetNames || [];
-  const match = sheetNames.find((name) =>
-    ['data order', 'order gorong'].some((p) => name.trim().toLowerCase().includes(p))
-  );
+  const match = sheetNames.find((name) => {
+    const n = name.trim().toLowerCase();
+    return n.includes('order') || n.includes('pesan') || n.includes('gorong');
+  });
   if (!match) return 0;
   const ws = wb.Sheets[match];
   if (!ws) return 0;
@@ -1092,7 +1103,7 @@ export async function syncMasterDataOrderFromWorkbook(
     }
   }
 
-  // 2. Deteksi posisi kolom header secara dinamis (mendukung format PG1 lama 10 kolom & template resmi baru 9 kolom)
+  // 2. Deteksi posisi kolom header secara dinamis (mendukung format PG1 lama 10 kolom, template resmi baru, dan format bebas)
   const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:Z500');
   let cArea = -1;
   let cLokasi = -1;
@@ -1119,17 +1130,38 @@ export async function syncMasterDataOrderFromWorkbook(
       }
       else if (text === 'wil' || text === 'wilayah') cWilayah = c;
       else if (text === 'keterangan' || text === 'ket') cKeterangan = c;
-      else if (text === 'tgl' || text === 'tanggal' || text === 'date') cTanggal = c;
-      else if (text === '40' || text === 'diameter 40' || text === 'd40' || text === 'ø40') cD40 = c;
-      else if (text === '60' || text === 'diameter 60' || text === 'd60' || text === 'ø60') cD60 = c;
-      else if (text === '80' || text === 'diameter 80' || text === 'd80' || text === 'ø80') cD80 = c;
-      else if (text === '100' || text === 'diameter 100' || text === 'd100' || text === 'ø100') cD100 = c;
+      else if ((text === 'tgl' || text === 'tanggal' || text === 'date') && !text.includes('drop')) cTanggal = c;
+      else if (text.includes('100') || text.includes('d100') || text.includes('ø100')) cD100 = c;
+      else if (text.includes('80') || text.includes('d80') || text.includes('ø80')) cD80 = c;
+      else if (text.includes('60') || text.includes('d60') || text.includes('ø60')) cD60 = c;
+      else if (text.includes('40') || text.includes('d40') || text.includes('ø40')) cD40 = c;
       else if (text.includes('lookup') || text.includes('status lookup')) cLookup = c;
     }
     if (cLokasi !== -1) break;
   }
 
-  // Fallback defaults jika header tidak terdeteksi lengkap
+  // Jika baris header utama ditemukan tapi diameter belum terdeteksi (misal ada sub-header di baris berikutnya)
+  if (headerRow !== -1 && (cD40 === -1 || cD60 === -1 || cD80 === -1 || cD100 === -1) && headerRow + 1 <= range.e.r) {
+    for (let c = range.s.c; c <= Math.min(range.e.c, 25); c++) {
+      const cell = ws[XLSX.utils.encode_cell({ r: headerRow + 1, c })];
+      if (!cell || cell.v === undefined || cell.v === null) continue;
+      const text = String(cell.v).toLowerCase().trim();
+      if (cD100 === -1 && (text.includes('100') || text.includes('d100') || text.includes('ø100'))) cD100 = c;
+      else if (cD80 === -1 && (text.includes('80') || text.includes('d80') || text.includes('ø80'))) cD80 = c;
+      else if (cD60 === -1 && (text.includes('60') || text.includes('d60') || text.includes('ø60'))) cD60 = c;
+      else if (cD40 === -1 && (text.includes('40') || text.includes('d40') || text.includes('ø40'))) cD40 = c;
+    }
+  }
+
+  // Fallback cadangan jika header diameter tidak terdeteksi tapi kolom tanggal/lokasi sudah ketemu
+  if (cD40 === -1 && cTanggal !== -1) {
+    cD40 = cTanggal + 1;
+    cD60 = cTanggal + 2;
+    cD80 = cTanggal + 3;
+    cD100 = cTanggal + 4;
+  }
+
+  // Fallback defaults jika header lokasi tidak terdeteksi lengkap
   if (cLokasi === -1) {
     headerRow = 0;
     if (cKeterangan !== -1) {
@@ -1197,10 +1229,10 @@ export async function syncMasterDataOrderFromWorkbook(
       }
     }
 
-    const d40 = Number(getCellVal(r, cD40)) || 0;
-    const d60 = Number(getCellVal(r, cD60)) || 0;
-    const d80 = Number(getCellVal(r, cD80)) || 0;
-    const d100 = Number(getCellVal(r, cD100)) || 0;
+    const d40 = cleanNumberQty(getCellVal(r, cD40));
+    const d60 = cleanNumberQty(getCellVal(r, cD60));
+    const d80 = cleanNumberQty(getCellVal(r, cD80));
+    const d100 = cleanNumberQty(getCellVal(r, cD100));
 
     // Lookup 1: Wilayah dari sel sheet terlebih dahulu (jika valid AW01-AW07), fallback ke MasterStatusLokasi.strucPlant
     const rawWil = getCellVal(r, cWilayah);
@@ -1262,9 +1294,10 @@ export async function syncMasterDataDropFromWorkbook(
   mode: 'full_replace' | 'partial' = 'full_replace'
 ): Promise<number> {
   const sheetNames = wb.SheetNames || [];
-  const match = sheetNames.find((name) =>
-    ['data drop', 'drop gorong', 'drop'].some((p) => name.trim().toLowerCase().includes(p))
-  );
+  const match = sheetNames.find((name) => {
+    const n = name.trim().toLowerCase();
+    return n.includes('drop') || n.includes('kirim');
+  });
   if (!match) return 0;
   const ws = wb.Sheets[match];
   if (!ws) return 0;
@@ -1302,17 +1335,38 @@ export async function syncMasterDataDropFromWorkbook(
         cWilayah = c;
       } else if ((text === 'tgl' || text === 'tanggal' || text === 'date') && !text.includes('order')) {
         cTanggal = c;
-      } else if (text === '40' || text === 'diameter 40' || text === 'd40' || text === 'ø40') {
-        cD40 = c;
-      } else if (text === '60' || text === 'diameter 60' || text === 'd60' || text === 'ø60') {
-        cD60 = c;
-      } else if (text === '80' || text === 'diameter 80' || text === 'd80' || text === 'ø80') {
-        cD80 = c;
-      } else if (text === '100' || text === 'diameter 100' || text === 'd100' || text === 'ø100') {
+      } else if (text.includes('100') || text.includes('d100') || text.includes('ø100')) {
         cD100 = c;
+      } else if (text.includes('80') || text.includes('d80') || text.includes('ø80')) {
+        cD80 = c;
+      } else if (text.includes('60') || text.includes('d60') || text.includes('ø60')) {
+        cD60 = c;
+      } else if (text.includes('40') || text.includes('d40') || text.includes('ø40')) {
+        cD40 = c;
       }
     }
     if (cLokasi !== -1) break;
+  }
+
+  // Jika baris header utama ditemukan tapi diameter belum terdeteksi (misal ada sub-header di baris berikutnya)
+  if (headerRow !== -1 && (cD40 === -1 || cD60 === -1 || cD80 === -1 || cD100 === -1) && headerRow + 1 <= range.e.r) {
+    for (let c = range.s.c; c <= Math.min(range.e.c, 25); c++) {
+      const cell = ws[XLSX.utils.encode_cell({ r: headerRow + 1, c })];
+      if (!cell || cell.v === undefined || cell.v === null) continue;
+      const text = String(cell.v).toLowerCase().trim();
+      if (cD100 === -1 && (text.includes('100') || text.includes('d100') || text.includes('ø100'))) cD100 = c;
+      else if (cD80 === -1 && (text.includes('80') || text.includes('d80') || text.includes('ø80'))) cD80 = c;
+      else if (cD60 === -1 && (text.includes('60') || text.includes('d60') || text.includes('ø60'))) cD60 = c;
+      else if (cD40 === -1 && (text.includes('40') || text.includes('d40') || text.includes('ø40'))) cD40 = c;
+    }
+  }
+
+  // Fallback cadangan jika header diameter tidak terdeteksi tapi kolom tanggal/lokasi sudah ketemu
+  if (cD40 === -1 && cTanggal !== -1) {
+    cD40 = cTanggal + 1;
+    cD60 = cTanggal + 2;
+    cD80 = cTanggal + 3;
+    cD100 = cTanggal + 4;
   }
 
   // Fallback defaults jika header bertingkat PG1: Lokasi di Col C (2), Tgl di Col G (6), 40 di Col I (8)
@@ -1382,10 +1436,10 @@ export async function syncMasterDataDropFromWorkbook(
 
     if (!tanggal) continue;
 
-    const d40 = Number(getCellVal(r, cD40)) || 0;
-    const d60 = Number(getCellVal(r, cD60)) || 0;
-    const d80 = Number(getCellVal(r, cD80)) || 0;
-    const d100 = Number(getCellVal(r, cD100)) || 0;
+    const d40 = cleanNumberQty(getCellVal(r, cD40));
+    const d60 = cleanNumberQty(getCellVal(r, cD60));
+    const d80 = cleanNumberQty(getCellVal(r, cD80));
+    const d100 = cleanNumberQty(getCellVal(r, cD100));
 
     // Lookup wilayah dari MasterStatusLokasi.strucPlant
     const rawWil = getCellVal(r, cWilayah);
