@@ -316,14 +316,20 @@ export async function GET(request: NextRequest) {
     const listLokasiOrder: any[] = [];
     const orderedLokasiSet = new Set<string>();
 
-    // Kandidat lokasi List Lokasi Order: murni mengikuti Master Data Order (lokasi yang melakukan order) + form order
+    // Kandidat lokasi List Lokasi Order: murni mengikuti Master Data Order & Drop + form transactions
     const allCandidateLocations = new Set<string>();
     for (const o of masterOrders) {
       if (o.lokasi) allCandidateLocations.add(o.lokasi.trim());
     }
+    for (const d of masterDrops) {
+      if (d.lokasi) allCandidateLocations.add(d.lokasi.trim());
+    }
     for (const trx of allTrx) {
-      if (trx.jenisTransaksi === 'ORDER' && trx.lokasi) {
+      if (trx.lokasi) {
         allCandidateLocations.add(trx.lokasi.trim());
+      }
+      if (trx.lokasiAsal) {
+        allCandidateLocations.add(trx.lokasiAsal.trim());
       }
     }
 
@@ -377,15 +383,11 @@ export async function GET(request: NextRequest) {
       for (const dia of diameters) {
         const key = `d${dia}`;
 
-        // Orders: Master Data Order + Transaksi Form Order
-        let trxOrdQty = 0;
-        for (const o of trxData.orders) {
-          trxOrdQty += (dia === 40 ? o.qtyD40 : dia === 60 ? o.qtyD60 : dia === 80 ? o.qtyD80 : o.qtyD100);
-        }
+        // Orders: Master Data Order (karena Form Order langsung memperbarui Master Data)
         const masterOrdQty = dia === 40 ? ordMaster.d40 : dia === 60 ? ordMaster.d60 : dia === 80 ? ordMaster.d80 : ordMaster.d100;
-        const ordQty = masterOrdQty + trxOrdQty;
+        const ordQty = masterOrdQty;
 
-        // Drops: Master Data Drop + Transaksi Form Drop
+        // Drops: Master Data Drop (karena Form Drop langsung memperbarui Master Data)
         let trxDrpQty = 0;
         let lastDropDate: Date | null = dia === 40 ? drpMaster.tglDrop40 : null;
         for (const dr of trxData.drops) {
@@ -397,10 +399,22 @@ export async function GET(request: NextRequest) {
           }
         }
         const masterDrpQty = dia === 40 ? drpMaster.d40 : dia === 60 ? drpMaster.d60 : dia === 80 ? drpMaster.d80 : drpMaster.d100;
-        const dropQty = masterDrpQty + trxDrpQty;
+        const dropQty = masterDrpQty;
 
-        // Pindah lokasi
-        const pindahQty = (snap as any)?.[`pindahD${dia}`] || 0;
+        // Pindah lokasi: hitung dari transaksi transfer dan snap
+        let trxPindahQty = 0;
+        for (const t of allTrx) {
+          if (t.jenisTransaksi === 'DROP' && t.lokasiAsal) {
+            const q = (dia === 40 ? t.qtyD40 : dia === 60 ? t.qtyD60 : dia === 80 ? t.qtyD80 : t.qtyD100) || 0;
+            if (t.lokasiAsal.trim().toUpperCase() === lokUpper) {
+              trxPindahQty -= q;
+            }
+            if (t.lokasi.trim().toUpperCase() === lokUpper) {
+              trxPindahQty += q;
+            }
+          }
+        }
+        const pindahQty = trxPindahQty !== 0 ? trxPindahQty : ((snap as any)?.[`pindahD${dia}`] || 0);
 
         // Pasang: Pasang Manual + Pasang SAP
         let trxManQty = 0;

@@ -209,12 +209,101 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Eksekusi insert batch secara atomik
+    // Eksekusi insert batch secara atomik ke riwayat transaksi
     const created = await prisma.$transaction(
       validatedData.map((data) => prisma.transaksiGorongGorong.create({ data }))
     );
 
-    // Sinkronisasi pembaruan kuantiti dan transisi prioritas otomatis ke tabel LokasiOrderGorongGorong
+    // 1. Sinkronisasi pembaruan kuantiti ke tabel Master (MasterDataOrderGorongGorong & MasterDataDropGorongGorong)
+    for (const d of validatedData) {
+      try {
+        if (d.jenisTransaksi === 'ORDER') {
+          const existingMasterOrd = await prisma.masterDataOrderGorongGorong.findFirst({
+            where: { lokasi: d.lokasi },
+            orderBy: { id: 'desc' },
+          });
+
+          if (existingMasterOrd) {
+            await prisma.masterDataOrderGorongGorong.update({
+              where: { id: existingMasterOrd.id },
+              data: {
+                diameter40: (existingMasterOrd.diameter40 || 0) + (d.qtyD40 || 0),
+                diameter60: (existingMasterOrd.diameter60 || 0) + (d.qtyD60 || 0),
+                diameter80: (existingMasterOrd.diameter80 || 0) + (d.qtyD80 || 0),
+                diameter100: (existingMasterOrd.diameter100 || 0) + (d.qtyD100 || 0),
+                tanggal: d.tanggal || existingMasterOrd.tanggal,
+              },
+            });
+          } else {
+            await prisma.masterDataOrderGorongGorong.create({
+              data: {
+                lokasi: d.lokasi,
+                wilayah: d.wilayah,
+                tanggal: d.tanggal,
+                diameter40: d.qtyD40 || 0,
+                diameter60: d.qtyD60 || 0,
+                diameter80: d.qtyD80 || 0,
+                diameter100: d.qtyD100 || 0,
+              },
+            });
+          }
+        } else if (d.jenisTransaksi === 'DROP') {
+          // Jika pindah lokasi: kurangi drop di asal pada MasterDataDropGorongGorong
+          if (d.lokasiAsal) {
+            const existingDropAsal = await prisma.masterDataDropGorongGorong.findFirst({
+              where: { lokasi: d.lokasiAsal },
+              orderBy: { tanggal: 'desc' },
+            });
+            if (existingDropAsal) {
+              await prisma.masterDataDropGorongGorong.update({
+                where: { id: existingDropAsal.id },
+                data: {
+                  diameter40: Math.max(0, (existingDropAsal.diameter40 || 0) - (d.qtyD40 || 0)),
+                  diameter60: Math.max(0, (existingDropAsal.diameter60 || 0) - (d.qtyD60 || 0)),
+                  diameter80: Math.max(0, (existingDropAsal.diameter80 || 0) - (d.qtyD80 || 0)),
+                  diameter100: Math.max(0, (existingDropAsal.diameter100 || 0) - (d.qtyD100 || 0)),
+                },
+              });
+            }
+          }
+
+          // Tambah drop di tujuan pada MasterDataDropGorongGorong
+          const existingDropDest = await prisma.masterDataDropGorongGorong.findFirst({
+            where: { lokasi: d.lokasi },
+            orderBy: { tanggal: 'desc' },
+          });
+
+          if (existingDropDest) {
+            await prisma.masterDataDropGorongGorong.update({
+              where: { id: existingDropDest.id },
+              data: {
+                diameter40: (existingDropDest.diameter40 || 0) + (d.qtyD40 || 0),
+                diameter60: (existingDropDest.diameter60 || 0) + (d.qtyD60 || 0),
+                diameter80: (existingDropDest.diameter80 || 0) + (d.qtyD80 || 0),
+                diameter100: (existingDropDest.diameter100 || 0) + (d.qtyD100 || 0),
+                tanggal: d.tanggal || existingDropDest.tanggal,
+              },
+            });
+          } else {
+            await prisma.masterDataDropGorongGorong.create({
+              data: {
+                lokasi: d.lokasi,
+                wilayah: d.wilayah,
+                tanggal: d.tanggal || new Date(),
+                diameter40: d.qtyD40 || 0,
+                diameter60: d.qtyD60 || 0,
+                diameter80: d.qtyD80 || 0,
+                diameter100: d.qtyD100 || 0,
+              },
+            });
+          }
+        }
+      } catch (errMaster) {
+        console.warn(`Failed to update master tables for ${d.lokasi}:`, errMaster);
+      }
+    }
+
+    // 2. Sinkronisasi pembaruan kuantiti dan transisi prioritas otomatis ke tabel LokasiOrderGorongGorong
     for (const d of validatedData) {
       try {
         const tglStr = d.tanggal ? (typeof d.tanggal === 'string' ? d.tanggal : d.tanggal.toISOString().slice(0, 10)) : '-';
@@ -430,6 +519,64 @@ export async function DELETE(request: NextRequest) {
         { success: false, message: 'Data transaksi tidak ditemukan atau sudah dihapus.' },
         { status: 404 }
       );
+    }
+
+    // Revert perubahan kuantiti pada tabel MasterDataOrderGorongGorong & MasterDataDropGorongGorong
+    try {
+      if (existing.jenisTransaksi === 'ORDER') {
+        const masterOrd = await prisma.masterDataOrderGorongGorong.findFirst({
+          where: { lokasi: existing.lokasi },
+          orderBy: { id: 'desc' },
+        });
+        if (masterOrd) {
+          await prisma.masterDataOrderGorongGorong.update({
+            where: { id: masterOrd.id },
+            data: {
+              diameter40: Math.max(0, (masterOrd.diameter40 || 0) - (existing.qtyD40 || 0)),
+              diameter60: Math.max(0, (masterOrd.diameter60 || 0) - (existing.qtyD60 || 0)),
+              diameter80: Math.max(0, (masterOrd.diameter80 || 0) - (existing.qtyD80 || 0)),
+              diameter100: Math.max(0, (masterOrd.diameter100 || 0) - (existing.qtyD100 || 0)),
+            },
+          });
+        }
+      } else if (existing.jenisTransaksi === 'DROP') {
+        // 1. Revert Lokasi Asal jika transfer DROP
+        if (existing.lokasiAsal) {
+          const asalDrop = await prisma.masterDataDropGorongGorong.findFirst({
+            where: { lokasi: existing.lokasiAsal },
+            orderBy: { tanggal: 'desc' },
+          });
+          if (asalDrop) {
+            await prisma.masterDataDropGorongGorong.update({
+              where: { id: asalDrop.id },
+              data: {
+                diameter40: (asalDrop.diameter40 || 0) + (existing.qtyD40 || 0),
+                diameter60: (asalDrop.diameter60 || 0) + (existing.qtyD60 || 0),
+                diameter80: (asalDrop.diameter80 || 0) + (existing.qtyD80 || 0),
+                diameter100: (asalDrop.diameter100 || 0) + (existing.qtyD100 || 0),
+              },
+            });
+          }
+        }
+        // 2. Revert Lokasi Tujuan
+        const destDrop = await prisma.masterDataDropGorongGorong.findFirst({
+          where: { lokasi: existing.lokasi },
+          orderBy: { tanggal: 'desc' },
+        });
+        if (destDrop) {
+          await prisma.masterDataDropGorongGorong.update({
+            where: { id: destDrop.id },
+            data: {
+              diameter40: Math.max(0, (destDrop.diameter40 || 0) - (existing.qtyD40 || 0)),
+              diameter60: Math.max(0, (destDrop.diameter60 || 0) - (existing.qtyD60 || 0)),
+              diameter80: Math.max(0, (destDrop.diameter80 || 0) - (existing.qtyD80 || 0)),
+              diameter100: Math.max(0, (destDrop.diameter100 || 0) - (existing.qtyD100 || 0)),
+            },
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to revert MasterData on delete:', err);
     }
 
     // Revert perubahan kuantiti pada tabel LokasiOrderGorongGorong jika ada

@@ -179,10 +179,10 @@ export async function syncLokasiOrderDatabase() {
       else if (s.diameter === 100) ent.d100 += s.qty;
     }
 
-    // Daftar lokasi resmi yang memiliki order dari Master Data Order (atau form order)
+    // Daftar lokasi resmi yang memiliki order/drop dari Master Data
     const allCandidateLokasi = new Set<string>([
       ...orderMap.keys(),
-      ...Array.from(trxMap.keys()).filter((l) => (trxMap.get(l)?.orders?.length || 0) > 0),
+      ...dropMap.keys(),
     ]);
 
     const upsertPromises: any[] = [];
@@ -195,25 +195,14 @@ export async function syncLokasiOrderDatabase() {
       const sp = sapMap.get(lok) || { d40: 0, d60: 0, d80: 0, d100: 0 };
       const trx = trxMap.get(lok) || { orders: [], drops: [], manuals: [] };
 
-      let trxOrd40 = 0, trxOrd60 = 0, trxOrd80 = 0, trxOrd100 = 0;
-      for (const o of trx.orders) {
-        trxOrd40 += o.qtyD40 || 0;
-        trxOrd60 += o.qtyD60 || 0;
-        trxOrd80 += o.qtyD80 || 0;
-        trxOrd100 += o.qtyD100 || 0;
-      }
-      let trxDrp40 = 0, trxDrp60 = 0, trxDrp80 = 0, trxDrp100 = 0;
       let lastDrop40Date: Date | null = drp.tglDrop40;
       for (const d of trx.drops) {
-        trxDrp40 += d.qtyD40 || 0;
-        trxDrp60 += d.qtyD60 || 0;
-        trxDrp80 += d.qtyD80 || 0;
-        trxDrp100 += d.qtyD100 || 0;
         if (d.qtyD40 > 0 && d.tanggal) {
           const dt = new Date(d.tanggal);
           if (!lastDrop40Date || dt > lastDrop40Date) lastDrop40Date = dt;
         }
       }
+
       let trxMan40 = 0, trxMan60 = 0, trxMan80 = 0, trxMan100 = 0;
       for (const p of trx.manuals as any[]) {
         trxMan40 += p.qtyD40 || 0;
@@ -222,15 +211,37 @@ export async function syncLokasiOrderDatabase() {
         trxMan100 += p.qtyD100 || 0;
       }
 
-      const orderD40 = ord.d40 + trxOrd40;
-      const orderD60 = ord.d60 + trxOrd60;
-      const orderD80 = ord.d80 + trxOrd80;
-      const orderD100 = ord.d100 + trxOrd100;
+      // Hitung net pindah lokasi untuk petak ini dari allTrx (drops with lokasiAsal)
+      let pindahD40 = 0, pindahD60 = 0, pindahD80 = 0, pindahD100 = 0;
+      for (const t of allTrx) {
+        if (t.jenisTransaksi === 'DROP' && t.lokasiAsal) {
+          const asalUpper = t.lokasiAsal.trim().toUpperCase();
+          const destUpper = t.lokasi.trim().toUpperCase();
+          if (asalUpper === lok) {
+            pindahD40 -= (t.qtyD40 || 0);
+            pindahD60 -= (t.qtyD60 || 0);
+            pindahD80 -= (t.qtyD80 || 0);
+            pindahD100 -= (t.qtyD100 || 0);
+          }
+          if (destUpper === lok) {
+            pindahD40 += (t.qtyD40 || 0);
+            pindahD60 += (t.qtyD60 || 0);
+            pindahD80 += (t.qtyD80 || 0);
+            pindahD100 += (t.qtyD100 || 0);
+          }
+        }
+      }
 
-      const dropD40 = drp.d40 + trxDrp40;
-      const dropD60 = drp.d60 + trxDrp60;
-      const dropD80 = drp.d80 + trxDrp80;
-      const dropD100 = drp.d100 + trxDrp100;
+      // Kuantiti Order & Drop MURNI dari Master Data (karena Form Input langsung memperbarui Master Data)
+      const orderD40 = ord.d40;
+      const orderD60 = ord.d60;
+      const orderD80 = ord.d80;
+      const orderD100 = ord.d100;
+
+      const dropD40 = drp.d40;
+      const dropD60 = drp.d60;
+      const dropD80 = drp.d80;
+      const dropD100 = drp.d100;
 
       const pasangSapD40 = sp.d40;
       const pasangSapD60 = sp.d60;
@@ -308,24 +319,28 @@ export async function syncLokasiOrderDatabase() {
         orderD40,
         dropD40,
         tglDropD40: tglDropD40Str,
+        pindahD40,
         pasangManD40: trxMan40,
         pasangSapD40,
         statusD40,
 
         orderD60,
         dropD60,
+        pindahD60,
         pasangManD60: trxMan60,
         pasangSapD60,
         statusD60,
 
         orderD80,
         dropD80,
+        pindahD80,
         pasangManD80: trxMan80,
         pasangSapD80,
         statusD80,
 
         orderD100,
         dropD100,
+        pindahD100,
         pasangManD100: trxMan100,
         pasangSapD100,
         statusD100,
