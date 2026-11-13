@@ -339,9 +339,9 @@ export default function Header({
   };
 
   return (
-    <header className="flex flex-col shrink-0 select-none bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 transition-colors duration-200 shadow-2xs w-full max-w-full overflow-x-hidden">
+    <header className="relative z-40 flex flex-col shrink-0 select-none bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 transition-colors duration-200 shadow-2xs w-full max-w-full">
       {/* Header Paling Atas (Row 1): Logo GGF, Menu Utama, & Tombol Admin / Profil */}
-      <div className="px-3 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-4 w-full max-w-full overflow-hidden">
+      <div className="relative px-3 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-4 w-full max-w-full">
         {/* Sisi Kiri: Logo GGF Kotak Putih & Label Portal */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           <Link
@@ -484,7 +484,7 @@ export default function Header({
 
               {/* Popover Dropdown Profil Terpadu */}
               {isProfileOpen && (
-                <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-4 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-3.5">
+                <div className="absolute right-0 top-full mt-2 w-72 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-4 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-3.5">
                   {/* WhatsApp Style Profile Avatar & Info */}
                   <div className="flex flex-col items-center text-center pb-3 border-b border-slate-100 dark:border-slate-800 relative">
                     {/* Hidden file input */}
