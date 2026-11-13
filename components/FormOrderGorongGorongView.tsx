@@ -105,12 +105,25 @@ export default function FormOrderGorongGorongView() {
 
   // Master Data & Riwayat
   const [masterLokasiList, setMasterLokasiList] = useState<any[]>([]);
+  const [lokasiSaldoList, setLokasiSaldoList] = useState<any[]>([]);
   const [historyList, setHistoryList] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // 1. Load Daftar Master Lokasi
+  // 1. Load Daftar Master Lokasi & Lokasi yang Memiliki Saldo (untuk Lokasi Pengirim Pindah Lokasi)
+  const loadLokasiSaldo = async () => {
+    try {
+      const res = await fetch('/api/gorong-gorong/order?mode=saldo_pengirim');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setLokasiSaldoList(data.data);
+      }
+    } catch (e) {
+      console.error('Error fetching lokasi with saldo:', e);
+    }
+  };
+
   useEffect(() => {
     fetch('/api/gorong-gorong/master-lokasi?all=true')
       .then((r) => r.json())
@@ -120,6 +133,8 @@ export default function FormOrderGorongGorongView() {
         }
       })
       .catch((e) => console.error('Error fetching master lokasi:', e));
+
+    loadLokasiSaldo();
   }, []);
 
   // 2. Load Riwayat Transaksi
@@ -267,7 +282,7 @@ export default function FormOrderGorongGorongView() {
     if (!jenisTransaksi) {
       setNotification({
         type: 'error',
-        message: 'Silakan pilih Jenis Data terlebih dahulu (Order, Drop, Pasang Manual, atau Pindah Lokasi untuk Drop).',
+        message: 'Silakan pilih Jenis Data terlebih dahulu (Order, Drop, Pasang Manual, atau Pindah Lokasi).',
       });
       return;
     }
@@ -281,9 +296,10 @@ export default function FormOrderGorongGorongView() {
         let wilPengirim = s.autoWilayahPengirim;
         if (!pengirim && s.searchLokasiPengirimInput.trim()) {
           const cleanInput = s.searchLokasiPengirimInput.trim().toUpperCase();
-          const found = masterLokasiList.find((m) => m.lokasi.trim().toUpperCase() === cleanInput);
+          const found = lokasiSaldoList.find((m) => m.lokasi.trim().toUpperCase() === cleanInput) ||
+                        masterLokasiList.find((m) => m.lokasi.trim().toUpperCase() === cleanInput);
           pengirim = found ? found.lokasi : cleanInput;
-          wilPengirim = found?.strucPlant || 'AW01';
+          wilPengirim = found?.strucPlant || found?.wilayah || 'AW01';
         }
 
         let penerima = s.selectedLokasiPenerima || s.selectedLokasi;
@@ -412,6 +428,7 @@ export default function FormOrderGorongGorongView() {
         setNotification({ type: 'success', message: data.message });
         handleResetForm();
         loadHistory();
+        loadLokasiSaldo();
         // Trigger auto-refresh pada modul Monitor Gorong-Gorong
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('gorong_gorong_updated'));
@@ -440,6 +457,7 @@ export default function FormOrderGorongGorongView() {
       const data = await res.json();
       if (data.success) {
         setHistoryList((prev) => prev.filter((r) => r.id !== id));
+        loadLokasiSaldo();
         setNotification({ type: 'success', message: data.message || 'Transaksi berhasil dihapus.' });
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('gorong_gorong_updated'));
@@ -531,7 +549,7 @@ export default function FormOrderGorongGorongView() {
                     : jenisTransaksi === 'PASANG_MANUAL'
                     ? 'Pasang Manual'
                     : jenisTransaksi === 'PINDAH_LOKASI'
-                    ? 'Pindah Lokasi untuk Drop'
+                    ? 'Pindah Lokasi'
                     : 'Pilih Jenis Transaksi'}
                 </span>
                 <ChevronDown
@@ -600,7 +618,7 @@ export default function FormOrderGorongGorongView() {
                     </button>
                   )}
 
-                  {/* Pindah Lokasi untuk Drop: Ditampilkan untuk Admin dan User FE */}
+                  {/* Pindah Lokasi: Ditampilkan untuk Admin dan User FE */}
                   {(isAdmin || isUserFE) && (
                     <button
                       type="button"
@@ -614,7 +632,7 @@ export default function FormOrderGorongGorongView() {
                           : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
                       }`}
                     >
-                      <span>Pindah Lokasi untuk Drop</span>
+                      <span>Pindah Lokasi</span>
                       {jenisTransaksi === 'PINDAH_LOKASI' && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
                     </button>
                   )}
@@ -722,7 +740,7 @@ export default function FormOrderGorongGorongView() {
                 )
                 .slice(0, 30);
 
-              const filteredPengirimOptions = masterLokasiList
+              const filteredPengirimOptions = lokasiSaldoList
                 .filter((item) =>
                   item.lokasi.toUpperCase().includes((slot.searchLokasiPengirimInput || '').toUpperCase())
                 )
@@ -779,32 +797,32 @@ export default function FormOrderGorongGorongView() {
                             value={slot.searchLokasiPengirimInput}
                             onChange={(e) => {
                               const val = e.target.value;
-                              const match = masterLokasiList.find(
+                              const match = lokasiSaldoList.find(
                                 (item) => item.lokasi.trim().toUpperCase() === val.trim().toUpperCase()
                               );
                               updateSlot(slot.id, {
                                 searchLokasiPengirimInput: val,
                                 isDropdownPengirimOpen: true,
                                 selectedLokasiPengirim: match ? match.lokasi : val.trim().toUpperCase(),
-                                autoWilayahPengirim: match ? (match.strucPlant || 'AW01') : slot.autoWilayahPengirim,
+                                autoWilayahPengirim: match ? (match.strucPlant || match.wilayah || 'AW01') : slot.autoWilayahPengirim,
                               });
                             }}
                             onBlur={() => {
                               if (slot.searchLokasiPengirimInput.trim()) {
-                                const match = masterLokasiList.find(
+                                const match = lokasiSaldoList.find(
                                   (item) => item.lokasi.trim().toUpperCase() === slot.searchLokasiPengirimInput.trim().toUpperCase()
                                 );
                                 if (match) {
                                   updateSlot(slot.id, {
                                     selectedLokasiPengirim: match.lokasi,
-                                    autoWilayahPengirim: match.strucPlant || 'AW01',
+                                    autoWilayahPengirim: match.strucPlant || match.wilayah || 'AW01',
                                     searchLokasiPengirimInput: match.lokasi,
                                   });
                                 }
                               }
                             }}
                             onFocus={() => updateSlot(slot.id, { isDropdownPengirimOpen: true })}
-                            placeholder="Pilih lokasi pengirim / asal..."
+                            placeholder="Pilih lokasi pengirim yang memiliki saldo..."
                             className="w-full pl-3.5 pr-9 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/70 border-2 border-slate-300 dark:border-slate-600 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
                           />
 
@@ -829,11 +847,37 @@ export default function FormOrderGorongGorongView() {
                           )}
                         </div>
 
-                        {/* Dropdown Options Pengirim */}
+                        {/* Rincian Sisa Saldo Tersedia pada Lokasi Pengirim */}
+                        {slot.selectedLokasiPengirim && (
+                          <div className="mt-1.5 text-[10.5px] leading-tight flex items-center gap-1.5 flex-wrap">
+                            <span className="font-semibold text-slate-600 dark:text-slate-400">Saldo Tersedia:</span>
+                            {(() => {
+                              const match = lokasiSaldoList.find(
+                                (l) => l.lokasi.trim().toUpperCase() === slot.selectedLokasiPengirim.trim().toUpperCase()
+                              );
+                              if (!match) {
+                                return (
+                                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium italic">
+                                    (Lokasi belum memiliki catatan saldo di database)
+                                  </span>
+                                );
+                              }
+                              return (
+                                <span className="font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/70 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 text-[10px]">
+                                  Ø40: {match.saldoD40} &bull; Ø60: {match.saldoD60} &bull; Ø80: {match.saldoD80} &bull; Ø100: {match.saldoD100} (Total: {match.totalSaldo})
+                                </span>
+                              );
+                            })()}
+                          </div>
+                        )}
+
+                        {/* Dropdown Options Pengirim (Hanya yang memiliki saldo) */}
                         {slot.isDropdownPengirimOpen && (
                           <div className="absolute left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto rounded-xl bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 scrollbar-thin">
                             {filteredPengirimOptions.length === 0 ? (
-                              <div className="px-3 py-2 text-xs text-slate-400 text-center">Lokasi tidak ditemukan</div>
+                              <div className="px-3 py-2 text-xs text-slate-400 text-center">
+                                Tidak ada lokasi bersaldo yang sesuai
+                              </div>
                             ) : (
                               filteredPengirimOptions.map((opt) => (
                                 <button
@@ -842,15 +886,20 @@ export default function FormOrderGorongGorongView() {
                                   onClick={() => {
                                     updateSlot(slot.id, {
                                       selectedLokasiPengirim: opt.lokasi,
-                                      autoWilayahPengirim: opt.strucPlant || 'AW01',
+                                      autoWilayahPengirim: opt.strucPlant || opt.wilayah || 'AW01',
                                       searchLokasiPengirimInput: opt.lokasi,
                                       isDropdownPengirimOpen: false,
                                     });
                                   }}
                                   className="w-full px-3.5 py-2 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between cursor-pointer transition-colors"
                                 >
-                                  <span className="font-bold text-rose-600 dark:text-rose-400">{opt.lokasi}</span>
-                                  <span className="text-[11px] text-slate-500 font-semibold">{opt.strucPlant || 'AW01'}</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-rose-600 dark:text-rose-400">{opt.lokasi}</span>
+                                    <span className="text-[10px] text-slate-500 font-semibold">{opt.strucPlant || opt.wilayah || 'AW01'}</span>
+                                  </div>
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                                    Saldo: {opt.totalSaldo}
+                                  </span>
                                 </button>
                               ))
                             )}
@@ -1285,7 +1334,7 @@ export default function FormOrderGorongGorongView() {
                         {item.jenisTransaksi === 'ORDER'
                           ? 'Order'
                           : item.lokasiAsal
-                          ? 'Pindah Lokasi (Drop)'
+                          ? 'Pindah Lokasi'
                           : item.jenisTransaksi === 'DROP'
                           ? 'Drop'
                           : 'Pasang Manual'}

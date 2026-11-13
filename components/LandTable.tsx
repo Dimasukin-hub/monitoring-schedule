@@ -3647,18 +3647,29 @@ export default function LandTable({
                             real: land.aplikasiDetails?.[`real${actKey.charAt(0).toUpperCase() + actKey.slice(1)}`] || null,
                           };
                       const isSelected = selectedActivityKeys.includes(actKey);
-                      const isRencanaMatch = selectedActivityMonths.length > 0 && matchActivityMonth(actData.rencana, selectedActivityMonths);
-                      const isRealMatch = selectedActivityMonths.length > 0 && matchActivityMonth(actData.real, selectedActivityMonths);
 
-                      // Logika Highlight:
-                      // 1. Jika hanya filter rencana/real aktif (tanpa filter aktivitas) -> semua kolom ter-highlight
-                      // 2. Jika filter aktivitas juga dipilih -> HANYA aktivitas terpilih (isSelected) yang ter-highlight
-                      const isRencanaHighlighted = activityType === 'rencana' && (selectedActivityKeys.length === 0 || isSelected);
-                      const isRealHighlighted = activityType === 'real' && (selectedActivityKeys.length === 0 || isSelected);
+                      // Logika Highlight Presisi:
+                      // 1. Jika filter aktivitas aktif -> HANYA kolom aktivitas terpilih (isSelected) yang boleh match filter bulan
+                      // 2. Jika filter tipe jadwal aktif ('rencana' atau 'real') -> HANYA tipe jadwal terpilih yang boleh match filter bulan
+                      const isColActiveForFilter = selectedActivityKeys.length === 0 || isSelected;
 
-                      // Fallback isSelected: HANYA aktif jika tipe jadwal 'all' (tidak memfilter salah satu rencana/real)
-                      const isRencanaSelected = activityType === 'all' && isSelected;
-                      const isRealSelected = activityType === 'all' && isSelected;
+                      const isRencanaMatch = isColActiveForFilter &&
+                        (activityType === 'all' || activityType === 'rencana') &&
+                        selectedActivityMonths.length > 0 &&
+                        matchActivityMonth(actData.rencana, selectedActivityMonths);
+
+                      const isRealMatch = isColActiveForFilter &&
+                        (activityType === 'all' || activityType === 'real') &&
+                        selectedActivityMonths.length > 0 &&
+                        matchActivityMonth(actData.real, selectedActivityMonths);
+
+                      // Logika Highlight Tipe Jadwal (Rencana / Real tanpa filter bulan):
+                      const isRencanaHighlighted = selectedActivityMonths.length === 0 && activityType === 'rencana' && isColActiveForFilter;
+                      const isRealHighlighted = selectedActivityMonths.length === 0 && activityType === 'real' && isColActiveForFilter;
+
+                      // Fallback isSelected: HANYA aktif jika tipe jadwal 'all' dan tanpa filter bulan
+                      const isRencanaSelected = selectedActivityMonths.length === 0 && activityType === 'all' && isSelected;
+                      const isRealSelected = selectedActivityMonths.length === 0 && activityType === 'all' && isSelected;
 
                       const isLastVisibleBongkar = idx === arr.length - 1;
                       const borderClass = isLastVisibleBongkar && (bajakVisibleCount > 0 || snVisibleCount > 0 || tanamVisibleCount > 0)
@@ -3756,21 +3767,28 @@ export default function LandTable({
 
                       if (DUAL_DATE_FIELDS.has(field.key)) {
                         const actData = getFieldRencanaReal(land, field.key);
-                        const isRencanaMatch = selectedActivityMonths.length > 0 && matchActivityMonth(actData.rencana, selectedActivityMonths);
-                        const isRealMatch = selectedActivityMonths.length > 0 && matchActivityMonth(actData.real, selectedActivityMonths);
+                        const isColActiveForFilter = selectedActivityKeys.length === 0 || isSelected;
+
+                        const isRencanaMatch = isColActiveForFilter &&
+                          (activityType === 'all' || activityType === 'rencana') &&
+                          selectedActivityMonths.length > 0 &&
+                          matchActivityMonth(actData.rencana, selectedActivityMonths);
+
+                        const isRealMatch = isColActiveForFilter &&
+                          (activityType === 'all' || activityType === 'real') &&
+                          selectedActivityMonths.length > 0 &&
+                          matchActivityMonth(actData.real, selectedActivityMonths);
 
                         const hasRencValue = actData.rencana && actData.rencana !== '-' && actData.rencana !== '0';
                         const hasRealValue = actData.real && actData.real !== '-' && actData.real !== '0';
 
-                        // Logika Highlight:
-                        // 1. Jika hanya filter rencana/real aktif -> semua kolom ter-highlight
-                        // 2. Jika filter aktivitas juga dipilih -> HANYA aktivitas terpilih (isSelected) yang ter-highlight
-                        const isRencanaHighlighted = activityType === 'rencana' && (selectedActivityKeys.length === 0 || isSelected);
-                        const isRealHighlighted = activityType === 'real' && (selectedActivityKeys.length === 0 || isSelected);
+                        // Logika Highlight Tipe Jadwal (Rencana / Real tanpa filter bulan):
+                        const isRencanaHighlighted = selectedActivityMonths.length === 0 && activityType === 'rencana' && isColActiveForFilter;
+                        const isRealHighlighted = selectedActivityMonths.length === 0 && activityType === 'real' && isColActiveForFilter;
 
-                        // Fallback isSelected: HANYA aktif jika tipe jadwal 'all'
-                        const isRencanaSelected = activityType === 'all' && isSelected;
-                        const isRealSelected = activityType === 'all' && isSelected;
+                        // Fallback isSelected: HANYA aktif jika tipe jadwal 'all' dan tanpa filter bulan
+                        const isRencanaSelected = selectedActivityMonths.length === 0 && activityType === 'all' && isSelected;
+                        const isRealSelected = selectedActivityMonths.length === 0 && activityType === 'all' && isSelected;
 
                         return (
                           <td
@@ -3848,10 +3866,16 @@ export default function LandTable({
                       }
 
                       const val = land[field.key] || land.aplikasiDetails?.[field.key];
-                      const isFieldMonthMatch = selectedActivityMonths.length > 0 && matchActivityMonth(val, selectedActivityMonths);
-                      const isActTypeHighlighted = (activityType === 'rencana' || activityType === 'real') &&
+                      const isColActiveForFilter = selectedActivityKeys.length === 0 || isSelected;
+
+                      const isFieldMonthMatch = isColActiveForFilter &&
+                        selectedActivityMonths.length > 0 &&
+                        matchActivityMonth(val, selectedActivityMonths);
+
+                      const isActTypeHighlighted = selectedActivityMonths.length === 0 &&
+                        (activityType === 'rencana' || activityType === 'real') &&
                         (field.key === 'prosesTanam' || field.key === 'selesaiTanam') &&
-                        (selectedActivityKeys.length === 0 || isSelected) &&
+                        isColActiveForFilter &&
                         val && val !== '-';
 
                       return (

@@ -2,10 +2,53 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { syncLokasiOrderDatabase } from '@/lib/gorongGorongSyncService';
 
-// GET: Ambil riwayat transaksi terkini
+// GET: Ambil riwayat transaksi terkini ATAU daftar lokasi yang memiliki saldo (mode=saldo_pengirim)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    const mode = searchParams.get('mode');
+
+    // Jika mode saldo_pengirim: hanya kembalikan lokasi dari tabel database lokasiordergoronggorong yang memiliki sisa saldo
+    if (mode === 'saldo_pengirim' || mode === 'saldo') {
+      const rows = await prisma.lokasiOrderGorongGorong.findMany({
+        orderBy: { lokasi: 'asc' },
+      });
+
+      const listWithSaldo = rows
+        .map((r) => {
+          const pasang40 = Math.max(r.pasangManD40 || 0, r.pasangSapD40 || 0);
+          const saldo40 = Math.max(0, (r.dropD40 || 0) - pasang40);
+
+          const pasang60 = Math.max(r.pasangManD60 || 0, r.pasangSapD60 || 0);
+          const saldo60 = Math.max(0, (r.dropD60 || 0) - pasang60);
+
+          const pasang80 = Math.max(r.pasangManD80 || 0, r.pasangSapD80 || 0);
+          const saldo80 = Math.max(0, (r.dropD80 || 0) - pasang80);
+
+          const pasang100 = Math.max(r.pasangManD100 || 0, r.pasangSapD100 || 0);
+          const saldo100 = Math.max(0, (r.dropD100 || 0) - pasang100);
+
+          const totalSaldo = saldo40 + saldo60 + saldo80 + saldo100;
+
+          return {
+            lokasi: r.lokasi,
+            wilayah: r.wilayah || '-',
+            strucPlant: r.wilayah || '-',
+            saldoD40: saldo40,
+            saldoD60: saldo60,
+            saldoD80: saldo80,
+            saldoD100: saldo100,
+            totalSaldo,
+          };
+        })
+        .filter((it) => it.totalSaldo > 0);
+
+      return NextResponse.json({
+        success: true,
+        data: listWithSaldo,
+      });
+    }
+
     const lokasi = searchParams.get('lokasi')?.trim().toUpperCase();
     const jenis = searchParams.get('jenis')?.trim().toUpperCase();
     const limit = parseInt(searchParams.get('limit') || '50', 10);
