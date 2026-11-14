@@ -17,10 +17,7 @@ import {
 } from 'lucide-react';
 
 const ALL_STATUS_LIST = [
-  'BMBK', 'BMST', 'BMSM', 'JBBM', 'JBNY', 'JBSM', 'JGBK', 'KLBK', 'KLBM', 'KLSM',
-  'KLST', 'KSBK', 'KSSM', 'NPBB', 'NSBB', 'NSBK', 'NSCL', 'NSFC', 'NSSC', 'NSST',
-  'PSBK', 'PSFC', 'PSNY', 'PSST', 'PSY1', 'PSY2', 'PSY3', 'PYBK', 'PYFC', 'PYNY',
-  'RTFC', 'SKBK', 'SKCL', 'SKFC', 'SKST', 'TPFC', 'ZLBK'
+  'FC', 'BK', 'ST', 'SM', 'SC', 'BB', 'CL', 'BM', 'NY', 'Y1', 'Y2', 'Y3'
 ];
 
 const WILAYAH_LIST = ['AW01', 'AW02', 'AW03', 'AW04', 'AW05', 'AW06', 'AW07'];

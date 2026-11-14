@@ -210,122 +210,123 @@ export default function MasterPindahView() {
         </div>
 
         {/* Filter Bar */}
-        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3">
-          {/* Search Box */}
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
+        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 relative z-30">
+          {/* Search Box on the Left */}
+          <div className="relative w-full sm:w-80">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari petak pengirim / penerima..."
-              className="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-hidden focus:ring-1 focus:ring-purple-500"
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Cari Lokasi"
+              className="w-full pl-8 pr-8 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
             {searchQuery && (
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                onClick={() => {
+                  setSearchQuery('');
+                  setPage(1);
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                title="Bersihkan pencarian"
               >
                 <XCircle className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
 
-          {/* Filter Wilayah Dropdown Multi-select */}
-          <div className="relative pindah-wilayah-dropdown">
-            <button
-              type="button"
-              onClick={() => setIsWilayahDropdownOpen(!isWilayahDropdownOpen)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-            >
-              <span>
-                Wilayah:{' '}
-                {selectedWilayah.length === 0
-                  ? 'Semua'
-                  : selectedWilayah.length === 1
-                  ? selectedWilayah[0]
-                  : `${selectedWilayah.length} Wilayah`}
-              </span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-            </button>
-
-            {isWilayahDropdownOpen && (
-              <div className="absolute left-0 mt-1 w-44 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 p-2 z-20 space-y-1">
-                <button
-                  type="button"
-                  onClick={() => setSelectedWilayah([])}
-                  className={`w-full text-left px-2 py-1 text-xs rounded-sm font-medium ${
-                    selectedWilayah.length === 0
-                      ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-bold'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+          {/* Filter Wilayah on the Right (No refresh button) */}
+          <div className="flex items-center gap-2">
+            <div className="relative pindah-wilayah-dropdown">
+              <button
+                type="button"
+                onClick={() => setIsWilayahDropdownOpen((prev) => !prev)}
+                className="flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs"
+              >
+                <span>
+                  {selectedWilayah.length === 0
+                    ? 'Semua Wilayah'
+                    : selectedWilayah.length <= 3
+                    ? selectedWilayah.join(', ')
+                    : `${selectedWilayah.length} Wilayah`}
+                </span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                    isWilayahDropdownOpen ? 'rotate-180' : 'rotate-0'
                   }`}
-                >
-                  Semua Wilayah
-                </button>
-                {WILAYAH_LIST.map((w) => {
-                  const checked = selectedWilayah.includes(w);
-                  return (
-                    <label
-                      key={w}
-                      className="flex items-center gap-2 px-2 py-1 text-xs rounded-sm hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer text-slate-700 dark:text-slate-200"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => {
-                          if (checked) {
-                            setSelectedWilayah(selectedWilayah.filter((item) => item !== w));
-                          } else {
-                            setSelectedWilayah([...selectedWilayah, w]);
-                          }
-                        }}
-                        className="rounded-sm border-slate-300 text-purple-600 focus:ring-purple-500"
-                      />
-                      <span>{w}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                />
+              </button>
 
-          {/* Refresh Button */}
-          <button
-            type="button"
-            onClick={() => loadData(page, true)}
-            disabled={isLoading}
-            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-            title="Muat ulang data"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
+              {isWilayahDropdownOpen && (
+                <div className="absolute right-0 top-full mt-1.5 w-40 max-h-64 overflow-y-auto py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedWilayah([]);
+                      setPage(1);
+                    }}
+                    className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
+                      selectedWilayah.length === 0 ? 'text-purple-600 font-bold bg-purple-50/50 dark:bg-purple-950/30' : 'text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <span>Semua Wilayah</span>
+                    {selectedWilayah.length === 0 && <span className="w-1.5 h-1.5 rounded-full bg-purple-600" />}
+                  </button>
+                  {WILAYAH_LIST.map((w) => {
+                    const isSelected = selectedWilayah.includes(w);
+                    return (
+                      <button
+                        key={w}
+                        type="button"
+                        onClick={() => {
+                          setSelectedWilayah((prev) =>
+                            prev.includes(w) ? prev.filter((item) => item !== w) : [...prev, w]
+                          );
+                          setPage(1);
+                        }}
+                        className={`w-full px-3 py-1.5 text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between ${
+                          isSelected ? 'text-purple-600 font-bold bg-purple-50/50 dark:bg-purple-950/30' : 'text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        <span>{w}</span>
+                        {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-purple-600" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Main Table Panel */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 uppercase font-semibold text-[10.5px]">
-              <tr>
-                <th className="py-2.5 px-3 text-center w-12">No</th>
-                <th className="py-2.5 px-3 text-center">Lokasi Pengirim</th>
-                <th className="py-2.5 px-3 text-center">Wilayah Pengirim</th>
-                <th className="py-2.5 px-3 text-center">Lokasi Penerima</th>
-                <th className="py-2.5 px-3 text-center">Wilayah Penerima</th>
-                <th className="py-2.5 px-3 text-center">Tanggal Pindah</th>
-                <th className="py-2.5 px-3 text-right">Ø40</th>
-                <th className="py-2.5 px-3 text-right">Ø60</th>
-                <th className="py-2.5 px-3 text-right">Ø80</th>
-                <th className="py-2.5 px-3 text-right">Ø100</th>
-                <th className="py-2.5 px-3 text-left">Keterangan</th>
+      {/* Main Table Panel dengan Freeze Panes & Border Antar Kolom */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
+        <div className="overflow-x-auto max-h-[600px] scrollbar-thin">
+          <table className="w-full text-center border-collapse text-xs whitespace-nowrap">
+            <thead className="sticky top-0 z-20 backdrop-blur-md bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-2xs">
+              <tr className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold tracking-wider uppercase text-[11px]">
+                <th className="py-3 px-3 text-center w-12 border-r border-slate-200/80 dark:border-slate-700/80">No</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80">Lokasi Pengirim</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80">Wilayah Pengirim</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80">Lokasi Penerima</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80">Wilayah Penerima</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80">Tanggal Pindah</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80">Ø40</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80">Ø60</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80">Ø80</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80">Ø100</th>
+                <th className="py-3 px-3 text-center">Keterangan</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
               {isLoading ? (
                 <tr>
-                  <td colSpan={11} className="py-10 text-center text-slate-400">
+                  <td colSpan={11} className="py-12 text-center text-slate-400">
                     <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-purple-600" />
                     Memuat data master pindah lokasi...
                   </td>
@@ -343,53 +344,55 @@ export default function MasterPindahView() {
                   return (
                     <tr
                       key={row.id || idx}
-                      className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
+                      className="hover:bg-purple-50/20 dark:hover:bg-purple-950/10 transition-colors border-b border-slate-100 dark:border-slate-800"
                     >
-                      <td className="py-2 px-3 text-center text-slate-400">{no}</td>
-                      <td className="py-2 px-3 text-center font-bold text-rose-600 dark:text-rose-400">
+                      <td className="py-2.5 px-3 text-center text-slate-400 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
+                        {no}
+                      </td>
+                      <td className="py-2.5 px-3 text-center font-bold text-rose-600 dark:text-rose-400 border-r border-slate-200/70 dark:border-slate-800/70">
                         {row.lokasiPengirim}
                       </td>
-                      <td className="py-2 px-3 text-center text-slate-500">
+                      <td className="py-2.5 px-3 text-center text-slate-600 dark:text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70">
                         {row.wilayahPengirim || '-'}
                       </td>
-                      <td className="py-2 px-3 text-center font-bold text-emerald-600 dark:text-emerald-400">
+                      <td className="py-2.5 px-3 text-center font-bold text-emerald-600 dark:text-emerald-400 border-r border-slate-200/70 dark:border-slate-800/70">
                         {row.lokasiPenerima}
                       </td>
-                      <td className="py-2 px-3 text-center text-slate-500">
+                      <td className="py-2.5 px-3 text-center text-slate-600 dark:text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70">
                         {row.wilayahPenerima || '-'}
                       </td>
-                      <td className="py-2 px-3 text-center text-slate-600 dark:text-slate-300 font-mono">
+                      <td className="py-2.5 px-3 text-center text-slate-600 dark:text-slate-300 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
                         {formatDate(row.tanggal)}
                       </td>
-                      <td className="py-2 px-3 text-right font-medium">
+                      <td className="py-2.5 px-3 text-center font-mono font-bold border-r border-slate-200/70 dark:border-slate-800/70">
                         {row.diameter40 > 0 ? (
-                          <span className="text-purple-600 dark:text-purple-400 font-bold">{row.diameter40}</span>
+                          <span className="text-purple-600 dark:text-purple-400">{row.diameter40}</span>
                         ) : (
-                          <span className="text-slate-300 dark:text-slate-600">-</span>
+                          <span className="text-slate-300 dark:text-slate-600 font-normal">0</span>
                         )}
                       </td>
-                      <td className="py-2 px-3 text-right font-medium">
+                      <td className="py-2.5 px-3 text-center font-mono font-bold border-r border-slate-200/70 dark:border-slate-800/70">
                         {row.diameter60 > 0 ? (
-                          <span className="text-purple-600 dark:text-purple-400 font-bold">{row.diameter60}</span>
+                          <span className="text-purple-600 dark:text-purple-400">{row.diameter60}</span>
                         ) : (
-                          <span className="text-slate-300 dark:text-slate-600">-</span>
+                          <span className="text-slate-300 dark:text-slate-600 font-normal">0</span>
                         )}
                       </td>
-                      <td className="py-2 px-3 text-right font-medium">
+                      <td className="py-2.5 px-3 text-center font-mono font-bold border-r border-slate-200/70 dark:border-slate-800/70">
                         {row.diameter80 > 0 ? (
-                          <span className="text-purple-600 dark:text-purple-400 font-bold">{row.diameter80}</span>
+                          <span className="text-purple-600 dark:text-purple-400">{row.diameter80}</span>
                         ) : (
-                          <span className="text-slate-300 dark:text-slate-600">-</span>
+                          <span className="text-slate-300 dark:text-slate-600 font-normal">0</span>
                         )}
                       </td>
-                      <td className="py-2 px-3 text-right font-medium">
+                      <td className="py-2.5 px-3 text-center font-mono font-bold border-r border-slate-200/70 dark:border-slate-800/70">
                         {row.diameter100 > 0 ? (
-                          <span className="text-purple-600 dark:text-purple-400 font-bold">{row.diameter100}</span>
+                          <span className="text-purple-600 dark:text-purple-400">{row.diameter100}</span>
                         ) : (
-                          <span className="text-slate-300 dark:text-slate-600">-</span>
+                          <span className="text-slate-300 dark:text-slate-600 font-normal">0</span>
                         )}
                       </td>
-                      <td className="py-2 px-3 text-left text-slate-500 dark:text-slate-400 truncate max-w-xs">
+                      <td className="py-2.5 px-3 text-center text-slate-500 dark:text-slate-400 truncate max-w-xs">
                         {row.keterangan || '-'}
                       </td>
                     </tr>
@@ -401,49 +404,30 @@ export default function MasterPindahView() {
         </div>
 
         {/* Pagination Footer */}
-        <div className="p-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+        <div className="py-3.5 px-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 dark:text-slate-400 font-semibold">
           <div>
-            Menampilkan <span className="font-semibold text-slate-700 dark:text-slate-200">{dataList.length}</span> dari{' '}
-            <span className="font-semibold text-slate-700 dark:text-slate-200">{totalCount}</span> baris
+            Halaman {page} dari {totalPages || 1}
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs">Baris per halaman:</span>
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setPage(1);
-              }}
-              className="text-xs rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 py-1 px-2"
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1 || isLoading}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs font-semibold text-xs"
             >
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-              <option value={200}>200</option>
-            </select>
-
-            <div className="flex items-center gap-1 ml-2">
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1 || isLoading}
-                className="p-1 rounded-md border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="px-2">
-                Halaman {page} dari {totalPages || 1}
-              </span>
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages || isLoading}
-                className="p-1 rounded-md border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span>Prev</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages || isLoading}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs font-semibold text-xs"
+            >
+              <span>Next</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </div>
@@ -603,3 +587,4 @@ export default function MasterPindahView() {
     </div>
   );
 }
+
