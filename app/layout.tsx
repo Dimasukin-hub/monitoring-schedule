@@ -1,8 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import './globals.css';
-
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Monitor Schedule 2026 - Operational Dashboard',
@@ -27,7 +24,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" className="h-full light" suppressHydrationWarning>
-      <body className={`${inter.className} min-h-full bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased selection:bg-emerald-500/30 selection:text-emerald-200 transition-colors duration-200`}>
+      <body className="font-sans min-h-full bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased selection:bg-emerald-500/30 selection:text-emerald-200 transition-colors duration-200">
         <AuthProvider>
           <ThemeProvider>{children}</ThemeProvider>
         </AuthProvider>

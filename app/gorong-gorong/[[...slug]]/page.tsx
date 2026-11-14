@@ -10,6 +10,7 @@ import MasterWaterloggingView from '@/components/MasterWaterloggingView';
 import MasterSapUploadView from '@/components/MasterSapUploadView';
 import MasterOrderView from '@/components/MasterOrderView';
 import MasterDropView from '@/components/MasterDropView';
+import MasterPindahView from '@/components/MasterPindahView';
 import UserManagementView from '@/components/UserManagementView';
 import { useAuth } from '@/components/AuthProvider';
 import {
@@ -195,7 +196,12 @@ export default function GorongGorongPage() {
               <MasterDropView />
             </div>
 
-            {/* 3.5 SUB MENU: UPLOAD DATA REALISASI SAP */}
+            {/* 3.5 SUB MENU: MASTER DATA PINDAH LOKASI */}
+            <div className={masterDataSubTab === 'master_pindah' ? 'block' : 'hidden'}>
+              <MasterPindahView />
+            </div>
+
+            {/* 3.6 SUB MENU: UPLOAD DATA REALISASI SAP */}
             <div className={masterDataSubTab === 'master_sap' ? 'block' : 'hidden'}>
               <MasterSapUploadView />
             </div>

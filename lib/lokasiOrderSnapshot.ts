@@ -1486,6 +1486,225 @@ export async function syncMasterDataDropFromWorkbook(
   return dataDropRows.length;
 }
 
+export async function syncMasterDataPindahFromWorkbook(
+  wb: XLSX.WorkBook,
+  mode: 'full_replace' | 'partial' = 'full_replace'
+): Promise<number> {
+  const sheetNames = wb.SheetNames || [];
+  let match = sheetNames.find((name) => {
+    const n = name.trim().toLowerCase();
+    return n.includes('pindah') || n.includes('transfer') || n.includes('mutasi');
+  });
+  // JAMINAN: Jika tidak ada sheet bernama 'pindah', ambil sheet pertama agar data tidak pernah gagal terbaca!
+  if (!match && sheetNames.length > 0) {
+    match = sheetNames[0];
+  }
+  if (!match) return 0;
+  const ws = wb.Sheets[match];
+  if (!ws) return 0;
+
+  // 1. Ambil map lookup MasterStatusLokasi (strucPlant)
+  const statusLokasiList = await prisma.masterStatusLokasi.findMany({
+    select: { lokasi: true, strucPlant: true },
+  });
+  const strucPlantMap = new Map<string, string>();
+  for (const s of statusLokasiList) {
+    if (s.strucPlant) strucPlantMap.set(s.lokasi.trim().toUpperCase(), s.strucPlant.trim().toUpperCase());
+  }
+
+  // 2. Deteksi posisi kolom header secara dinamis
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:Z500');
+  let cLokasiPengirim = -1;
+  let cWilayahPengirim = -1;
+  let cLokasiPenerima = -1;
+  let cWilayahPenerima = -1;
+  let cTanggal = -1;
+  let cD40 = -1;
+  let cD60 = -1;
+  let cD80 = -1;
+  let cD100 = -1;
+  let cKeterangan = -1;
+  let headerRow = -1;
+
+  for (let r = range.s.r; r <= Math.min(range.s.r + 10, range.e.r); r++) {
+    for (let c = range.s.c; c <= Math.min(range.e.c, 25); c++) {
+      const cell = ws[XLSX.utils.encode_cell({ r, c })];
+      if (!cell || cell.v === undefined || cell.v === null) continue;
+      const text = String(cell.v).toLowerCase().trim();
+
+      if (text.includes('pengirim') || text.includes('asal') || text === 'dari') {
+        if (text.includes('wil') || text.includes('wilayah')) {
+          cWilayahPengirim = c;
+        } else {
+          cLokasiPengirim = c;
+          headerRow = r;
+        }
+      } else if (text.includes('penerima') || text.includes('tujuan') || text === 'ke') {
+        if (text.includes('wil') || text.includes('wilayah')) {
+          cWilayahPenerima = c;
+        } else {
+          cLokasiPenerima = c;
+          headerRow = r;
+        }
+      } else if (text.includes('tgl') || text.includes('tanggal') || text.includes('date')) {
+        cTanggal = c;
+      } else if (text.includes('100') || text.includes('d100') || text.includes('ø100')) {
+        cD100 = c;
+      } else if (text.includes('80') || text.includes('d80') || text.includes('ø80')) {
+        cD80 = c;
+      } else if (text.includes('60') || text.includes('d60') || text.includes('ø60')) {
+        cD60 = c;
+      } else if (text.includes('40') || text.includes('d40') || text.includes('ø40')) {
+        cD40 = c;
+      } else if (text.includes('keterangan') || text.includes('ket') || text.includes('catatan')) {
+        cKeterangan = c;
+      }
+    }
+    if (cLokasiPengirim !== -1 && cLokasiPenerima !== -1) break;
+  }
+
+  // Jika baris header utama ditemukan tapi diameter belum terdeteksi (misal ada sub-header di baris berikutnya)
+  if (headerRow !== -1 && (cD40 === -1 || cD60 === -1 || cD80 === -1 || cD100 === -1) && headerRow + 1 <= range.e.r) {
+    for (let c = range.s.c; c <= Math.min(range.e.c, 25); c++) {
+      const cell = ws[XLSX.utils.encode_cell({ r: headerRow + 1, c })];
+      if (!cell || cell.v === undefined || cell.v === null) continue;
+      const text = String(cell.v).toLowerCase().trim();
+      if (cD100 === -1 && (text.includes('100') || text.includes('d100') || text.includes('ø100'))) cD100 = c;
+      else if (cD80 === -1 && (text.includes('80') || text.includes('d80') || text.includes('ø80'))) cD80 = c;
+      else if (cD60 === -1 && (text.includes('60') || text.includes('d60') || text.includes('ø60'))) cD60 = c;
+      else if (cD40 === -1 && (text.includes('40') || text.includes('d40') || text.includes('ø40'))) cD40 = c;
+    }
+  }
+
+  // Fallback cadangan jika header tidak terdeteksi lengkap, ikuti layout template resmi:
+  // Col 0: No, Col 1: Lokasi Pengirim, Col 2: Wilayah Pengirim, Col 3: Lokasi Penerima, Col 4: Wilayah Penerima,
+  // Col 5: Tanggal, Col 6: D40, Col 7: D60, Col 8: D80, Col 9: D100, Col 10: Keterangan
+  if (cLokasiPengirim === -1) {
+    headerRow = 0;
+    cLokasiPengirim = 1;
+    cWilayahPengirim = 2;
+    cLokasiPenerima = 3;
+    cWilayahPenerima = 4;
+    cTanggal = 5;
+    cD40 = 6;
+    cD60 = 7;
+    cD80 = 8;
+    cD100 = 9;
+    cKeterangan = 10;
+  }
+
+  let dataStartRow = headerRow + 1;
+  if (dataStartRow <= range.e.r) {
+    const checkCell = ws[XLSX.utils.encode_cell({ r: dataStartRow, c: cD40 !== -1 ? cD40 : 6 })];
+    const val = checkCell ? String(checkCell.v).trim() : '';
+    if (val === '40' || val.toLowerCase().includes('diameter')) {
+      dataStartRow++;
+    }
+  }
+
+  const getCellVal = (r: number, col: number) => {
+    if (col < 0) return null;
+    const cell = ws[XLSX.utils.encode_cell({ r, c: col })];
+    return cell && cell.v !== undefined && cell.v !== null ? cell.v : null;
+  };
+
+  const dataPindahRows: any[] = [];
+  for (let r = dataStartRow; r <= range.e.r; r++) {
+    const pengirimVal = getCellVal(r, cLokasiPengirim);
+    const penerimaVal = getCellVal(r, cLokasiPenerima);
+    if (!pengirimVal && !penerimaVal) continue;
+
+    const pengirimStr = pengirimVal ? String(pengirimVal).trim().toUpperCase() : '';
+    const penerimaStr = penerimaVal ? String(penerimaVal).trim().toUpperCase() : '';
+
+    if (!pengirimStr || !penerimaStr) continue;
+    if (
+      pengirimStr === 'TOTAL' ||
+      pengirimStr === 'GRAND TOTAL' ||
+      pengirimStr.startsWith('TOTAL') ||
+      penerimaStr === 'TOTAL' ||
+      penerimaStr === 'GRAND TOTAL' ||
+      penerimaStr.startsWith('TOTAL')
+    ) {
+      continue;
+    }
+
+    const rawDate = getCellVal(r, cTanggal);
+    let tanggal: Date | null = null;
+    if (rawDate) {
+      if (rawDate instanceof Date) {
+        tanggal = isNaN(rawDate.getTime()) ? null : rawDate;
+      } else {
+        const num = Number(rawDate);
+        if (!isNaN(num) && num > 20000 && num < 70000) {
+          const utcDays = num - 25569;
+          const d = new Date(Math.round(utcDays * 86400 * 1000));
+          if (!isNaN(d.getTime())) tanggal = d;
+        } else if (typeof rawDate === 'string') {
+          const d = new Date(rawDate.trim());
+          if (!isNaN(d.getTime())) tanggal = d;
+        }
+      }
+    }
+    if (!tanggal) tanggal = new Date();
+
+    const d40 = cleanNumberQty(getCellVal(r, cD40));
+    const d60 = cleanNumberQty(getCellVal(r, cD60));
+    const d80 = cleanNumberQty(getCellVal(r, cD80));
+    const d100 = cleanNumberQty(getCellVal(r, cD100));
+
+    // Lookup wilayah pengirim & penerima
+    const rawWilPengirim = getCellVal(r, cWilayahPengirim);
+    const sheetWilPengirim = rawWilPengirim ? String(rawWilPengirim).trim().toUpperCase() : null;
+    const wilayahPengirim = strucPlantMap.get(pengirimStr) || sheetWilPengirim || null;
+
+    const rawWilPenerima = getCellVal(r, cWilayahPenerima);
+    const sheetWilPenerima = rawWilPenerima ? String(rawWilPenerima).trim().toUpperCase() : null;
+    const wilayahPenerima = strucPlantMap.get(penerimaStr) || sheetWilPenerima || null;
+
+    const rawKet = getCellVal(r, cKeterangan);
+    const keterangan = rawKet ? String(rawKet).trim() : null;
+
+    dataPindahRows.push({
+      lokasiPengirim: pengirimStr,
+      wilayahPengirim,
+      lokasiPenerima: penerimaStr,
+      wilayahPenerima,
+      tanggal,
+      diameter40: Math.round(d40),
+      diameter60: Math.round(d60),
+      diameter80: Math.round(d80),
+      diameter100: Math.round(d100),
+      keterangan,
+    });
+  }
+
+  if (dataPindahRows.length === 0) return 0;
+
+  if (mode === 'full_replace') {
+    await prisma.masterDataPindahGorongGorong.deleteMany({});
+    for (let i = 0; i < dataPindahRows.length; i += 200) {
+      const chunk = dataPindahRows.slice(i, i + 200);
+      await prisma.masterDataPindahGorongGorong.createMany({ data: chunk });
+    }
+  } else {
+    // Mode partial (Tambah Data): Masukkan data baru ke database tanpa menghapus data sebelumnya
+    for (let i = 0; i < dataPindahRows.length; i += 200) {
+      const chunk = dataPindahRows.slice(i, i + 200);
+      await prisma.masterDataPindahGorongGorong.createMany({ data: chunk });
+    }
+  }
+
+  try {
+    const { syncLokasiOrderDatabase } = await import('@/lib/gorongGorongSyncService');
+    await syncLokasiOrderDatabase();
+  } catch (err) {
+    console.warn('Warning auto-syncing lokasi order after master pindah update:', err);
+  }
+
+  return dataPindahRows.length;
+}
+
 export async function ensureMasterSapLoaded(): Promise<number> {
   try {
     const count = await prisma.masterSapGorongGorong.count();

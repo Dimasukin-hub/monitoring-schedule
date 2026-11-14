@@ -248,8 +248,30 @@ export async function POST(request: NextRequest) {
             });
           }
         } else if (d.jenisTransaksi === 'DROP') {
-          // Jika pindah lokasi: kurangi drop di asal pada MasterDataDropGorongGorong
+          // Jika pindah lokasi: catat ke MasterDataPindahGorongGorong & kurangi drop di asal pada MasterDataDropGorongGorong
           if (d.lokasiAsal) {
+            let asalWil = null;
+            const mAsal = await prisma.masterStatusLokasi.findUnique({
+              where: { lokasi: d.lokasiAsal },
+            });
+            asalWil = mAsal?.strucPlant || 'AW01';
+
+            // Catat mutasi resmi ke MasterDataPindahGorongGorong
+            await prisma.masterDataPindahGorongGorong.create({
+              data: {
+                lokasiPengirim: d.lokasiAsal,
+                wilayahPengirim: asalWil,
+                lokasiPenerima: d.lokasi,
+                wilayahPenerima: d.wilayah,
+                tanggal: d.tanggal || new Date(),
+                diameter40: d.qtyD40 || 0,
+                diameter60: d.qtyD60 || 0,
+                diameter80: d.qtyD80 || 0,
+                diameter100: d.qtyD100 || 0,
+                keterangan: d.keterangan || null,
+              },
+            });
+
             const existingDropAsal = await prisma.masterDataDropGorongGorong.findFirst({
               where: { lokasi: d.lokasiAsal },
               orderBy: { tanggal: 'desc' },
@@ -540,8 +562,25 @@ export async function DELETE(request: NextRequest) {
           });
         }
       } else if (existing.jenisTransaksi === 'DROP') {
-        // 1. Revert Lokasi Asal jika transfer DROP
+        // 1. Revert Lokasi Asal jika transfer DROP & hapus catatan di MasterDataPindahGorongGorong
         if (existing.lokasiAsal) {
+          const matchingPindah = await prisma.masterDataPindahGorongGorong.findFirst({
+            where: {
+              lokasiPengirim: existing.lokasiAsal,
+              lokasiPenerima: existing.lokasi,
+              diameter40: existing.qtyD40 || 0,
+              diameter60: existing.qtyD60 || 0,
+              diameter80: existing.qtyD80 || 0,
+              diameter100: existing.qtyD100 || 0,
+            },
+            orderBy: { id: 'desc' },
+          });
+          if (matchingPindah) {
+            await prisma.masterDataPindahGorongGorong.delete({
+              where: { id: matchingPindah.id },
+            });
+          }
+
           const asalDrop = await prisma.masterDataDropGorongGorong.findFirst({
             where: { lokasi: existing.lokasiAsal },
             orderBy: { tanggal: 'desc' },

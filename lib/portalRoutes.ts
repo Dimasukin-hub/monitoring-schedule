@@ -18,6 +18,7 @@ export const GORONG_GORONG_ROUTES = {
   masterSap: '/gorong-gorong/master-data/master-upload-data-realisasi-sap',
   masterOrder: '/gorong-gorong/master-data/master-data-order',
   masterDrop: '/gorong-gorong/master-data/master-data-drop',
+  masterPindah: '/gorong-gorong/master-data/master-data-pindah-lokasi',
 
   // Menu 4: Manajemen User
   userManagement: '/gorong-gorong/manajemen-user',
@@ -33,6 +34,7 @@ export function getGorongGorongRoute(activeTab: string, subTab?: string): string
     case 'master_data':
       if (subTab === 'master_order') return GORONG_GORONG_ROUTES.masterOrder;
       if (subTab === 'master_drop') return GORONG_GORONG_ROUTES.masterDrop;
+      if (subTab === 'master_pindah') return GORONG_GORONG_ROUTES.masterPindah;
       if (subTab === 'master_waterlogging') return GORONG_GORONG_ROUTES.masterWaterlogging;
       if (subTab === 'master_sap') return GORONG_GORONG_ROUTES.masterSap;
       return GORONG_GORONG_ROUTES.masterStatusLokasi;
@@ -130,6 +132,14 @@ export function parseGorongGorongPathname(pathname: string) {
       activeTab: 'master_data',
       orderWilayahSubTab: 'order_gorong_gorong',
       masterDataSubTab: 'master_drop',
+      redirectTo: null,
+    };
+  }
+  if (clean === '/gorong-gorong/master-data/master-data-pindah-lokasi') {
+    return {
+      activeTab: 'master_data',
+      orderWilayahSubTab: 'order_gorong_gorong',
+      masterDataSubTab: 'master_pindah',
       redirectTo: null,
     };
   }

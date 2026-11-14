@@ -64,6 +64,7 @@ export const MASTER_DATA_SUB_MENUS: SubMenuItem[] = [
   { id: 'master_waterlogging', label: 'Master Waterlogging' },
   { id: 'master_order', label: 'Master Data Order' },
   { id: 'master_drop', label: 'Master Data Drop' },
+  { id: 'master_pindah', label: 'Master Data Pindah Lokasi' },
   { id: 'master_sap', label: 'Upload Data Realisasi SAP' },
 ];
 

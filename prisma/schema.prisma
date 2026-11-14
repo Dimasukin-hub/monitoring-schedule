@@ -477,4 +477,26 @@ model MasterDataDropGorongGorong {
   @@index([tanggal])
 }
 
+model MasterDataPindahGorongGorong {
+  id              Int       @id @default(autoincrement())
+  lokasiPengirim  String
+  wilayahPengirim String?   // Dari MasterStatusLokasi.strucPlant pengirim
+  lokasiPenerima  String
+  wilayahPenerima String?   // Dari MasterStatusLokasi.strucPlant penerima
+  tanggal         DateTime  // Tanggal pindah lokasi / transaksi
+  diameter40      Int       @default(0)
+  diameter60      Int       @default(0)
+  diameter80      Int       @default(0)
+  diameter100     Int       @default(0)
+  keterangan      String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([lokasiPengirim])
+  @@index([lokasiPenerima])
+  @@index([wilayahPengirim])
+  @@index([wilayahPenerima])
+  @@index([tanggal])
+}
+
 

@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
     const searchQuery = searchParams.get('search')?.trim().toUpperCase();
 
     // 1. Ambil seluruh data master pendukung dan database tabel lokasi order & belum order
-    const [statusLokasiList, waterloggingList, allLands, allTrx, allSap, dbLokasiOrder, dbLokasiBelumOrder, masterOrders, masterDrops] = await Promise.all([
+    const [statusLokasiList, waterloggingList, allLands, allTrx, allSap, dbLokasiOrder, dbLokasiBelumOrder, masterOrders, masterDrops, masterPindahs] = await Promise.all([
       prisma.masterStatusLokasi.findMany({}),
       prisma.masterWaterlogging.findMany({}),
       prisma.land.findMany({
@@ -138,6 +138,9 @@ export async function GET(request: NextRequest) {
         orderBy: { tanggal: 'asc' },
       }),
       prisma.masterDataDropGorongGorong.findMany({
+        orderBy: { tanggal: 'asc' },
+      }),
+      prisma.masterDataPindahGorongGorong.findMany({
         orderBy: { tanggal: 'asc' },
       }),
     ]);
@@ -188,6 +191,31 @@ export async function GET(request: NextRequest) {
       if (d.diameter40 > 0 && d.tanggal) {
         const dt = new Date(d.tanggal);
         if (!ent.tglDrop40 || dt > ent.tglDrop40) ent.tglDrop40 = dt;
+      }
+    }
+
+    // Master Pindah Map (Murni dari MasterDataPindahGorongGorong)
+    const masterPindahMap = new Map<string, { d40: number; d60: number; d80: number; d100: number }>();
+    const getMasterPindahEnt = (lok: string) => {
+      if (!masterPindahMap.has(lok)) {
+        masterPindahMap.set(lok, { d40: 0, d60: 0, d80: 0, d100: 0 });
+      }
+      return masterPindahMap.get(lok)!;
+    };
+    for (const p of masterPindahs) {
+      if (p.lokasiPengirim) {
+        const ent = getMasterPindahEnt(p.lokasiPengirim.trim().toUpperCase());
+        ent.d40 -= (p.diameter40 || 0);
+        ent.d60 -= (p.diameter60 || 0);
+        ent.d80 -= (p.diameter80 || 0);
+        ent.d100 -= (p.diameter100 || 0);
+      }
+      if (p.lokasiPenerima) {
+        const ent = getMasterPindahEnt(p.lokasiPenerima.trim().toUpperCase());
+        ent.d40 += (p.diameter40 || 0);
+        ent.d60 += (p.diameter60 || 0);
+        ent.d80 += (p.diameter80 || 0);
+        ent.d100 += (p.diameter100 || 0);
       }
     }
 
@@ -324,6 +352,10 @@ export async function GET(request: NextRequest) {
     for (const d of masterDrops) {
       if (d.lokasi) allCandidateLocations.add(d.lokasi.trim());
     }
+    for (const p of masterPindahs) {
+      if (p.lokasiPengirim) allCandidateLocations.add(p.lokasiPengirim.trim());
+      if (p.lokasiPenerima) allCandidateLocations.add(p.lokasiPenerima.trim());
+    }
     for (const trx of allTrx) {
       if (trx.lokasi) {
         allCandidateLocations.add(trx.lokasi.trim());
@@ -401,20 +433,12 @@ export async function GET(request: NextRequest) {
         const masterDrpQty = dia === 40 ? drpMaster.d40 : dia === 60 ? drpMaster.d60 : dia === 80 ? drpMaster.d80 : drpMaster.d100;
         const dropQty = masterDrpQty;
 
-        // Pindah lokasi: hitung dari transaksi transfer dan snap
-        let trxPindahQty = 0;
-        for (const t of allTrx) {
-          if (t.jenisTransaksi === 'DROP' && t.lokasiAsal) {
-            const q = (dia === 40 ? t.qtyD40 : dia === 60 ? t.qtyD60 : dia === 80 ? t.qtyD80 : t.qtyD100) || 0;
-            if (t.lokasiAsal.trim().toUpperCase() === lokUpper) {
-              trxPindahQty -= q;
-            }
-            if (t.lokasi.trim().toUpperCase() === lokUpper) {
-              trxPindahQty += q;
-            }
-          }
+        // Pindah lokasi: murni bersumber dari MasterDataPindahGorongGorong, fallback ke snapshot
+        const pnd = masterPindahMap.get(lokUpper);
+        let pindahQty = pnd ? (dia === 40 ? pnd.d40 : dia === 60 ? pnd.d60 : dia === 80 ? pnd.d80 : pnd.d100) : 0;
+        if (masterPindahs.length === 0 && pindahQty === 0) {
+          pindahQty = (snap as any)?.[`pindahD${dia}`] || 0;
         }
-        const pindahQty = trxPindahQty !== 0 ? trxPindahQty : ((snap as any)?.[`pindahD${dia}`] || 0);
 
         // Pasang: Pasang Manual + Pasang SAP
         let trxManQty = 0;

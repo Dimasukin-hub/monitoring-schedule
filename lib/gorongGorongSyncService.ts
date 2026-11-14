@@ -20,6 +20,7 @@ export async function syncLokasiOrderDatabase() {
       allSap,
       masterOrders,
       masterDrops,
+      masterPindahs,
     ] = await Promise.all([
       prisma.masterStatusLokasi.findMany({}),
       prisma.masterWaterlogging.findMany({}),
@@ -43,6 +44,7 @@ export async function syncLokasiOrderDatabase() {
       prisma.masterSapGorongGorong.findMany({ orderBy: { tanggalRealisasi: 'asc' } }),
       prisma.masterDataOrderGorongGorong.findMany({ orderBy: { tanggal: 'asc' } }),
       prisma.masterDataDropGorongGorong.findMany({ orderBy: { tanggal: 'asc' } }),
+      prisma.masterDataPindahGorongGorong.findMany({ orderBy: { tanggal: 'asc' } }),
     ]);
 
     const masterLokMap = new Map<string, any>();
@@ -179,10 +181,60 @@ export async function syncLokasiOrderDatabase() {
       else if (s.diameter === 100) ent.d100 += s.qty;
     }
 
-    // Daftar lokasi resmi yang memiliki order/drop dari Master Data
+    // Pindah Map (Murni dari Master Data Pindah Gorong-Gorong)
+    const pindahMap = new Map<string, { d40: number; d60: number; d80: number; d100: number }>();
+    const getPindahEnt = (lok: string) => {
+      if (!pindahMap.has(lok)) {
+        pindahMap.set(lok, { d40: 0, d60: 0, d80: 0, d100: 0 });
+      }
+      return pindahMap.get(lok)!;
+    };
+
+    for (const p of masterPindahs) {
+      if (p.lokasiPengirim) {
+        const kAsal = p.lokasiPengirim.trim().toUpperCase();
+        const entAsal = getPindahEnt(kAsal);
+        entAsal.d40 -= (p.diameter40 || 0);
+        entAsal.d60 -= (p.diameter60 || 0);
+        entAsal.d80 -= (p.diameter80 || 0);
+        entAsal.d100 -= (p.diameter100 || 0);
+      }
+      if (p.lokasiPenerima) {
+        const kDest = p.lokasiPenerima.trim().toUpperCase();
+        const entDest = getPindahEnt(kDest);
+        entDest.d40 += (p.diameter40 || 0);
+        entDest.d60 += (p.diameter60 || 0);
+        entDest.d80 += (p.diameter80 || 0);
+        entDest.d100 += (p.diameter100 || 0);
+      }
+    }
+
+    // Fallback jika belum ada di masterPindahs namun ada transaksi pindah di allTrx
+    if (masterPindahs.length === 0) {
+      for (const t of allTrx) {
+        if (t.jenisTransaksi === 'DROP' && t.lokasiAsal) {
+          const kAsal = t.lokasiAsal.trim().toUpperCase();
+          const kDest = t.lokasi.trim().toUpperCase();
+          const entAsal = getPindahEnt(kAsal);
+          entAsal.d40 -= (t.qtyD40 || 0);
+          entAsal.d60 -= (t.qtyD60 || 0);
+          entAsal.d80 -= (t.qtyD80 || 0);
+          entAsal.d100 -= (t.qtyD100 || 0);
+
+          const entDest = getPindahEnt(kDest);
+          entDest.d40 += (t.qtyD40 || 0);
+          entDest.d60 += (t.qtyD60 || 0);
+          entDest.d80 += (t.qtyD80 || 0);
+          entDest.d100 += (t.qtyD100 || 0);
+        }
+      }
+    }
+
+    // Daftar lokasi resmi yang memiliki order/drop/pindah dari Master Data
     const allCandidateLokasi = new Set<string>([
       ...orderMap.keys(),
       ...dropMap.keys(),
+      ...pindahMap.keys(),
     ]);
 
     const upsertPromises: any[] = [];
@@ -211,26 +263,12 @@ export async function syncLokasiOrderDatabase() {
         trxMan100 += p.qtyD100 || 0;
       }
 
-      // Hitung net pindah lokasi untuk petak ini dari allTrx (drops with lokasiAsal)
-      let pindahD40 = 0, pindahD60 = 0, pindahD80 = 0, pindahD100 = 0;
-      for (const t of allTrx) {
-        if (t.jenisTransaksi === 'DROP' && t.lokasiAsal) {
-          const asalUpper = t.lokasiAsal.trim().toUpperCase();
-          const destUpper = t.lokasi.trim().toUpperCase();
-          if (asalUpper === lok) {
-            pindahD40 -= (t.qtyD40 || 0);
-            pindahD60 -= (t.qtyD60 || 0);
-            pindahD80 -= (t.qtyD80 || 0);
-            pindahD100 -= (t.qtyD100 || 0);
-          }
-          if (destUpper === lok) {
-            pindahD40 += (t.qtyD40 || 0);
-            pindahD60 += (t.qtyD60 || 0);
-            pindahD80 += (t.qtyD80 || 0);
-            pindahD100 += (t.qtyD100 || 0);
-          }
-        }
-      }
+      // Hitung net pindah lokasi untuk petak ini dari master pindah map
+      const pnd = pindahMap.get(lok) || { d40: 0, d60: 0, d80: 0, d100: 0 };
+      const pindahD40 = pnd.d40;
+      const pindahD60 = pnd.d60;
+      const pindahD80 = pnd.d80;
+      const pindahD100 = pnd.d100;
 
       // Kuantiti Order & Drop MURNI dari Master Data (karena Form Input langsung memperbarui Master Data)
       const orderD40 = ord.d40;
