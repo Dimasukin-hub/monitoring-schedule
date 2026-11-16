@@ -343,3 +343,135 @@ export function parseLabitaPathname(pathname: string) {
     redirectTo: LABITA_ROUTES.executivePengolahan,
   };
 }
+
+// ==================== 3. PORTAL SULAM ====================
+
+export const SULAM_ROUTES = {
+  // Menu 1: Monitoring Sulam
+  monitor: '/sulam/monitor-sulam',
+
+  // Menu 2: Form Order Sulam
+  formOrder: '/sulam/form-order-sulam',
+
+  // Menu 3: Master Data
+  masterStatusLokasi: '/sulam/master-data/master-status-lokasi',
+  masterOrder: '/sulam/master-data/master-data-order-sulam',
+  masterDrop: '/sulam/master-data/master-data-drop-bibit',
+  masterReal: '/sulam/master-data/master-data-real-sulam',
+  masterListSulam: '/sulam/master-data/master-list-sulam',
+
+  // Menu 4: Manajemen User
+  userManagement: '/sulam/manajemen-user',
+} as const;
+
+export function getSulamRoute(activeTab: string, subTab?: string): string {
+  switch (activeTab) {
+    case 'monitor_sulam':
+      return SULAM_ROUTES.monitor;
+    case 'form_order_sulam':
+    case 'form_input':
+      return SULAM_ROUTES.formOrder;
+    case 'master_data':
+    case 'master_data_sulam':
+      if (subTab === 'master_order') return SULAM_ROUTES.masterOrder;
+      if (subTab === 'master_drop') return SULAM_ROUTES.masterDrop;
+      if (subTab === 'master_real') return SULAM_ROUTES.masterReal;
+      if (subTab === 'master_list_sulam') return SULAM_ROUTES.masterListSulam;
+      return SULAM_ROUTES.masterStatusLokasi;
+    case 'user_management':
+      return SULAM_ROUTES.userManagement;
+    default:
+      return SULAM_ROUTES.monitor;
+  }
+}
+
+export function parseSulamPathname(pathname: string) {
+  const clean = pathname.replace(/\/+$/, '');
+
+  // Default redirect jika buka /sulam
+  if (clean === '/sulam') {
+    return {
+      activeTab: 'monitor_sulam',
+      masterDataSubTab: 'master_status_lokasi',
+      redirectTo: SULAM_ROUTES.monitor,
+    };
+  }
+
+  // 1. Monitor
+  if (clean === '/sulam/monitor-sulam') {
+    return {
+      activeTab: 'monitor_sulam',
+      masterDataSubTab: 'master_status_lokasi',
+      redirectTo: null,
+    };
+  }
+
+  // 2. Form Order
+  if (clean === '/sulam/form-order-sulam' || clean === '/sulam/form-input') {
+    return {
+      activeTab: 'form_order_sulam',
+      masterDataSubTab: 'master_status_lokasi',
+      redirectTo: null,
+    };
+  }
+
+  // 3. Master Data
+  if (clean === '/sulam/master-data') {
+    return {
+      activeTab: 'master_data',
+      masterDataSubTab: 'master_status_lokasi',
+      redirectTo: SULAM_ROUTES.masterStatusLokasi,
+    };
+  }
+  if (clean === '/sulam/master-data/master-status-lokasi') {
+    return {
+      activeTab: 'master_data',
+      masterDataSubTab: 'master_status_lokasi',
+      redirectTo: null,
+    };
+  }
+  if (clean === '/sulam/master-data/master-data-order-sulam' || clean === '/sulam/master-data/master-data-order') {
+    return {
+      activeTab: 'master_data',
+      masterDataSubTab: 'master_order',
+      redirectTo: null,
+    };
+  }
+  if (clean === '/sulam/master-data/master-data-drop-bibit' || clean === '/sulam/master-data/master-data-drop') {
+    return {
+      activeTab: 'master_data',
+      masterDataSubTab: 'master_drop',
+      redirectTo: null,
+    };
+  }
+  if (clean === '/sulam/master-data/master-data-real-sulam' || clean === '/sulam/master-data/master-data-real') {
+    return {
+      activeTab: 'master_data',
+      masterDataSubTab: 'master_real',
+      redirectTo: null,
+    };
+  }
+  if (clean === '/sulam/master-data/master-list-sulam') {
+    return {
+      activeTab: 'master_data',
+      masterDataSubTab: 'master_list_sulam',
+      redirectTo: null,
+    };
+  }
+
+  // 4. Manajemen User
+  if (clean === '/sulam/manajemen-user') {
+    return {
+      activeTab: 'user_management',
+      masterDataSubTab: 'master_status_lokasi',
+      redirectTo: null,
+    };
+  }
+
+  return {
+    activeTab: 'monitor_sulam',
+    masterDataSubTab: 'master_status_lokasi',
+    redirectTo: SULAM_ROUTES.monitor,
+  };
+}
+

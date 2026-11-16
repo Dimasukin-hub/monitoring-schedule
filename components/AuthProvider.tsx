@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-export type UserRole = 'super_admin' | 'admin' | 'user' | 'user_fe' | 'user_wilayah';
+export type UserRole = 'super_admin' | 'admin' | 'user' | 'user_fe' | 'user_wilayah' | 'user_planting';
 
 export interface AuthUser {
   id: number;
@@ -21,6 +21,7 @@ interface AuthContextType {
   isUser: boolean;
   isUserFE: boolean;
   isUserWilayah: boolean;
+  isUserPlanting: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   register: (name: string, email: string, password: string, role: UserRole) => Promise<{ success: boolean; message?: string }>;
@@ -36,6 +37,7 @@ const AuthContext = createContext<AuthContextType>({
   isUser: false,
   isUserFE: false,
   isUserWilayah: false,
+  isUserPlanting: false,
   isLoading: true,
   login: async () => ({ success: false }),
   register: async () => ({ success: false }),
@@ -135,6 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAdmin = role === 'admin' || role === 'super_admin';
   const isUserFE = role === 'user_fe';
   const isUserWilayah = role === 'user_wilayah' || role === 'user';
+  const isUserPlanting = role === 'user_planting';
   const isUser = !isAdmin;
 
   return (
@@ -147,6 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isUser,
         isUserFE,
         isUserWilayah,
+        isUserPlanting,
         isLoading,
         login,
         register,

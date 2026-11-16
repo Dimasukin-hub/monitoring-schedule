@@ -499,4 +499,128 @@ model MasterDataPindahGorongGorong {
   @@index([tanggal])
 }
 
+// ==========================================
+// MODUL SULAM & MASTER DATA TERPADU SULAM
+// ==========================================
+
+model MasterSpekBibitSulam {
+  id          Int      @id @default(autoincrement())
+  spekBB      String   @unique // misal: "No. 0+ Panjang", "No. 0 Pangkas 60cm", "No. 1 Panjang", "No. 1 Pangkas Prod", dst
+  stdRitCD    Int      @default(0) // Kapasitas rit CD (btg)
+  stdRitFuso  Int      @default(0) // Kapasitas rit Fuso (btg)
+  keterangan  String?  // misal: "Pangkas Samping", "Pangkas Samping Atas", "Pangkas Produksi"
+  spesifikasi String?  // Spesifikasi detail
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([spekBB])
+}
+
+model ListSulam {
+  id                  Int       @id @default(autoincrement())
+  wilayah             String?
+  lokasi              String    @unique
+  jenisBB             String?   // Crown / Sucker
+  kelasBB             String?   // No. 0 - No. 6
+  spekBB              String?   // "No. 0 Pangkas 60cm", "Sucker No. 2", dsb.
+  tglRawat            DateTime?
+  tglStdForcing       DateTime?
+  tglFProd            DateTime?
+  tglFMax             DateTime? // Tanggal Forcing Max (digunakan hitung Umur Forcing)
+  tglOrder            DateTime?
+  umurForcing         Float?    // Umur Forcing (bulan)
+  permintaanRitaseBtg Int       @default(0)
+  permintaanRitaseRit Int       @default(0)
+  keterangan          String?   // Keterangan pangkas / proses
+  status              String?   @default("Open") // Open / Close / Proses
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([lokasi])
+  @@index([wilayah])
+  @@index([spekBB])
+}
+
+model MasterDataOrderSulam {
+  id         Int       @id @default(autoincrement())
+  lokasi     String
+  wilayah    String?   // Dari MasterStatusLokasi.strucPlant
+  tanggal    DateTime? // Tanggal order
+  spekBB     String?   // Menampilkan Spek BB
+  jumlahBtg  Int       @default(0)
+  jumlahRit  Int       @default(0)
+  keterangan String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([lokasi])
+  @@index([wilayah])
+  @@index([tanggal])
+}
+
+model MasterDataDropBibitSulam {
+  id           Int       @id @default(autoincrement())
+  lokasi       String
+  wilayah      String?   // Dari MasterStatusLokasi.strucPlant
+  tanggalDrop  DateTime? // Tanggal real drop
+  tanggalOrder DateTime? // Menampilkan tanggal order (sesuai request)
+  hasilHa      Float?
+  hasilBtg     Int       @default(0)
+  spekBB       String?
+  stdRit       Int?
+  jumlahRit    Int       @default(0)
+  jenisUnit    String?   // "CD" | "FUSO"
+  statusDrop   String?   // "V" atau status lainnya
+  keterangan   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([lokasi])
+  @@index([wilayah])
+  @@index([tanggalDrop])
+  @@index([tanggalOrder])
+}
+
+model MasterDataRealSulam {
+  id           Int       @id @default(autoincrement())
+  lokasi       String
+  hasilHa      Float?
+  hasilBtg     Int       @default(0)
+  tanggal      DateTime?
+  bibitOrdered String?   // Spek BB dari List Sulam
+  stdRit       Int?      // Nilai CD dari MasterSpekBibitSulam
+  ritPlanted   Int?      // CEILING(hasilBtg / stdRit)
+  keterangan   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([lokasi])
+  @@index([tanggal])
+}
+
+model FormTiketOrderSulam {
+  id             Int       @id @default(autoincrement())
+  nomorTiket     String    @unique // SLM-YYYYMM-XXXX
+  lokasi         String
+  wilayah        String?
+  usia           Int?      // Umur Forcing dalam bulan: Math.round((today - tglFMax)/30.4)
+  kelasBibit     String    // Gabungan jenis bibit & kelas bibit (contoh: "Sucker No. 2")
+  ritFuso        Int       @default(0)
+  ritCD          Int       @default(0)
+  keterangan     String?   // Keterangan pangkas produksi, dll.
+  status         String    @default("DIAJUKAN") // DIAJUKAN -> APPROVED -> ANTRIAN -> REAL_DROP -> REAL_TANAM -> CLOSE
+  pemohonName    String?
+  pemohonRole    String?
+  approvedByName String?
+  approvedAt     DateTime?
+  catatan        String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([lokasi])
+  @@index([wilayah])
+  @@index([status])
+  @@index([createdAt])
+}
+
 

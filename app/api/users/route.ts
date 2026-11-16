@@ -63,8 +63,9 @@ export async function GET(req: Request) {
       superAdminCount: users.filter((u) => u.role === 'super_admin').length,
       adminCount: users.filter((u) => u.role === 'admin').length,
       userWilayahCount: users.filter((u) => u.role === 'user_wilayah').length,
+      userPlantingCount: users.filter((u) => u.role === 'user_planting').length,
       userFeCount: users.filter((u) => u.role === 'user_fe').length,
-      userCount: users.filter((u) => u.role === 'user' || u.role === 'user_wilayah' || u.role === 'user_fe').length,
+      userCount: users.filter((u) => u.role === 'user' || u.role === 'user_wilayah' || u.role === 'user_planting' || u.role === 'user_fe').length,
     };
 
     return NextResponse.json({
@@ -122,7 +123,7 @@ export async function POST(req: Request) {
 
     const cleanUsername = rawUsername.trim().toLowerCase();
     const cleanName = rawName?.trim() || cleanUsername;
-    const validRoles = ['super_admin', 'admin', 'user', 'user_fe', 'user_wilayah'];
+    const validRoles = ['super_admin', 'admin', 'user', 'user_fe', 'user_wilayah', 'user_planting'];
     const role = validRoles.includes(rawRole) ? rawRole : 'user_wilayah';
 
     // Jika yang membuat bukan Super Admin, dilarang membuat akun Admin atau Super Admin

@@ -26,7 +26,7 @@ export interface UserItem {
   id: number;
   name: string;
   username: string;
-  role: 'super_admin' | 'admin' | 'user' | 'user_fe' | 'user_wilayah';
+  role: 'super_admin' | 'admin' | 'user' | 'user_fe' | 'user_wilayah' | 'user_planting';
   avatar?: string | null;
   createdAt: string;
   updatedAt?: string;
@@ -38,8 +38,8 @@ export default function UserManagementView() {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
-  const [roleFilter, setRoleFilter] = useState<'ALL' | 'super_admin' | 'admin' | 'user' | 'user_wilayah' | 'user_fe'>('ALL');
-  const [stats, setStats] = useState({ total: 0, superAdminCount: 0, adminCount: 0, userWilayahCount: 0, userFeCount: 0, userCount: 0 });
+  const [roleFilter, setRoleFilter] = useState<'ALL' | 'super_admin' | 'admin' | 'user' | 'user_wilayah' | 'user_planting' | 'user_fe'>('ALL');
+  const [stats, setStats] = useState({ total: 0, superAdminCount: 0, adminCount: 0, userWilayahCount: 0, userPlantingCount: 0, userFeCount: 0, userCount: 0 });
 
   // Modal State - Tambah User
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
@@ -48,7 +48,7 @@ export default function UserManagementView() {
     name: string;
     password: string;
     confirmPassword: string;
-    role: 'super_admin' | 'admin' | 'user' | 'user_fe' | 'user_wilayah' | '';
+    role: 'super_admin' | 'admin' | 'user' | 'user_fe' | 'user_wilayah' | 'user_planting' | '';
   }>({
     username: '',
     name: '',
@@ -65,7 +65,7 @@ export default function UserManagementView() {
   const [editForm, setEditForm] = useState({
     name: '',
     username: '',
-    role: 'user_wilayah' as 'super_admin' | 'admin' | 'user' | 'user_fe' | 'user_wilayah',
+    role: 'user_wilayah' as 'super_admin' | 'admin' | 'user' | 'user_fe' | 'user_wilayah' | 'user_planting',
     newPassword: '',
   });
   const [showEditPassword, setShowEditPassword] = useState<boolean>(false);
@@ -504,6 +504,17 @@ export default function UserManagementView() {
             </button>
             <button
               type="button"
+              onClick={() => setRoleFilter('user_planting')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                roleFilter === 'user_planting'
+                  ? 'bg-white dark:bg-slate-900 text-teal-700 dark:text-teal-300 shadow-2xs font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+            >
+              User Planting ({users.filter(u => u.role === 'user_planting').length})
+            </button>
+            <button
+              type="button"
               onClick={() => setRoleFilter('user_fe')}
               className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 roleFilter === 'user_fe'
@@ -597,6 +608,11 @@ export default function UserManagementView() {
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/70 border border-blue-300/60 dark:border-blue-700/50 text-blue-800 dark:text-blue-300 text-[11px] font-bold">
                             <User className="w-3 h-3" />
                             <span>User Wilayah</span>
+                          </span>
+                        ) : item.role === 'user_planting' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-100 dark:bg-teal-950/70 border border-teal-300/60 dark:border-teal-700/50 text-teal-800 dark:text-teal-300 text-[11px] font-bold">
+                            <User className="w-3 h-3" />
+                            <span>User Planting</span>
                           </span>
                         ) : item.role === 'user_fe' ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/70 border border-purple-300/60 dark:border-purple-700/50 text-purple-800 dark:text-purple-300 text-[11px] font-bold">
@@ -816,6 +832,18 @@ export default function UserManagementView() {
                   </button>
                   <button
                     type="button"
+                    onClick={() => setAddForm({ ...addForm, role: 'user_planting' })}
+                    className={`py-2 px-2.5 rounded-xl border text-[11px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                      addForm.role === 'user_planting'
+                        ? 'border-teal-500 bg-teal-50/80 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 ring-1 ring-teal-500/40'
+                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    <User className="w-3.5 h-3.5 shrink-0" />
+                    <span>User Planting</span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setAddForm({ ...addForm, role: 'user_fe' })}
                     className={`py-2 px-2.5 rounded-xl border text-[11px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
                       addForm.role === 'user_fe'
@@ -983,6 +1011,18 @@ export default function UserManagementView() {
                   >
                     <User className="w-3.5 h-3.5 shrink-0" />
                     <span>User Wilayah</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditForm({ ...editForm, role: 'user_planting' })}
+                    className={`py-2 px-2.5 rounded-xl border text-[11px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                      editForm.role === 'user_planting'
+                        ? 'border-teal-500 bg-teal-50/80 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 ring-1 ring-teal-500/40'
+                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    <User className="w-3.5 h-3.5 shrink-0" />
+                    <span>User Planting</span>
                   </button>
                   <button
                     type="button"

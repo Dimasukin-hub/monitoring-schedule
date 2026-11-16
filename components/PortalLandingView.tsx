@@ -27,7 +27,7 @@ import { useTheme } from '@/components/ThemeProvider';
 import { useAuth } from '@/components/AuthProvider';
 
 interface PortalLandingViewProps {
-  onSelectPortal?: (portal: 'labita' | 'gorong_gorong') => void;
+  onSelectPortal?: (portal: 'labita' | 'gorong_gorong' | 'sulam') => void;
 }
 
 export default function PortalLandingView({ onSelectPortal }: PortalLandingViewProps) {
@@ -140,8 +140,8 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
             </p>
           </div>
 
-        {/* 2 Big Portal Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 w-full max-w-4xl">
+        {/* 3 Big Portal Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-6 w-full max-w-6xl">
           {/* Card 1: Portal Labita */}
           <Link
             href={
@@ -158,7 +158,7 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
                 onSelectPortal?.('labita');
               }
             }}
-            className="group relative flex flex-col justify-between p-4 sm:p-7 md:p-8 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900 border-2 border-slate-200/90 dark:border-slate-800 hover:border-[#00873D] dark:hover:border-emerald-500 shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer overflow-hidden text-left"
+            className="group relative flex flex-col justify-between p-4 sm:p-6 md:p-7 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900 border-2 border-slate-200/90 dark:border-slate-800 hover:border-[#00873D] dark:hover:border-emerald-500 shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer overflow-hidden text-left"
           >
             {/* Top accent badge */}
             <div className="absolute top-0 right-0 w-28 h-28 sm:w-32 sm:h-32 bg-gradient-to-bl from-emerald-500/15 via-emerald-500/5 to-transparent rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform duration-500" />
@@ -166,7 +166,7 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
             <div>
               <div className="flex items-center justify-between mb-4 sm:mb-5">
                 <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-emerald-500/15 text-[#00873D] dark:text-emerald-400 border border-emerald-500/30 group-hover:bg-[#00873D] group-hover:text-white flex items-center justify-center transition-all duration-300 shadow-xs group-hover:scale-110 shrink-0">
-                  <Sprout className="w-5 h-5 sm:w-7 sm:h-7" />
+                  <Tractor className="w-5 h-5 sm:w-7 sm:h-7" />
                 </div>
                 {user && isAdmin ? (
                   <span className="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1.5 shadow-2xs">
@@ -259,7 +259,7 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
                 onSelectPortal?.('gorong_gorong');
               }
             }}
-            className="group relative flex flex-col justify-between p-4 sm:p-7 md:p-8 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900 border-2 border-slate-200/90 dark:border-slate-800 hover:border-blue-600 dark:hover:border-blue-500 shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer overflow-hidden text-left"
+            className="group relative flex flex-col justify-between p-4 sm:p-6 md:p-7 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900 border-2 border-slate-200/90 dark:border-slate-800 hover:border-blue-600 dark:hover:border-blue-500 shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer overflow-hidden text-left"
           >
             {/* Top accent badge */}
             <div className="absolute top-0 right-0 w-28 h-28 sm:w-32 sm:h-32 bg-gradient-to-bl from-blue-500/15 via-blue-500/5 to-transparent rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform duration-500" />
@@ -306,6 +306,81 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
             <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 flex items-center justify-between text-xs font-bold text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform duration-200">
               <span className="text-xs sm:text-sm font-extrabold">Buka Portal Gorong-Gorong</span>
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-500/10 group-hover:bg-blue-600 group-hover:text-white flex items-center justify-center transition-colors">
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </div>
+            </div>
+          </Link>
+
+          {/* Card 3: Portal Sulam */}
+          <Link
+            href={
+              user
+                ? isAdmin || user.role === 'user_planting'
+                  ? '/sulam/monitor-sulam'
+                  : '/sulam/form-order-sulam'
+                : '/login?callbackUrl=/sulam'
+            }
+            prefetch={false}
+            onClick={() => {
+              const target = user
+                ? isAdmin || user.role === 'user_planting'
+                  ? '/sulam/monitor-sulam'
+                  : '/sulam/form-order-sulam'
+                : '/sulam';
+              if (typeof window !== 'undefined') {
+                sessionStorage.setItem('ggf_active_portal', target);
+              }
+              if (user) {
+                onSelectPortal?.('sulam');
+              }
+            }}
+            className="group relative flex flex-col justify-between p-4 sm:p-6 md:p-7 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900 border-2 border-slate-200/90 dark:border-slate-800 hover:border-teal-600 dark:hover:border-teal-500 shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer overflow-hidden text-left"
+          >
+            {/* Top accent badge */}
+            <div className="absolute top-0 right-0 w-28 h-28 sm:w-32 sm:h-32 bg-gradient-to-bl from-teal-500/15 via-teal-500/5 to-transparent rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform duration-500" />
+
+            <div>
+              <div className="flex items-center justify-between mb-4 sm:mb-5">
+                <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-teal-500/15 text-teal-600 dark:text-teal-400 flex items-center justify-center border border-teal-500/30 group-hover:scale-110 group-hover:bg-teal-600 group-hover:text-white transition-all duration-300 shadow-xs shrink-0">
+                  <Sprout className="w-5 h-5 sm:w-7 sm:h-7" />
+                </div>
+                <span className="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-teal-100 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-800">
+                  Planting &amp; Sulam
+                </span>
+              </div>
+
+              <h3 className="text-lg sm:text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+                Portal Sulam
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1.5 leading-relaxed break-words">
+                Sistem pengajuan order bibit sulam, alur approval berjenjang, pelacakan drop bibit, serta monitoring realisasi tanam sulam PG1.
+              </p>
+
+              {/* Feature Points */}
+              <div className="mt-4 sm:mt-6 space-y-2 sm:space-y-2.5 pt-4 sm:pt-5 border-t border-slate-100 dark:border-slate-800/80">
+                <div className="flex items-start gap-2 text-[11px] sm:text-xs text-slate-700 dark:text-slate-300 font-semibold leading-snug">
+                  <CheckCircle2 className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
+                  <span className="break-words">Monitoring Sulam &amp; Progres Petak Prioritas Tanam</span>
+                </div>
+                <div className="flex items-start gap-2 text-[11px] sm:text-xs text-slate-700 dark:text-slate-300 font-semibold leading-snug">
+                  <CheckCircle2 className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
+                  <span className="break-words">Form Order Sulam Otomatis &amp; Approval User Planting</span>
+                </div>
+                <div className="flex items-start gap-2 text-[11px] sm:text-xs text-slate-700 dark:text-slate-300 font-semibold leading-snug">
+                  <CheckCircle2 className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
+                  <span className="break-words">Master Spek BB, Ritase (CD &amp; Fuso) &amp; Drop Bibit</span>
+                </div>
+                <div className="flex items-start gap-2 text-[11px] sm:text-xs text-slate-700 dark:text-slate-300 font-semibold leading-snug">
+                  <CheckCircle2 className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
+                  <span className="break-words">Kalkulasi Otomatis Bibit Ordered, Std Rit &amp; Rit Planted</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Action CTA */}
+            <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 flex items-center justify-between text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-1 transition-transform duration-200">
+              <span className="text-xs sm:text-sm font-extrabold">Buka Portal Sulam</span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-teal-500/10 group-hover:bg-teal-600 group-hover:text-white flex items-center justify-center transition-colors">
                 <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
             </div>
