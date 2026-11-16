@@ -256,7 +256,19 @@ export default function Header({
   onMasterDataSubTabChange,
 }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
-  const { user, isAdmin, isSuperAdmin, isUserFE, isUserWilayah, isUserPlanting, logout, setUserDirectly } = useAuth();
+  const {
+    user,
+    isAdmin,
+    isSuperAdmin,
+    isUserFE,
+    isUserWilayah,
+    isUserPlanting,
+    canAccessMonitor,
+    canAccessMasterData,
+    roleDisplayName,
+    logout,
+    setUserDirectly,
+  } = useAuth();
   const currentPathname = usePathname();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [showPhotoMenu, setShowPhotoMenu] = useState(false);
@@ -280,13 +292,13 @@ export default function Header({
       return Boolean(user && isAdmin);
     }
     if (item.id === 'master_data') {
+      if (currentPortal === 'gorong_gorong') {
+        return Boolean(user && canAccessMasterData);
+      }
       return Boolean(user && (isAdmin || (currentPortal === 'sulam' && isUserPlanting)));
     }
     if (currentPortal === 'gorong_gorong' && item.id === 'monitor_gorong_gorong') {
-      // Sembunyikan menu Monitor Gorong-Gorong untuk User Wilayah dan User FE
-      if (user?.role === 'user_wilayah' || user?.role === 'user_fe' || user?.role === 'user' || isUserWilayah || isUserFE || !isAdmin) {
-        return false;
-      }
+      return Boolean(user && canAccessMonitor);
     }
     if (currentPortal === 'sulam' && item.id === 'monitor_sulam') {
       if (user?.role === 'user_wilayah' || (!isAdmin && !isUserPlanting)) {
@@ -504,7 +516,7 @@ export default function Header({
                 className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700 text-white text-xs font-bold uppercase shadow-2xs hover:ring-2 transition-all cursor-pointer ${
                   isSuperAdmin ? 'bg-indigo-600 hover:ring-indigo-400/40' : isAdmin ? 'bg-emerald-600 hover:ring-emerald-400/40' : 'bg-sky-600 hover:ring-sky-400/40'
                 }`}
-                title={`Profil ${isSuperAdmin ? 'Super Admin' : isAdmin ? 'Admin' : 'User'}`}
+                title={`Profil ${roleDisplayName || (isSuperAdmin ? 'Super Admin' : isAdmin ? 'Admin FE' : 'User')}`}
                 aria-label="Profil Pengguna"
               >
                 {user.avatar ? (
@@ -529,7 +541,7 @@ export default function Header({
                 title="Buka Menu Profil"
                 aria-label="Buka Menu Profil"
               >
-                <span>{isSuperAdmin ? 'Super Admin' : isAdmin ? 'Admin' : user.name || user.email}</span>
+                <span>{roleDisplayName || user.name || user.email}</span>
                 <ChevronDown
                   className={`w-3.5 h-3.5 text-slate-400 dark:text-slate-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-transform duration-200 ${
                     isProfileOpen ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : ''
@@ -621,19 +633,15 @@ export default function Header({
                     </div>
 
                     {/* Di dalam Popover: Badge Role */}
-                    {isSuperAdmin ? (
-                      <div className="inline-flex items-center gap-1 mt-1 px-3 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[11px] font-bold shadow-2xs">
-                        Super Admin
-                      </div>
-                    ) : isAdmin ? (
-                      <div className="inline-flex items-center gap-1 mt-1 px-3 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold shadow-2xs">
-                        Admin
-                      </div>
-                    ) : (
-                      <div className="inline-flex items-center gap-1 mt-1 px-3 py-0.5 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 text-[11px] font-bold shadow-2xs">
-                        User
-                      </div>
-                    )}
+                    <div className={`inline-flex items-center gap-1 mt-1 px-3 py-0.5 rounded-full text-[11px] font-bold shadow-2xs ${
+                      isSuperAdmin
+                        ? 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300'
+                        : isAdmin
+                        ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                        : 'bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300'
+                    }`}>
+                      {roleDisplayName || 'User'}
+                    </div>
                   </div>
 
                   {/* Mode Gelap / Terang di dalam Profil */}

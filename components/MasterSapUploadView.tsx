@@ -37,7 +37,7 @@ let cachedTotalCount = 0;
 let cachedTotalPages = 1;
 
 export default function MasterSapUploadView() {
-  const { user } = useAuth();
+  const { user, canUploadMasterData } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [dataList, setDataList] = useState<any[]>(cachedSapList);
@@ -234,116 +234,122 @@ export default function MasterSapUploadView() {
               <span>Download Data Realisasi SAP (.xlsx)</span>
             </a>
 
-            <a
-              href="/api/gorong-gorong/sap-upload/template"
-              download="Template_Upload_Realisasi_SAP_Form630.xlsx"
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-2xs hover:border-violet-500 transition-all cursor-pointer"
-              title="Unduh format template Excel resmi Form 630 SAP (19 Kolom Real Gorong2)"
-            >
-              <Download className="w-4 h-4 text-violet-600 dark:text-violet-400" />
-              <span>Download Template Excel</span>
-            </a>
+            {canUploadMasterData && (
+              <a
+                href="/api/gorong-gorong/sap-upload/template"
+                download="Template_Upload_Realisasi_SAP_Form630.xlsx"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-2xs hover:border-violet-500 transition-all cursor-pointer"
+                title="Unduh format template Excel resmi Form 630 SAP (19 Kolom Real Gorong2)"
+              >
+                <Download className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                <span>Download Template Excel</span>
+              </a>
+            )}
           </div>
         </div>
 
-        {/* Pilihan Mode Sinkronisasi Upload */}
-        <div className="mt-5 p-3.5 rounded-xl bg-white/70 dark:bg-slate-800/70 border border-violet-200 dark:border-violet-900/60 shadow-2xs">
-          <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-2">
-            Metode Sinkronisasi Data SAP:
-          </label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              onClick={() => setUploadMode('full_replace')}
-              className={`p-3 rounded-lg text-left border transition-all cursor-pointer flex items-start gap-2.5 ${
-                uploadMode === 'full_replace'
-                  ? 'border-violet-600 bg-violet-50/80 dark:bg-violet-950/40 text-violet-900 dark:text-violet-100 ring-1 ring-violet-500'
-                  : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900'
+        {canUploadMasterData && (
+          <>
+            {/* Pilihan Mode Sinkronisasi Upload */}
+            <div className="mt-5 p-3.5 rounded-xl bg-white/70 dark:bg-slate-800/70 border border-violet-200 dark:border-violet-900/60 shadow-2xs">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-2">
+                Metode Sinkronisasi Data SAP:
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setUploadMode('full_replace')}
+                  className={`p-3 rounded-lg text-left border transition-all cursor-pointer flex items-start gap-2.5 ${
+                    uploadMode === 'full_replace'
+                      ? 'border-violet-600 bg-violet-50/80 dark:bg-violet-950/40 text-violet-900 dark:text-violet-100 ring-1 ring-violet-500'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900'
+                  }`}
+                >
+                  <div className={`w-4 h-4 rounded-full mt-0.5 border flex items-center justify-center shrink-0 ${
+                    uploadMode === 'full_replace' ? 'border-violet-600 bg-violet-600 text-white' : 'border-slate-400'
+                  }`}>
+                    {uploadMode === 'full_replace' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold">Replace Semua Data (All) (Disarankan)</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Menimpa & memperbarui seluruh data transaksi realisasi SAP sekaligus dari berkas Excel.
+                    </p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setUploadMode('partial')}
+                  className={`p-3 rounded-lg text-left border transition-all cursor-pointer flex items-start gap-2.5 ${
+                    uploadMode === 'partial'
+                      ? 'border-violet-600 bg-violet-50/80 dark:bg-violet-950/40 text-violet-900 dark:text-violet-100 ring-1 ring-violet-500'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900'
+                  }`}
+                >
+                  <div className={`w-4 h-4 rounded-full mt-0.5 border flex items-center justify-center shrink-0 ${
+                    uploadMode === 'partial' ? 'border-violet-600 bg-violet-600 text-white' : 'border-slate-400'
+                  }`}>
+                    {uploadMode === 'partial' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-violet-700 dark:text-violet-300">Tambah Data (Data Baru)</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Hanya menambahkan baris data transaksi SAP baru dari file Excel ke database tanpa menghapus data lainnya.
+                    </p>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Drag & Drop Card */}
+            <div
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`mt-4 border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
+                dragActive
+                  ? 'border-violet-500 bg-violet-500/10 scale-[1.005]'
+                  : 'border-violet-300 dark:border-violet-800/60 hover:border-violet-500 hover:bg-violet-500/5 bg-white/50 dark:bg-slate-900/40'
               }`}
             >
-              <div className={`w-4 h-4 rounded-full mt-0.5 border flex items-center justify-center shrink-0 ${
-                uploadMode === 'full_replace' ? 'border-violet-600 bg-violet-600 text-white' : 'border-slate-400'
-              }`}>
-                {uploadMode === 'full_replace' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx, .xls"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    handleFileProcess(e.target.files[0]);
+                  }
+                }}
+                className="hidden"
+              />
+              <div className="flex flex-col items-center justify-center gap-2">
+                <div className="w-12 h-12 rounded-full bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center">
+                  {isUploading ? (
+                    <RefreshCw className="w-6 h-6 animate-spin" />
+                  ) : (
+                    <UploadCloud className="w-6 h-6" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                    {isUploading
+                      ? 'Sedang memproses dan menyimpan data realisasi SAP ke database...'
+                      : 'Klik atau seret file Excel Form 630 ke sini'}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {uploadMode === 'full_replace'
+                      ? 'Mode: Replace Semua Data (All) — seluruh data lama digantikan file ini'
+                      : 'Mode: Tambah Data (Data Baru) — menambahkan baris data baru ke database tanpa menghapus data lama'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs font-bold">Replace Semua Data (All) (Disarankan)</p>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                  Menimpa & memperbarui seluruh data transaksi realisasi SAP sekaligus dari berkas Excel.
-                </p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setUploadMode('partial')}
-              className={`p-3 rounded-lg text-left border transition-all cursor-pointer flex items-start gap-2.5 ${
-                uploadMode === 'partial'
-                  ? 'border-violet-600 bg-violet-50/80 dark:bg-violet-950/40 text-violet-900 dark:text-violet-100 ring-1 ring-violet-500'
-                  : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900'
-              }`}
-            >
-              <div className={`w-4 h-4 rounded-full mt-0.5 border flex items-center justify-center shrink-0 ${
-                uploadMode === 'partial' ? 'border-violet-600 bg-violet-600 text-white' : 'border-slate-400'
-              }`}>
-                {uploadMode === 'partial' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
-              </div>
-              <div>
-                <p className="text-xs font-bold text-violet-700 dark:text-violet-300">Tambah Data (Data Baru)</p>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                  Hanya menambahkan baris data transaksi SAP baru dari file Excel ke database tanpa menghapus data lainnya.
-                </p>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        {/* Drag & Drop Card */}
-        <div
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          className={`mt-4 border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
-            dragActive
-              ? 'border-violet-500 bg-violet-500/10 scale-[1.005]'
-              : 'border-violet-300 dark:border-violet-800/60 hover:border-violet-500 hover:bg-violet-500/5 bg-white/50 dark:bg-slate-900/40'
-          }`}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx, .xls"
-            onChange={(e) => {
-              if (e.target.files && e.target.files[0]) {
-                handleFileProcess(e.target.files[0]);
-              }
-            }}
-            className="hidden"
-          />
-          <div className="flex flex-col items-center justify-center gap-2">
-            <div className="w-12 h-12 rounded-full bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center">
-              {isUploading ? (
-                <RefreshCw className="w-6 h-6 animate-spin" />
-              ) : (
-                <UploadCloud className="w-6 h-6" />
-              )}
             </div>
-            <div>
-              <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                {isUploading
-                  ? 'Sedang memproses dan menyimpan data realisasi SAP ke database...'
-                  : 'Klik atau seret file Excel Form 630 ke sini'}
-              </p>
-              <p className="text-xs text-slate-400 mt-0.5">
-                {uploadMode === 'full_replace'
-                  ? 'Mode: Replace Semua Data (All) — seluruh data lama digantikan file ini'
-                  : 'Mode: Tambah Data (Data Baru) — menambahkan baris data baru ke database tanpa menghapus data lama'}
-              </p>
-            </div>
-          </div>
-        </div>
+          </>
+        )}
 
         {/* Upload Success Alert */}
         {uploadResult && (

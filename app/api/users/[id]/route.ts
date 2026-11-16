@@ -105,7 +105,19 @@ export async function PUT(
       }
     }
 
-    const validRoles = ['super_admin', 'admin', 'user', 'user_fe', 'user_wilayah', 'user_planting'];
+    const validRoles = [
+      'super_admin',
+      'admin',
+      'user',
+      'user_fe',
+      'user_wilayah',
+      'user_planting',
+      'kepala_bagian_fe',
+      'manajer_fe',
+      'manajer_fm',
+      'manajer_osd',
+      'kepala_wilayah',
+    ];
     if (role && validRoles.includes(role)) {
       // Jika yang melakukan update bukan Super Admin, dilarang menaikkan role menjadi Admin atau Super Admin
       if (admin.role !== 'super_admin' && (role === 'admin' || role === 'super_admin')) {

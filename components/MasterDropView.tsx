@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/components/AuthProvider';
 import {
   Search,
   ChevronLeft,
@@ -20,6 +21,7 @@ import {
 const WILAYAH_LIST = ['AW01', 'AW02', 'AW03', 'AW04', 'AW05', 'AW06', 'AW07'];
 
 export default function MasterDropView() {
+  const { canUploadMasterData } = useAuth();
   const [dataList, setDataList] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [page, setPage] = useState<number>(1);
@@ -169,15 +171,17 @@ export default function MasterDropView() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <a
-            href="/api/gorong-gorong/master-drop/template"
-            download="Template_Master_Data_Drop.xlsx"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold cursor-pointer transition-all shadow-xs"
-            title="Unduh format template Excel kosong Master Data Drop"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Template Excel</span>
-          </a>
+          {canUploadMasterData && (
+            <a
+              href="/api/gorong-gorong/master-drop/template"
+              download="Template_Master_Data_Drop.xlsx"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold cursor-pointer transition-all shadow-xs"
+              title="Unduh format template Excel kosong Master Data Drop"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Template Excel</span>
+            </a>
+          )}
 
           <button
             type="button"
@@ -189,18 +193,20 @@ export default function MasterDropView() {
             <span>{isExporting ? 'Mengekspor...' : 'Unduh Excel'}</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              setUploadResult(null);
-              setUploadFile(null);
-              setIsUploadModalOpen(true);
-            }}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#00873D] hover:bg-[#007033] text-white text-xs font-bold cursor-pointer transition-all shadow-xs"
-          >
-            <Upload className="w-3.5 h-3.5" />
-            <span>Upload Excel</span>
-          </button>
+          {canUploadMasterData && (
+            <button
+              type="button"
+              onClick={() => {
+                setUploadResult(null);
+                setUploadFile(null);
+                setIsUploadModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#00873D] hover:bg-[#007033] text-white text-xs font-bold cursor-pointer transition-all shadow-xs"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Upload Excel</span>
+            </button>
+          )}
         </div>
       </div>
 

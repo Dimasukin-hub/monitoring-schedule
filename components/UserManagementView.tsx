@@ -20,17 +20,30 @@ import {
   Loader2,
   UserCheck,
 } from 'lucide-react';
-import { useAuth } from '@/components/AuthProvider';
+import { useAuth, getRoleDisplayName, UserRole } from '@/components/AuthProvider';
 
 export interface UserItem {
   id: number;
   name: string;
   username: string;
-  role: 'super_admin' | 'admin' | 'user' | 'user_fe' | 'user_wilayah' | 'user_planting';
+  role: UserRole;
   avatar?: string | null;
   createdAt: string;
   updatedAt?: string;
 }
+
+const ALL_ASSIGNABLE_ROLES: { role: UserRole; label: string; requireSuperAdmin?: boolean }[] = [
+  { role: 'super_admin', label: 'Super Admin', requireSuperAdmin: true },
+  { role: 'admin', label: 'Admin FE', requireSuperAdmin: true },
+  { role: 'kepala_bagian_fe', label: 'Kepala Bagian FE' },
+  { role: 'manajer_fe', label: 'Manajer FE' },
+  { role: 'manajer_fm', label: 'Manajer FM' },
+  { role: 'manajer_osd', label: 'Manajer OSD' },
+  { role: 'kepala_wilayah', label: 'Kepala Wilayah' },
+  { role: 'user_fe', label: 'TK Verifikator FE' },
+  { role: 'user_wilayah', label: 'Mandor Wilayah' },
+  { role: 'user_planting', label: 'User Planting' },
+];
 
 export default function UserManagementView() {
   const { user: currentUser, isSuperAdmin } = useAuth();
@@ -38,8 +51,8 @@ export default function UserManagementView() {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
-  const [roleFilter, setRoleFilter] = useState<'ALL' | 'super_admin' | 'admin' | 'user' | 'user_wilayah' | 'user_planting' | 'user_fe'>('ALL');
-  const [stats, setStats] = useState({ total: 0, superAdminCount: 0, adminCount: 0, userWilayahCount: 0, userPlantingCount: 0, userFeCount: 0, userCount: 0 });
+  const [roleFilter, setRoleFilter] = useState<'ALL' | UserRole>('ALL');
+  const [stats, setStats] = useState<any>({ total: 0 });
 
   // Modal State - Tambah User
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
@@ -48,7 +61,7 @@ export default function UserManagementView() {
     name: string;
     password: string;
     confirmPassword: string;
-    role: 'super_admin' | 'admin' | 'user' | 'user_fe' | 'user_wilayah' | 'user_planting' | '';
+    role: UserRole | '';
   }>({
     username: '',
     name: '',
@@ -62,10 +75,15 @@ export default function UserManagementView() {
 
   // Modal State - Edit User / Reset Password
   const [editingUser, setEditingUser] = useState<UserItem | null>(null);
-  const [editForm, setEditForm] = useState({
+  const [editForm, setEditForm] = useState<{
+    name: string;
+    username: string;
+    role: UserRole;
+    newPassword: string;
+  }>({
     name: '',
     username: '',
-    role: 'user_wilayah' as 'super_admin' | 'admin' | 'user' | 'user_fe' | 'user_wilayah' | 'user_planting',
+    role: 'user_wilayah',
     newPassword: '',
   });
   const [showEditPassword, setShowEditPassword] = useState<boolean>(false);
@@ -311,6 +329,70 @@ export default function UserManagementView() {
     }
   };
 
+  const renderRoleBadge = (role: UserRole) => {
+    switch (role) {
+      case 'super_admin':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/70 border border-indigo-300/60 dark:border-indigo-700/50 text-indigo-800 dark:text-indigo-300 text-[11px] font-bold">
+            <ShieldAlert className="w-3 h-3" />
+            <span>{getRoleDisplayName(role)}</span>
+          </span>
+        );
+      case 'admin':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300/60 dark:border-emerald-700/50 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold">
+            <ShieldCheck className="w-3 h-3" />
+            <span>{getRoleDisplayName(role)}</span>
+          </span>
+        );
+      case 'kepala_bagian_fe':
+      case 'manajer_fe':
+      case 'manajer_fm':
+      case 'manajer_osd':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/70 border border-amber-300/60 dark:border-amber-700/50 text-amber-800 dark:text-amber-300 text-[11px] font-bold">
+            <ShieldCheck className="w-3 h-3 text-amber-600" />
+            <span>{getRoleDisplayName(role)}</span>
+          </span>
+        );
+      case 'kepala_wilayah':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-950/70 border border-cyan-300/60 dark:border-cyan-700/50 text-cyan-800 dark:text-cyan-300 text-[11px] font-bold">
+            <User className="w-3 h-3" />
+            <span>{getRoleDisplayName(role)}</span>
+          </span>
+        );
+      case 'user_fe':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/70 border border-purple-300/60 dark:border-purple-700/50 text-purple-800 dark:text-purple-300 text-[11px] font-bold">
+            <User className="w-3 h-3" />
+            <span>{getRoleDisplayName(role)}</span>
+          </span>
+        );
+      case 'user_wilayah':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/70 border border-blue-300/60 dark:border-blue-700/50 text-blue-800 dark:text-blue-300 text-[11px] font-bold">
+            <User className="w-3 h-3" />
+            <span>{getRoleDisplayName(role)}</span>
+          </span>
+        );
+      case 'user_planting':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-100 dark:bg-teal-950/70 border border-teal-300/60 dark:border-teal-700/50 text-teal-800 dark:text-teal-300 text-[11px] font-bold">
+            <User className="w-3 h-3" />
+            <span>{getRoleDisplayName(role)}</span>
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold">
+            <User className="w-3 h-3" />
+            <span>{getRoleDisplayName(role)}</span>
+          </span>
+        );
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Toast Notification */}
@@ -374,7 +456,7 @@ export default function UserManagementView() {
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Pengguna</p>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{stats.total}</p>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{users.length}</p>
             <p className="text-[11px] text-slate-400 dark:text-slate-500">Semua akun aktif</p>
           </div>
           <div className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/40 dark:border-indigo-800/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
@@ -386,7 +468,7 @@ export default function UserManagementView() {
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Super Admin</p>
-            <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 tracking-tight">{stats.superAdminCount || users.filter(u => u.role === 'super_admin').length}</p>
+            <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 tracking-tight">{users.filter(u => u.role === 'super_admin').length}</p>
             <p className="text-[11px] text-slate-400 dark:text-slate-500">Kendali penuh sistem</p>
           </div>
           <div className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/40 dark:border-indigo-800/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
@@ -394,11 +476,11 @@ export default function UserManagementView() {
           </div>
         </div>
 
-        {/* Total Admin */}
+        {/* Total Admin FE */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
           <div className="space-y-1">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Administrator</p>
-            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 tracking-tight">{stats.adminCount}</p>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Admin FE</p>
+            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 tracking-tight">{users.filter(u => u.role === 'admin').length}</p>
             <p className="text-[11px] text-slate-400 dark:text-slate-500">Operasional & Data</p>
           </div>
           <div className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/40 dark:border-emerald-800/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
@@ -406,26 +488,26 @@ export default function UserManagementView() {
           </div>
         </div>
 
-        {/* Total User Wilayah */}
+        {/* Total Eksekutif / Manajemen */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
           <div className="space-y-1">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">User Wilayah</p>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 tracking-tight">{stats.userWilayahCount || users.filter(u => u.role === 'user_wilayah').length}</p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500">Order & Monitoring</p>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Manajemen FE/FM/OSD</p>
+            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 tracking-tight">{users.filter(u => ['kepala_bagian_fe', 'manajer_fe', 'manajer_fm', 'manajer_osd'].includes(u.role)).length}</p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500">Kabag & Manajer</p>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200/40 dark:border-blue-800/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-            <User className="w-5 h-5" />
+          <div className="w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200/40 dark:border-amber-800/40 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+            <ShieldCheck className="w-5 h-5" />
           </div>
         </div>
 
-        {/* Total User FE */}
+        {/* Total Wilayah & Lapangan */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
           <div className="space-y-1">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">User FE</p>
-            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 tracking-tight">{stats.userFeCount || users.filter(u => u.role === 'user_fe').length}</p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500">Monitoring Drop</p>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Wilayah & Lapangan</p>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 tracking-tight">{users.filter(u => ['kepala_wilayah', 'user_wilayah', 'user_fe', 'user_planting'].includes(u.role)).length}</p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500">Kawil, Mandor, Verifikator</p>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200/40 dark:border-purple-800/40 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
+          <div className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200/40 dark:border-blue-800/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
             <User className="w-5 h-5" />
           </div>
         </div>
@@ -434,13 +516,13 @@ export default function UserManagementView() {
       {/* Control Bar: Search & Role Filters */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
         {/* Search Input */}
-        <div className="relative w-full sm:w-80">
+        <div className="relative w-full sm:w-80 shrink-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari username"
+            placeholder="Cari username atau nama..."
             className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
           />
           {search && (
@@ -456,8 +538,8 @@ export default function UserManagementView() {
         </div>
 
         {/* Role Filter Buttons */}
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end overflow-x-auto">
-          <div className="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold whitespace-nowrap">
+        <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-thin">
+          <div className="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold whitespace-nowrap gap-1">
             <button
               type="button"
               onClick={() => setRoleFilter('ALL')}
@@ -467,63 +549,26 @@ export default function UserManagementView() {
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
-              Semua ({stats.total})
+              Semua ({users.length})
             </button>
-            <button
-              type="button"
-              onClick={() => setRoleFilter('super_admin')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                roleFilter === 'super_admin'
-                  ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 shadow-2xs font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-            >
-              Super Admin ({stats.superAdminCount || users.filter(u => u.role === 'super_admin').length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setRoleFilter('admin')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                roleFilter === 'admin'
-                  ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 shadow-2xs font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-            >
-              Admin ({stats.adminCount})
-            </button>
-            <button
-              type="button"
-              onClick={() => setRoleFilter('user_wilayah')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                roleFilter === 'user_wilayah'
-                  ? 'bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-            >
-              User Wilayah ({users.filter(u => u.role === 'user_wilayah').length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setRoleFilter('user_planting')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                roleFilter === 'user_planting'
-                  ? 'bg-white dark:bg-slate-900 text-teal-700 dark:text-teal-300 shadow-2xs font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-            >
-              User Planting ({users.filter(u => u.role === 'user_planting').length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setRoleFilter('user_fe')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                roleFilter === 'user_fe'
-                  ? 'bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 shadow-2xs font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-            >
-              User FE ({users.filter(u => u.role === 'user_fe').length})
-            </button>
+            {ALL_ASSIGNABLE_ROLES.map((r) => {
+              const count = users.filter((u) => u.role === r.role).length;
+              const isSelected = roleFilter === r.role;
+              return (
+                <button
+                  key={r.role}
+                  type="button"
+                  onClick={() => setRoleFilter(r.role)}
+                  className={`px-2.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 shadow-2xs font-bold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {r.label} ({count})
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -594,37 +639,7 @@ export default function UserManagementView() {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-center">
-                        {item.role === 'super_admin' ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/70 border border-indigo-300/60 dark:border-indigo-700/50 text-indigo-800 dark:text-indigo-300 text-[11px] font-bold">
-                            <ShieldAlert className="w-3 h-3" />
-                            <span>Super Admin</span>
-                          </span>
-                        ) : item.role === 'admin' ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300/60 dark:border-emerald-700/50 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold">
-                            <ShieldCheck className="w-3 h-3" />
-                            <span>Admin</span>
-                          </span>
-                        ) : item.role === 'user_wilayah' ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/70 border border-blue-300/60 dark:border-blue-700/50 text-blue-800 dark:text-blue-300 text-[11px] font-bold">
-                            <User className="w-3 h-3" />
-                            <span>User Wilayah</span>
-                          </span>
-                        ) : item.role === 'user_planting' ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-100 dark:bg-teal-950/70 border border-teal-300/60 dark:border-teal-700/50 text-teal-800 dark:text-teal-300 text-[11px] font-bold">
-                            <User className="w-3 h-3" />
-                            <span>User Planting</span>
-                          </span>
-                        ) : item.role === 'user_fe' ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/70 border border-purple-300/60 dark:border-purple-700/50 text-purple-800 dark:text-purple-300 text-[11px] font-bold">
-                            <User className="w-3 h-3" />
-                            <span>User FE</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-100 dark:bg-sky-950/70 border border-sky-300/60 dark:border-sky-700/50 text-sky-800 dark:text-sky-300 text-[11px] font-bold">
-                            <User className="w-3 h-3" />
-                            <span>User</span>
-                          </span>
-                        )}
+                        {renderRoleBadge(item.role)}
                       </td>
                       <td className="py-3 px-4 text-center text-slate-500 dark:text-slate-400">
                         {formatDate(item.createdAt)}
@@ -789,71 +804,25 @@ export default function UserManagementView() {
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                   Hak Akses (Role) <span className="text-rose-500">*</span>
                 </label>
-                <div className={`grid ${isSuperAdmin ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2'} gap-2`}>
-                  {isSuperAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => setAddForm({ ...addForm, role: 'super_admin' })}
-                      className={`py-2 px-2.5 rounded-xl border text-[11px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
-                        addForm.role === 'super_admin'
-                          ? 'border-indigo-500 bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-500/40'
-                          : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
-                      }`}
-                    >
-                      <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
-                      <span>Super Admin</span>
-                    </button>
-                  )}
-                  {isSuperAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => setAddForm({ ...addForm, role: 'admin' })}
-                      className={`py-2 px-2.5 rounded-xl border text-[11px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
-                        addForm.role === 'admin'
-                          ? 'border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/40'
-                          : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
-                      }`}
-                    >
-                      <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-                      <span>Admin</span>
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setAddForm({ ...addForm, role: 'user_wilayah' })}
-                    className={`py-2 px-2.5 rounded-xl border text-[11px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
-                      addForm.role === 'user_wilayah'
-                        ? 'border-blue-500 bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500/40'
-                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
-                    }`}
-                  >
-                    <User className="w-3.5 h-3.5 shrink-0" />
-                    <span>User Wilayah</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAddForm({ ...addForm, role: 'user_planting' })}
-                    className={`py-2 px-2.5 rounded-xl border text-[11px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
-                      addForm.role === 'user_planting'
-                        ? 'border-teal-500 bg-teal-50/80 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 ring-1 ring-teal-500/40'
-                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
-                    }`}
-                  >
-                    <User className="w-3.5 h-3.5 shrink-0" />
-                    <span>User Planting</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAddForm({ ...addForm, role: 'user_fe' })}
-                    className={`py-2 px-2.5 rounded-xl border text-[11px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
-                      addForm.role === 'user_fe'
-                        ? 'border-purple-500 bg-purple-50/80 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 ring-1 ring-purple-500/40'
-                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
-                    }`}
-                  >
-                    <User className="w-3.5 h-3.5 shrink-0" />
-                    <span>User FE</span>
-                  </button>
+                <div className="grid grid-cols-2 gap-2">
+                  {ALL_ASSIGNABLE_ROLES.filter((r) => !r.requireSuperAdmin || isSuperAdmin).map((r) => {
+                    const isSelected = addForm.role === r.role;
+                    return (
+                      <button
+                        key={r.role}
+                        type="button"
+                        onClick={() => setAddForm({ ...addForm, role: r.role })}
+                        className={`py-2 px-2.5 rounded-xl border text-[11px] font-semibold flex items-center justify-start gap-2 cursor-pointer transition-all text-left ${
+                          isSelected
+                            ? 'border-indigo-500 bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-500/40 font-bold'
+                            : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
+                        }`}
+                      >
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${isSelected ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                        <span className="truncate">{r.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -971,71 +940,25 @@ export default function UserManagementView() {
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                   Hak Akses (Role)
                 </label>
-                <div className={`grid ${isSuperAdmin ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2'} gap-2`}>
-                  {isSuperAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => setEditForm({ ...editForm, role: 'super_admin' })}
-                      className={`py-2 px-2.5 rounded-xl border text-[11px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
-                        editForm.role === 'super_admin'
-                          ? 'border-indigo-500 bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-500/40'
-                          : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
-                      }`}
-                    >
-                      <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
-                      <span>Super Admin</span>
-                    </button>
-                  )}
-                  {isSuperAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => setEditForm({ ...editForm, role: 'admin' })}
-                      className={`py-2 px-2.5 rounded-xl border text-[11px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
-                        editForm.role === 'admin'
-                          ? 'border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/40'
-                          : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
-                      }`}
-                    >
-                      <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-                      <span>Admin</span>
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setEditForm({ ...editForm, role: 'user_wilayah' })}
-                    className={`py-2 px-2.5 rounded-xl border text-[11px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
-                      editForm.role === 'user_wilayah'
-                        ? 'border-blue-500 bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500/40'
-                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
-                    }`}
-                  >
-                    <User className="w-3.5 h-3.5 shrink-0" />
-                    <span>User Wilayah</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditForm({ ...editForm, role: 'user_planting' })}
-                    className={`py-2 px-2.5 rounded-xl border text-[11px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
-                      editForm.role === 'user_planting'
-                        ? 'border-teal-500 bg-teal-50/80 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 ring-1 ring-teal-500/40'
-                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
-                    }`}
-                  >
-                    <User className="w-3.5 h-3.5 shrink-0" />
-                    <span>User Planting</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditForm({ ...editForm, role: 'user_fe' })}
-                    className={`py-2 px-2.5 rounded-xl border text-[11px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
-                      editForm.role === 'user_fe'
-                        ? 'border-purple-500 bg-purple-50/80 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 ring-1 ring-purple-500/40'
-                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
-                    }`}
-                  >
-                    <User className="w-3.5 h-3.5 shrink-0" />
-                    <span>User FE</span>
-                  </button>
+                <div className="grid grid-cols-2 gap-2">
+                  {ALL_ASSIGNABLE_ROLES.filter((r) => !r.requireSuperAdmin || isSuperAdmin).map((r) => {
+                    const isSelected = editForm.role === r.role;
+                    return (
+                      <button
+                        key={r.role}
+                        type="button"
+                        onClick={() => setEditForm({ ...editForm, role: r.role })}
+                        className={`py-2 px-2.5 rounded-xl border text-[11px] font-semibold flex items-center justify-start gap-2 cursor-pointer transition-all text-left ${
+                          isSelected
+                            ? 'border-indigo-500 bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-500/40 font-bold'
+                            : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
+                        }`}
+                      >
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${isSelected ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                        <span className="truncate">{r.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

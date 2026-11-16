@@ -36,9 +36,9 @@ const ROLE_DETAILS = {
     description: 'Akses tingkat tertinggi: seluruh modul, kontrol hak akses user, dan master data.',
   },
   admin: {
-    title: 'Administrator',
-    subtitle: 'Login Administrator untuk mengelola seluruh data analitik, master data, dan konfigurasi',
-    badge: 'Admin System',
+    title: 'Admin FE',
+    subtitle: 'Login Admin FE untuk mengelola seluruh data analitik, master data, dan konfigurasi sistem',
+    badge: 'Admin FE',
     badgeColor: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20',
     iconColor: 'bg-emerald-500/15 text-[#00873D] dark:text-emerald-400 border-emerald-500/30',
     icon: ShieldCheck,
@@ -46,24 +46,24 @@ const ROLE_DETAILS = {
     description: 'Akses penuh seluruh modul, dashboard analitik, master data, dan manajemen pengguna.',
   },
   user_wilayah: {
-    title: 'User Wilayah',
-    subtitle: 'Login User Wilayah untuk pemesanan gorong-gorong dan pemantauan per wilayah (AW01 - AW07)',
-    badge: 'Operasional Wilayah',
+    title: 'Mandor Wilayah',
+    subtitle: 'Login Mandor Wilayah untuk pemesanan gorong-gorong (Order, Pasang Manual, Pindah Lokasi)',
+    badge: 'Mandor Wilayah',
     badgeColor: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20',
     iconColor: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30',
     icon: MapPin,
     defaultUsername: 'wilayah',
-    description: 'Akses operasional wilayah lapangan, formulir permintaan, dan kontrol kebutuhan petak.',
+    description: 'Akses formulir transaksi: Order, Pasang Manual, dan Pindah Lokasi.',
   },
   user_fe: {
-    title: 'User FE (Field Establishment)',
-    subtitle: 'Login User FE untuk monitoring pengiriman dropping dan pemasangan fisik gorong-gorong',
-    badge: 'Field Establishment',
+    title: 'TK Verifikator FE',
+    subtitle: 'Login TK Verifikator FE untuk monitoring pengiriman dropping gorong-gorong di lapangan',
+    badge: 'TK Verifikator FE',
     badgeColor: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20',
     iconColor: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',
     icon: Tractor,
     defaultUsername: 'fe',
-    description: 'Akses pengawasan lapangan, progres drop material, dan instalasi gorong-gorong.',
+    description: 'Akses formulir transaksi khusus konfirmasi dropping fisik material gorong-gorong.',
   },
 };
 
@@ -378,10 +378,10 @@ function LoginContent() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-[#00873D] dark:group-hover:text-emerald-400 transition-colors">
-                        Administrator
+                        Admin FE
                       </span>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-                        Admin
+                        Admin FE
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
@@ -392,7 +392,7 @@ function LoginContent() {
                 <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-[#00873D] dark:group-hover:text-emerald-400 group-hover:translate-x-1 transition-all shrink-0 ml-2" />
               </button>
 
-              {/* Pilihan 2: User Wilayah */}
+              {/* Pilihan 2: Mandor Wilayah */}
               <button
                 type="button"
                 onClick={() => handleSelectRole('user_wilayah')}
@@ -405,21 +405,21 @@ function LoginContent() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                        User Wilayah
+                        Mandor Wilayah
                       </span>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
-                        Wilayah
+                        Mandor Wilayah
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
-                      Akses operasional wilayah lapangan &amp; formulir order gorong-gorong
+                      Akses formulir transaksi Order, Pasang Manual, &amp; Pindah Lokasi
                     </p>
                   </div>
                 </div>
                 <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 group-hover:translate-x-1 transition-all shrink-0 ml-2" />
               </button>
 
-              {/* Pilihan 3: User FE */}
+              {/* Pilihan 3: TK Verifikator FE */}
               <button
                 type="button"
                 onClick={() => handleSelectRole('user_fe')}
@@ -432,14 +432,14 @@ function LoginContent() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                        User FE
+                        TK Verifikator FE
                       </span>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
-                        Field Establishment
+                        TK Verifikator FE
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
-                      Akses pemantauan progres dropping lapangan &amp; pemasangan fisik
+                      Akses formulir transaksi khusus verifikasi dropping fisik gorong-gorong
                     </p>
                   </div>
                 </div>

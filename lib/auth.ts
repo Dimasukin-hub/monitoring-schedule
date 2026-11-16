@@ -1,6 +1,17 @@
 import { prisma } from './prisma';
 
-export type UserRole = 'super_admin' | 'admin' | 'user' | 'user_fe' | 'user_wilayah';
+export type UserRole =
+  | 'super_admin'
+  | 'admin'
+  | 'user'
+  | 'user_fe'
+  | 'user_wilayah'
+  | 'user_planting'
+  | 'kepala_bagian_fe'
+  | 'manajer_fe'
+  | 'manajer_fm'
+  | 'manajer_osd'
+  | 'kepala_wilayah';
 
 export interface AuthUser {
   id: number;
@@ -30,7 +41,7 @@ export const DEFAULT_USERS: Array<AuthUser & { password: string }> = [
   },
   {
     id: 1,
-    name: 'admin',
+    name: 'Admin FE',
     email: 'admin',
     password: 'admin123',
     role: 'admin',
@@ -38,7 +49,7 @@ export const DEFAULT_USERS: Array<AuthUser & { password: string }> = [
   },
   {
     id: 2,
-    name: 'Administrator GGF',
+    name: 'Admin FE GGF',
     email: 'admin@ggf.co.id',
     password: 'admin123',
     role: 'admin',
@@ -62,7 +73,7 @@ export const DEFAULT_USERS: Array<AuthUser & { password: string }> = [
   },
   {
     id: 5,
-    name: 'User Wilayah',
+    name: 'Mandor Wilayah',
     email: 'wilayah',
     password: 'wilayah123',
     role: 'user_wilayah',
@@ -70,7 +81,7 @@ export const DEFAULT_USERS: Array<AuthUser & { password: string }> = [
   },
   {
     id: 6,
-    name: 'User FE',
+    name: 'TK Verifikator FE',
     email: 'fe',
     password: 'fe123',
     role: 'user_fe',

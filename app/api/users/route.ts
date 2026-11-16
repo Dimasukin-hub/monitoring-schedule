@@ -123,7 +123,19 @@ export async function POST(req: Request) {
 
     const cleanUsername = rawUsername.trim().toLowerCase();
     const cleanName = rawName?.trim() || cleanUsername;
-    const validRoles = ['super_admin', 'admin', 'user', 'user_fe', 'user_wilayah', 'user_planting'];
+    const validRoles = [
+      'super_admin',
+      'admin',
+      'user',
+      'user_fe',
+      'user_wilayah',
+      'user_planting',
+      'kepala_bagian_fe',
+      'manajer_fe',
+      'manajer_fm',
+      'manajer_osd',
+      'kepala_wilayah',
+    ];
     const role = validRoles.includes(rawRole) ? rawRole : 'user_wilayah';
 
     // Jika yang membuat bukan Super Admin, dilarang membuat akun Admin atau Super Admin

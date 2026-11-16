@@ -20,7 +20,7 @@ import {
 } from '@/lib/portalRoutes';
 
 export default function GorongGorongPage() {
-  const { user, isAdmin, isLoading: authLoading } = useAuth();
+  const { user, isAdmin, canAccessMonitor, canAccessMasterData, isLoading: authLoading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -42,9 +42,22 @@ export default function GorongGorongPage() {
     if (!pathname) return;
     const parsed = parseGorongGorongPathname(pathname);
 
-    // Jika non-admin (User Wilayah / User FE) mencoba membuka monitor atau rute root, arahkan langsung ke form input
-    if (!authLoading && user && !isAdmin) {
-      if (pathname === '/gorong-gorong' || pathname === GORONG_GORONG_ROUTES.monitor || parsed.activeTab === 'monitor_gorong_gorong' || parsed.activeTab === 'master_data' || parsed.activeTab === 'user_management') {
+    // Guard navigasi URL sesuai role
+    if (!authLoading && user) {
+      // 1. Guard user management: hanya Admin & Super Admin
+      if (!isAdmin && (pathname === GORONG_GORONG_ROUTES.userManagement || parsed.activeTab === 'user_management')) {
+        setActiveTab('form_input');
+        router.replace(GORONG_GORONG_ROUTES.formInput);
+        return;
+      }
+      // 2. Guard monitor gorong-gorong: hanya jika canAccessMonitor
+      if (!canAccessMonitor && (pathname === '/gorong-gorong' || pathname === GORONG_GORONG_ROUTES.monitor || parsed.activeTab === 'monitor_gorong_gorong')) {
+        setActiveTab('form_input');
+        router.replace(GORONG_GORONG_ROUTES.formInput);
+        return;
+      }
+      // 3. Guard master data: hanya jika canAccessMasterData
+      if (!canAccessMasterData && (pathname.startsWith('/gorong-gorong/master-data') || parsed.activeTab === 'master_data')) {
         setActiveTab('form_input');
         router.replace(GORONG_GORONG_ROUTES.formInput);
         return;
@@ -64,7 +77,7 @@ export default function GorongGorongPage() {
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('ggf_active_portal', pathname);
     }
-  }, [pathname, router, authLoading, user, isAdmin]);
+  }, [pathname, router, authLoading, user, isAdmin, canAccessMonitor, canAccessMasterData]);
 
   // Dukung tombol Back / Forward browser tanpa reload
   useEffect(() => {
@@ -80,15 +93,21 @@ export default function GorongGorongPage() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Guard tab untuk non-admin: User Wilayah & User FE hanya boleh mengakses form input
+  // Guard tab sesuai role pengguna
   useEffect(() => {
-    if (!authLoading && user && !isAdmin) {
-      if (activeTab === 'monitor_gorong_gorong' || activeTab === 'master_data' || activeTab === 'user_management') {
+    if (!authLoading && user) {
+      if (!isAdmin && activeTab === 'user_management') {
+        setActiveTab('form_input');
+        router.replace(GORONG_GORONG_ROUTES.formInput);
+      } else if (!canAccessMonitor && activeTab === 'monitor_gorong_gorong') {
+        setActiveTab('form_input');
+        router.replace(GORONG_GORONG_ROUTES.formInput);
+      } else if (!canAccessMasterData && activeTab === 'master_data') {
         setActiveTab('form_input');
         router.replace(GORONG_GORONG_ROUTES.formInput);
       }
     }
-  }, [authLoading, user, isAdmin, activeTab, router]);
+  }, [authLoading, user, isAdmin, canAccessMonitor, canAccessMasterData, activeTab, router]);
 
   // Handler navigasi instan: ubah state langsung (0 ms jeda) dan perbarui URL di address bar
   const handleTabChange = (newTab: string) => {
@@ -173,8 +192,8 @@ export default function GorongGorongPage() {
           <FormOrderGorongGorongView />
         </div>
 
-        {/* 3. MENU: MASTER DATA (Khusus Admin) */}
-        {isAdmin && (
+        {/* 3. MENU: MASTER DATA */}
+        {canAccessMasterData && (
           <div className={activeTab === 'master_data' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
             {/* 3.1 SUB MENU: MASTER STATUS LOKASI */}
             <div className={masterDataSubTab === 'master_status_lokasi' ? 'block' : 'hidden'}>

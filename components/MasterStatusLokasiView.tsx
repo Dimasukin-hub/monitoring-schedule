@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/components/AuthProvider';
 import {
   Search,
   ChevronLeft,
@@ -27,6 +28,7 @@ let cachedTotalCount = 0;
 let cachedTotalPages = 1;
 
 export default function MasterStatusLokasiView() {
+  const { canUploadMasterData } = useAuth();
   const [dataList, setDataList] = useState<any[]>(cachedMasterLokasiList);
   const [totalCount, setTotalCount] = useState<number>(cachedTotalCount);
   const [page, setPage] = useState<number>(1);
@@ -190,15 +192,17 @@ export default function MasterStatusLokasiView() {
             Total: {totalCount} Lokasi
           </span>
 
-          <a
-            href="/api/gorong-gorong/master-lokasi/template"
-            download="Template_Master_Status_Lokasi.xlsx"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold cursor-pointer transition-all shadow-xs"
-            title="Unduh format template Excel kosong Master Status Lokasi"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Template Excel</span>
-          </a>
+          {canUploadMasterData && (
+            <a
+              href="/api/gorong-gorong/master-lokasi/template"
+              download="Template_Master_Status_Lokasi.xlsx"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold cursor-pointer transition-all shadow-xs"
+              title="Unduh format template Excel kosong Master Status Lokasi"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Template Excel</span>
+            </a>
+          )}
 
           <button
             type="button"
@@ -211,19 +215,21 @@ export default function MasterStatusLokasiView() {
             <span>{isExporting ? 'Mengekspor...' : 'Unduh Excel'}</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              setIsUploadModalOpen(true);
-              setUploadResult(null);
-              setUploadFile(null);
-            }}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#00873D] hover:bg-[#007033] text-white text-xs font-bold cursor-pointer transition-all shadow-xs hover:shadow-emerald-600/20"
-            title="Unggah berkas Excel untuk memperbarui master status lokasi"
-          >
-            <Upload className="w-3.5 h-3.5" />
-            <span>Upload Excel</span>
-          </button>
+          {canUploadMasterData && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsUploadModalOpen(true);
+                setUploadResult(null);
+                setUploadFile(null);
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#00873D] hover:bg-[#007033] text-white text-xs font-bold cursor-pointer transition-all shadow-xs hover:shadow-emerald-600/20"
+              title="Unggah berkas Excel untuk memperbarui master status lokasi"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Upload Excel</span>
+            </button>
+          )}
         </div>
       </div>
 

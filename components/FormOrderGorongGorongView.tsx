@@ -50,7 +50,19 @@ const INDONESIAN_MONTHS = [
 ];
 
 export default function FormOrderGorongGorongView() {
-  const { user, isAdmin, isUser, isUserFE, isUserWilayah } = useAuth();
+  const {
+    user,
+    isAdmin,
+    isUser,
+    isUserFE,
+    isUserWilayah,
+    isManagement,
+    isKepalaWilayah,
+    isTKVerifikatorFE,
+    isMandorWilayah,
+    isFormInputViewOnly,
+    roleDisplayName,
+  } = useAuth();
 
   // State Form Multi-Lokasi: Default 3 Slot
   const createEmptySlot = (id: string): LocationSlot => ({
@@ -91,12 +103,12 @@ export default function FormOrderGorongGorongView() {
 
   // Auto-set default jenis transaksi sesuai role user
   useEffect(() => {
-    if (isUserFE) {
+    if (isTKVerifikatorFE || isUserFE) {
       setJenisTransaksi('DROP');
-    } else if (isUserWilayah) {
+    } else if (isMandorWilayah || isKepalaWilayah || isUserWilayah) {
       setJenisTransaksi('ORDER');
     }
-  }, [isUserFE, isUserWilayah]);
+  }, [isTKVerifikatorFE, isUserFE, isMandorWilayah, isKepalaWilayah, isUserWilayah]);
 
   // Calendar View State
   const initialDate = new Date();
@@ -279,6 +291,14 @@ export default function FormOrderGorongGorongView() {
     e.preventDefault();
     setNotification(null);
 
+    if (isFormInputViewOnly) {
+      setNotification({
+        type: 'error',
+        message: 'Akun Anda dalam mode tinjauan (view only). Anda tidak memiliki izin untuk menyimpan data.',
+      });
+      return;
+    }
+
     if (!jenisTransaksi) {
       setNotification({
         type: 'error',
@@ -395,8 +415,8 @@ export default function FormOrderGorongGorongView() {
             qtyD100: parseInt(s.qtyD100 || '0', 10),
             tanggal,
             keterangan,
-            createdBy: user?.name || (isAdmin ? 'Admin' : (isUserFE ? 'User FE' : 'User Wilayah')),
-            userRole: isAdmin ? 'ADMIN' : (isUserFE ? 'USER_FE' : 'USER_WILAYAH'),
+            createdBy: user?.name || roleDisplayName || (isAdmin ? 'Admin FE' : 'User'),
+            userRole: user?.role ? user.role.toUpperCase() : (isAdmin ? 'ADMIN' : 'USER'),
           };
         } else {
           return {
@@ -411,8 +431,8 @@ export default function FormOrderGorongGorongView() {
             qtyD100: parseInt(s.qtyD100 || '0', 10),
             tanggal,
             keterangan,
-            createdBy: user?.name || (isAdmin ? 'Admin' : (isUserFE ? 'User FE' : 'User Wilayah')),
-            userRole: isAdmin ? 'ADMIN' : (isUserFE ? 'USER_FE' : 'USER_WILAYAH'),
+            createdBy: user?.name || roleDisplayName || (isAdmin ? 'Admin FE' : 'User'),
+            userRole: user?.role ? user.role.toUpperCase() : (isAdmin ? 'ADMIN' : 'USER'),
           };
         }
       });
@@ -445,6 +465,13 @@ export default function FormOrderGorongGorongView() {
 
   // Delete Handler
   const handleDeleteTrx = async (id: number) => {
+    if (isFormInputViewOnly) {
+      setNotification({
+        type: 'error',
+        message: 'Akun Anda dalam mode tinjauan (view only). Anda tidak memiliki izin untuk menghapus data.',
+      });
+      return;
+    }
     if (!confirm('Apakah Anda yakin ingin menghapus data riwayat transaksi ini?')) return;
     try {
       const res = await fetch(`/api/gorong-gorong/order?id=${id}`, {
@@ -497,15 +524,28 @@ export default function FormOrderGorongGorongView() {
               Hak Akses
             </span>
             <span className="text-xs font-black text-slate-800 dark:text-slate-200 break-words">
-              {isAdmin
-                ? 'Admin (Akses Penuh: Order, Drop, Pasang)'
-                : isUserFE
-                ? 'User FE (Khusus Drop)'
-                : 'User Wilayah (Order & Pasang Manual)'}
+              {roleDisplayName || 'User'}
+              {isFormInputViewOnly
+                ? ' (View Only)'
+                : isTKVerifikatorFE
+                ? ' (Khusus Drop)'
+                : isMandorWilayah || isKepalaWilayah
+                ? ' (Order, Pasang & Pindah)'
+                : ' (Akses Penuh)'}
             </span>
           </div>
         </div>
       </div>
+
+      {/* BANNER MODE TINJAUAN (VIEW ONLY) */}
+      {isFormInputViewOnly && (
+        <div className="p-3.5 sm:p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-3 text-amber-800 dark:text-amber-300 text-xs font-medium">
+          <AlertCircle className="w-5 h-5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+          <span>
+            <strong>Mode Tinjauan (View Only):</strong> Akun Anda memiliki izin melihat riwayat dan rincian transaksi tanpa akses menambah atau mengubah data.
+          </span>
+        </div>
+      )}
 
       {/* NOTIFIKASI FEEDBACK */}
       {notification && (
@@ -538,8 +578,16 @@ export default function FormOrderGorongGorongView() {
               </label>
 
               <div
-                onClick={() => setIsJenisDropdownOpen((prev) => !prev)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-600 text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center justify-between cursor-pointer shadow-2xs hover:border-[#00873D] transition-colors"
+                onClick={() => {
+                  if (!isTKVerifikatorFE && !isFormInputViewOnly) {
+                    setIsJenisDropdownOpen((prev) => !prev);
+                  }
+                }}
+                className={`w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-600 text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center justify-between transition-colors ${
+                  isTKVerifikatorFE || isFormInputViewOnly
+                    ? 'cursor-default bg-slate-50 dark:bg-slate-800/80 opacity-90'
+                    : 'cursor-pointer shadow-2xs hover:border-[#00873D]'
+                }`}
               >
                 <span className={!jenisTransaksi ? 'text-slate-400 font-normal' : ''}>
                   {jenisTransaksi === 'ORDER'
@@ -552,17 +600,19 @@ export default function FormOrderGorongGorongView() {
                     ? 'Pindah Lokasi'
                     : 'Pilih Jenis Transaksi'}
                 </span>
-                <ChevronDown
-                  className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
-                    isJenisDropdownOpen ? 'rotate-180' : 'rotate-0'
-                  }`}
-                />
+                {!isTKVerifikatorFE && !isFormInputViewOnly && (
+                  <ChevronDown
+                    className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+                      isJenisDropdownOpen ? 'rotate-180' : 'rotate-0'
+                    }`}
+                  />
+                )}
               </div>
 
-              {isJenisDropdownOpen && (
+              {isJenisDropdownOpen && !isTKVerifikatorFE && !isFormInputViewOnly && (
                 <div className="absolute left-0 right-0 top-full mt-1.5 rounded-xl bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 shadow-xl z-50 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-150">
-                  {/* Order: Ditampilkan untuk Admin dan User Wilayah */}
-                  {(isAdmin || isUserWilayah || (!isUserFE && !isAdmin)) && (
+                  {/* Order: Ditampilkan untuk Admin, Mandor Wilayah, Kepala Wilayah */}
+                  {(isAdmin || isMandorWilayah || isKepalaWilayah || isManagement || (!isTKVerifikatorFE && !isUserFE)) && (
                     <button
                       type="button"
                       onClick={() => {
@@ -580,8 +630,8 @@ export default function FormOrderGorongGorongView() {
                     </button>
                   )}
 
-                  {/* Drop: Ditampilkan untuk Admin dan User FE */}
-                  {(isAdmin || isUserFE) && (
+                  {/* Drop: Ditampilkan untuk Admin dan TK Verifikator FE */}
+                  {(isAdmin || isTKVerifikatorFE || isUserFE || isManagement) && (
                     <button
                       type="button"
                       onClick={() => {
@@ -599,8 +649,8 @@ export default function FormOrderGorongGorongView() {
                     </button>
                   )}
 
-                  {/* Pasang Manual: Ditampilkan untuk Admin dan User Wilayah */}
-                  {(isAdmin || isUserWilayah || (!isUserFE && !isAdmin)) && (
+                  {/* Pasang Manual: Ditampilkan untuk Admin, Mandor Wilayah, Kepala Wilayah */}
+                  {(isAdmin || isMandorWilayah || isKepalaWilayah || isManagement || (!isTKVerifikatorFE && !isUserFE)) && (
                     <button
                       type="button"
                       onClick={() => {
@@ -618,8 +668,8 @@ export default function FormOrderGorongGorongView() {
                     </button>
                   )}
 
-                  {/* Pindah Lokasi: Ditampilkan untuk Admin dan User FE */}
-                  {(isAdmin || isUserFE) && (
+                  {/* Pindah Lokasi: Ditampilkan untuk Admin, Mandor Wilayah, Kepala Wilayah */}
+                  {(isAdmin || isMandorWilayah || isKepalaWilayah || isManagement || (!isTKVerifikatorFE && !isUserFE)) && (
                     <button
                       type="button"
                       onClick={() => {
@@ -763,7 +813,7 @@ export default function FormOrderGorongGorongView() {
                       Lokasi {index + 1}
                     </span>
 
-                    {slots.length > 1 && (
+                    {slots.length > 1 && !isFormInputViewOnly && (
                       <button
                         type="button"
                         onClick={() => handleRemoveSlot(slot.id)}
@@ -1223,42 +1273,48 @@ export default function FormOrderGorongGorongView() {
           </div>
 
           {/* Baris Aksi Bawah: Tombol Tambah Lokasi & Simpan */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-            {/* Tombol Tambah Lokasi */}
-            <button
-              type="button"
-              onClick={handleAddSlot}
-              className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl border border-dashed border-[#00873D] text-[#00873D] dark:text-emerald-400 hover:bg-[#00873D]/10 text-xs font-bold transition-all cursor-pointer w-full sm:w-auto"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Tambah Lokasi</span>
-            </button>
-
-            {/* Actions: Reset Form & Simpan (Tanpa simbol plus) */}
-            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
+          {isFormInputViewOnly ? (
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-slate-500">
+              <span className="italic">Mode Tinjauan (View Only) — Tombol tambah dan simpan data dinonaktifkan.</span>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+              {/* Tombol Tambah Lokasi */}
               <button
                 type="button"
-                onClick={handleResetForm}
-                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all cursor-pointer text-center"
+                onClick={handleAddSlot}
+                className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl border border-dashed border-[#00873D] text-[#00873D] dark:text-emerald-400 hover:bg-[#00873D]/10 text-xs font-bold transition-all cursor-pointer w-full sm:w-auto"
               >
-                Reset Form
+                <Plus className="w-4 h-4" />
+                <span>Tambah Lokasi</span>
               </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-[#00873D] hover:bg-[#006e31] text-white text-xs font-extrabold shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 text-center"
-              >
-                {isSubmitting ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    Menyimpan...
-                  </span>
-                ) : (
-                  'Simpan'
-                )}
-              </button>
+
+              {/* Actions: Reset Form & Simpan (Tanpa simbol plus) */}
+              <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={handleResetForm}
+                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all cursor-pointer text-center"
+                >
+                  Reset Form
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-[#00873D] hover:bg-[#006e31] text-white text-xs font-extrabold shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 text-center"
+                >
+                  {isSubmitting ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Menyimpan...
+                    </span>
+                  ) : (
+                    'Simpan'
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </form>
       </div>
 
@@ -1283,8 +1339,10 @@ export default function FormOrderGorongGorongView() {
                 <th colSpan={4} className="sticky top-0 z-20 px-3 py-1.5 text-center bg-slate-200 dark:bg-slate-700 border-r border-b border-slate-300 dark:border-slate-600 font-extrabold text-[#00873D] dark:text-emerald-400">
                   Diameter
                 </th>
-                <th rowSpan={2} className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 px-3.5 py-2 text-center border-r border-b border-slate-200 dark:border-slate-700 font-bold">Penginput</th>
-                <th rowSpan={2} className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 px-3 py-2 text-center border-b border-slate-200 dark:border-slate-700 font-bold">Aksi</th>
+                <th rowSpan={2} className={`sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 px-3.5 py-2 text-center ${isFormInputViewOnly ? 'border-b' : 'border-r border-b'} border-slate-200 dark:border-slate-700 font-bold`}>Penginput</th>
+                {!isFormInputViewOnly && (
+                  <th rowSpan={2} className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 px-3 py-2 text-center border-b border-slate-200 dark:border-slate-700 font-bold">Aksi</th>
+                )}
               </tr>
               {/* Header Tier 2: Rincian 4 Diameter (100% Solid Pekat) */}
               <tr className="h-[28px]">
@@ -1297,13 +1355,13 @@ export default function FormOrderGorongGorongView() {
             <tbody className="text-slate-700 dark:text-slate-300">
               {isLoadingHistory ? (
                 <tr>
-                  <td colSpan={11} className="px-4 py-8 text-center text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                  <td colSpan={isFormInputViewOnly ? 10 : 11} className="px-4 py-8 text-center text-slate-400 border-b border-slate-200 dark:border-slate-800">
                     Memuat riwayat transaksi...
                   </td>
                 </tr>
               ) : historyList.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-4 py-8 text-center text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                  <td colSpan={isFormInputViewOnly ? 10 : 11} className="px-4 py-8 text-center text-slate-400 border-b border-slate-200 dark:border-slate-800">
                     Belum ada riwayat transaksi.
                   </td>
                 </tr>
@@ -1366,19 +1424,21 @@ export default function FormOrderGorongGorongView() {
                     <td className="px-3 py-2 text-center font-mono font-semibold text-slate-700 dark:text-slate-200 border-r border-b border-slate-200 dark:border-slate-800">
                       {item.qtyD100 || 0}
                     </td>
-                    <td className="px-3.5 py-2 text-[11px] text-slate-500 border-r border-b border-slate-200 dark:border-slate-800 text-center">
+                    <td className={`px-3.5 py-2 text-[11px] text-slate-500 ${isFormInputViewOnly ? 'border-b' : 'border-r border-b'} border-slate-200 dark:border-slate-800 text-center`}>
                       {item.createdBy} ({item.userRole})
                     </td>
-                    <td className="px-3 py-2 text-center border-b border-slate-200 dark:border-slate-800">
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteTrx(item.id)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer transition-colors"
-                        title="Hapus Transaksi"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
+                    {!isFormInputViewOnly && (
+                      <td className="px-3 py-2 text-center border-b border-slate-200 dark:border-slate-800">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTrx(item.id)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer transition-colors"
+                          title="Hapus Transaksi"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

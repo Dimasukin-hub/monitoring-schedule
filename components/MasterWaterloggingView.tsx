@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/components/AuthProvider';
 import {
   Search,
   ChevronLeft,
@@ -24,6 +25,7 @@ let cachedTotalCount = 0;
 let cachedTotalPages = 1;
 
 export default function MasterWaterloggingView() {
+  const { canUploadMasterData } = useAuth();
   const [dataList, setDataList] = useState<any[]>(cachedWaterloggingList);
   const [totalCount, setTotalCount] = useState<number>(cachedTotalCount);
   const [page, setPage] = useState<number>(1);
@@ -177,15 +179,17 @@ export default function MasterWaterloggingView() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <a
-              href="/api/gorong-gorong/master-waterlogging/template"
-              download="Template_Master_Waterlogging.xlsx"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold cursor-pointer transition-all shadow-xs"
-              title="Unduh format template Excel kosong Master Waterlogging"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-cyan-600" />
-              <span>Template Excel</span>
-            </a>
+            {canUploadMasterData && (
+              <a
+                href="/api/gorong-gorong/master-waterlogging/template"
+                download="Template_Master_Waterlogging.xlsx"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold cursor-pointer transition-all shadow-xs"
+                title="Unduh format template Excel kosong Master Waterlogging"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-cyan-600" />
+                <span>Template Excel</span>
+              </a>
+            )}
 
             <button
               type="button"
@@ -201,18 +205,20 @@ export default function MasterWaterloggingView() {
               <span>{isExporting ? 'Mengekspor...' : 'Unduh Excel'}</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                setUploadResult(null);
-                setUploadFile(null);
-                setIsUploadModalOpen(true);
-              }}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold cursor-pointer transition-all shadow-xs"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              <span>Upload Excel</span>
-            </button>
+            {canUploadMasterData && (
+              <button
+                type="button"
+                onClick={() => {
+                  setUploadResult(null);
+                  setUploadFile(null);
+                  setIsUploadModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold cursor-pointer transition-all shadow-xs"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>Upload Excel</span>
+              </button>
+            )}
           </div>
         </div>
 

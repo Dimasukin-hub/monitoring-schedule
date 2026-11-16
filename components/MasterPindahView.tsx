@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/components/AuthProvider';
 import {
   Search,
   ChevronLeft,
@@ -20,6 +21,7 @@ import {
 const WILAYAH_LIST = ['AW01', 'AW02', 'AW03', 'AW04', 'AW05', 'AW06', 'AW07'];
 
 export default function MasterPindahView() {
+  const { canUploadMasterData } = useAuth();
   const [dataList, setDataList] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [page, setPage] = useState<number>(1);
@@ -173,14 +175,16 @@ export default function MasterPindahView() {
 
           <div className="flex flex-wrap items-center gap-2">
             {/* Download Template Excel */}
-            <a
-              href="/api/gorong-gorong/master-pindah/template"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors"
-              title="Unduh template Excel kosong untuk master data pindah lokasi"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-              Template Excel
-            </a>
+            {canUploadMasterData && (
+              <a
+                href="/api/gorong-gorong/master-pindah/template"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors"
+                title="Unduh template Excel kosong untuk master data pindah lokasi"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                Template Excel
+              </a>
+            )}
 
             {/* Export Excel */}
             <button
@@ -194,18 +198,20 @@ export default function MasterPindahView() {
             </button>
 
             {/* Upload Excel Modal Trigger */}
-            <button
-              type="button"
-              onClick={() => {
-                setUploadResult(null);
-                setUploadFile(null);
-                setIsUploadModalOpen(true);
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-purple-600 hover:bg-purple-700 text-white shadow-xs transition-colors"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              Upload Excel
-            </button>
+            {canUploadMasterData && (
+              <button
+                type="button"
+                onClick={() => {
+                  setUploadResult(null);
+                  setUploadFile(null);
+                  setIsUploadModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-purple-600 hover:bg-purple-700 text-white shadow-xs transition-colors"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                Upload Excel
+              </button>
+            )}
           </div>
         </div>
 

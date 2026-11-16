@@ -3,7 +3,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-export type UserRole = 'super_admin' | 'admin' | 'user' | 'user_fe' | 'user_wilayah' | 'user_planting';
+export type UserRole =
+  | 'super_admin'
+  | 'admin'
+  | 'kepala_bagian_fe'
+  | 'manajer_fe'
+  | 'manajer_fm'
+  | 'manajer_osd'
+  | 'kepala_wilayah'
+  | 'user_fe'
+  | 'user_wilayah'
+  | 'user'
+  | 'user_planting';
 
 export interface AuthUser {
   id: number;
@@ -13,15 +24,54 @@ export interface AuthUser {
   avatar?: string | null;
 }
 
+export function getRoleDisplayName(role: UserRole | string | null | undefined): string {
+  switch (role) {
+    case 'super_admin':
+      return 'Super Admin';
+    case 'admin':
+      return 'Admin FE';
+    case 'kepala_bagian_fe':
+      return 'Kepala Bagian FE';
+    case 'manajer_fe':
+      return 'Manajer FE';
+    case 'manajer_fm':
+      return 'Manajer FM';
+    case 'manajer_osd':
+      return 'Manajer OSD';
+    case 'kepala_wilayah':
+      return 'Kepala Wilayah';
+    case 'user_fe':
+      return 'TK Verifikator FE';
+    case 'user_wilayah':
+    case 'user':
+      return 'Mandor Wilayah';
+    case 'user_planting':
+      return 'User Planting';
+    default:
+      return role ? String(role) : 'User';
+  }
+}
+
 interface AuthContextType {
   user: AuthUser | null;
   role: UserRole | null;
+  roleDisplayName: string;
   isSuperAdmin: boolean;
   isAdmin: boolean;
+  isAdminFE: boolean;
+  isManagement: boolean;
+  isKepalaWilayah: boolean;
+  isTKVerifikatorFE: boolean;
+  isMandorWilayah: boolean;
   isUser: boolean;
   isUserFE: boolean;
   isUserWilayah: boolean;
   isUserPlanting: boolean;
+  canAccessMonitor: boolean;
+  canAccessMasterData: boolean;
+  canEditOpenCloseStatus: boolean;
+  canUploadMasterData: boolean;
+  isFormInputViewOnly: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   register: (name: string, email: string, password: string, role: UserRole) => Promise<{ success: boolean; message?: string }>;
@@ -32,12 +82,23 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   role: null,
+  roleDisplayName: '',
   isSuperAdmin: false,
   isAdmin: false,
+  isAdminFE: false,
+  isManagement: false,
+  isKepalaWilayah: false,
+  isTKVerifikatorFE: false,
+  isMandorWilayah: false,
   isUser: false,
   isUserFE: false,
   isUserWilayah: false,
   isUserPlanting: false,
+  canAccessMonitor: false,
+  canAccessMasterData: false,
+  canEditOpenCloseStatus: false,
+  canUploadMasterData: false,
+  isFormInputViewOnly: false,
   isLoading: true,
   login: async () => ({ success: false }),
   register: async () => ({ success: false }),
@@ -133,24 +194,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const role = user?.role || null;
+  const roleDisplayName = getRoleDisplayName(role);
   const isSuperAdmin = role === 'super_admin';
+  const isAdminFE = role === 'admin';
   const isAdmin = role === 'admin' || role === 'super_admin';
-  const isUserFE = role === 'user_fe';
-  const isUserWilayah = role === 'user_wilayah' || role === 'user';
+  const isManagement = ['kepala_bagian_fe', 'manajer_fe', 'manajer_fm', 'manajer_osd'].includes(role || '');
+  const isKepalaWilayah = role === 'kepala_wilayah';
+  const isTKVerifikatorFE = role === 'user_fe';
+  const isMandorWilayah = role === 'user_wilayah' || role === 'user';
+  const isUserFE = isTKVerifikatorFE;
+  const isUserWilayah = isMandorWilayah;
   const isUserPlanting = role === 'user_planting';
-  const isUser = !isAdmin;
+  const isUser = !isAdmin && !isManagement && !isKepalaWilayah;
+
+  const canAccessMonitor = isSuperAdmin || isAdmin || isManagement || isKepalaWilayah;
+  const canAccessMasterData = isSuperAdmin || isAdmin || isManagement || isKepalaWilayah;
+  const canEditOpenCloseStatus = isSuperAdmin || isAdmin;
+  const canUploadMasterData = isSuperAdmin || isAdmin;
+  const isFormInputViewOnly = isManagement;
 
   return (
     <AuthContext.Provider
       value={{
         user,
         role,
+        roleDisplayName,
         isSuperAdmin,
         isAdmin,
+        isAdminFE,
+        isManagement,
+        isKepalaWilayah,
+        isTKVerifikatorFE,
+        isMandorWilayah,
         isUser,
         isUserFE,
         isUserWilayah,
         isUserPlanting,
+        canAccessMonitor,
+        canAccessMasterData,
+        canEditOpenCloseStatus,
+        canUploadMasterData,
+        isFormInputViewOnly,
         isLoading,
         login,
         register,
