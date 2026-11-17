@@ -230,7 +230,7 @@ export default function GorongGorongPage() {
         {/* 4. MENU: MANAJEMEN USER (Khusus Admin) */}
         {isAdmin && (
           <div className={activeTab === 'user_management' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
-            <UserManagementView />
+            <UserManagementView portal="gorong-gorong" />
           </div>
         )}
       </main>

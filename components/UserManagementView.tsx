@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import {
   Users,
   UserPlus,
@@ -46,7 +47,16 @@ const ALL_ASSIGNABLE_ROLES: { role: UserRole; label: string; requireSuperAdmin?:
   { role: 'user_planting', label: 'User Planting' },
 ];
 
-export default function UserManagementView() {
+export default function UserManagementView({ portal }: { portal?: string } = {}) {
+  const pathname = usePathname();
+  const isGorongGorong = portal === 'gorong-gorong' || (pathname && pathname.includes('/gorong-gorong'));
+
+  // Daftar peran yang dapat dipilih (User Planting disembunyikan di portal Gorong-Gorong)
+  const assignableRoles = ALL_ASSIGNABLE_ROLES.filter((r) => {
+    if (isGorongGorong && r.role === 'user_planting') return false;
+    return true;
+  });
+
   const { user: currentUser, isSuperAdmin } = useAuth();
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -149,8 +159,9 @@ export default function UserManagementView() {
     fetchUsers();
   }, [currentUser]);
 
-  // Filtered users list
+  // Filtered users list (User Planting disembunyikan jika di portal Gorong-Gorong)
   const filteredUsers = users.filter((u) => {
+    if (isGorongGorong && u.role === 'user_planting') return false;
     const matchesSearch =
       u.username.toLowerCase().includes(search.toLowerCase()) ||
       u.name.toLowerCase().includes(search.toLowerCase());
@@ -524,7 +535,7 @@ export default function UserManagementView() {
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Wilayah & Lapangan</p>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 tracking-tight">{users.filter(u => ['kepala_wilayah', 'user_wilayah', 'user_fe', 'user_planting'].includes(u.role)).length}</p>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 tracking-tight">{users.filter(u => ['kepala_wilayah', 'user_wilayah', 'user_fe', ...(isGorongGorong ? [] : ['user_planting'])].includes(u.role)).length}</p>
             <p className="text-[11px] text-slate-400 dark:text-slate-500">Kawil, Mandor, Verifikator</p>
           </div>
           <div className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200/40 dark:border-blue-800/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
@@ -569,9 +580,9 @@ export default function UserManagementView() {
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
-              Semua ({users.length})
+              Semua ({users.filter(u => !isGorongGorong || u.role !== 'user_planting').length})
             </button>
-            {ALL_ASSIGNABLE_ROLES.map((r) => {
+            {assignableRoles.map((r) => {
               const count = users.filter((u) => u.role === r.role).length;
               const isSelected = roleFilter === r.role;
               return (
@@ -861,7 +872,7 @@ export default function UserManagementView() {
                   Hak Akses (Role) <span className="text-rose-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  {ALL_ASSIGNABLE_ROLES.filter((r) => !r.requireSuperAdmin || isSuperAdmin).map((r) => {
+                  {assignableRoles.filter((r) => !r.requireSuperAdmin || isSuperAdmin).map((r) => {
                     const isSelected = addForm.role === r.role;
                     return (
                       <button
@@ -1017,7 +1028,7 @@ export default function UserManagementView() {
                   Hak Akses (Role)
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  {ALL_ASSIGNABLE_ROLES.filter((r) => !r.requireSuperAdmin || isSuperAdmin).map((r) => {
+                  {assignableRoles.filter((r) => !r.requireSuperAdmin || isSuperAdmin).map((r) => {
                     const isSelected = editForm.role === r.role;
                     return (
                       <button
