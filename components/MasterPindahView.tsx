@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import {
+  Calendar,
   Search,
   ChevronLeft,
   ChevronRight,
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react';
 
 const WILAYAH_LIST = ['AW01', 'AW02', 'AW03', 'AW04', 'AW05', 'AW06', 'AW07'];
+const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
 
 export default function MasterPindahView() {
   const { canUploadMasterData } = useAuth();
@@ -32,6 +34,9 @@ export default function MasterPindahView() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isWilayahDropdownOpen, setIsWilayahDropdownOpen] = useState<boolean>(false);
+  const [pindahMonthRange, setPindahMonthRange] = useState<{ startMonth: number; endMonth: number; year: number } | null>(null);
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState<boolean>(false);
+  const [pickerYear, setPickerYear] = useState<number>(2026);
 
   // Export & Upload Modal States
   const [isExporting, setIsExporting] = useState<boolean>(false);
@@ -47,6 +52,9 @@ export default function MasterPindahView() {
       const target = e.target as HTMLElement;
       if (!target.closest('.pindah-wilayah-dropdown')) {
         setIsWilayahDropdownOpen(false);
+      }
+      if (!target.closest('.pindah-monthpicker-container')) {
+        setIsMonthPickerOpen(false);
       }
     };
     document.addEventListener('click', handleClickOutside);
@@ -70,6 +78,11 @@ export default function MasterPindahView() {
       });
       if (selectedWilayah.length > 0) params.set('wilayah', selectedWilayah.join(','));
       if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
+      if (pindahMonthRange) {
+        params.set('year', String(pindahMonthRange.year));
+        params.set('startMonth', String(pindahMonthRange.startMonth));
+        params.set('endMonth', String(pindahMonthRange.endMonth));
+      }
 
       const res = await fetch(`/api/gorong-gorong/master-pindah?${params.toString()}`);
       const data = await res.json();
@@ -87,7 +100,20 @@ export default function MasterPindahView() {
 
   useEffect(() => {
     loadData(page, dataList.length === 0);
-  }, [page, selectedWilayah, debouncedSearch, pageSize]);
+  }, [page, selectedWilayah, debouncedSearch, pageSize, pindahMonthRange]);
+
+  // Real-time synchronization: dengarkan transaksi form input & pembaruan master data
+  useEffect(() => {
+    const handleSync = () => {
+      loadData(page, false);
+    };
+    window.addEventListener('gorong_gorong_updated', handleSync);
+    window.addEventListener('master_data_updated', handleSync);
+    return () => {
+      window.removeEventListener('gorong_gorong_updated', handleSync);
+      window.removeEventListener('master_data_updated', handleSync);
+    };
+  }, [page, selectedWilayah, debouncedSearch, pageSize, pindahMonthRange]);
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '-';
@@ -100,6 +126,11 @@ export default function MasterPindahView() {
       const params = new URLSearchParams();
       if (selectedWilayah.length > 0) params.set('wilayah', selectedWilayah.join(','));
       if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
+      if (pindahMonthRange) {
+        params.set('year', String(pindahMonthRange.year));
+        params.set('startMonth', String(pindahMonthRange.startMonth));
+        params.set('endMonth', String(pindahMonthRange.endMonth));
+      }
 
       const res = await fetch(`/api/gorong-gorong/master-pindah/export?${params.toString()}`);
       if (!res.ok) throw new Error('Gagal mengekspor berkas Excel');
@@ -140,7 +171,11 @@ export default function MasterPindahView() {
       if (data.success) {
         setUploadResult({ success: true, message: data.message });
         setUploadFile(null);
-        await loadData(1, true);
+        await loadData(1, false);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('gorong_gorong_updated'));
+          window.dispatchEvent(new CustomEvent('master_data_updated', { detail: { type: 'pindah' } }));
+        }
       } else {
         setUploadResult({ success: false, message: data.message || 'Gagal mengunggah berkas' });
       }
@@ -245,12 +280,15 @@ export default function MasterPindahView() {
             )}
           </div>
 
-          {/* Filter Wilayah on the Right (No refresh button) */}
-          <div className="flex items-center gap-2">
+          {/* Filter Wilayah and Rentang Bulan on the Right */}
+          <div className="flex flex-wrap items-center gap-2.5">
             <div className="relative pindah-wilayah-dropdown">
               <button
                 type="button"
-                onClick={() => setIsWilayahDropdownOpen((prev) => !prev)}
+                onClick={() => {
+                  setIsWilayahDropdownOpen((prev) => !prev);
+                  setIsMonthPickerOpen(false);
+                }}
                 className="flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs"
               >
                 <span>
@@ -303,6 +341,126 @@ export default function MasterPindahView() {
                       </button>
                     );
                   })}
+                </div>
+              )}
+            </div>
+
+            {/* Filter Rentang Bulan Pindah */}
+            <div className="relative pindah-monthpicker-container">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMonthPickerOpen((prev) => !prev);
+                  setIsWilayahDropdownOpen(false);
+                }}
+                className={`flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-colors shadow-2xs ${
+                  pindahMonthRange
+                    ? 'bg-purple-50/70 dark:bg-purple-950/40 border-purple-600 text-purple-600 font-bold'
+                    : 'bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                  <span>
+                    {pindahMonthRange
+                      ? `${MONTH_NAMES_SHORT[pindahMonthRange.startMonth]} – ${MONTH_NAMES_SHORT[pindahMonthRange.endMonth]} ${pindahMonthRange.year}`
+                      : 'Rentang Bulan Pindah'}
+                  </span>
+                </div>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                    isMonthPickerOpen ? 'rotate-180' : 'rotate-0'
+                  }`}
+                />
+              </button>
+
+              {isMonthPickerOpen && (
+                <div className="absolute right-0 top-full mt-1.5 w-72 p-3.5 rounded-2xl bg-[#1e2330] text-white border border-slate-700/80 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100">
+                  {/* Header: Year Nav */}
+                  <div className="flex items-center justify-between px-2 mb-2">
+                    <button
+                      type="button"
+                      onClick={() => setPickerYear((y) => y - 1)}
+                      className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <span className="text-sm font-bold tracking-tight text-white">{pickerYear}</span>
+                    <button
+                      type="button"
+                      onClick={() => setPickerYear((y) => y + 1)}
+                      className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Grid 12 Bulan (3 kolom x 4 baris) */}
+                  <div className="grid grid-cols-3 gap-1.5 my-2">
+                    {MONTH_NAMES_SHORT.map((mName, mIdx) => {
+                      const isSelectedYear = pindahMonthRange && pindahMonthRange.year === pickerYear;
+                      const s = isSelectedYear ? Math.min(pindahMonthRange.startMonth, pindahMonthRange.endMonth) : -1;
+                      const e = isSelectedYear ? Math.max(pindahMonthRange.startMonth, pindahMonthRange.endMonth) : -1;
+                      const isStart = isSelectedYear && mIdx === s;
+                      const isEnd = isSelectedYear && mIdx === e;
+                      const inRange = isSelectedYear && mIdx >= s && mIdx <= e;
+
+                      let btnClass = 'text-slate-300 hover:bg-slate-800/80 hover:text-white';
+                      if (isStart || isEnd) {
+                        btnClass = 'bg-purple-600 text-white font-black shadow-xs';
+                      } else if (inRange) {
+                        btnClass = 'bg-purple-600/30 text-purple-300 font-bold';
+                      }
+
+                      return (
+                        <button
+                          key={mName}
+                          type="button"
+                          onClick={() => {
+                            if (!pindahMonthRange || (pindahMonthRange.startMonth !== pindahMonthRange.endMonth)) {
+                              setPindahMonthRange({ startMonth: mIdx, endMonth: mIdx, year: pickerYear });
+                            } else {
+                              const first = pindahMonthRange.startMonth;
+                              setPindahMonthRange({
+                                startMonth: Math.min(first, mIdx),
+                                endMonth: Math.max(first, mIdx),
+                                year: pickerYear,
+                              });
+                            }
+                            setPage(1);
+                          }}
+                          className={`py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${btnClass}`}
+                        >
+                          {mName}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Footer Controls */}
+                  <div className="pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPindahMonthRange(null);
+                        setIsMonthPickerOpen(false);
+                        setPage(1);
+                      }}
+                      className="text-rose-400 hover:text-rose-300 font-semibold cursor-pointer"
+                    >
+                      Reset Filter
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMonthPickerOpen(false);
+                        setPage(1);
+                      }}
+                      className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold cursor-pointer"
+                    >
+                      Terapkan
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

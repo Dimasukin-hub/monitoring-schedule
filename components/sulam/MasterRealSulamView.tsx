@@ -33,9 +33,9 @@ export default function MasterRealSulamView() {
   const [uploadMessage, setUploadMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchData = async () => {
+  const fetchData = async (isSilent = false) => {
     try {
-      setLoading(true);
+      if (!isSilent && dataList.length === 0) setLoading(true);
       const params = new URLSearchParams({
         page: page.toString(),
         limit: pageSize.toString(),
@@ -59,6 +59,19 @@ export default function MasterRealSulamView() {
     fetchData();
   }, [page, search]);
 
+  // Real-time synchronization
+  useEffect(() => {
+    const handleSync = () => {
+      fetchData(true);
+    };
+    window.addEventListener('sulam_updated', handleSync);
+    window.addEventListener('master_data_updated', handleSync);
+    return () => {
+      window.removeEventListener('sulam_updated', handleSync);
+      window.removeEventListener('master_data_updated', handleSync);
+    };
+  }, [page, search]);
+
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!uploadFile) return;
@@ -78,7 +91,11 @@ export default function MasterRealSulamView() {
       if (json.success) {
         setUploadMessage({ type: 'success', text: json.message });
         setUploadFile(null);
-        fetchData();
+        fetchData(true);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('sulam_updated'));
+          window.dispatchEvent(new CustomEvent('master_data_updated', { detail: { type: 'sulam_real' } }));
+        }
         setTimeout(() => {
           setIsUploadOpen(false);
           setUploadMessage(null);

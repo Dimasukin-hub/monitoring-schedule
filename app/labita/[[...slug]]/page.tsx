@@ -41,21 +41,21 @@ import {
 } from '@/lib/portalRoutes';
 
 export default function LabitaDashboardPage() {
-  const { user, isAdmin, isLoading: authLoading } = useAuth();
+  const { user, isAdmin, isSuperAdmin, isLoading: authLoading } = useAuth();
   const { canAccessLabita } = usePortalAccess();
   const pathname = usePathname();
   const router = useRouter();
 
-  // Guard login: jika pengguna belum login sebagai Administrator, arahkan langsung ke login admin
+  // Guard login: jika pengguna belum login sebagai Super Administrator, arahkan langsung ke login super admin
   useEffect(() => {
-    if (!authLoading && (!user || !isAdmin)) {
+    if (!authLoading && (!user || !isSuperAdmin)) {
       router.replace(
-        `/login?role=admin&callbackUrl=${encodeURIComponent(
+        `/login?role=super_admin&callbackUrl=${encodeURIComponent(
           pathname || '/labita/executive-summary/pengolahan-lahan'
         )}`
       );
     }
-  }, [authLoading, user, isAdmin, pathname, router]);
+  }, [authLoading, user, isSuperAdmin, pathname, router]);
 
   // Inisialisasi awal berdasarkan URL
   const initial = parseLabitaPathname(pathname || '/labita');
@@ -120,37 +120,65 @@ export default function LabitaDashboardPage() {
     }
   }, [isAdmin, activeTab, plantingSubTab, router]);
 
-  // Handler navigasi dari klik tab Header (mengubah URL browser)
+  // Dukung tombol Back / Forward browser tanpa reload
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window !== 'undefined') {
+        const parsed = parseLabitaPathname(window.location.pathname);
+        setActiveTab(parsed.activeTab);
+        setExecutiveSubTab(parsed.executiveSubTab);
+        setPengolahanSubTab(parsed.pengolahanSubTab);
+        setPlantingSubTab(parsed.plantingSubTab);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Handler navigasi instan: ubah state langsung (0 ms jeda) dan perbarui URL di address bar
   const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
     let sub: string | undefined = undefined;
     if (newTab === 'executive_summary') sub = executiveSubTab;
     else if (newTab === 'pengolahan_lahan_bibit_tanam') sub = pengolahanSubTab;
     else if (newTab === 'planting') sub = plantingSubTab;
     const targetRoute = getLabitaRoute(newTab, sub);
-    router.push(targetRoute);
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', targetRoute);
+      sessionStorage.setItem('ggf_active_portal', targetRoute);
+    }
   };
 
   const handleExecutiveSubTabChange = (newSubTab: string) => {
     setExecutiveSubTab(newSubTab);
     const targetRoute = getLabitaRoute('executive_summary', newSubTab);
-    router.push(targetRoute);
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', targetRoute);
+      sessionStorage.setItem('ggf_active_portal', targetRoute);
+    }
   };
 
   const handlePengolahanSubTabChange = (newSubTab: string) => {
     setPengolahanSubTab(newSubTab);
     const targetRoute = getLabitaRoute('pengolahan_lahan_bibit_tanam', newSubTab);
-    router.push(targetRoute);
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', targetRoute);
+      sessionStorage.setItem('ggf_active_portal', targetRoute);
+    }
   };
 
   const handlePlantingSubTabChange = (newSubTab: string) => {
     setPlantingSubTab(newSubTab);
     const targetRoute = getLabitaRoute('planting', newSubTab);
-    router.push(targetRoute);
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', targetRoute);
+      sessionStorage.setItem('ggf_active_portal', targetRoute);
+    }
   };
 
-  // Load Dashboard Summary & Charts
+  // Load Dashboard Summary & Charts (Stale-While-Revalidate agar 0 ms jeda)
   const loadDashboardData = (isManualRefresh = false, isSilent = false) => {
-    if (!isSilent) {
+    if (!isSilent && !summaryData) {
       setIsLoading(true);
     }
     const summaryParams = new URLSearchParams();
@@ -242,14 +270,14 @@ export default function LabitaDashboardPage() {
     }
   };
 
-  // Tampilan loading / pemeriksaan hak akses sebelum diarahkan ke login admin
-  if (authLoading || !user || !isAdmin) {
+  // Tampilan loading / pemeriksaan hak akses sebelum diarahkan ke login super admin
+  if (authLoading || !user || !isSuperAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
           <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-            Memeriksa hak akses Administrator...
+            Memeriksa hak akses Super Administrator...
           </span>
         </div>
       </div>

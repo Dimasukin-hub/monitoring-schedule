@@ -8,7 +8,7 @@ import { useAuth } from '@/components/AuthProvider';
  * Khusus dibuka jika pengguna sudah terautentikasi sebagai Administrator (Admin / Super Admin).
  */
 export function usePortalAccess() {
-  const { user, isAdmin, isLoading: authLoading } = useAuth();
+  const { user, isAdmin, isSuperAdmin, isLoading: authLoading } = useAuth();
   const [isClient, setIsClient] = useState<boolean>(false);
   const [isLocalhost, setIsLocalhost] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -39,13 +39,14 @@ export function usePortalAccess() {
   // Status Under Development berlaku di domain online jika bukan localhost
   const isLabitaUnderDev = isClient && !isLocalhost;
 
-  // Akses Portal Labita khusus untuk Administrator
-  const canAccessLabita = !authLoading && Boolean(user && isAdmin);
+  // Akses Portal Labita khusus untuk Super Administrator
+  const canAccessLabita = !authLoading && Boolean(user && isSuperAdmin);
 
   return {
     isClient,
     isLocalhost,
     isAdmin,
+    isSuperAdmin,
     user,
     authLoading,
     isLabitaUnderDev,

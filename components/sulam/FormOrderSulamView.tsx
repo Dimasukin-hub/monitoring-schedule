@@ -60,6 +60,17 @@ export default function FormOrderSulamView() {
       }
     }
     loadLokasiOptions();
+
+    const handleSync = () => {
+      loadLokasiOptions();
+      fetchTickets();
+    };
+    window.addEventListener('sulam_updated', handleSync);
+    window.addEventListener('master_data_updated', handleSync);
+    return () => {
+      window.removeEventListener('sulam_updated', handleSync);
+      window.removeEventListener('master_data_updated', handleSync);
+    };
   }, []);
 
   // Fetch ticket history
@@ -161,6 +172,9 @@ export default function FormOrderSulamView() {
         setRitCD(0);
         setRitFuso(0);
         fetchTickets();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('sulam_updated'));
+        }
       } else {
         setFormMessage({ type: 'error', text: json.message || 'Gagal mengajukan formulir.' });
       }
@@ -187,6 +201,9 @@ export default function FormOrderSulamView() {
       const json = await res.json();
       if (json.success) {
         fetchTickets();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('sulam_updated'));
+        }
       } else {
         alert(json.message || 'Gagal mengubah status');
       }

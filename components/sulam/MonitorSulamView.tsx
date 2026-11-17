@@ -42,9 +42,9 @@ export default function MonitorSulamView() {
   const [page, setPage] = useState(1);
   const pageSize = 50;
 
-  const fetchData = async () => {
+  const fetchData = async (isSilent = false) => {
     try {
-      setLoading(true);
+      if (!isSilent && dataRows.length === 0) setLoading(true);
       const wilParam = selectedWilayah.length > 0 && selectedWilayah.length < WILAYAH_LIST.length
         ? selectedWilayah.join(',')
         : '';
@@ -67,6 +67,19 @@ export default function MonitorSulamView() {
 
   useEffect(() => {
     fetchData();
+  }, [search, selectedWilayah]);
+
+  // Real-time auto-sync saat ada pembaruan transaksi sulam atau master data
+  useEffect(() => {
+    const handleSync = () => {
+      fetchData(true);
+    };
+    window.addEventListener('sulam_updated', handleSync);
+    window.addEventListener('master_data_updated', handleSync);
+    return () => {
+      window.removeEventListener('sulam_updated', handleSync);
+      window.removeEventListener('master_data_updated', handleSync);
+    };
   }, [search, selectedWilayah]);
 
   const handleToggleWilayah = (wil: string) => {
@@ -119,7 +132,7 @@ export default function MonitorSulamView() {
         <div className="flex items-center gap-2 self-end sm:self-auto">
           <button
             type="button"
-            onClick={fetchData}
+            onClick={() => fetchData(false)}
             disabled={loading}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-bold transition-all shadow-2xs cursor-pointer"
             title="Muat Ulang Data"

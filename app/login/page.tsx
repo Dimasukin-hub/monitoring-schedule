@@ -18,13 +18,87 @@ import {
   MapPin,
   Tractor,
   ArrowRight,
-  UserPlus,
-  BadgeCheck,
+  Briefcase,
+  Users,
+  Building2,
+  Truck,
+  Landmark,
 } from 'lucide-react';
 
-export type SelectedRole = 'super_admin' | 'admin' | 'user_wilayah' | 'user_fe';
+export type SelectedRole =
+  | 'kepala_bagian_fe'
+  | 'manajer_fe'
+  | 'manajer_fm'
+  | 'manajer_osd'
+  | 'kepala_wilayah'
+  | 'super_admin'
+  | 'admin'
+  | 'user_wilayah'
+  | 'user_fe';
 
-const ROLE_DETAILS = {
+const ROLE_DETAILS: Record<
+  SelectedRole,
+  {
+    title: string;
+    subtitle: string;
+    badge: string;
+    badgeColor: string;
+    iconColor: string;
+    icon: React.ComponentType<{ className?: string }>;
+    defaultUsername: string;
+    description: string;
+  }
+> = {
+  kepala_bagian_fe: {
+    title: 'Kepala Bagian FE',
+    subtitle: 'Login Kepala Bagian FE untuk monitoring eksekutif, rekapitulasi data, dan supervisi operasional',
+    badge: 'Kepala Bagian FE',
+    badgeColor: 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20',
+    iconColor: 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30',
+    icon: Briefcase,
+    defaultUsername: 'kabag_fe',
+    description: 'Monitoring eksekutif, rekapitulasi data, dan supervisi operasional FE.',
+  },
+  manajer_fe: {
+    title: 'Manajer FE',
+    subtitle: 'Login Manajer FE untuk monitoring progres, verifikasi teknis, dan manajemen operasional FE',
+    badge: 'Manajer FE',
+    badgeColor: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border-cyan-500/20',
+    iconColor: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border-cyan-500/30',
+    icon: Users,
+    defaultUsername: 'manajer_fe',
+    description: 'Monitoring progres harian, analisis kinerja lapangan, dan supervisi tim FE.',
+  },
+  manajer_fm: {
+    title: 'Manajer FM',
+    subtitle: 'Login Manajer FM untuk monitoring fasilitas, pemeliharaan infrastruktur, dan operasional FM',
+    badge: 'Manajer FM',
+    badgeColor: 'bg-teal-500/10 text-teal-700 dark:text-teal-400 border-teal-500/20',
+    iconColor: 'bg-teal-500/15 text-teal-600 dark:text-teal-400 border-teal-500/30',
+    icon: Building2,
+    defaultUsername: 'manajer_fm',
+    description: 'Monitoring fasilitas fisik, pemeliharaan infrastruktur, dan operasional FM.',
+  },
+  manajer_osd: {
+    title: 'Manajer OSD',
+    subtitle: 'Login Manajer OSD untuk koordinasi supply chain, logistik operasional, dan distribusi',
+    badge: 'Manajer OSD',
+    badgeColor: 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20',
+    iconColor: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30',
+    icon: Truck,
+    defaultUsername: 'manajer_osd',
+    description: 'Koordinasi supply chain, logistik operasional, dan distribusi material.',
+  },
+  kepala_wilayah: {
+    title: 'Kepala Wilayah',
+    subtitle: 'Login Kepala Wilayah untuk monitoring operasional per wilayah, approval, dan rekapitulasi',
+    badge: 'Kepala Wilayah',
+    badgeColor: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20',
+    iconColor: 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30',
+    icon: Landmark,
+    defaultUsername: 'kawil',
+    description: 'Monitoring progres, approval, dan rekapitulasi data pada wilayah kerja terkait.',
+  },
   super_admin: {
     title: 'Super Administrator',
     subtitle: 'Login Super Admin untuk kendali penuh sistem, hak akses user, dan konfigurasi master data',
@@ -67,29 +141,36 @@ const ROLE_DETAILS = {
   },
 };
 
+// Urutan tampilan role user sebelum login (2 melebar):
+// 1. Kepala Bagian FE, 2. Manajer FE
+// 3. Manajer FM, 4. Manajer OSD
+// 5. Kepala Wilayah, 6. Super Admin
+// 7. Admin FE, 8. Mandor Wilayah
+// 9. TK Verifikator FE (spanning bottom)
+const ROLE_SELECTION_ORDER: SelectedRole[] = [
+  'kepala_bagian_fe',
+  'manajer_fe',
+  'manajer_fm',
+  'manajer_osd',
+  'kepala_wilayah',
+  'super_admin',
+  'admin',
+  'user_wilayah',
+  'user_fe',
+];
+
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, register, user, isAdmin } = useAuth();
+  const { login, user, isAdmin, isSuperAdmin, isManagement, isKepalaWilayah } = useAuth();
 
   // State Pilihan Role (null = belum pilih, tampilkan kartu peran)
   const [selectedRole, setSelectedRole] = useState<SelectedRole | null>(null);
-
-  // Mode Register vs Login (hanya aktif untuk user_wilayah & user_fe)
-  const [isRegistering, setIsRegistering] = useState<boolean>(false);
 
   // Form States Login
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
-  // Form States Register
-  const [regName, setRegName] = useState('');
-  const [regUsername, setRegUsername] = useState('');
-  const [regPassword, setRegPassword] = useState('');
-  const [regConfirmPassword, setRegConfirmPassword] = useState('');
-  const [showRegPassword, setShowRegPassword] = useState(false);
-  const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
 
   // UI States
   const [errorMsg, setErrorMsg] = useState('');
@@ -113,13 +194,28 @@ function LoginContent() {
       }
     }
 
-    // Auto-select role jika ada parameter URL (misal: ?role=super_admin atau ?role=admin)
+    // Auto-select role jika ada parameter URL
     if (paramRole === 'super_admin' || paramRole === 'superadmin') {
       setSelectedRole('super_admin');
       setUsername('superadmin');
     } else if (paramRole === 'admin') {
       setSelectedRole('admin');
       setUsername('admin');
+    } else if (paramRole === 'kepala_bagian_fe' || paramRole === 'kabag_fe' || paramRole === 'kabag') {
+      setSelectedRole('kepala_bagian_fe');
+      setUsername('kabag_fe');
+    } else if (paramRole === 'manajer_fe') {
+      setSelectedRole('manajer_fe');
+      setUsername('manajer_fe');
+    } else if (paramRole === 'manajer_fm') {
+      setSelectedRole('manajer_fm');
+      setUsername('manajer_fm');
+    } else if (paramRole === 'manajer_osd') {
+      setSelectedRole('manajer_osd');
+      setUsername('manajer_osd');
+    } else if (paramRole === 'kepala_wilayah' || paramRole === 'kawil') {
+      setSelectedRole('kepala_wilayah');
+      setUsername('kawil');
     } else if (paramRole === 'user_wilayah' || paramRole === 'wilayah') {
       setSelectedRole('user_wilayah');
       setUsername('wilayah');
@@ -134,45 +230,38 @@ function LoginContent() {
     if (user) {
       let finalTarget = targetUrl;
       const isLabitaTarget = finalTarget.startsWith('/labita');
-      if (isLabitaTarget && !isAdmin) {
-        // User saat ini bukan admin sedangkan Labita khusus admin; biarkan login sebagai Admin
-        setSelectedRole('admin');
-        setUsername('admin');
+      const isSulamTarget = finalTarget.startsWith('/sulam');
+      if ((isLabitaTarget || isSulamTarget) && !isSuperAdmin) {
+        // Labita & Sulam khusus Super Admin
+        setSelectedRole('super_admin');
+        setUsername('superadmin');
         return;
       }
-      if (!isAdmin && (finalTarget === '/gorong-gorong/monitor-gorong-gorong' || finalTarget === '/gorong-gorong')) {
+
+      const canSeeMonitor = isSuperAdmin || isAdmin || isManagement || isKepalaWilayah;
+      if (!canSeeMonitor && (finalTarget === '/gorong-gorong/monitor-gorong-gorong' || finalTarget === '/gorong-gorong')) {
         finalTarget = '/gorong-gorong/form-input/order-gorong-gorong';
       }
       router.push(finalTarget);
     }
-  }, [user, isAdmin, router, targetUrl]);
+  }, [user, isAdmin, isSuperAdmin, isManagement, isKepalaWilayah, router, targetUrl]);
 
   // Handle Pilih Role
   const handleSelectRole = (role: SelectedRole) => {
     setSelectedRole(role);
-    setIsRegistering(false);
     setErrorMsg('');
     setSuccessMsg('');
     setUsername(ROLE_DETAILS[role].defaultUsername);
     setPassword('');
-    setRegName('');
-    setRegUsername('');
-    setRegPassword('');
-    setRegConfirmPassword('');
   };
 
   // Handle Kembali ke Pilihan Role
   const handleBackToRoleSelection = () => {
     setSelectedRole(null);
-    setIsRegistering(false);
     setErrorMsg('');
     setSuccessMsg('');
     setUsername('');
     setPassword('');
-    setRegName('');
-    setRegUsername('');
-    setRegPassword('');
-    setRegConfirmPassword('');
   };
 
   // Handle Submit Login
@@ -196,71 +285,12 @@ function LoginContent() {
     }
   };
 
-  // Handle Submit Register (untuk User Wilayah & User FE)
-  const handleRegisterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg('');
-    setSuccessMsg('');
-
-    if (!selectedRole || selectedRole === 'admin' || selectedRole === 'super_admin') {
-      setErrorMsg('Pendaftaran mandiri akun administrator tidak diperbolehkan.');
-      return;
-    }
-
-    const cleanUsername = regUsername.trim().toLowerCase();
-    const cleanName = regName.trim();
-
-    if (!cleanUsername) {
-      setErrorMsg('Username wajib diisi.');
-      return;
-    }
-
-    if (cleanUsername.length < 3) {
-      setErrorMsg('Username minimal 3 karakter.');
-      return;
-    }
-
-    if (/\s/.test(cleanUsername)) {
-      setErrorMsg('Username tidak boleh mengandung spasi.');
-      return;
-    }
-
-    if (!regPassword || regPassword.length < 8) {
-      setErrorMsg('Kata sandi minimal 8 karakter.');
-      return;
-    }
-
-    if (regPassword !== regConfirmPassword) {
-      setErrorMsg('Konfirmasi kata sandi tidak cocok.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    const res = await register(
-      cleanName || cleanUsername,
-      cleanUsername,
-      regPassword,
-      selectedRole
-    );
-    setIsSubmitting(false);
-
-    if (res.success) {
-      setSuccessMsg('Pendaftaran akun berhasil! Mengalihkan ke sistem...');
-      setTimeout(() => {
-        router.push(targetUrl);
-      }, 450);
-    } else {
-      setErrorMsg(res.message || 'Gagal mendaftarkan akun baru.');
-    }
-  };
-
   const currentRoleInfo = selectedRole ? ROLE_DETAILS[selectedRole] : null;
-  const RoleIcon = currentRoleInfo ? currentRoleInfo.icon : ShieldCheck;
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-4 sm:p-6 overflow-hidden select-none">
+    <div className="min-h-screen relative flex items-center justify-center p-3 sm:p-6 overflow-y-auto select-none py-10 sm:py-12">
       {/* Background Lahan Nanas */}
-      <div className="absolute inset-0 -z-50 pointer-events-none select-none">
+      <div className="fixed inset-0 -z-50 pointer-events-none select-none">
         <img
           src="/assets/Lahan Nanas 2.jpg"
           alt="Lahan Nanas Background"
@@ -270,8 +300,12 @@ function LoginContent() {
         <div className="absolute inset-0 bg-slate-950/50 dark:bg-slate-950/70 backdrop-blur-[2px]" />
       </div>
 
-      {/* Main Container Card */}
-      <div className="relative w-full max-w-[460px] bg-white dark:bg-slate-900 rounded-[28px] sm:rounded-3xl shadow-2xl border border-white/30 dark:border-slate-800 p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
+      {/* Main Container Card: Melebar saat pilih peran (max-w-4xl), fokus saat login (max-w-[460px]) */}
+      <div
+        className={`relative w-full ${
+          !selectedRole ? 'max-w-4xl' : 'max-w-[460px]'
+        } bg-white dark:bg-slate-900 rounded-[24px] sm:rounded-3xl shadow-2xl border border-white/30 dark:border-slate-800 p-5 sm:p-7 transition-all duration-300 animate-in fade-in zoom-in-95 my-auto`}
+      >
         {/* Tombol Back ke Portal Asal */}
         <div className="flex items-center justify-between mb-3">
           <Link
@@ -285,7 +319,7 @@ function LoginContent() {
 
         {/* Top Brand Logo */}
         <div className="flex flex-col items-center text-center">
-          <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200/90 dark:border-slate-700/80 flex items-center justify-center p-2 shadow-xs mb-3">
+          <div className="w-13 h-13 rounded-2xl bg-white border border-slate-200/90 dark:border-slate-700/80 flex items-center justify-center p-2 shadow-xs mb-2">
             <img
               src="/assets/logo.png"
               alt="GGF Logo"
@@ -293,7 +327,7 @@ function LoginContent() {
             />
           </div>
 
-          <h2 className="text-xs font-black tracking-wider uppercase text-emerald-700 dark:text-emerald-400">
+          <h2 className="text-[11px] sm:text-xs font-black tracking-wider uppercase text-emerald-700 dark:text-emerald-400">
             Plantation Group 1 • Great Giant Foods
           </h2>
         </div>
@@ -313,18 +347,20 @@ function LoginContent() {
           </div>
         )}
 
-        {/* Notifikasi jika user aktif saat ini non-admin dan mencoba masuk ke Portal Labita */}
-        {user && !isAdmin && targetUrl.startsWith('/labita') && (
+        {/* Notifikasi jika user aktif saat ini non-admin dan mencoba masuk ke Portal Labita / Sulam */}
+        {user && !isSuperAdmin && (targetUrl.startsWith('/labita') || targetUrl.startsWith('/sulam')) && (
           <div className="mt-4 p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300 text-xs flex items-start gap-2.5 animate-in fade-in">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
             <span>
-              Akun aktif saat ini (<strong>{user.name || user.email}</strong>) bukan Administrator. Portal Labita khusus dibuka untuk Administrator. Silakan login menggunakan akun Admin.
+              Akun aktif saat ini (<strong>{user.name || user.email}</strong>) bukan Super Administrator. Modul ini khusus untuk Super Administrator. Silakan login sebagai Super Admin.
             </span>
           </div>
         )}
 
         {/* ============================================================== */}
-        {/* TAHAP 1: PILIH PERAN TERLEBIH DAHULU (ADMIN / WILAYAH / FE) */}
+        {/* TAHAP 1: PILIH PERAN TERLEBIH DAHULU (DUA MELEBAR)              */}
+        {/* Urutan: Kepala Bagian FE, Manajer FE, Manajer FM, Manajer OSD, */}
+        {/* Kepala Wilayah, Super Admin, Admin FE, Mandor Wilayah, FE      */}
         {/* ============================================================== */}
         {!selectedRole ? (
           <div className="mt-4 space-y-4">
@@ -337,287 +373,74 @@ function LoginContent() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-3">
-              {/* Pilihan 1: Super Administrator */}
-              <button
-                type="button"
-                onClick={() => handleSelectRole('super_admin')}
-                className="group w-full p-4 rounded-2xl border-2 border-slate-200/90 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-400 bg-slate-50/70 hover:bg-indigo-50/20 dark:bg-slate-800/50 dark:hover:bg-slate-800 transition-all text-left flex items-center justify-between cursor-pointer shadow-xs hover:shadow-md"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-11 h-11 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-500/30 group-hover:scale-110 transition-transform">
-                    <ShieldAlert className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                        Super Administrator
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
-                        Super Admin
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
-                      Kendali penuh sistem, hak akses user tingkat tertinggi &amp; konfigurasi master
-                    </p>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 group-hover:translate-x-1 transition-all shrink-0 ml-2" />
-              </button>
+            {/* Dua Melebar (Grid 2 Kolom Responsif) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
+              {ROLE_SELECTION_ORDER.map((roleKey, idx) => {
+                const roleInfo = ROLE_DETAILS[roleKey];
+                const IconComponent = roleInfo.icon;
+                const isOddLast =
+                  idx === ROLE_SELECTION_ORDER.length - 1 && ROLE_SELECTION_ORDER.length % 2 !== 0;
 
-              {/* Pilihan 2: Administrator */}
-              <button
-                type="button"
-                onClick={() => handleSelectRole('admin')}
-                className="group w-full p-4 rounded-2xl border-2 border-slate-200/90 dark:border-slate-800 hover:border-[#00873D] dark:hover:border-emerald-500 bg-slate-50/70 hover:bg-emerald-50/20 dark:bg-slate-800/50 dark:hover:bg-slate-800 transition-all text-left flex items-center justify-between cursor-pointer shadow-xs hover:shadow-md"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-11 h-11 rounded-xl bg-emerald-500/15 text-[#00873D] dark:text-emerald-400 flex items-center justify-center border border-emerald-500/30 group-hover:scale-110 transition-transform">
-                    <ShieldCheck className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-[#00873D] dark:group-hover:text-emerald-400 transition-colors">
-                        Admin FE
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-                        Admin FE
-                      </span>
+                return (
+                  <button
+                    key={roleKey}
+                    type="button"
+                    onClick={() => handleSelectRole(roleKey)}
+                    className={`group w-full p-3.5 sm:p-4 rounded-2xl border-2 border-slate-200/90 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-400 bg-slate-50/70 hover:bg-emerald-50/20 dark:bg-slate-800/50 dark:hover:bg-slate-800 transition-all text-left flex items-center justify-between cursor-pointer shadow-2xs hover:shadow-md ${
+                      isOddLast ? 'sm:col-span-2' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 pr-2">
+                      <div
+                        className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl ${roleInfo.iconColor} flex items-center justify-center border shrink-0 group-hover:scale-110 transition-transform`}
+                      >
+                        <IconComponent className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
+                            {roleInfo.title}
+                          </span>
+                          <span
+                            className={`text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full border ${roleInfo.badgeColor}`}
+                          >
+                            {roleInfo.badge}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug line-clamp-2">
+                          {roleInfo.description}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
-                      Akses penuh: Dashboard, Master Data, Manajemen User &amp; Pengaturan
-                    </p>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-[#00873D] dark:group-hover:text-emerald-400 group-hover:translate-x-1 transition-all shrink-0 ml-2" />
-              </button>
-
-              {/* Pilihan 2: Mandor Wilayah */}
-              <button
-                type="button"
-                onClick={() => handleSelectRole('user_wilayah')}
-                className="group w-full p-4 rounded-2xl border-2 border-slate-200/90 dark:border-slate-800 hover:border-amber-500 dark:hover:border-amber-400 bg-slate-50/70 hover:bg-amber-50/20 dark:bg-slate-800/50 dark:hover:bg-slate-800 transition-all text-left flex items-center justify-between cursor-pointer shadow-xs hover:shadow-md"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-11 h-11 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-500/30 group-hover:scale-110 transition-transform">
-                    <MapPin className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                        Mandor Wilayah
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
-                        Mandor Wilayah
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
-                      Akses formulir transaksi Order, Pasang Manual, &amp; Pindah Lokasi
-                    </p>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 group-hover:translate-x-1 transition-all shrink-0 ml-2" />
-              </button>
-
-              {/* Pilihan 3: TK Verifikator FE */}
-              <button
-                type="button"
-                onClick={() => handleSelectRole('user_fe')}
-                className="group w-full p-4 rounded-2xl border-2 border-slate-200/90 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-400 bg-slate-50/70 hover:bg-blue-50/20 dark:bg-slate-800/50 dark:hover:bg-slate-800 transition-all text-left flex items-center justify-between cursor-pointer shadow-xs hover:shadow-md"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-11 h-11 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-500/30 group-hover:scale-110 transition-transform">
-                    <Tractor className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                        TK Verifikator FE
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
-                        TK Verifikator FE
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
-                      Akses formulir transaksi khusus verifikasi dropping fisik gorong-gorong
-                    </p>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:translate-x-1 transition-all shrink-0 ml-2" />
-              </button>
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 group-hover:translate-x-1 transition-all shrink-0 ml-1" />
+                  </button>
+                );
+              })}
             </div>
-          </div>
-        ) : isRegistering ? (
-          /* ============================================================== */
-          /* TAHAP 2B: FORM DAFTAR AKUN BARU (USER WILAYAH / USER FE)       */
-          /* ============================================================== */
-          <div className="mt-4">
-            <div className="text-center mb-5">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border mb-2 shadow-2xs">
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    selectedRole === 'user_wilayah' ? 'bg-amber-500' : 'bg-blue-500'
-                  }`}
-                />
-                <span className="text-slate-700 dark:text-slate-300 font-extrabold">
-                  Pendaftaran: {currentRoleInfo?.title}
-                </span>
-              </div>
-
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                Daftar Akun {currentRoleInfo?.title}
-              </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium max-w-xs mx-auto">
-                Lengkapi informasi berikut untuk membuat akun operasional baru
-              </p>
-            </div>
-
-            <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
-              {/* Nama Lengkap */}
-              <div>
-                <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
-                  Nama Lengkap
-                </label>
-                <div className="flex items-center w-full px-4 py-3 rounded-2xl bg-[#f0f5ff] dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 focus-within:ring-2 focus-within:ring-[#008f68]/30 focus-within:border-[#008f68] transition-all">
-                  <BadgeCheck className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
-                  <input
-                    type="text"
-                    required
-                    value={regName}
-                    onChange={(e) => setRegName(e.target.value)}
-                    placeholder="Contoh: Ahmad Fauzi"
-                    className="bg-transparent flex-1 text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none placeholder:text-slate-400/80"
-                  />
-                </div>
-              </div>
-
-              {/* Username */}
-              <div>
-                <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
-                  Username <span className="text-[10px] font-normal text-slate-500">(min. 3 huruf, tanpa spasi)</span>
-                </label>
-                <div className="flex items-center w-full px-4 py-3 rounded-2xl bg-[#f0f5ff] dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 focus-within:ring-2 focus-within:ring-[#008f68]/30 focus-within:border-[#008f68] transition-all">
-                  <UserIcon className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
-                  <input
-                    type="text"
-                    required
-                    value={regUsername}
-                    onChange={(e) => setRegUsername(e.target.value)}
-                    placeholder="Contoh: ahmad_fe atau wilayah_03"
-                    className="bg-transparent flex-1 text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none placeholder:text-slate-400/80"
-                  />
-                </div>
-              </div>
-
-              {/* Password */}
-              <div>
-                <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
-                  Kata Sandi <span className="text-[10px] font-normal text-slate-500">(min. 8 karakter)</span>
-                </label>
-                <div className="flex items-center w-full px-4 py-3 rounded-2xl bg-[#f0f5ff] dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 focus-within:ring-2 focus-within:ring-[#008f68]/30 focus-within:border-[#008f68] transition-all">
-                  <Lock className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
-                  <input
-                    type={showRegPassword ? 'text' : 'password'}
-                    required
-                    value={regPassword}
-                    onChange={(e) => setRegPassword(e.target.value)}
-                    placeholder="Minimal 8 karakter"
-                    className="bg-transparent flex-1 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none placeholder:text-slate-400/80"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowRegPassword(!showRegPassword)}
-                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer p-0.5 ml-2"
-                  >
-                    {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Konfirmasi Password */}
-              <div>
-                <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
-                  Ulangi Kata Sandi
-                </label>
-                <div className="flex items-center w-full px-4 py-3 rounded-2xl bg-[#f0f5ff] dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 focus-within:ring-2 focus-within:ring-[#008f68]/30 focus-within:border-[#008f68] transition-all">
-                  <Lock className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
-                  <input
-                    type={showRegConfirmPassword ? 'text' : 'password'}
-                    required
-                    value={regConfirmPassword}
-                    onChange={(e) => setRegConfirmPassword(e.target.value)}
-                    placeholder="Ulangi kata sandi"
-                    className="bg-transparent flex-1 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none placeholder:text-slate-400/80"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
-                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer p-0.5 ml-2"
-                  >
-                    {showRegConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Tombol Submit Register */}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-3.5 px-4 rounded-2xl bg-[#00873D] hover:bg-[#007033] active:scale-[0.99] text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 mt-5"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <UserPlus className="w-4 h-4" />
-                )}
-                <span>
-                  {isSubmitting ? 'Mendaftarkan Akun...' : `Daftar Akun ${currentRoleInfo?.title}`}
-                </span>
-              </button>
-
-              {/* Tombol Ganti Peran */}
-              <div className="text-center pt-2">
-                <button
-                  type="button"
-                  onClick={handleBackToRoleSelection}
-                  className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:underline cursor-pointer"
-                >
-                  Ganti Peran
-                </button>
-              </div>
-
-              {/* Pindah ke Form Login */}
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-center">
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                  Sudah memiliki akun?{' '}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsRegistering(false);
-                      setErrorMsg('');
-                      setSuccessMsg('');
-                    }}
-                    className="font-bold text-[#00873D] dark:text-emerald-400 hover:underline cursor-pointer ml-1 inline-flex items-center gap-1"
-                  >
-                    <span>Login di sini</span>
-                  </button>
-                </p>
-              </div>
-            </form>
           </div>
         ) : (
           /* ============================================================== */
-          /* TAHAP 2A: FORM LOGIN (SESUAI PERAN YANG DIPILIH)               */
+          /* TAHAP 2: FORM LOGIN (TANPA PENDAFTARAN MANDIRI)               */
           /* ============================================================== */
           <div className="mt-4">
             <div className="text-center mb-5">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border mb-2 shadow-2xs">
                 <span
-                  className={`w-2 h-2 rounded-full ${
+                  className={`w-2.5 h-2.5 rounded-full ${
                     selectedRole === 'super_admin'
                       ? 'bg-indigo-500'
                       : selectedRole === 'admin'
                       ? 'bg-emerald-500'
+                      : selectedRole === 'kepala_bagian_fe'
+                      ? 'bg-purple-500'
+                      : selectedRole === 'manajer_fe'
+                      ? 'bg-cyan-500'
+                      : selectedRole === 'manajer_fm'
+                      ? 'bg-teal-500'
+                      : selectedRole === 'manajer_osd'
+                      ? 'bg-rose-500'
+                      : selectedRole === 'kepala_wilayah'
+                      ? 'bg-orange-500'
                       : selectedRole === 'user_wilayah'
                       ? 'bg-amber-500'
                       : 'bg-blue-500'
@@ -698,27 +521,6 @@ function LoginContent() {
                   Ganti Peran
                 </button>
               </div>
-
-              {/* Pendaftaran Akun untuk User Wilayah & User FE (Admin & Super Admin dinonaktifkan) */}
-              {selectedRole !== 'admin' && selectedRole !== 'super_admin' && (
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-center">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    Belum mempunyai akun {currentRoleInfo?.title}?{' '}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsRegistering(true);
-                        setErrorMsg('');
-                        setSuccessMsg('');
-                      }}
-                      className="font-bold text-[#00873D] dark:text-emerald-400 hover:underline cursor-pointer ml-1 inline-flex items-center gap-1"
-                    >
-                      <UserPlus className="w-3.5 h-3.5 inline" />
-                      <span>Daftar akun di sini</span>
-                    </button>
-                  </p>
-                </div>
-              )}
             </form>
           </div>
         )}
@@ -729,7 +531,13 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-900 text-slate-400">Memuat...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-900 text-slate-400">
+          Memuat...
+        </div>
+      }
+    >
       <LoginContent />
     </Suspense>
   );

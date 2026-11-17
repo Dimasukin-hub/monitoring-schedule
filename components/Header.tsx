@@ -721,7 +721,10 @@ export default function Header({
                 key={item.id}
                 href={subHref}
                 prefetch={false}
-                onClick={() => setExecutiveSubTab?.(item.id)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setExecutiveSubTab?.(item.id);
+                }}
                 className={`relative py-1 px-1 text-[11.5px] sm:text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
                   isActive
                     ? `${currentTheme.subActiveText} font-semibold`
@@ -753,7 +756,10 @@ export default function Header({
                 key={item.id}
                 href={subHref}
                 prefetch={false}
-                onClick={() => handleSetSubTab?.(item.id)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleSetSubTab?.(item.id);
+                }}
                 className={`relative py-1 px-1 text-[11.5px] sm:text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
                   isActive
                     ? `${currentTheme.subActiveText} font-semibold`
@@ -790,7 +796,10 @@ export default function Header({
                 key={item.id}
                 href={subHref}
                 prefetch={false}
-                onClick={() => setPlantingSubTab?.(item.id)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPlantingSubTab?.(item.id);
+                }}
                 className={`relative py-1 px-1 text-[11.5px] sm:text-xs tracking-wide transition-all cursor-pointer whitespace-nowrap group ${
                   isActive
                     ? `${currentTheme.subActiveText} font-semibold`

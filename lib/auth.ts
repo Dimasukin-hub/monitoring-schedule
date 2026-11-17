@@ -87,6 +87,46 @@ export const DEFAULT_USERS: Array<AuthUser & { password: string }> = [
     role: 'user_fe',
     avatar: null,
   },
+  {
+    id: 7,
+    name: 'Kepala Bagian FE',
+    email: 'kabag_fe',
+    password: 'kabag123',
+    role: 'kepala_bagian_fe',
+    avatar: null,
+  },
+  {
+    id: 8,
+    name: 'Manajer FE',
+    email: 'manajer_fe',
+    password: 'manajer123',
+    role: 'manajer_fe',
+    avatar: null,
+  },
+  {
+    id: 9,
+    name: 'Manajer FM',
+    email: 'manajer_fm',
+    password: 'manajer123',
+    role: 'manajer_fm',
+    avatar: null,
+  },
+  {
+    id: 10,
+    name: 'Manajer OSD',
+    email: 'manajer_osd',
+    password: 'manajer123',
+    role: 'manajer_osd',
+    avatar: null,
+  },
+  {
+    id: 11,
+    name: 'Kepala Wilayah',
+    email: 'kawil',
+    password: 'kawil123',
+    role: 'kepala_wilayah',
+    avatar: null,
+  },
 ];
 
 let hasSeededUsers = false;
@@ -188,6 +228,32 @@ export async function ensureDefaultUsersInDb() {
           role: 'user_fe',
         },
       });
+    }
+
+    const managementUsers = [
+      { name: 'Kepala Bagian FE', email: 'kabag_fe', password: 'kabag123', role: 'kepala_bagian_fe' },
+      { name: 'Manajer FE', email: 'manajer_fe', password: 'manajer123', role: 'manajer_fe' },
+      { name: 'Manajer FM', email: 'manajer_fm', password: 'manajer123', role: 'manajer_fm' },
+      { name: 'Manajer OSD', email: 'manajer_osd', password: 'manajer123', role: 'manajer_osd' },
+      { name: 'Kepala Wilayah', email: 'kawil', password: 'kawil123', role: 'kepala_wilayah' },
+    ];
+
+    for (const mu of managementUsers) {
+      const existing = await prisma.user.findFirst({
+        where: {
+          OR: [{ email: mu.email }, { name: mu.name }],
+        },
+      });
+      if (!existing) {
+        await prisma.user.create({
+          data: {
+            name: mu.name,
+            email: mu.email,
+            password: mu.password,
+            role: mu.role,
+          },
+        });
+      }
     }
 
     hasSeededUsers = true;

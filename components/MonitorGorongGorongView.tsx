@@ -6,6 +6,7 @@ import {
   TrendingUp,
   Package,
   CheckCircle2,
+  Check,
   Clock,
   Layers,
   Search,
@@ -223,11 +224,15 @@ export default function MonitorGorongGorongView() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
-  // Auto-refresh saat ada transaksi baru disimpan di Form Order
+  // Auto-refresh saat ada transaksi baru disimpan di Form Order atau pembaruan master data
   useEffect(() => {
     const handleUpdate = () => loadData(true);
     window.addEventListener('gorong_gorong_updated', handleUpdate);
-    return () => window.removeEventListener('gorong_gorong_updated', handleUpdate);
+    window.addEventListener('master_data_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('gorong_gorong_updated', handleUpdate);
+      window.removeEventListener('master_data_updated', handleUpdate);
+    };
   }, []);
 
   // Ambil kumpulan master lokasi lengkap agar daftar saran autocomplete tidak terpotong saat filter tabel aktif
@@ -1473,7 +1478,7 @@ export default function MonitorGorongGorongView() {
                   }`}
                 >
                   <span>Semua Wilayah</span>
-                  {selectedWilayah.length === 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                  {selectedWilayah.length === 0 && <Check className="w-3.5 h-3.5 text-[#00873D] shrink-0 stroke-[2.5]" />}
                 </button>
                 {['AW01', 'AW02', 'AW03', 'AW04', 'AW05', 'AW06', 'AW07'].map((w) => {
                   const isSelected = selectedWilayah.includes(w);
@@ -1490,7 +1495,7 @@ export default function MonitorGorongGorongView() {
                       }`}
                     >
                       <span>{w}</span>
-                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                      {isSelected && <Check className="w-3.5 h-3.5 text-[#00873D] shrink-0 stroke-[2.5]" />}
                     </button>
                   );
                 })}
@@ -1905,41 +1910,162 @@ export default function MonitorGorongGorongView() {
         </div>
       </div>
 
-      {/* 4. TAB PEMILIH TABEL DATA */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Tab Button 1: List Lokasi Order */}
-          <button
-            onClick={() => setActiveTableTab('order')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTableTab === 'order'
-                ? 'bg-[#00873D] text-white shadow-xs'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <span>List Lokasi Order</span>
-            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/20">
-              {filteredOrderList.length}
-            </span>
-          </button>
+      {/* 4. TAB PEMILIH TABEL DATA & FILTER KONTROL */}
+      <div className="flex flex-col gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+        {/* Baris 1: Tab Switcher (50%-50% di Mobile) & Multi-Search Box (Full-width di Mobile) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 w-full">
+          {/* Tab Button 1 & 2: Grid 2 Kolom Sejajar 50%-50% di Mobile */}
+          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center shrink-0">
+            {/* Tab Button 1: List Lokasi Order */}
+            <button
+              type="button"
+              onClick={() => setActiveTableTab('order')}
+              className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer w-full sm:w-auto ${
+                activeTableTab === 'order'
+                  ? 'bg-[#00873D] text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <span className="truncate">List Lokasi Order</span>
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/20 shrink-0">
+                {filteredOrderList.length}
+              </span>
+            </button>
 
-          {/* Tab Button 2: List Lokasi Belum Order */}
-          <button
-            onClick={() => setActiveTableTab('belum_order')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTableTab === 'belum_order'
-                ? 'bg-[#F58220] text-white shadow-xs'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <span>List Lokasi Belum Order</span>
-            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/20">
-              {filteredBelumOrderList.length}
-            </span>
-          </button>
+            {/* Tab Button 2: List Lokasi Belum Order */}
+            <button
+              type="button"
+              onClick={() => setActiveTableTab('belum_order')}
+              className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer w-full sm:w-auto ${
+                activeTableTab === 'belum_order'
+                  ? 'bg-[#F58220] text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <span className="truncate">List Belum Order</span>
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/20 shrink-0">
+                {filteredBelumOrderList.length}
+              </span>
+            </button>
+          </div>
 
-          {/* Filter Status All (Hanya fokus pada statusAll: Open atau Close) */}
-          <div className="relative status-openclose-filter-container">
+          {/* Multi-Search Box Cepat dengan Tags Lokasi & Tombol Silang Lingkaran */}
+          <div className="relative w-full sm:w-80 multisearch-container">
+            <div
+              onClick={() => {
+                setIsSearchDropdownOpen(true);
+                searchInputRef.current?.focus();
+              }}
+              className="w-full min-h-[38px] px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex flex-wrap items-center gap-1.5 cursor-text focus-within:ring-2 focus-within:ring-[#00873D] focus-within:border-transparent transition-all shadow-2xs"
+            >
+              <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              
+              {/* Tag chips lokasi yang dipilih */}
+              {selectedSearchLocations.map((loc) => (
+                <span
+                  key={loc}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-[#00873D] dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 text-xs font-bold shadow-2xs"
+                >
+                  <span>{loc}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedSearchLocations((prev) => prev.filter((item) => item !== loc));
+                    }}
+                    className="text-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-200 cursor-pointer p-0.5 transition-colors"
+                    title={`Hapus filter ${loc}`}
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              ))}
+
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsSearchDropdownOpen(true);
+                }}
+                onFocus={() => setIsSearchDropdownOpen(true)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setIsSearchDropdownOpen(true);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && searchQuery.trim()) {
+                    e.preventDefault();
+                    const val = searchQuery.trim();
+                    if (!selectedSearchLocations.includes(val)) {
+                      setSelectedSearchLocations((prev) => [...prev, val]);
+                    }
+                    setSearchQuery('');
+                    setIsSearchDropdownOpen(true);
+                  } else if (e.key === 'Backspace' && !searchQuery && selectedSearchLocations.length > 0) {
+                    setSelectedSearchLocations((prev) => prev.slice(0, -1));
+                  }
+                }}
+                placeholder="Cari Lokasi"
+                className="flex-1 min-w-[100px] bg-transparent text-xs text-slate-800 dark:text-slate-200 outline-none placeholder:text-slate-400 py-1"
+              />
+
+              {(selectedSearchLocations.length > 0 || searchQuery) && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedSearchLocations([]);
+                    setSearchQuery('');
+                  }}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-0.5 shrink-0"
+                  title="Hapus semua pencarian"
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Dropdown saran autocomplete lokasi */}
+            {isSearchDropdownOpen && (
+              <div className="absolute left-0 right-0 top-full mt-1.5 max-h-56 overflow-y-auto py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800">
+                <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Saran Lokasi ({searchSuggestions.length})
+                </div>
+                {searchSuggestions.length === 0 ? (
+                  <div className="px-3 py-2 text-xs text-slate-400 text-center">
+                    Lokasi tidak ditemukan
+                  </div>
+                ) : (
+                  searchSuggestions.map((loc) => (
+                    <button
+                      key={loc}
+                      type="button"
+                      onClick={() => {
+                        if (!selectedSearchLocations.includes(loc)) {
+                          setSelectedSearchLocations((prev) => [...prev, loc]);
+                        }
+                        setSearchQuery('');
+                        setIsSearchDropdownOpen(false);
+                        setTimeout(() => searchInputRef.current?.focus(), 50);
+                      }}
+                      className="w-full px-3 py-1.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-[#00873D] transition-colors flex items-center justify-between"
+                    >
+                      <span>{loc}</span>
+                      <Plus className="w-3.5 h-3.5 text-slate-400" />
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Baris 2: Kotak-kotak Filter Rapi Sejajar Simetris (Grid 2 Kolom di Mobile, Flex Wrap di Desktop) */}
+        <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:flex-wrap sm:items-center">
+          {/* 1. Filter Status All (Hanya fokus pada statusAll: Open atau Close) */}
+          <div className="relative w-full sm:w-auto status-openclose-filter-container">
             <button
               type="button"
               onClick={() => {
@@ -1954,22 +2080,22 @@ export default function MonitorGorongGorongView() {
                 setIsDsmBkDropdownOpen(false);
                 setIsDsmStDropdownOpen(false);
               }}
-              className="flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-[110px]"
+              className="w-full sm:w-auto h-9 flex items-center justify-between gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-0 sm:min-w-[110px]"
             >
-              <span>
+              <span className="truncate max-w-[100px] sm:max-w-none">
                 {selectedStatusOpenClose.length === 0
                   ? 'Status All'
                   : selectedStatusOpenClose[0]}
               </span>
               <ChevronDown
-                className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                className={`w-3.5 h-3.5 text-slate-500 shrink-0 transition-transform duration-200 ${
                   isStatusOpenCloseDropdownOpen ? 'rotate-180' : 'rotate-0'
                 }`}
               />
             </button>
 
             {isStatusOpenCloseDropdownOpen && (
-              <div className="absolute left-0 top-full mt-1.5 w-36 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute left-0 top-full mt-1.5 w-36 max-w-[calc(100vw-2rem)] py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100">
                 <button
                   type="button"
                   onClick={() => {
@@ -2002,7 +2128,7 @@ export default function MonitorGorongGorongView() {
                       }`}
                     >
                       <span>{st}</span>
-                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D] shrink-0" />}
                     </button>
                   );
                 })}
@@ -2010,8 +2136,8 @@ export default function MonitorGorongGorongView() {
             )}
           </div>
 
-          {/* Filter Status Diameter (Open, Cek, Close) */}
-          <div className="relative status-diameter-filter-container">
+          {/* 2. Filter Status Diameter (Open, Cek, Close) */}
+          <div className="relative w-full sm:w-auto status-diameter-filter-container">
             <button
               type="button"
               onClick={() => {
@@ -2026,22 +2152,22 @@ export default function MonitorGorongGorongView() {
                 setIsDsmBkDropdownOpen(false);
                 setIsDsmStDropdownOpen(false);
               }}
-              className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-[125px] ${
+              className={`w-full sm:w-auto h-9 flex items-center justify-between gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-0 sm:min-w-[125px] ${
                 selectedStatusDiameter
                   ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-[#00873D] text-[#00873D] font-bold'
                   : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
               }`}
             >
-              <span>{selectedStatusDiameter ? `Status Ø: ${selectedStatusDiameter}` : 'Status Diameter'}</span>
+              <span className="truncate max-w-[100px] sm:max-w-none">{selectedStatusDiameter ? `Status Ø: ${selectedStatusDiameter}` : 'Status Diameter'}</span>
               <ChevronDown
-                className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                className={`w-3.5 h-3.5 text-slate-500 shrink-0 transition-transform duration-200 ${
                   isStatusDiameterDropdownOpen ? 'rotate-180' : 'rotate-0'
                 }`}
               />
             </button>
 
             {isStatusDiameterDropdownOpen && (
-              <div className="absolute left-0 top-full mt-1.5 w-44 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute left-0 top-full mt-1.5 w-44 max-w-[calc(100vw-2rem)] py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100">
                 <button
                   type="button"
                   onClick={() => {
@@ -2079,8 +2205,8 @@ export default function MonitorGorongGorongView() {
             )}
           </div>
 
-          {/* Filter Status Tanaman (NSBK, NSFC, FC, ST, dll) */}
-          <div className="relative status-tanaman-filter-container">
+          {/* 3. Filter Status Tanaman (NSBK, NSFC, FC, ST, dll) */}
+          <div className="relative w-full sm:w-auto status-tanaman-filter-container">
             <button
               type="button"
               onClick={() => {
@@ -2095,22 +2221,22 @@ export default function MonitorGorongGorongView() {
                 setIsDsmBkDropdownOpen(false);
                 setIsDsmStDropdownOpen(false);
               }}
-              className="flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-[170px]"
+              className="w-full sm:w-auto h-9 flex items-center justify-between gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-0 sm:min-w-[150px]"
             >
-              <span className="whitespace-nowrap">
+              <span className="truncate max-w-[100px] sm:max-w-none">
                 {selectedStatusTanaman.length === 0
                   ? 'Status Tanaman'
                   : selectedStatusTanaman[0]}
               </span>
               <ChevronDown
-                className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                className={`w-3.5 h-3.5 text-slate-500 shrink-0 transition-transform duration-200 ${
                   isStatusTanamanDropdownOpen ? 'rotate-180' : 'rotate-0'
                 }`}
               />
             </button>
 
             {isStatusTanamanDropdownOpen && (
-              <div className="absolute left-0 top-full mt-1.5 w-60 min-w-[240px] max-h-60 overflow-y-auto py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100 custom-scrollbar">
+              <div className="absolute left-0 top-full mt-1.5 w-60 max-w-[calc(100vw-2rem)] max-h-60 overflow-y-auto py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100 custom-scrollbar">
                 <button
                   type="button"
                   onClick={() => {
@@ -2124,7 +2250,7 @@ export default function MonitorGorongGorongView() {
                   }`}
                 >
                   <span className="whitespace-nowrap">Semua Status Tanaman</span>
-                  {selectedStatusTanaman.length === 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                  {selectedStatusTanaman.length === 0 && <Check className="w-3.5 h-3.5 text-[#00873D] shrink-0 stroke-[2.5]" />}
                 </button>
                 {availableStatusTanamanOptions.map((st) => {
                   const isSelected = selectedStatusTanaman.includes(st);
@@ -2143,7 +2269,7 @@ export default function MonitorGorongGorongView() {
                       }`}
                     >
                       <span>{st}</span>
-                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                      {isSelected && <Check className="w-3.5 h-3.5 text-[#00873D] shrink-0 stroke-[2.5]" />}
                     </button>
                   );
                 })}
@@ -2151,8 +2277,8 @@ export default function MonitorGorongGorongView() {
             )}
           </div>
 
-          {/* Filter Tanggal Order: Month Range Picker (Sesuai Gambar 1) */}
-          <div className="relative monthpicker-container">
+          {/* 4. Filter Tanggal Order: Month Range Picker */}
+          <div className="relative w-full sm:w-auto monthpicker-container">
             <button
               type="button"
               onClick={() => {
@@ -2166,29 +2292,29 @@ export default function MonitorGorongGorongView() {
                 setIsDsmBkDropdownOpen(false);
                 setIsDsmStDropdownOpen(false);
               }}
-              className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-colors shadow-2xs ${
+              className={`w-full sm:w-auto h-9 flex items-center justify-between gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-0 sm:min-w-[160px] ${
                 orderMonthRange
                   ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-[#00873D] text-[#00873D] font-bold'
                   : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
               }`}
             >
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                <span>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                <span className="truncate max-w-[85px] sm:max-w-none">
                   {orderMonthRange
                     ? `${MONTH_NAMES_SHORT[orderMonthRange.startMonth]} – ${MONTH_NAMES_SHORT[orderMonthRange.endMonth]} ${orderMonthRange.year}`
-                    : 'Rentang Bulan Order'}
+                    : 'Rentang Bulan'}
                 </span>
               </div>
               <ChevronDown
-                className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                className={`w-3.5 h-3.5 text-slate-500 shrink-0 transition-transform duration-200 ${
                   isMonthPickerOpen ? 'rotate-180' : 'rotate-0'
                 }`}
               />
             </button>
 
             {isMonthPickerOpen && (
-              <div className="absolute left-0 top-full mt-1.5 w-72 p-3.5 rounded-2xl bg-[#1e2330] text-white border border-slate-700/80 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute left-0 sm:left-auto right-0 sm:right-auto top-full mt-1.5 w-72 max-w-[calc(100vw-2rem)] p-3.5 rounded-2xl bg-[#1e2330] text-white border border-slate-700/80 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100">
                 {/* Header: Year Nav */}
                 <div className="flex items-center justify-between px-2 mb-2">
                   <button
@@ -2273,8 +2399,8 @@ export default function MonitorGorongGorongView() {
             )}
           </div>
 
-          {/* Filter Prioritas */}
-          <div className="relative prioritas-filter-container">
+          {/* 5. Filter Prioritas */}
+          <div className="relative w-full sm:w-auto prioritas-filter-container">
             <button
               type="button"
               onClick={() => {
@@ -2289,22 +2415,22 @@ export default function MonitorGorongGorongView() {
                 setIsDsmBkDropdownOpen(false);
                 setIsDsmStDropdownOpen(false);
               }}
-              className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs"
+              className="w-full sm:w-auto h-9 flex items-center justify-between gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-0 sm:min-w-[100px]"
             >
-              <span>
+              <span className="truncate max-w-[100px] sm:max-w-none">
                 {selectedPrioritas.length === 0
                   ? 'Prioritas'
                   : `Prioritas ${selectedPrioritas[0]}`}
               </span>
               <ChevronDown
-                className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                className={`w-3.5 h-3.5 text-slate-500 shrink-0 transition-transform duration-200 ${
                   isPrioritasDropdownOpen ? 'rotate-180' : 'rotate-0'
                 }`}
               />
             </button>
 
             {isPrioritasDropdownOpen && (
-              <div className="absolute left-0 top-full mt-1.5 w-36 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute left-0 top-full mt-1.5 w-36 max-w-[calc(100vw-2rem)] py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100">
                 <button
                   type="button"
                   onClick={() => {
@@ -2318,7 +2444,7 @@ export default function MonitorGorongGorongView() {
                   }`}
                 >
                   <span>Semua Prioritas</span>
-                  {selectedPrioritas.length === 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                  {selectedPrioritas.length === 0 && <Check className="w-3.5 h-3.5 text-[#00873D] shrink-0 stroke-[2.5]" />}
                 </button>
                 {['1', '2', '3', '4', '5'].map((prio) => {
                   const isSelected = selectedPrioritas.includes(prio);
@@ -2337,7 +2463,7 @@ export default function MonitorGorongGorongView() {
                       }`}
                     >
                       <span>Prioritas {prio}</span>
-                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                      {isSelected && <Check className="w-3.5 h-3.5 text-[#00873D] shrink-0 stroke-[2.5]" />}
                     </button>
                   );
                 })}
@@ -2345,8 +2471,8 @@ export default function MonitorGorongGorongView() {
             )}
           </div>
 
-          {/* Filter Akt. BK */}
-          <div className="relative aktbk-filter-container">
+          {/* 6. Filter Akt. BK */}
+          <div className="relative w-full sm:w-auto aktbk-filter-container">
             <button
               type="button"
               onClick={() => {
@@ -2360,22 +2486,22 @@ export default function MonitorGorongGorongView() {
                 setIsDsmBkDropdownOpen(false);
                 setIsDsmStDropdownOpen(false);
               }}
-              className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-[110px] ${
+              className={`w-full sm:w-auto h-9 flex items-center justify-between gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-0 sm:min-w-[105px] ${
                 selectedAktBk.length > 0
                   ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-[#00873D] text-[#00873D] font-bold'
                   : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
               }`}
             >
-              <span>{selectedAktBk.length === 0 ? 'Akt. BK' : selectedAktBk[0]}</span>
+              <span className="truncate max-w-[100px] sm:max-w-none">{selectedAktBk.length === 0 ? 'Akt. BK' : selectedAktBk[0]}</span>
               <ChevronDown
-                className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                className={`w-3.5 h-3.5 text-slate-500 shrink-0 transition-transform duration-200 ${
                   isAktBkDropdownOpen ? 'rotate-180' : 'rotate-0'
                 }`}
               />
             </button>
 
             {isAktBkDropdownOpen && (
-              <div className="absolute left-0 top-full mt-1.5 w-60 max-h-60 overflow-y-auto py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100 custom-scrollbar">
+              <div className="absolute left-0 top-full mt-1.5 w-60 max-w-[calc(100vw-2rem)] max-h-60 overflow-y-auto py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100 custom-scrollbar">
                 <button
                   type="button"
                   onClick={() => {
@@ -2389,7 +2515,7 @@ export default function MonitorGorongGorongView() {
                   }`}
                 >
                   <span>Semua Akt. BK</span>
-                  {selectedAktBk.length === 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                  {selectedAktBk.length === 0 && <Check className="w-3.5 h-3.5 text-[#00873D] shrink-0 stroke-[2.5]" />}
                 </button>
                 {availableAktBkOptions.map((akt) => (
                   <button
@@ -2406,15 +2532,15 @@ export default function MonitorGorongGorongView() {
                     }`}
                   >
                     <span className="truncate">{akt}</span>
-                    {selectedAktBk.includes(akt) && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                    {selectedAktBk.includes(akt) && <Check className="w-3.5 h-3.5 text-[#00873D] shrink-0 stroke-[2.5]" />}
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Filter DSM BK */}
-          <div className="relative dsmbk-filter-container">
+          {/* 7. Filter DSM BK */}
+          <div className="relative w-full sm:w-auto dsmbk-filter-container">
             <button
               type="button"
               onClick={() => {
@@ -2428,22 +2554,22 @@ export default function MonitorGorongGorongView() {
                 setIsAktBkDropdownOpen(false);
                 setIsDsmStDropdownOpen(false);
               }}
-              className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-[100px] ${
+              className={`w-full sm:w-auto h-9 flex items-center justify-between gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-0 sm:min-w-[100px] ${
                 selectedDsmBk.length > 0
                   ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-[#00873D] text-[#00873D] font-bold'
                   : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
               }`}
             >
-              <span>{selectedDsmBk.length === 0 ? 'DSM BK' : selectedDsmBk[0]}</span>
+              <span className="truncate max-w-[100px] sm:max-w-none">{selectedDsmBk.length === 0 ? 'DSM BK' : selectedDsmBk[0]}</span>
               <ChevronDown
-                className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                className={`w-3.5 h-3.5 text-slate-500 shrink-0 transition-transform duration-200 ${
                   isDsmBkDropdownOpen ? 'rotate-180' : 'rotate-0'
                 }`}
               />
             </button>
 
             {isDsmBkDropdownOpen && (
-              <div className="absolute left-0 top-full mt-1.5 w-44 max-h-60 overflow-y-auto py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100 custom-scrollbar">
+              <div className="absolute left-0 top-full mt-1.5 w-44 max-w-[calc(100vw-2rem)] max-h-60 overflow-y-auto py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100 custom-scrollbar">
                 <button
                   type="button"
                   onClick={() => {
@@ -2457,7 +2583,7 @@ export default function MonitorGorongGorongView() {
                   }`}
                 >
                   <span>Semua DSM BK</span>
-                  {selectedDsmBk.length === 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                  {selectedDsmBk.length === 0 && <Check className="w-3.5 h-3.5 text-[#00873D] shrink-0 stroke-[2.5]" />}
                 </button>
                 {availableDsmBkOptions.map((d) => (
                   <button
@@ -2474,15 +2600,15 @@ export default function MonitorGorongGorongView() {
                     }`}
                   >
                     <span>{d}</span>
-                    {selectedDsmBk.includes(d) && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                    {selectedDsmBk.includes(d) && <Check className="w-3.5 h-3.5 text-[#00873D] shrink-0 stroke-[2.5]" />}
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Filter DSM ST */}
-          <div className="relative dsmst-filter-container">
+          {/* 8. Filter DSM ST */}
+          <div className="relative w-full sm:w-auto dsmst-filter-container">
             <button
               type="button"
               onClick={() => {
@@ -2496,22 +2622,22 @@ export default function MonitorGorongGorongView() {
                 setIsAktBkDropdownOpen(false);
                 setIsDsmBkDropdownOpen(false);
               }}
-              className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-[100px] ${
+              className={`w-full sm:w-auto h-9 flex items-center justify-between gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-colors shadow-2xs whitespace-nowrap min-w-0 sm:min-w-[100px] ${
                 selectedDsmSt.length > 0
                   ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-[#00873D] text-[#00873D] font-bold'
                   : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
               }`}
             >
-              <span>{selectedDsmSt.length === 0 ? 'DSM ST' : selectedDsmSt[0]}</span>
+              <span className="truncate max-w-[100px] sm:max-w-none">{selectedDsmSt.length === 0 ? 'DSM ST' : selectedDsmSt[0]}</span>
               <ChevronDown
-                className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                className={`w-3.5 h-3.5 text-slate-500 shrink-0 transition-transform duration-200 ${
                   isDsmStDropdownOpen ? 'rotate-180' : 'rotate-0'
                 }`}
               />
             </button>
 
             {isDsmStDropdownOpen && (
-              <div className="absolute left-0 top-full mt-1.5 w-44 max-h-60 overflow-y-auto py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100 custom-scrollbar">
+              <div className="absolute left-0 top-full mt-1.5 w-44 max-w-[calc(100vw-2rem)] max-h-60 overflow-y-auto py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100 custom-scrollbar">
                 <button
                   type="button"
                   onClick={() => {
@@ -2525,7 +2651,7 @@ export default function MonitorGorongGorongView() {
                   }`}
                 >
                   <span>Semua DSM ST</span>
-                  {selectedDsmSt.length === 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                  {selectedDsmSt.length === 0 && <Check className="w-3.5 h-3.5 text-[#00873D] shrink-0 stroke-[2.5]" />}
                 </button>
                 {availableDsmStOptions.map((d) => (
                   <button
@@ -2542,124 +2668,12 @@ export default function MonitorGorongGorongView() {
                     }`}
                   >
                     <span>{d}</span>
-                    {selectedDsmSt.includes(d) && <span className="w-1.5 h-1.5 rounded-full bg-[#00873D]" />}
+                    {selectedDsmSt.includes(d) && <Check className="w-3.5 h-3.5 text-[#00873D] shrink-0 stroke-[2.5]" />}
                   </button>
                 ))}
               </div>
             )}
           </div>
-        </div>
-
-        {/* Multi-Search Box Cepat dengan Tags Lokasi & Tombol Silang Lingkaran */}
-        <div className="relative w-full sm:w-80 multisearch-container">
-          <div
-            onClick={() => {
-              setIsSearchDropdownOpen(true);
-              searchInputRef.current?.focus();
-            }}
-            className="w-full min-h-[38px] px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex flex-wrap items-center gap-1.5 cursor-text focus-within:ring-2 focus-within:ring-[#00873D] focus-within:border-transparent transition-all shadow-2xs"
-          >
-            <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            
-            {/* Tag chips lokasi yang dipilih */}
-            {selectedSearchLocations.map((loc) => (
-              <span
-                key={loc}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-[#00873D] dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 text-xs font-bold shadow-2xs"
-              >
-                <span>{loc}</span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedSearchLocations((prev) => prev.filter((item) => item !== loc));
-                  }}
-                  className="text-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-200 cursor-pointer p-0.5 transition-colors"
-                  title={`Hapus filter ${loc}`}
-                >
-                  <XCircle className="w-3.5 h-3.5" />
-                </button>
-              </span>
-            ))}
-
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={searchQuery}
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsSearchDropdownOpen(true);
-              }}
-              onFocus={() => setIsSearchDropdownOpen(true)}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setIsSearchDropdownOpen(true);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && searchQuery.trim()) {
-                  e.preventDefault();
-                  const val = searchQuery.trim();
-                  if (!selectedSearchLocations.includes(val)) {
-                    setSelectedSearchLocations((prev) => [...prev, val]);
-                  }
-                  setSearchQuery('');
-                  setIsSearchDropdownOpen(true);
-                } else if (e.key === 'Backspace' && !searchQuery && selectedSearchLocations.length > 0) {
-                  setSelectedSearchLocations((prev) => prev.slice(0, -1));
-                }
-              }}
-              placeholder="Cari Lokasi"
-              className="flex-1 min-w-[100px] bg-transparent text-xs text-slate-800 dark:text-slate-200 outline-none placeholder:text-slate-400 py-1"
-            />
-
-            {(selectedSearchLocations.length > 0 || searchQuery) && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedSearchLocations([]);
-                  setSearchQuery('');
-                }}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-0.5 shrink-0"
-                title="Hapus semua pencarian"
-              >
-                <XCircle className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
-          {/* Dropdown saran autocomplete lokasi */}
-          {isSearchDropdownOpen && (
-            <div className="absolute left-0 right-0 top-full mt-1.5 max-h-56 overflow-y-auto py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800">
-              <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Saran Lokasi ({searchSuggestions.length})
-              </div>
-              {searchSuggestions.length === 0 ? (
-                <div className="px-3 py-2 text-xs text-slate-400 text-center">
-                  Lokasi tidak ditemukan
-                </div>
-              ) : (
-                searchSuggestions.map((loc) => (
-                  <button
-                    key={loc}
-                    type="button"
-                    onClick={() => {
-                      if (!selectedSearchLocations.includes(loc)) {
-                        setSelectedSearchLocations((prev) => [...prev, loc]);
-                      }
-                      setSearchQuery('');
-                      setIsSearchDropdownOpen(false);
-                      setTimeout(() => searchInputRef.current?.focus(), 50);
-                    }}
-                    className="w-full px-3 py-1.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-[#00873D] transition-colors flex items-center justify-between"
-                  >
-                    <span>{loc}</span>
-                    <Plus className="w-3.5 h-3.5 text-slate-400" />
-                  </button>
-                ))
-              )}
-            </div>
-          )}
         </div>
       </div>
 
@@ -2673,7 +2687,7 @@ export default function MonitorGorongGorongView() {
               <thead className="text-slate-700 dark:text-slate-200 font-bold">
                 {/* Baris Header Atas */}
                 <tr className="h-[34px]">
-                  {/* Kolom 1-11 Ter-Freeze dari No sampai Prioritas */}
+                  {/* Kolom 1-11 Ter-Freeze dari No sampai Prioritas (Responsif Mobile & Desktop) */}
                   <th
                     rowSpan={2}
                     className="sticky top-0 left-0 z-50 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[45px] min-w-[45px] max-w-[45px] text-center px-1 py-2 font-bold"
@@ -2683,7 +2697,7 @@ export default function MonitorGorongGorongView() {
                   <th
                     rowSpan={2}
                     onClick={() => handleSort('lokasi')}
-                    className="sticky top-0 left-[45px] z-50 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[85px] min-w-[85px] max-w-[85px] px-2 py-2 font-bold cursor-pointer select-none text-center"
+                    className="sticky top-0 left-[45px] z-50 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.10)] lg:shadow-none w-[85px] min-w-[85px] max-w-[85px] px-2 py-2 font-bold cursor-pointer select-none text-center"
                   >
                     <div className="inline-flex items-center justify-center gap-1">
                       <span>Lokasi</span>
@@ -2693,7 +2707,7 @@ export default function MonitorGorongGorongView() {
                   <th
                     rowSpan={2}
                     onClick={() => handleSort('wilayah')}
-                    className="sticky top-0 left-[130px] z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[55px] min-w-[55px] max-w-[55px] px-1 py-2 text-center font-bold cursor-pointer select-none"
+                    className="sticky top-0 left-auto lg:left-[130px] z-30 lg:z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[55px] min-w-[55px] max-w-[55px] px-1 py-2 text-center font-bold cursor-pointer select-none"
                   >
                     <div className="inline-flex items-center justify-center gap-1">
                       <span>Wil</span>
@@ -2703,7 +2717,7 @@ export default function MonitorGorongGorongView() {
                   <th
                     rowSpan={2}
                     onClick={() => handleSort('luas')}
-                    className="sticky top-0 left-[185px] z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[60px] min-w-[60px] max-w-[60px] px-1 py-2 text-center font-bold cursor-pointer select-none"
+                    className="sticky top-0 left-auto lg:left-[185px] z-30 lg:z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[60px] min-w-[60px] max-w-[60px] px-1 py-2 text-center font-bold cursor-pointer select-none"
                   >
                     <div className="inline-flex items-center justify-center gap-1">
                       <span>Luas</span>
@@ -2713,7 +2727,7 @@ export default function MonitorGorongGorongView() {
                   <th
                     rowSpan={2}
                     onClick={() => handleSort('status')}
-                    className="sticky top-0 left-[245px] z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[75px] min-w-[75px] max-w-[75px] px-1 py-2 cursor-pointer select-none text-center font-bold"
+                    className="sticky top-0 left-auto lg:left-[245px] z-30 lg:z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[75px] min-w-[75px] max-w-[75px] px-1 py-2 cursor-pointer select-none text-center font-bold"
                   >
                     <div className="inline-flex items-center justify-center gap-1">
                       <span>Status</span>
@@ -2723,7 +2737,7 @@ export default function MonitorGorongGorongView() {
                   <th
                     rowSpan={2}
                     onClick={() => handleSort('umurBulan')}
-                    className="sticky top-0 left-[320px] z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[65px] min-w-[65px] max-w-[65px] px-1 py-2 text-center font-bold cursor-pointer select-none"
+                    className="sticky top-0 left-auto lg:left-[320px] z-30 lg:z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[65px] min-w-[65px] max-w-[65px] px-1 py-2 text-center font-bold cursor-pointer select-none"
                   >
                     <div className="inline-flex items-center justify-center gap-1">
                       <span>Umur Bln</span>
@@ -2734,7 +2748,7 @@ export default function MonitorGorongGorongView() {
                     rowSpan={2}
                     onClick={() => handleSort('tanggalOrder')}
                     title="Urutkan Tanggal Order (Oldest ke Newest / Sebaliknya)"
-                    className="sticky top-0 left-[385px] z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[85px] min-w-[85px] max-w-[85px] px-1 py-2 cursor-pointer select-none text-center font-bold"
+                    className="sticky top-0 left-auto lg:left-[385px] z-30 lg:z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[85px] min-w-[85px] max-w-[85px] px-1 py-2 cursor-pointer select-none text-center font-bold"
                   >
                     <div className="inline-flex items-center justify-center gap-1">
                       <span>Tgl Order</span>
@@ -2744,7 +2758,7 @@ export default function MonitorGorongGorongView() {
                   <th
                     rowSpan={2}
                     onClick={() => handleSort('aktBk')}
-                    className="sticky top-0 left-[470px] z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[155px] min-w-[155px] max-w-[155px] px-2 py-2 cursor-pointer select-none text-center font-bold"
+                    className="sticky top-0 left-auto lg:left-[470px] z-30 lg:z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[155px] min-w-[155px] max-w-[155px] px-2 py-2 cursor-pointer select-none text-center font-bold"
                   >
                     <div className="inline-flex items-center justify-center gap-1">
                       <span>Akt. BK</span>
@@ -2754,7 +2768,7 @@ export default function MonitorGorongGorongView() {
                   <th
                     rowSpan={2}
                     onClick={() => handleSort('dsmBk')}
-                    className="sticky top-0 left-[625px] z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[70px] min-w-[70px] max-w-[70px] px-1 py-2 cursor-pointer select-none text-center font-bold"
+                    className="sticky top-0 left-auto lg:left-[625px] z-30 lg:z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[70px] min-w-[70px] max-w-[70px] px-1 py-2 cursor-pointer select-none text-center font-bold"
                   >
                     <div className="inline-flex items-center justify-center gap-1">
                       <span>DSM BK</span>
@@ -2764,7 +2778,7 @@ export default function MonitorGorongGorongView() {
                   <th
                     rowSpan={2}
                     onClick={() => handleSort('dsmSt')}
-                    className="sticky top-0 left-[695px] z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[70px] min-w-[70px] max-w-[70px] px-1 py-2 cursor-pointer select-none text-center font-bold"
+                    className="sticky top-0 left-auto lg:left-[695px] z-30 lg:z-40 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 w-[70px] min-w-[70px] max-w-[70px] px-1 py-2 cursor-pointer select-none text-center font-bold"
                   >
                     <div className="inline-flex items-center justify-center gap-1">
                       <span>DSM ST</span>
@@ -2775,7 +2789,7 @@ export default function MonitorGorongGorongView() {
                     rowSpan={2}
                     onClick={() => handleSort('prioritas')}
                     title="Urutkan Prioritas 1-5"
-                    className="sticky top-0 left-[765px] z-40 bg-slate-100 dark:bg-slate-800 border-r-2 border-b border-slate-300 dark:border-slate-700 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.12)] w-[70px] min-w-[70px] max-w-[70px] px-1 py-2 cursor-pointer select-none text-center font-bold"
+                    className="sticky top-0 left-auto lg:left-[765px] z-30 lg:z-40 bg-slate-100 dark:bg-slate-800 border-r-2 border-b border-slate-300 dark:border-slate-700 shadow-none lg:shadow-[2px_0_4px_-1px_rgba(0,0,0,0.12)] w-[70px] min-w-[70px] max-w-[70px] px-1 py-2 cursor-pointer select-none text-center font-bold"
                   >
                     <div className="inline-flex items-center justify-center gap-1">
                       <span>Prioritas</span>
@@ -2909,13 +2923,13 @@ export default function MonitorGorongGorongView() {
                         idx % 2 === 1 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-900'
                       }`}
                     >
-                      {/* 11 Kolom Ter-Freeze dari No sampai Prioritas (100% Solid Non-Tembus) */}
+                      {/* 11 Kolom Ter-Freeze dari No sampai Prioritas (Responsif Mobile & Desktop) */}
                       <td className={`sticky left-0 z-20 w-[45px] min-w-[45px] max-w-[45px] text-center font-mono text-[11px] text-slate-500 border-r border-b border-slate-200 dark:border-slate-800 px-1 py-2 ${
                         idx % 2 === 1 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-900'
                       } group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors`}>
                         {item.fixedRank ?? idx + 1}
                       </td>
-                      <td className={`sticky left-[45px] z-20 w-[85px] min-w-[85px] max-w-[85px] text-center font-bold border-r border-b border-slate-200 dark:border-slate-800 px-1 py-1.5 ${
+                      <td className={`sticky left-[45px] z-20 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.10)] lg:shadow-none w-[85px] min-w-[85px] max-w-[85px] text-center font-bold border-r border-b border-slate-200 dark:border-slate-800 px-1 py-1.5 ${
                         idx % 2 === 1 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-900'
                       } group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors`}>
                         <button
@@ -2928,47 +2942,47 @@ export default function MonitorGorongGorongView() {
                           <span className="underline decoration-dotted underline-offset-2 hover:decoration-solid">{item.lokasi}</span>
                         </button>
                       </td>
-                      <td className={`sticky left-[130px] z-20 w-[55px] min-w-[55px] max-w-[55px] text-center border-r border-b border-slate-200 dark:border-slate-800 px-1 py-2 ${
+                      <td className={`relative lg:sticky lg:left-[130px] z-10 lg:z-20 w-[55px] min-w-[55px] max-w-[55px] text-center border-r border-b border-slate-200 dark:border-slate-800 px-1 py-2 ${
                         idx % 2 === 1 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-900'
                       } group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors`}>
                         {item.wilayah}
                       </td>
-                      <td className={`sticky left-[185px] z-20 w-[60px] min-w-[60px] max-w-[60px] text-center font-mono border-r border-b border-slate-200 dark:border-slate-800 px-1 py-2 ${
+                      <td className={`relative lg:sticky lg:left-[185px] z-10 lg:z-20 w-[60px] min-w-[60px] max-w-[60px] text-center font-mono border-r border-b border-slate-200 dark:border-slate-800 px-1 py-2 ${
                         idx % 2 === 1 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-900'
                       } group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors`}>
                         {item.luas !== null && item.luas !== undefined ? Number(item.luas).toString() : '-'}
                       </td>
-                      <td className={`sticky left-[245px] z-20 w-[75px] min-w-[75px] max-w-[75px] text-center font-semibold border-r border-b border-slate-200 dark:border-slate-800 px-1 py-2 ${
+                      <td className={`relative lg:sticky lg:left-[245px] z-10 lg:z-20 w-[75px] min-w-[75px] max-w-[75px] text-center font-semibold border-r border-b border-slate-200 dark:border-slate-800 px-1 py-2 ${
                         idx % 2 === 1 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-900'
                       } group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors`}>
                         {item.status}
                       </td>
-                      <td className={`sticky left-[320px] z-20 w-[65px] min-w-[65px] max-w-[65px] text-center font-mono border-r border-b border-slate-200 dark:border-slate-800 px-1 py-2 ${
+                      <td className={`relative lg:sticky lg:left-[320px] z-10 lg:z-20 w-[65px] min-w-[65px] max-w-[65px] text-center font-mono border-r border-b border-slate-200 dark:border-slate-800 px-1 py-2 ${
                         idx % 2 === 1 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-900'
                       } group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors`}>
                         {item.umurBulan}
                       </td>
-                      <td className={`sticky left-[385px] z-20 w-[85px] min-w-[85px] max-w-[85px] text-center font-mono text-[10px] text-slate-500 border-r border-b border-slate-200 dark:border-slate-800 px-1 py-2 ${
+                      <td className={`relative lg:sticky lg:left-[385px] z-10 lg:z-20 w-[85px] min-w-[85px] max-w-[85px] text-center font-mono text-[10px] text-slate-500 border-r border-b border-slate-200 dark:border-slate-800 px-1 py-2 ${
                         idx % 2 === 1 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-900'
                       } group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors`}>
                         {item.tanggalOrder}
                       </td>
-                      <td className={`sticky left-[470px] z-20 w-[155px] min-w-[155px] max-w-[155px] text-center text-slate-700 dark:text-slate-300 font-medium border-r border-b border-slate-200 dark:border-slate-800 px-1.5 py-2 ${
+                      <td className={`relative lg:sticky lg:left-[470px] z-10 lg:z-20 w-[155px] min-w-[155px] max-w-[155px] text-center text-slate-700 dark:text-slate-300 font-medium border-r border-b border-slate-200 dark:border-slate-800 px-1.5 py-2 ${
                         idx % 2 === 1 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-900'
                       } group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors`} title={item.aktBk}>
                         {item.aktBk}
                       </td>
-                      <td className={`sticky left-[625px] z-20 w-[70px] min-w-[70px] max-w-[70px] text-center text-[10px] border-r border-b border-slate-200 dark:border-slate-800 px-1 py-2 ${
+                      <td className={`relative lg:sticky lg:left-[625px] z-10 lg:z-20 w-[70px] min-w-[70px] max-w-[70px] text-center text-[10px] border-r border-b border-slate-200 dark:border-slate-800 px-1 py-2 ${
                         idx % 2 === 1 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-900'
                       } group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors`}>
                         {item.dsmBk}
                       </td>
-                      <td className={`sticky left-[695px] z-20 w-[70px] min-w-[70px] max-w-[70px] text-center text-[10px] border-r border-b border-slate-200 dark:border-slate-800 px-1 py-2 ${
+                      <td className={`relative lg:sticky lg:left-[695px] z-10 lg:z-20 w-[70px] min-w-[70px] max-w-[70px] text-center text-[10px] border-r border-b border-slate-200 dark:border-slate-800 px-1 py-2 ${
                         idx % 2 === 1 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-900'
                       } group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors`}>
                         {item.dsmSt}
                       </td>
-                      <td className={`sticky left-[765px] z-20 w-[70px] min-w-[70px] max-w-[70px] text-center border-r-2 border-b border-slate-300 dark:border-slate-700 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.12)] px-1 py-2 ${
+                      <td className={`relative lg:sticky lg:left-[765px] z-10 lg:z-20 w-[70px] min-w-[70px] max-w-[70px] text-center border-r-2 border-b border-slate-300 dark:border-slate-700 shadow-none lg:shadow-[2px_0_4px_-1px_rgba(0,0,0,0.12)] px-1 py-2 ${
                         idx % 2 === 1 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-900'
                       } group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors`}>
                         {renderPriorityBadge(item.prioritas)}

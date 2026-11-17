@@ -53,6 +53,7 @@ export default function FormOrderGorongGorongView() {
   const {
     user,
     isAdmin,
+    isSuperAdmin,
     isUser,
     isUserFE,
     isUserWilayah,
@@ -105,10 +106,13 @@ export default function FormOrderGorongGorongView() {
   useEffect(() => {
     if (isTKVerifikatorFE || isUserFE) {
       setJenisTransaksi('DROP');
-    } else if (isMandorWilayah || isKepalaWilayah || isUserWilayah) {
+    } else if (isMandorWilayah) {
+      // Role Mandor Wilayah: default dikosongkan, pilihan (Pasang Manual & Pindah Lokasi) muncul saat dropdown diklik
+      setJenisTransaksi('');
+    } else if (isKepalaWilayah) {
       setJenisTransaksi('ORDER');
     }
-  }, [isTKVerifikatorFE, isUserFE, isMandorWilayah, isKepalaWilayah, isUserWilayah]);
+  }, [isTKVerifikatorFE, isUserFE, isMandorWilayah, isKepalaWilayah]);
 
   // Calendar View State
   const initialDate = new Date();
@@ -136,7 +140,7 @@ export default function FormOrderGorongGorongView() {
     }
   };
 
-  useEffect(() => {
+  const loadMasterLokasi = () => {
     fetch('/api/gorong-gorong/master-lokasi?all=true')
       .then((r) => r.json())
       .then((res) => {
@@ -145,8 +149,24 @@ export default function FormOrderGorongGorongView() {
         }
       })
       .catch((e) => console.error('Error fetching master lokasi:', e));
+  };
 
+  useEffect(() => {
+    loadMasterLokasi();
     loadLokasiSaldo();
+
+    const handleSync = () => {
+      loadMasterLokasi();
+      loadLokasiSaldo();
+      loadHistory();
+    };
+
+    window.addEventListener('master_data_updated', handleSync);
+    window.addEventListener('gorong_gorong_updated', handleSync);
+    return () => {
+      window.removeEventListener('master_data_updated', handleSync);
+      window.removeEventListener('gorong_gorong_updated', handleSync);
+    };
   }, []);
 
   // 2. Load Riwayat Transaksi
@@ -216,7 +236,13 @@ export default function FormOrderGorongGorongView() {
       createEmptySlot('slot-2'),
       createEmptySlot('slot-3'),
     ]);
-    setJenisTransaksi('');
+    setJenisTransaksi(
+      isTKVerifikatorFE || isUserFE
+        ? 'DROP'
+        : isKepalaWilayah
+        ? 'ORDER'
+        : ''
+    );
     setTanggal('');
     setKeterangan('');
     setNotification(null);
@@ -611,8 +637,8 @@ export default function FormOrderGorongGorongView() {
 
               {isJenisDropdownOpen && !isTKVerifikatorFE && !isFormInputViewOnly && (
                 <div className="absolute left-0 right-0 top-full mt-1.5 rounded-xl bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 shadow-xl z-50 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-150">
-                  {/* Order: Ditampilkan untuk Admin, Mandor Wilayah, Kepala Wilayah */}
-                  {(isAdmin || isMandorWilayah || isKepalaWilayah || isManagement || (!isTKVerifikatorFE && !isUserFE)) && (
+                  {/* Order: Ditampilkan untuk Admin, Kepala Wilayah, Management (Dikecualikan untuk Mandor Wilayah) */}
+                  {!isMandorWilayah && !isTKVerifikatorFE && !isUserFE && (isAdmin || isSuperAdmin || isKepalaWilayah || isManagement || (!isTKVerifikatorFE && !isUserFE)) && (
                     <button
                       type="button"
                       onClick={() => {
@@ -630,8 +656,8 @@ export default function FormOrderGorongGorongView() {
                     </button>
                   )}
 
-                  {/* Drop: Ditampilkan untuk Admin dan TK Verifikator FE */}
-                  {(isAdmin || isTKVerifikatorFE || isUserFE || isManagement) && (
+                  {/* Drop: Ditampilkan untuk Admin dan TK Verifikator FE (Dikecualikan untuk Mandor Wilayah) */}
+                  {!isMandorWilayah && (isAdmin || isSuperAdmin || isTKVerifikatorFE || isUserFE || isManagement) && (
                     <button
                       type="button"
                       onClick={() => {

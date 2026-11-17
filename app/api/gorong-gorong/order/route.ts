@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const validJenis = ['ORDER', 'DROP', 'PASANG_MANUAL'];
+    const validJenis = ['ORDER', 'DROP', 'PASANG_MANUAL', 'PINDAH_LOKASI'];
     const validatedData = [];
 
     for (const it of itemsToProcess) {
@@ -137,11 +137,12 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (it.userRole === 'USER_WILAYAH' && cleanJenis !== 'ORDER' && cleanJenis !== 'PASANG_MANUAL') {
+      const isPindah = cleanJenis === 'PINDAH_LOKASI' || (cleanJenis === 'DROP' && !!it.lokasiAsal);
+      if (it.userRole === 'USER_WILAYAH' && cleanJenis !== 'PASANG_MANUAL' && !isPindah) {
         return NextResponse.json(
           {
             success: false,
-            message: 'Akses Ditolak: User Wilayah hanya berhak membuat transaksi ORDER dan PASANG MANUAL.',
+            message: 'Akses Ditolak: Mandor Wilayah hanya berhak mengisi data Pasang Manual dan Pindah Lokasi.',
           },
           { status: 403 }
         );
@@ -197,7 +198,7 @@ export async function POST(request: NextRequest) {
         lokasiAsal: it.lokasiAsal || null,
         lokasiTujuan: cleanLokasi,
         wilayah: autoWil,
-        jenisTransaksi: cleanJenis,
+        jenisTransaksi: cleanJenis === 'PINDAH_LOKASI' ? 'DROP' : cleanJenis,
         tanggal: isNaN(trxDate.getTime()) ? new Date() : trxDate,
         qtyD40: numD40,
         qtyD60: numD60,

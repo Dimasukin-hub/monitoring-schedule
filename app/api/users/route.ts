@@ -7,8 +7,14 @@ function getAdminSession(req: Request) {
   try {
     // 1. Periksa header x-user-role dari client state
     const roleHeader = req.headers.get('x-user-role');
+    const userHeader = req.headers.get('x-user-username');
+    const idHeader = req.headers.get('x-user-id');
     if (roleHeader === 'admin' || roleHeader === 'super_admin') {
-      return { role: roleHeader, name: req.headers.get('x-user-username') || roleHeader };
+      return {
+        role: roleHeader,
+        name: userHeader || roleHeader,
+        id: idHeader ? parseInt(idHeader, 10) : undefined,
+      };
     }
 
     // 2. Periksa cookie ggf_session
@@ -21,8 +27,8 @@ function getAdminSession(req: Request) {
       }
     }
 
-    // 3. Fallback jika dalam development / local environment
-    if (process.env.NODE_ENV !== 'production') {
+    // 3. Fallback jika dalam development / local environment tanpa header eksplisit
+    if (process.env.NODE_ENV !== 'production' && !roleHeader) {
       return { role: 'super_admin', name: 'superadmin' };
     }
 
@@ -32,7 +38,7 @@ function getAdminSession(req: Request) {
   }
 }
 
-// GET: Ambil semua data pengguna untuk Admin
+// GET: Ambil semua data pengguna untuk Admin / Super Admin
 export async function GET(req: Request) {
   try {
     const admin = getAdminSession(req);
@@ -45,12 +51,15 @@ export async function GET(req: Request) {
 
     await ensureDefaultUsersInDb();
 
+    const isSuper = admin.role === 'super_admin';
+
     const users = await prisma.user.findMany({
       orderBy: { id: 'asc' },
       select: {
         id: true,
         name: true,
         email: true,
+        password: true,
         role: true,
         avatar: true,
         createdAt: true,
@@ -74,6 +83,7 @@ export async function GET(req: Request) {
         id: u.id,
         name: u.name,
         username: u.email,
+        password: isSuper ? u.password : undefined,
         role: u.role,
         avatar: u.avatar,
         createdAt: u.createdAt,

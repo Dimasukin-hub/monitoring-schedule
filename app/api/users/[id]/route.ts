@@ -6,8 +6,14 @@ function getAdminSession(req: Request) {
   try {
     // 1. Periksa header x-user-role dari client state
     const roleHeader = req.headers.get('x-user-role');
+    const userHeader = req.headers.get('x-user-username');
+    const idHeader = req.headers.get('x-user-id');
     if (roleHeader === 'admin' || roleHeader === 'super_admin') {
-      return { role: roleHeader, name: req.headers.get('x-user-username') || roleHeader };
+      return {
+        role: roleHeader,
+        name: userHeader || roleHeader,
+        id: idHeader ? parseInt(idHeader, 10) : undefined,
+      };
     }
 
     // 2. Periksa cookie ggf_session
@@ -20,8 +26,8 @@ function getAdminSession(req: Request) {
       }
     }
 
-    // 3. Fallback jika dalam development / local environment
-    if (process.env.NODE_ENV !== 'production') {
+    // 3. Fallback jika dalam development / local environment tanpa header eksplisit
+    if (process.env.NODE_ENV !== 'production' && !roleHeader) {
       return { role: 'super_admin', name: 'superadmin' };
     }
 
@@ -214,22 +220,6 @@ export async function DELETE(
       );
     }
 
-    // Cegah admin menghapus akunnya sendiri
-    if (admin.id === userId) {
-      return NextResponse.json(
-        { success: false, message: 'Anda tidak dapat menghapus akun Anda sendiri yang sedang aktif.' },
-        { status: 400 }
-      );
-    }
-
-    // Lindungi akun default admin utama (id: 1)
-    if (userId === 1) {
-      return NextResponse.json(
-        { success: false, message: 'Akun Super Admin utama tidak dapat dihapus.' },
-        { status: 400 }
-      );
-    }
-
     const existingUser = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -241,6 +231,19 @@ export async function DELETE(
       );
     }
 
+    // Cegah admin/super_admin menghapus akunnya sendiri
+    const authUserId = req.headers.get('x-user-id') ? parseInt(req.headers.get('x-user-id')!, 10) : admin.id;
+    const authUsername = (req.headers.get('x-user-username') || admin.name || '').trim().toLowerCase();
+    const isSelf = (authUserId && authUserId === userId) ||
+                   (authUsername && (existingUser.email.toLowerCase() === authUsername || existingUser.name.toLowerCase() === authUsername));
+
+    if (isSelf) {
+      return NextResponse.json(
+        { success: false, message: 'Anda tidak dapat menghapus akun Anda sendiri yang sedang aktif.' },
+        { status: 400 }
+      );
+    }
+
     // Jika yang menghapus bukan Super Admin, dilarang menghapus akun Admin atau Super Admin
     if (admin.role !== 'super_admin' && (existingUser.role === 'admin' || existingUser.role === 'super_admin')) {
       return NextResponse.json(
@@ -249,35 +252,27 @@ export async function DELETE(
       );
     }
 
-    // Lindungi akun Super Admin bawaan sistem
-    if (existingUser.email === 'superadmin' || existingUser.email === 'superadmin@ggf.co.id') {
-      return NextResponse.json(
-        { success: false, message: 'Akun Super Admin bawaan sistem tidak dapat dihapus.' },
-        { status: 400 }
-      );
-    }
-
-    // Jika yang dihapus super_admin, pastikan masih ada super_admin tersisa
+    // Jika yang dihapus super_admin, pastikan masih ada super_admin lain yang tersisa
     if (existingUser.role === 'super_admin') {
       const superAdminCount = await prisma.user.count({
         where: { role: 'super_admin' },
       });
       if (superAdminCount <= 1) {
         return NextResponse.json(
-          { success: false, message: 'Tidak dapat menghapus satu-satunya akun Super Admin tersisa.' },
+          { success: false, message: 'Tidak dapat menghapus satu-satunya akun Super Admin yang tersisa.' },
           { status: 400 }
         );
       }
     }
 
-    // Jika yang dihapus admin, pastikan masih ada admin tersisa
+    // Jika yang dihapus admin, pastikan masih ada admin lain yang tersisa
     if (existingUser.role === 'admin') {
       const adminCount = await prisma.user.count({
         where: { role: 'admin' },
       });
       if (adminCount <= 1) {
         return NextResponse.json(
-          { success: false, message: 'Tidak dapat menghapus satu-satunya akun Admin tersisa.' },
+          { success: false, message: 'Tidak dapat menghapus satu-satunya akun Admin yang tersisa.' },
           { status: 400 }
         );
       }

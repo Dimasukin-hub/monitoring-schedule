@@ -26,6 +26,7 @@ export interface UserItem {
   id: number;
   name: string;
   username: string;
+  password?: string;
   role: UserRole;
   avatar?: string | null;
   createdAt: string;
@@ -53,6 +54,16 @@ export default function UserManagementView() {
   const [search, setSearch] = useState<string>('');
   const [roleFilter, setRoleFilter] = useState<'ALL' | UserRole>('ALL');
   const [stats, setStats] = useState<any>({ total: 0 });
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<number, boolean>>({});
+  const [showAllPasswords, setShowAllPasswords] = useState<boolean>(false);
+  const [showCurrentPasswordInModal, setShowCurrentPasswordInModal] = useState<boolean>(false);
+
+  const togglePasswordVisibility = (userId: number) => {
+    setVisiblePasswords((prev) => ({
+      ...prev,
+      [userId]: !prev[userId],
+    }));
+  };
 
   // Modal State - Tambah User
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
@@ -107,7 +118,8 @@ export default function UserManagementView() {
 
   const getAuthHeaders = () => ({
     'x-user-role': currentUser?.role || 'admin',
-    'x-user-username': currentUser?.email || 'admin',
+    'x-user-username': currentUser?.email || currentUser?.name || 'admin',
+    'x-user-id': String(currentUser?.id || ''),
   });
 
   const fetchUsers = async (isSilent = false) => {
@@ -233,6 +245,7 @@ export default function UserManagementView() {
     });
     setEditError(null);
     setShowEditPassword(false);
+    setShowCurrentPasswordInModal(false);
   };
 
   // Handle Submit Edit User
@@ -288,6 +301,13 @@ export default function UserManagementView() {
   const handleDeleteSubmit = async () => {
     if (!deletingUser) return;
     setDeleteError(null);
+
+    const isCurrent = currentUser?.id === deletingUser.id ||
+      (!!currentUser?.email && currentUser.email.toLowerCase() === deletingUser.username.toLowerCase());
+    if (isCurrent) {
+      setDeleteError('Anda tidak dapat menghapus akun Anda sendiri yang sedang aktif.');
+      return;
+    }
 
     if (!isSuperAdmin && (deletingUser.role === 'admin' || deletingUser.role === 'super_admin')) {
       setDeleteError('Hanya Super Admin yang berhak menghapus akun Admin atau Super Admin.');
@@ -594,6 +614,21 @@ export default function UserManagementView() {
                   <th className="py-3 px-4 w-12 text-center">No</th>
                   <th className="py-3 px-4">Nama Pengguna</th>
                   <th className="py-3 px-4">Username</th>
+                  {isSuperAdmin && (
+                    <th className="py-3 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <span>Password</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowAllPasswords((prev) => !prev)}
+                          className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer p-0.5 rounded transition-colors"
+                          title={showAllPasswords ? 'Sembunyikan semua password' : 'Lihat semua password'}
+                        >
+                          {showAllPasswords ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </th>
+                  )}
                   <th className="py-3 px-4 text-center">Role Akses</th>
                   <th className="py-3 px-4 text-center">Tanggal Dibuat</th>
                   <th className="py-3 px-4 text-center w-36">Aksi</th>
@@ -601,10 +636,10 @@ export default function UserManagementView() {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
                 {filteredUsers.map((item, index) => {
-                  const isCurrent = currentUser?.id === item.id;
+                  const isCurrent = currentUser?.id === item.id || 
+                    (!!currentUser?.email && currentUser.email.toLowerCase() === item.username.toLowerCase());
                   const isProtectedAdminAccount = item.role === 'admin' || item.role === 'super_admin';
                   const isLockedForAdmin = !isSuperAdmin && isProtectedAdminAccount;
-                  const isProtectedDefaultSuperAdmin = item.username === 'superadmin' || item.id === 1;
 
                   return (
                     <tr
@@ -638,6 +673,29 @@ export default function UserManagementView() {
                           @{item.username}
                         </span>
                       </td>
+                      {isSuperAdmin && (
+                        <td className="py-3 px-4 text-center">
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 shadow-2xs">
+                            <span className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200 tracking-wider">
+                              {showAllPasswords || visiblePasswords[item.id]
+                                ? (item.password || '-')
+                                : '••••••••'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => togglePasswordVisibility(item.id)}
+                              className="p-0.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer transition-colors"
+                              title={showAllPasswords || visiblePasswords[item.id] ? 'Sembunyikan password' : 'Lihat password'}
+                            >
+                              {showAllPasswords || visiblePasswords[item.id] ? (
+                                <EyeOff className="w-3.5 h-3.5" />
+                              ) : (
+                                <Eye className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                      )}
                       <td className="py-3 px-4 text-center">
                         {renderRoleBadge(item.role)}
                       </td>
@@ -669,18 +727,16 @@ export default function UserManagementView() {
                           <button
                             type="button"
                             onClick={() => setDeletingUser(item)}
-                            disabled={isCurrent || isLockedForAdmin || isProtectedDefaultSuperAdmin}
+                            disabled={isCurrent || isLockedForAdmin}
                             title={
                               isCurrent
-                                ? 'Tidak bisa menghapus akun Anda sendiri'
+                                ? 'Tidak bisa menghapus akun Anda sendiri yang sedang aktif'
                                 : isLockedForAdmin
                                 ? 'Hanya Super Admin yang berhak menghapus akun Admin/Super Admin'
-                                : isProtectedDefaultSuperAdmin
-                                ? 'Akun Super Admin sistem tidak dapat dihapus'
                                 : 'Hapus Pengguna'
                             }
                             className={`p-1.5 rounded-lg border transition-colors ${
-                              isCurrent || isLockedForAdmin || isProtectedDefaultSuperAdmin
+                              isCurrent || isLockedForAdmin
                                 ? 'opacity-30 border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed'
                                 : 'border-slate-200 dark:border-slate-700 hover:bg-rose-50 dark:hover:bg-rose-950/60 hover:text-rose-600 dark:hover:text-rose-400 text-slate-500 dark:text-slate-400 cursor-pointer'
                             }`}
@@ -910,6 +966,26 @@ export default function UserManagementView() {
                   className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500"
                 />
               </div>
+
+              {/* Password Saat Ini (Khusus Super Admin) */}
+              {isSuperAdmin && editingUser?.password && (
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/60 text-xs">
+                  <div>
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Password Saat Ini: </span>
+                    <span className="font-mono font-bold text-indigo-700 dark:text-indigo-300 ml-1">
+                      {showCurrentPasswordInModal ? editingUser.password : '••••••••'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPasswordInModal(!showCurrentPasswordInModal)}
+                    className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 cursor-pointer p-0.5"
+                    title={showCurrentPasswordInModal ? 'Sembunyikan password' : 'Lihat password'}
+                  >
+                    {showCurrentPasswordInModal ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              )}
 
               {/* Reset Password Field */}
               <div className="space-y-1.5">

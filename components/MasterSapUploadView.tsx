@@ -144,6 +144,10 @@ export default function MasterSapUploadView() {
         setUploadResult(data.data);
         setPage(1);
         loadData();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('gorong_gorong_updated'));
+          window.dispatchEvent(new CustomEvent('master_data_updated', { detail: { type: 'sap' } }));
+        }
       } else {
         setUploadError(data.message || 'Gagal memproses file SAP.');
       }

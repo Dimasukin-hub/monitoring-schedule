@@ -99,6 +99,19 @@ export default function MasterWaterloggingView() {
     loadData(page, dataList.length === 0);
   }, [page, selectedWilayah, debouncedSearch]);
 
+  // Real-time synchronization: dengarkan transaksi form input & pembaruan master data
+  useEffect(() => {
+    const handleSync = () => {
+      loadData(page, false);
+    };
+    window.addEventListener('gorong_gorong_updated', handleSync);
+    window.addEventListener('master_data_updated', handleSync);
+    return () => {
+      window.removeEventListener('gorong_gorong_updated', handleSync);
+      window.removeEventListener('master_data_updated', handleSync);
+    };
+  }, [page, selectedWilayah, debouncedSearch]);
+
   const handleExportExcel = async () => {
     try {
       setIsExporting(true);
@@ -145,7 +158,11 @@ export default function MasterWaterloggingView() {
       if (data.success) {
         setUploadResult({ success: true, message: data.message });
         setUploadFile(null);
-        await loadData(1, true);
+        await loadData(1, false);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('gorong_gorong_updated'));
+          window.dispatchEvent(new CustomEvent('master_data_updated', { detail: { type: 'waterlogging' } }));
+        }
       } else {
         setUploadResult({ success: false, message: data.message || 'Gagal mengunggah berkas' });
       }

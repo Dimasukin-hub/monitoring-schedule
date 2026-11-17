@@ -40,9 +40,9 @@ export default function MasterOrderSulamView() {
   const [uploadMessage, setUploadMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchData = async () => {
+  const fetchData = async (isSilent = false) => {
     try {
-      setLoading(true);
+      if (!isSilent && dataList.length === 0) setLoading(true);
       const wilParam = selectedWilayah.length > 0 && selectedWilayah.length < WILAYAH_LIST.length
         ? selectedWilayah.join(',')
         : '';
@@ -68,6 +68,19 @@ export default function MasterOrderSulamView() {
 
   useEffect(() => {
     fetchData();
+  }, [page, search, selectedWilayah]);
+
+  // Real-time synchronization
+  useEffect(() => {
+    const handleSync = () => {
+      fetchData(true);
+    };
+    window.addEventListener('sulam_updated', handleSync);
+    window.addEventListener('master_data_updated', handleSync);
+    return () => {
+      window.removeEventListener('sulam_updated', handleSync);
+      window.removeEventListener('master_data_updated', handleSync);
+    };
   }, [page, search, selectedWilayah]);
 
   const handleToggleWilayah = (wil: string) => {
@@ -114,7 +127,11 @@ export default function MasterOrderSulamView() {
       if (json.success) {
         setUploadMessage({ type: 'success', text: json.message });
         setUploadFile(null);
-        fetchData();
+        fetchData(true);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('sulam_updated'));
+          window.dispatchEvent(new CustomEvent('master_data_updated', { detail: { type: 'sulam_order' } }));
+        }
         setTimeout(() => {
           setIsUploadOpen(false);
           setUploadMessage(null);
