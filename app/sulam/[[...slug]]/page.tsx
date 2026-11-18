@@ -10,7 +10,7 @@ import MasterStatusLokasiView from '@/components/MasterStatusLokasiView';
 import MasterOrderSulamView from '@/components/sulam/MasterOrderSulamView';
 import MasterDropBibitSulamView from '@/components/sulam/MasterDropBibitSulamView';
 import MasterRealSulamView from '@/components/sulam/MasterRealSulamView';
-import MasterListSulamView from '@/components/sulam/MasterListSulamView';
+import MasterSpekBibitSulamView from '@/components/sulam/MasterSpekBibitSulamView';
 import UserManagementView from '@/components/UserManagementView';
 import { useAuth } from '@/components/AuthProvider';
 import {
@@ -154,8 +154,8 @@ export default function SulamPage() {
           <div className={masterDataSubTab === 'master_real' ? 'block' : 'hidden'}>
             <MasterRealSulamView />
           </div>
-          <div className={masterDataSubTab === 'master_list_sulam' ? 'block' : 'hidden'}>
-            <MasterListSulamView />
+          <div className={masterDataSubTab === 'master_spek' ? 'block' : 'hidden'}>
+            <MasterSpekBibitSulamView />
           </div>
         </div>
         {isAdmin && (

@@ -8,138 +8,222 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search')?.trim() || '';
     const wilayah = searchParams.get('wilayah')?.trim() || '';
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.max(1, Math.min(500, parseInt(searchParams.get('limit') || '100', 10)));
+    const skip = (page - 1) * limit;
 
-    const whereList: any = {};
+    const whereLoc: any = {};
     if (search) {
-      whereList.OR = [
+      whereLoc.OR = [
         { lokasi: { contains: search, mode: 'insensitive' } },
-        { spekBB: { contains: search, mode: 'insensitive' } },
-        { keterangan: { contains: search, mode: 'insensitive' } },
+        { jenis: { contains: search, mode: 'insensitive' } },
+        { kelas: { contains: search, mode: 'insensitive' } },
       ];
     }
     if (wilayah && wilayah !== 'ALL' && wilayah !== 'Semua Wilayah') {
       const wilList = wilayah.split(',').map((w) => w.trim().toUpperCase());
-      whereList.wilayah = { in: wilList };
+      whereLoc.strucPlant = { in: wilList };
     }
 
     const today = new Date();
-    const [listSulam, allOrders, allDrops, allReals] = await Promise.all([
-      prisma.listSulam.findMany({
-        where: whereList,
-        orderBy: [{ wilayah: 'asc' }, { lokasi: 'asc' }],
+
+    // 1. Ambil data master status lokasi sebagai basis baris petak
+    const [total, masterLocations, allOrders, allDrops, allReals] = await Promise.all([
+      prisma.masterStatusLokasi.count({ where: whereLoc }),
+      prisma.masterStatusLokasi.findMany({
+        where: whereLoc,
+        orderBy: [{ strucPlant: 'asc' }, { lokasi: 'asc' }],
+        skip,
+        take: limit,
       }),
-      prisma.masterDataOrderSulam.findMany({}),
-      prisma.masterDataDropBibitSulam.findMany({}),
-      prisma.masterDataRealSulam.findMany({}),
+      prisma.masterDataOrderSulam.findMany({
+        orderBy: [{ tanggalOrder: 'desc' }, { id: 'desc' }],
+      }),
+      prisma.masterDataDropBibitSulam.findMany({
+        orderBy: [{ tanggal: 'desc' }, { id: 'desc' }],
+      }),
+      prisma.masterDataRealSulam.findMany({
+        orderBy: [{ tanggal: 'desc' }, { id: 'desc' }],
+      }),
     ]);
 
-    // Grouping per lokasi
-    const dropByLok = new Map<string, { totalBtg: number; totalRit: number; lastDate: Date | null }>();
-    for (const d of allDrops) {
-      const lok = d.lokasi.trim().toUpperCase();
-      if (!dropByLok.has(lok)) dropByLok.set(lok, { totalBtg: 0, totalRit: 0, lastDate: null });
-      const ent = dropByLok.get(lok)!;
-      ent.totalBtg += d.hasilBtg || 0;
-      ent.totalRit += d.jumlahRit || 0;
-      if (d.tanggalDrop && (!ent.lastDate || d.tanggalDrop > ent.lastDate)) {
-        ent.lastDate = d.tanggalDrop;
+    // Map Order per Lokasi (ambil order pertama / terbaru)
+    const orderMap = new Map<string, any>();
+    for (const ord of allOrders) {
+      const lok = ord.lokasi.trim().toUpperCase();
+      if (!orderMap.has(lok)) {
+        orderMap.set(lok, ord);
       }
     }
 
-    const realByLok = new Map<string, { totalHa: number; totalBtg: number; totalRit: number; lastDate: Date | null }>();
-    for (const r of allReals) {
-      const lok = r.lokasi.trim().toUpperCase();
-      if (!realByLok.has(lok)) realByLok.set(lok, { totalHa: 0, totalBtg: 0, totalRit: 0, lastDate: null });
-      const ent = realByLok.get(lok)!;
-      ent.totalHa += r.hasilHa || 0;
-      ent.totalBtg += r.hasilBtg || 0;
-      ent.totalRit += r.ritPlanted || 0;
-      if (r.tanggal && (!ent.lastDate || r.tanggal > ent.lastDate)) {
-        ent.lastDate = r.tanggal;
+    // Map Drop per Lokasi (filter statusDrop === "V" dan jumlahkan jumlahRit)
+    const dropMap = new Map<string, number>();
+    for (const drp of allDrops) {
+      const lok = drp.lokasi.trim().toUpperCase();
+      if (drp.statusDrop === 'V') {
+        const cur = dropMap.get(lok) || 0;
+        dropMap.set(lok, cur + (drp.jumlahRit || 0));
       }
     }
 
-    let totalRencanaBtg = 0;
-    let totalRencanaRit = 0;
-    let totalDropBtg = 0;
+    // Map Real Sulam per Lokasi (jumlahkan ritPlanted dan cari MAX tanggal)
+    const realMap = new Map<string, { totalRitPlanted: number; lastDate: Date | null }>();
+    for (const rel of allReals) {
+      const lok = rel.lokasi.trim().toUpperCase();
+      if (!realMap.has(lok)) {
+        realMap.set(lok, { totalRitPlanted: 0, lastDate: null });
+      }
+      const ent = realMap.get(lok)!;
+      ent.totalRitPlanted += (rel.ritPlanted || 0);
+      if (rel.tanggal && (!ent.lastDate || rel.tanggal > ent.lastDate)) {
+        ent.lastDate = rel.tanggal;
+      }
+    }
+
+    // KPI Aggregations
+    let totalPermintaanRit = 0;
     let totalDropRit = 0;
-    let totalRealBtg = 0;
-    let totalRealRit = 0;
-    let totalRealHa = 0;
+    let totalRealSulamRit = 0;
 
-    const rows = listSulam.map((item) => {
-      const cleanLok = item.lokasi.trim().toUpperCase();
-      const drp = dropByLok.get(cleanLok) || { totalBtg: 0, totalRit: 0, lastDate: null };
-      const rel = realByLok.get(cleanLok) || { totalHa: 0, totalBtg: 0, totalRit: 0, lastDate: null };
+    // Kalkulasi 17 kolom summary List Sulam
+    const rows = masterLocations.map((mLoc) => {
+      const cleanLok = mLoc.lokasi.trim().toUpperCase();
+      const ord = orderMap.get(cleanLok);
+      const drpRealRit = dropMap.get(cleanLok) || 0;
+      const relData = realMap.get(cleanLok) || { totalRitPlanted: 0, lastDate: null };
 
-      const rencanaBtg = item.permintaanRitaseBtg || 0;
-      const rencanaRit = item.permintaanRitaseRit || 0;
-      const dropBtg = drp.totalBtg;
-      const dropRit = drp.totalRit;
-      const realBtg = rel.totalBtg;
-      const realRit = rel.totalRit;
-      const realHa = rel.totalHa;
+      // 1. Wilayah
+      const wil = mLoc.strucPlant || ord?.wilayah || 'AW01';
 
-      totalRencanaBtg += rencanaBtg;
-      totalRencanaRit += rencanaRit;
-      totalDropBtg += dropBtg;
-      totalDropRit += dropRit;
-      totalRealBtg += realBtg;
-      totalRealRit += realRit;
-      totalRealHa += realHa;
+      // 2. Lokasi
+      const lok = mLoc.lokasi;
 
-      // Umur forcing
-      let umurForcing = item.umurForcing;
-      if (item.tglFMax) {
-        const diffMs = today.getTime() - new Date(item.tglFMax).getTime();
-        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+      // 3. Jenis Bibit
+      const jenisBibit = mLoc.jenis || '-';
+
+      // 4. Kelas Bibit
+      const kelasBibit = mLoc.kelas || '-';
+
+      // 5. Tanggal Rawat
+      const tglRawatStr = mLoc.tglRawat ? mLoc.tglRawat.toISOString().slice(0, 10) : '-';
+
+      // 6. Tanggal STD Forcing
+      const tglStdForcingStr = mLoc.forcingStd ? mLoc.forcingStd.toISOString().slice(0, 10) : '-';
+
+      // 7. Tanggal F Prod (Forcing Prod 26)
+      const tglFProdStr = mLoc.forcingProd2026 ? mLoc.forcingProd2026.toISOString().slice(0, 10) : '-';
+
+      // 8. Tanggal F Max: MAX(forcingStd, forcingProd2026)
+      let tglFMaxDate: Date | null = null;
+      if (mLoc.forcingStd && mLoc.forcingProd2026) {
+        tglFMaxDate = mLoc.forcingStd.getTime() >= mLoc.forcingProd2026.getTime() ? mLoc.forcingStd : mLoc.forcingProd2026;
+      } else if (mLoc.forcingStd) {
+        tglFMaxDate = mLoc.forcingStd;
+      } else if (mLoc.forcingProd2026) {
+        tglFMaxDate = mLoc.forcingProd2026;
+      }
+      const tglFMaxStr = tglFMaxDate ? tglFMaxDate.toISOString().slice(0, 10) : '-';
+
+      // 9. Tanggal Order
+      const tglOrderStr = ord?.tanggalOrder ? new Date(ord.tanggalOrder).toISOString().slice(0, 10) : '-';
+
+      // 10. Umur Forcing: Math.round((today - tglFMax) / 30.4)
+      let umurForcing: number | string = '-';
+      if (tglFMaxDate) {
+        const diffDays = (today.getTime() - tglFMaxDate.getTime()) / (1000 * 60 * 60 * 24);
         umurForcing = Math.round(diffDays / 30.4);
       }
 
-      // Status Sulam: Close jika real btg >= rencana btg & rencana btg > 0, else Open
-      const pctDrop = rencanaBtg > 0 ? Math.min(100, Math.round((dropBtg / rencanaBtg) * 100)) : (dropBtg > 0 ? 100 : 0);
-      const pctSulam = rencanaBtg > 0 ? Math.min(100, Math.round((realBtg / rencanaBtg) * 100)) : (realBtg > 0 ? 100 : 0);
-      const statusPetak = (rencanaBtg > 0 && realBtg >= rencanaBtg) || item.status === 'Close' ? 'Close' : 'Open';
+      // 11. Permintaan Ritase (Jumlah, Rit, Real Rit)
+      const permintaanJumlah = ord?.jumlah ?? 0;
+      const permintaanRit = ord?.rit ?? 0;
+      const permintaanRealRit = ord?.realRit ?? 0;
+
+      // 12. Monitor Drop (Real, Total, Dev, %Drop)
+      const dropReal = drpRealRit;
+      const dropTotal = permintaanRealRit + dropReal;
+      const dropDev = permintaanRit - permintaanRealRit - dropReal;
+      const dropPct = permintaanRit > 0 ? Number((((permintaanRealRit + dropReal) / permintaanRit) * 100).toFixed(1)) : 0;
+
+      // 13. Monitor Sulam (Real, Manual, Saldo, %Sulam, Last Sulam)
+      const sulamReal = relData.totalRitPlanted;
+      const sulamManual = ord?.manual ?? 0;
+      const sulamSaldo = (permintaanRealRit + dropReal) - sulamReal - sulamManual;
+
+      const pembagiSulam = dropReal + permintaanRealRit;
+      let sulamPct: number | string = '-';
+      if (pembagiSulam > 0) {
+        sulamPct = Number((((sulamReal + sulamManual) / pembagiSulam) * 100).toFixed(1));
+      }
+
+      const sulamLastDateStr = relData.lastDate ? relData.lastDate.toISOString().slice(0, 10) : '-';
+
+      // 14. Spek Bibit
+      const spekBibit = ord?.spekBibit || '-';
+
+      // 15. Keterangan Proses
+      const keteranganProses = ord?.keteranganProses || '-';
+
+      // 16. Keterangan Mati
+      const keteranganMati = ord?.keteranganMati || '-';
+
+      // 17. Keterangan Ritase
+      const keteranganRitase = ord?.keteranganRitase || '-';
+
+      // Akumulasi KPI
+      totalPermintaanRit += permintaanRit;
+      totalDropRit += dropReal;
+      totalRealSulamRit += sulamReal;
 
       return {
-        id: item.id,
-        wilayah: item.wilayah || 'AW01',
-        lokasi: item.lokasi,
-        spekBB: item.spekBB || '-',
-        tglRawat: item.tglRawat ? item.tglRawat.toISOString().slice(0, 10) : '-',
-        tglFMax: item.tglFMax ? item.tglFMax.toISOString().slice(0, 10) : '-',
-        tglOrder: item.tglOrder ? item.tglOrder.toISOString().slice(0, 10) : '-',
-        umurForcing: umurForcing !== null && umurForcing !== undefined ? `${umurForcing} Bulan` : '-',
-        rencanaBtg,
-        rencanaRit,
-        dropBtg,
-        dropRit,
-        realBtg,
-        realRit,
-        realHa: parseFloat(realHa.toFixed(2)),
-        pctDrop,
-        pctSulam,
-        statusPetak,
+        wilayah: wil,
+        lokasi: lok,
+        jenisBibit,
+        kelasBibit,
+        tglRawat: tglRawatStr,
+        tglStdForcing: tglStdForcingStr,
+        tglFProd: tglFProdStr,
+        tglFMax: tglFMaxStr,
+        tglOrder: tglOrderStr,
+        umurForcing,
+        permintaanJumlah,
+        permintaanRit,
+        permintaanRealRit,
+        dropReal,
+        dropTotal,
+        dropDev,
+        dropPct,
+        sulamReal,
+        sulamManual,
+        sulamSaldo,
+        sulamPct,
+        sulamLastDate: sulamLastDateStr,
+        spekBibit,
+        keteranganProses,
+        keteranganMati,
+        keteranganRitase,
       };
     });
 
     const kpi = {
-      totalLokasi: listSulam.length,
-      totalRencanaBtg,
-      totalRencanaRit,
-      totalDropBtg,
+      totalLokasi: total,
+      totalPermintaanRit,
       totalDropRit,
-      totalRealBtg,
-      totalRealRit,
-      totalRealHa: parseFloat(totalRealHa.toFixed(2)),
-      overallPctDrop: totalRencanaBtg > 0 ? Math.round((totalDropBtg / totalRencanaBtg) * 100) : 0,
-      overallPctSulam: totalRencanaBtg > 0 ? Math.round((totalRealBtg / totalRencanaBtg) * 100) : 0,
+      totalRealSulamRit,
+      overallPctDrop: totalPermintaanRit > 0 ? Math.round((totalDropRit / totalPermintaanRit) * 100) : 0,
+      overallPctSulam: totalDropRit > 0 ? Math.round((totalRealSulamRit / totalDropRit) * 100) : 0,
     };
 
     return NextResponse.json({
       success: true,
       kpi,
       rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
     });
   } catch (error: any) {
     console.error('Error in GET /api/sulam/monitoring:', error);
@@ -149,4 +233,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

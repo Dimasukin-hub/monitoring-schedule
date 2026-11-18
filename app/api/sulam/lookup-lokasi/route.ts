@@ -16,14 +16,13 @@ export async function GET(request: NextRequest) {
           orderBy: { lokasi: 'asc' },
         }),
         prisma.listSulam.findMany({
-          select: { lokasi: true, wilayah: true, spekBB: true, tglFMax: true },
+          select: { lokasi: true, wilayah: true, spekBibit: true, tglFMax: true },
         }),
         prisma.masterSpekBibitSulam.findMany({
-          orderBy: { spekBB: 'asc' },
+          orderBy: { spekBBSulamBtg: 'asc' },
         }),
       ]);
 
-      // Gabungkan lokasi unik
       const lokasiMap = new Map<string, { lokasi: string; wilayah: string | null }>();
       for (const s of statusLokasi) {
         lokasiMap.set(s.lokasi.trim().toUpperCase(), {
@@ -61,8 +60,6 @@ export async function GET(request: NextRequest) {
     const wilayah = statusLokasi?.strucPlant || listSulam?.wilayah || null;
     const tglFMax = listSulam?.tglFMax || null;
 
-    // Perhitungan Umur Forcing (Usia di form):
-    // Selisih hari antara tanggal saat ini dan Tanggal Forcing Max, dibagi 30,4, dibulatkan ke bilangan bulat terdekat
     let usia: number | null = null;
     let usiaDetailStr = '-';
     if (tglFMax) {
@@ -73,19 +70,18 @@ export async function GET(request: NextRequest) {
       usiaDetailStr = `${usia} Bulan`;
     }
 
-    const spekBB = listSulam?.spekBB || null;
-    const keterangan = listSulam?.keterangan || (spekBB?.toLowerCase().includes('pangkas prod') ? 'Pangkas Produksi' : null);
+    const spekBB = listSulam?.spekBibit || null;
+    const keterangan = listSulam?.keteranganProses || (spekBB?.toLowerCase().includes('pangkas prod') ? 'Pangkas Produksi' : null);
 
-    // Cari Std Rit CD & Fuso dari MasterSpekBibitSulam
     let stdRitCD = 0;
     let stdRitFuso = 0;
     if (spekBB) {
       const matchedSpek = allSpek.find(
-        (s) => s.spekBB.toLowerCase().trim() === spekBB.toLowerCase().trim()
+        (s) => s.spekBBSulamBtg.toLowerCase().trim() === spekBB.toLowerCase().trim()
       );
       if (matchedSpek) {
-        stdRitCD = matchedSpek.stdRitCD;
-        stdRitFuso = matchedSpek.stdRitFuso;
+        stdRitCD = matchedSpek.cd;
+        stdRitFuso = matchedSpek.fuso;
       }
     }
 
@@ -100,9 +96,9 @@ export async function GET(request: NextRequest) {
         kelasBibit: spekBB || 'Sucker No. 2',
         spekBB,
         keterangan: keterangan || 'Pangkas Produksi',
-        ritCD: listSulam?.permintaanRitaseRit || 0,
+        ritCD: listSulam?.permintaanRit || 0,
         ritFuso: 0,
-        permintaanRitaseBtg: listSulam?.permintaanRitaseBtg || 0,
+        permintaanRitaseBtg: listSulam?.permintaanJumlah || 0,
         stdRitCD,
         stdRitFuso,
       },
@@ -115,4 +111,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

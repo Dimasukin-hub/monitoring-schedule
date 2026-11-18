@@ -358,7 +358,7 @@ export const SULAM_ROUTES = {
   masterOrder: '/sulam/master-data/master-data-order-sulam',
   masterDrop: '/sulam/master-data/master-data-drop-bibit',
   masterReal: '/sulam/master-data/master-data-real-sulam',
-  masterListSulam: '/sulam/master-data/master-list-sulam',
+  masterSpek: '/sulam/master-data/master-data-spek-bibit-sulam',
 
   // Menu 4: Manajemen User
   userManagement: '/sulam/manajemen-user',
@@ -376,7 +376,7 @@ export function getSulamRoute(activeTab: string, subTab?: string): string {
       if (subTab === 'master_order') return SULAM_ROUTES.masterOrder;
       if (subTab === 'master_drop') return SULAM_ROUTES.masterDrop;
       if (subTab === 'master_real') return SULAM_ROUTES.masterReal;
-      if (subTab === 'master_list_sulam') return SULAM_ROUTES.masterListSulam;
+      if (subTab === 'master_spek' || subTab === 'master_spek_bibit') return SULAM_ROUTES.masterSpek;
       return SULAM_ROUTES.masterStatusLokasi;
     case 'user_management':
       return SULAM_ROUTES.userManagement;
@@ -451,10 +451,10 @@ export function parseSulamPathname(pathname: string) {
       redirectTo: null,
     };
   }
-  if (clean === '/sulam/master-data/master-list-sulam') {
+  if (clean === '/sulam/master-data/master-data-spek-bibit-sulam' || clean === '/sulam/master-data/master-spek') {
     return {
       activeTab: 'master_data',
-      masterDataSubTab: 'master_list_sulam',
+      masterDataSubTab: 'master_spek',
       redirectTo: null,
     };
   }

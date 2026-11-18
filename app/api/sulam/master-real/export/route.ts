@@ -10,18 +10,18 @@ export async function GET(request: NextRequest) {
       prisma.masterDataRealSulam.findMany({
         orderBy: [{ tanggal: 'desc' }, { id: 'desc' }],
       }),
-      prisma.listSulam.findMany({ select: { lokasi: true, spekBB: true } }),
+      prisma.listSulam.findMany({ select: { lokasi: true, spekBibit: true } }),
       prisma.masterSpekBibitSulam.findMany({}),
     ]);
 
     const listSulamMap = new Map<string, string>();
     for (const l of listSulam) {
-      if (l.spekBB) listSulamMap.set(l.lokasi.trim().toUpperCase(), l.spekBB.trim());
+      if (l.spekBibit) listSulamMap.set(l.lokasi.trim().toUpperCase(), l.spekBibit.trim());
     }
 
     const spekMap = new Map<string, number>();
     for (const s of allSpek) {
-      spekMap.set(s.spekBB.toLowerCase().trim(), s.stdRitCD);
+      spekMap.set(s.spekBBSulamBtg.toLowerCase().trim(), s.cd);
     }
 
     const exportRows = rawData.map((d, idx) => {

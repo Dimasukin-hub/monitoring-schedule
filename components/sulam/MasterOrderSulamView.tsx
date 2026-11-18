@@ -291,19 +291,23 @@ export default function MasterOrderSulamView() {
             <thead className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 uppercase font-bold tracking-wider shadow-xs">
               <tr className="border-b border-slate-200 dark:border-slate-700">
                 <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[50px]">No</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[100px]">Lokasi</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[90px]">Lokasi</th>
                 <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[80px]">Wilayah</th>
                 <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[110px]">Tanggal Order</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[180px]">Spek BB</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[110px]">Jumlah (Batang)</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[90px]">Jumlah Rit</th>
-                <th className="py-3 px-3 text-center min-w-[180px]">Keterangan</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[100px]">Jumlah</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[80px]">Rit</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[80px]">Real Rit</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[150px]">Spek Bibit</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[80px]">Manual</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[140px]">Keterangan Proses</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[130px]">Keterangan Mati</th>
+                <th className="py-3 px-3 text-center min-w-[140px]">Keterangan Ritase</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-16 text-center text-slate-400">
+                  <td colSpan={12} className="py-16 text-center text-slate-400">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <RefreshCw className="w-6 h-6 animate-spin text-emerald-500" />
                       <p className="text-xs font-semibold">Memuat master data order sulam...</p>
@@ -312,7 +316,7 @@ export default function MasterOrderSulamView() {
                 </tr>
               ) : dataList.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-16 text-center text-slate-400">
+                  <td colSpan={12} className="py-16 text-center text-slate-400">
                     <p className="text-xs font-semibold">Tidak ada data order sulam yang cocok.</p>
                   </td>
                 </tr>
@@ -332,19 +336,31 @@ export default function MasterOrderSulamView() {
                       {row.wilayah || '-'}
                     </td>
                     <td className="py-2.5 px-3 text-center text-slate-600 dark:text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70">
-                      {row.tanggal ? new Date(row.tanggal).toISOString().slice(0, 10) : '-'}
-                    </td>
-                    <td className="py-2.5 px-3 text-center font-bold text-emerald-700 dark:text-emerald-300 border-r border-slate-200/70 dark:border-slate-800/70">
-                      {row.spekBB || '-'}
+                      {row.tanggalOrder ? new Date(row.tanggalOrder).toISOString().slice(0, 10) : '-'}
                     </td>
                     <td className="py-2.5 px-3 text-center font-bold text-slate-800 dark:text-slate-200 border-r border-slate-200/70 dark:border-slate-800/70">
-                      {row.jumlahBtg ? row.jumlahBtg.toLocaleString('id-ID') : 0}
+                      {row.jumlah !== undefined && row.jumlah !== null ? Number(row.jumlah).toLocaleString('id-ID') : 0}
                     </td>
-                    <td className="py-2.5 px-3 text-center text-slate-700 dark:text-slate-300 border-r border-slate-200/70 dark:border-slate-800/70">
-                      {row.jumlahRit || 0}
+                    <td className="py-2.5 px-3 text-center font-semibold text-slate-700 dark:text-slate-300 border-r border-slate-200/70 dark:border-slate-800/70">
+                      {row.rit ?? 0}
                     </td>
-                    <td className="py-2.5 px-3 text-center text-slate-500 dark:text-slate-400">
-                      {row.keterangan || '-'}
+                    <td className="py-2.5 px-3 text-center font-semibold text-slate-700 dark:text-slate-300 border-r border-slate-200/70 dark:border-slate-800/70">
+                      {row.realRit ?? 0}
+                    </td>
+                    <td className="py-2.5 px-3 text-center font-bold text-emerald-700 dark:text-emerald-300 border-r border-slate-200/70 dark:border-slate-800/70">
+                      {row.spekBibit || '-'}
+                    </td>
+                    <td className="py-2.5 px-3 text-center font-semibold text-slate-700 dark:text-slate-300 border-r border-slate-200/70 dark:border-slate-800/70">
+                      {row.manual ?? 0}
+                    </td>
+                    <td className="py-2.5 px-3 text-center text-slate-600 dark:text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70">
+                      {row.keteranganProses || '-'}
+                    </td>
+                    <td className="py-2.5 px-3 text-center text-slate-600 dark:text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70">
+                      {row.keteranganMati || '-'}
+                    </td>
+                    <td className="py-2.5 px-3 text-center text-slate-600 dark:text-slate-400">
+                      {row.keteranganRitase || '-'}
                     </td>
                   </tr>
                 ))

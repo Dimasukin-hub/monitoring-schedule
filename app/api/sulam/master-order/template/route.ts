@@ -10,19 +10,27 @@ export async function GET() {
         'Lokasi': '002G',
         'Wilayah': 'AW01',
         'Tanggal Order': '2026-09-15',
-        'Spek BB': 'No. 0 Pangkas 60cm',
-        'Jumlah Batang': 10000,
-        'Jumlah Rit': 5,
-        'Keterangan': 'Pangkas Produksi',
+        'Jumlah': 10000,
+        'Rit': 5,
+        'Real Rit': 0,
+        'Spek Bibit': 'No. 0 Pangkas 60cm',
+        'Manual': 0,
+        'Keterangan Proses': 'Pangkas Produksi',
+        'Keterangan Mati': '-',
+        'Keterangan Ritase': 'Normal',
       },
       {
         'Lokasi': '076J',
         'Wilayah': 'AW06',
         'Tanggal Order': '2026-09-16',
-        'Spek BB': 'Sucker No. 2',
-        'Jumlah Batang': 6000,
-        'Jumlah Rit': 2,
-        'Keterangan': 'Pangkas Samping',
+        'Jumlah': 6000,
+        'Rit': 2,
+        'Real Rit': 1,
+        'Spek Bibit': 'Sucker No. 2',
+        'Manual': 0,
+        'Keterangan Proses': 'Pangkas Samping',
+        'Keterangan Mati': '-',
+        'Keterangan Ritase': 'Prioritas',
       },
     ];
 
@@ -42,4 +50,3 @@ export async function GET() {
     return NextResponse.json({ success: false, message: 'Gagal mengunduh template.' }, { status: 500 });
   }
 }
-

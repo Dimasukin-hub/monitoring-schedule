@@ -81,7 +81,7 @@ export const SULAM_MASTER_DATA_SUB_MENUS: SubMenuItem[] = [
   { id: 'master_order', label: 'Master Data Order Sulam' },
   { id: 'master_drop', label: 'Master Data Drop Bibit' },
   { id: 'master_real', label: 'Master Data Real Sulam' },
-  { id: 'master_list_sulam', label: 'Master List Sulam' },
+  { id: 'master_spek', label: 'Master Data Spek Bibit Sulam' },
 ];
 
 // Fallback alias

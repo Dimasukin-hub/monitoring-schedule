@@ -7,18 +7,22 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const data = await prisma.masterDataOrderSulam.findMany({
-      orderBy: [{ tanggal: 'desc' }, { id: 'desc' }],
+      orderBy: [{ tanggalOrder: 'desc' }, { id: 'desc' }],
     });
 
     const exportRows = data.map((d, idx) => ({
       'No.': idx + 1,
       'Lokasi': d.lokasi,
       'Wilayah': d.wilayah || '-',
-      'Tanggal Order': d.tanggal ? d.tanggal.toISOString().slice(0, 10) : '-',
-      'Spek BB': d.spekBB || '-',
-      'Jumlah Batang': d.jumlahBtg || 0,
-      'Jumlah Rit': d.jumlahRit || 0,
-      'Keterangan': d.keterangan || '-',
+      'Tanggal Order': d.tanggalOrder ? d.tanggalOrder.toISOString().slice(0, 10) : '-',
+      'Jumlah': d.jumlah ?? 0,
+      'Rit': d.rit ?? 0,
+      'Real Rit': d.realRit ?? 0,
+      'Spek Bibit': d.spekBibit || '-',
+      'Manual': d.manual ?? 0,
+      'Keterangan Proses': d.keteranganProses || '-',
+      'Keterangan Mati': d.keteranganMati || '-',
+      'Keterangan Ritase': d.keteranganRitase || '-',
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportRows);
@@ -40,4 +44,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, message: 'Gagal mengekspor data master order sulam.' }, { status: 500 });
   }
 }
-

@@ -6,10 +6,10 @@ export const dynamic = 'force-dynamic';
 
 function cleanNum(val: any): number {
   if (val === null || val === undefined) return 0;
-  if (typeof val === 'number') return isNaN(val) ? 0 : Math.round(val);
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
   const s = String(val).trim().replace(/,/g, '');
   const n = Number(s);
-  return isNaN(n) ? 0 : Math.round(n);
+  return isNaN(n) ? 0 : n;
 }
 
 function parseExcelDate(val: any): Date | null {
@@ -25,12 +25,11 @@ function parseExcelDate(val: any): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
-// GET: Ambil master data drop bibit sulam (dengan kolom tanggal order)
+// GET: Ambil master data drop bibit sulam (10 kolom dengan kalkulasi otomatis)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search')?.trim() || '';
-    const wilayah = searchParams.get('wilayah')?.trim() || '';
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
     const limit = Math.max(1, Math.min(200, parseInt(searchParams.get('limit') || '50', 10)));
     const skip = (page - 1) * limit;
@@ -39,24 +38,100 @@ export async function GET(request: NextRequest) {
     if (search) {
       where.OR = [
         { lokasi: { contains: search, mode: 'insensitive' } },
-        { spekBB: { contains: search, mode: 'insensitive' } },
+        { bibitOrdered: { contains: search, mode: 'insensitive' } },
         { jenisUnit: { contains: search, mode: 'insensitive' } },
       ];
     }
-    if (wilayah && wilayah !== 'ALL' && wilayah !== 'Semua Wilayah') {
-      const wilList = wilayah.split(',').map((w) => w.trim().toUpperCase());
-      where.wilayah = { in: wilList };
-    }
 
-    const [total, data] = await Promise.all([
+    // Ambil data referensi order & spek bibit untuk enrichment real-time
+    const [total, rawDrops, orders, speks] = await Promise.all([
       prisma.masterDataDropBibitSulam.count({ where }),
       prisma.masterDataDropBibitSulam.findMany({
         where,
-        orderBy: [{ tanggalDrop: 'desc' }, { id: 'desc' }],
+        orderBy: [{ tanggal: 'desc' }, { id: 'desc' }],
         skip,
         take: limit,
       }),
+      prisma.masterDataOrderSulam.findMany({
+        select: { lokasi: true, spekBibit: true, tanggalOrder: true },
+        orderBy: [{ tanggalOrder: 'desc' }, { id: 'desc' }],
+      }),
+      prisma.masterSpekBibitSulam.findMany({}),
     ]);
+
+    // Map order per lokasi (ambil data pertama yang cocok)
+    const orderMap = new Map<string, { spekBibit: string | null; tanggalOrder: Date | null }>();
+    for (const ord of orders) {
+      const lok = ord.lokasi.trim().toUpperCase();
+      if (!orderMap.has(lok)) {
+        orderMap.set(lok, { spekBibit: ord.spekBibit, tanggalOrder: ord.tanggalOrder });
+      }
+    }
+
+    // Map spek bibit -> CD
+    const spekMap = new Map<string, number>();
+    for (const sp of speks) {
+      spekMap.set(sp.spekBBSulamBtg.trim().toLowerCase(), sp.cd);
+    }
+
+    const data = rawDrops.map((d) => {
+      const cleanLok = d.lokasi.trim().toUpperCase();
+      const matchedOrder = orderMap.get(cleanLok);
+
+      // 5. Bibit Ordered: dari order / list sulam
+      const bibitOrdered = matchedOrder?.spekBibit || d.bibitOrdered || null;
+
+      // 6. Std Rit: cari nilai CD dari Master Data Spek Bibit Sulam
+      let stdRit: number | null = null;
+      if (bibitOrdered) {
+        const foundCd = spekMap.get(bibitOrdered.trim().toLowerCase());
+        if (foundCd !== undefined && foundCd !== null) {
+          stdRit = foundCd;
+        }
+      }
+      if (stdRit === null && d.stdRit) {
+        stdRit = d.stdRit;
+      }
+
+      // 7. Jumlah Rit: ROUND((Hasil Ha * 73423) / Std Rit, 0)
+      let jumlahRit: number | string = '-';
+      if (d.hasilHa && d.hasilHa > 0 && stdRit && stdRit > 0) {
+        jumlahRit = Math.round((d.hasilHa * 73423) / stdRit);
+      } else if (d.jumlahRit !== null && d.jumlahRit !== undefined) {
+        jumlahRit = d.jumlahRit;
+      }
+
+      // 9. Tanggal Order: dari order
+      const tanggalOrder = matchedOrder?.tanggalOrder || d.tanggalOrder || null;
+
+      // 10. Status Drop: perbandingan Tanggal vs Tanggal Order
+      let statusDrop = '-';
+      if (tanggalOrder && d.tanggal) {
+        const tDrop = new Date(d.tanggal).getTime();
+        const tOrder = new Date(tanggalOrder).getTime();
+        if (tDrop > tOrder) {
+          statusDrop = 'V';
+        } else {
+          statusDrop = '-';
+        }
+      } else if (d.statusDrop) {
+        statusDrop = d.statusDrop;
+      }
+
+      return {
+        id: d.id,
+        lokasi: d.lokasi,
+        hasilHa: d.hasilHa,
+        hasilBtg: d.hasilBtg,
+        tanggal: d.tanggal,
+        bibitOrdered: bibitOrdered || 'data tidak ditemukan',
+        stdRit: stdRit !== null ? stdRit : '-',
+        jumlahRit: jumlahRit,
+        jenisUnit: d.jenisUnit || 'CD',
+        tanggalOrder: tanggalOrder,
+        statusDrop: statusDrop,
+      };
+    });
 
     return NextResponse.json({
       success: true,
@@ -110,8 +185,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Ambil referensi order & spek bibit untuk perhitungan otomatis
+    const [orders, speks] = await Promise.all([
+      prisma.masterDataOrderSulam.findMany({
+        select: { lokasi: true, spekBibit: true, tanggalOrder: true },
+        orderBy: [{ tanggalOrder: 'desc' }, { id: 'desc' }],
+      }),
+      prisma.masterSpekBibitSulam.findMany({}),
+    ]);
+
+    const orderMap = new Map<string, { spekBibit: string | null; tanggalOrder: Date | null }>();
+    for (const ord of orders) {
+      const lok = ord.lokasi.trim().toUpperCase();
+      if (!orderMap.has(lok)) {
+        orderMap.set(lok, { spekBibit: ord.spekBibit, tanggalOrder: ord.tanggalOrder });
+      }
+    }
+
+    const spekMap = new Map<string, number>();
+    for (const sp of speks) {
+      spekMap.set(sp.spekBBSulamBtg.trim().toLowerCase(), sp.cd);
+    }
+
     let headerRowIdx = 0;
-    let cLokasi = -1, cWilayah = -1, cTglDrop = -1, cTglOrder = -1, cHa = -1, cBtg = -1, cSpek = -1, cStdRit = -1, cJmlRit = -1, cUnit = -1, cStatus = -1;
+    let cLokasi = -1, cHa = -1, cBtg = -1, cTanggal = -1, cUnit = -1;
 
     for (let r = 0; r < Math.min(rows.length, 10); r++) {
       const row = rows[r];
@@ -119,17 +216,10 @@ export async function POST(request: NextRequest) {
       for (let c = 0; c < row.length; c++) {
         const str = String(row[c] || '').toLowerCase().trim();
         if (str === 'lokasi' || str === 'petak') { cLokasi = c; headerRowIdx = r; }
-        else if (str === 'wilayah' || str === 'wil') cWilayah = c;
-        else if (str.includes('order') && (str.includes('tgl') || str.includes('tanggal'))) cTglOrder = c;
-        else if ((str.includes('drop') || str.includes('real')) && (str.includes('tgl') || str.includes('tanggal') || str.includes('date'))) cTglDrop = c;
-        else if (str === 'tgl' || str === 'tanggal') { if (cTglDrop === -1) cTglDrop = c; }
         else if (str.includes('ha') || str.includes('luas')) cHa = c;
         else if (str.includes('btg') || str.includes('batang')) cBtg = c;
-        else if (str.includes('spek') || str.includes('bibit')) cSpek = c;
-        else if (str.includes('std rit') || str.includes('std')) cStdRit = c;
-        else if (str.includes('jml') || str.includes('jumlah rit') || str === 'rit') cJmlRit = c;
+        else if (str.includes('tgl') || str.includes('tanggal') || str.includes('date')) cTanggal = c;
         else if (str.includes('unit') || str.includes('kendaraan')) cUnit = c;
-        else if (str.includes('sts') || str.includes('status')) cStatus = c;
       }
       if (cLokasi !== -1) break;
     }
@@ -143,28 +233,51 @@ export async function POST(request: NextRequest) {
       const lok = String(row[cLokasi]).trim().toUpperCase();
       if (!lok || lok === 'TOTAL' || lok.startsWith('TOTAL')) continue;
 
-      const wil = cWilayah !== -1 && row[cWilayah] ? String(row[cWilayah]).trim().toUpperCase() : null;
-      const tglDrop = cTglDrop !== -1 ? parseExcelDate(row[cTglDrop]) : new Date();
-      const tglOrder = cTglOrder !== -1 ? parseExcelDate(row[cTglOrder]) : null;
       const hasilHa = cHa !== -1 && row[cHa] ? parseFloat(row[cHa]) || null : null;
-      const hasilBtg = cBtg !== -1 ? cleanNum(row[cBtg]) : 0;
-      const spek = cSpek !== -1 && row[cSpek] ? String(row[cSpek]).trim() : null;
-      const stdRit = cStdRit !== -1 ? cleanNum(row[cStdRit]) : null;
-      const jmlRit = cJmlRit !== -1 ? cleanNum(row[cJmlRit]) : 0;
+      const hasilBtg = cBtg !== -1 ? Math.round(cleanNum(row[cBtg])) : 0;
+      const tglDrop = cTanggal !== -1 ? parseExcelDate(row[cTanggal]) : new Date();
       const jenisUnit = cUnit !== -1 && row[cUnit] ? String(row[cUnit]).trim() : 'CD';
-      const statusDrop = cStatus !== -1 && row[cStatus] ? String(row[cStatus]).trim() : 'V';
+
+      // 5. Bibit Ordered
+      const matchedOrder = orderMap.get(lok);
+      const bibitOrdered = matchedOrder?.spekBibit || null;
+
+      // 6. Std Rit
+      let stdRit: number | null = null;
+      if (bibitOrdered) {
+        const found = spekMap.get(bibitOrdered.trim().toLowerCase());
+        if (found !== undefined && found !== null) stdRit = found;
+      }
+
+      // 7. Jumlah Rit: ROUND((Hasil Ha * 73423) / Std Rit, 0)
+      let jumlahRit: number | null = null;
+      if (hasilHa && hasilHa > 0 && stdRit && stdRit > 0) {
+        jumlahRit = Math.round((hasilHa * 73423) / stdRit);
+      }
+
+      // 9. Tanggal Order
+      const tanggalOrder = matchedOrder?.tanggalOrder || null;
+
+      // 10. Status Drop
+      let statusDrop = '-';
+      if (tanggalOrder && tglDrop) {
+        if (tglDrop.getTime() > tanggalOrder.getTime()) {
+          statusDrop = 'V';
+        } else {
+          statusDrop = '-';
+        }
+      }
 
       records.push({
         lokasi: lok,
-        wilayah: wil,
-        tanggalDrop: tglDrop,
-        tanggalOrder: tglOrder,
         hasilHa,
         hasilBtg,
-        spekBB: spek,
+        tanggal: tglDrop,
+        bibitOrdered,
         stdRit,
-        jumlahRit: jmlRit,
+        jumlahRit,
         jenisUnit,
+        tanggalOrder,
         statusDrop,
       });
     }
@@ -194,9 +307,8 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Error in POST /api/sulam/master-drop:', error);
     return NextResponse.json(
-      { success: false, message: 'Gagal memproses unggahan data drop bibit sulam.' },
+      { success: false, message: 'Gagal memproses unggahan data master drop bibit sulam.' },
       { status: 500 }
     );
   }
 }
-

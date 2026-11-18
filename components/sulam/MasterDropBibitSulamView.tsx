@@ -291,22 +291,21 @@ export default function MasterDropBibitSulamView() {
               <tr className="border-b border-slate-200 dark:border-slate-700">
                 <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[50px]">No</th>
                 <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[90px]">Lokasi</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[70px]">Wilayah</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[100px]">Tanggal Drop</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[100px] text-emerald-700 dark:text-emerald-400">Tanggal Order</th>
                 <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[80px]">Hasil Ha</th>
                 <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[100px]">Hasil Btg</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[150px]">Spek BB</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[100px]">Tanggal</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[160px]">Bibit Ordered</th>
                 <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[80px]">Std Rit</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[80px]">Jml Rit</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[80px]">Unit</th>
-                <th className="py-3 px-3 text-center min-w-[80px]">Status Drop</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[90px]">Jumlah Rit</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[80px]">Jenis Unit</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[110px]">Tanggal Order</th>
+                <th className="py-3 px-3 text-center min-w-[90px]">Status Drop</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
               {loading ? (
                 <tr>
-                  <td colSpan={12} className="py-16 text-center text-slate-400">
+                  <td colSpan={11} className="py-16 text-center text-slate-400">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <RefreshCw className="w-6 h-6 animate-spin text-emerald-500" />
                       <p className="text-xs font-semibold">Memuat master drop bibit sulam...</p>
@@ -315,7 +314,7 @@ export default function MasterDropBibitSulamView() {
                 </tr>
               ) : dataList.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="py-16 text-center text-slate-400">
+                  <td colSpan={11} className="py-16 text-center text-slate-400">
                     <p className="text-xs font-semibold">Tidak ada data drop bibit yang cocok.</p>
                   </td>
                 </tr>
@@ -331,36 +330,37 @@ export default function MasterDropBibitSulamView() {
                     <td className="py-2.5 px-3 text-center font-black text-slate-900 dark:text-white border-r border-slate-200/70 dark:border-slate-800/70">
                       {row.lokasi}
                     </td>
-                    <td className="py-2.5 px-3 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200/70 dark:border-slate-800/70">
-                      {row.wilayah || '-'}
-                    </td>
-                    <td className="py-2.5 px-3 text-center text-slate-600 dark:text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70">
-                      {row.tanggalDrop ? new Date(row.tanggalDrop).toISOString().slice(0, 10) : '-'}
-                    </td>
-                    <td className="py-2.5 px-3 text-center font-bold text-emerald-700 dark:text-emerald-300 border-r border-slate-200/70 dark:border-slate-800/70 bg-emerald-50/30 dark:bg-emerald-950/20">
-                      {row.tanggalOrder ? new Date(row.tanggalOrder).toISOString().slice(0, 10) : '-'}
-                    </td>
                     <td className="py-2.5 px-3 text-center text-slate-600 dark:text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70">
                       {row.hasilHa ?? '-'}
                     </td>
                     <td className="py-2.5 px-3 text-center font-bold text-amber-600 dark:text-amber-400 border-r border-slate-200/70 dark:border-slate-800/70">
-                      {row.hasilBtg ? row.hasilBtg.toLocaleString('id-ID') : 0}
-                    </td>
-                    <td className="py-2.5 px-3 text-center font-semibold text-slate-700 dark:text-slate-300 border-r border-slate-200/70 dark:border-slate-800/70">
-                      {row.spekBB || '-'}
+                      {row.hasilBtg ? Number(row.hasilBtg).toLocaleString('id-ID') : 0}
                     </td>
                     <td className="py-2.5 px-3 text-center text-slate-600 dark:text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70">
+                      {row.tanggal ? new Date(row.tanggal).toISOString().slice(0, 10) : '-'}
+                    </td>
+                    <td className="py-2.5 px-3 text-center font-bold text-emerald-700 dark:text-emerald-300 border-r border-slate-200/70 dark:border-slate-800/70">
+                      {row.bibitOrdered || '-'}
+                    </td>
+                    <td className="py-2.5 px-3 text-center font-semibold text-slate-700 dark:text-slate-300 border-r border-slate-200/70 dark:border-slate-800/70">
                       {row.stdRit ?? '-'}
                     </td>
                     <td className="py-2.5 px-3 text-center font-bold text-slate-800 dark:text-slate-200 border-r border-slate-200/70 dark:border-slate-800/70">
-                      {row.jumlahRit || 0}
+                      {row.jumlahRit ?? '-'}
                     </td>
                     <td className="py-2.5 px-3 text-center font-semibold text-slate-700 dark:text-slate-300 border-r border-slate-200/70 dark:border-slate-800/70">
                       {row.jenisUnit || 'CD'}
                     </td>
+                    <td className="py-2.5 px-3 text-center text-slate-600 dark:text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70">
+                      {row.tanggalOrder ? new Date(row.tanggalOrder).toISOString().slice(0, 10) : '-'}
+                    </td>
                     <td className="py-2.5 px-3 text-center">
-                      <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
-                        {row.statusDrop || 'V'}
+                      <span className={`px-2.5 py-0.5 rounded-md font-extrabold text-xs ${
+                        row.statusDrop === 'V'
+                          ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
+                          : 'text-slate-400'
+                      }`}>
+                        {row.statusDrop || '-'}
                       </span>
                     </td>
                   </tr>

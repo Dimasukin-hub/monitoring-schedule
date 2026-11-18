@@ -7,85 +7,163 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const today = new Date();
-    const [listSulam, allDrops, allReals] = await Promise.all([
-      prisma.listSulam.findMany({
-        orderBy: [{ wilayah: 'asc' }, { lokasi: 'asc' }],
+
+    const [masterLocations, allOrders, allDrops, allReals] = await Promise.all([
+      prisma.masterStatusLokasi.findMany({
+        orderBy: [{ strucPlant: 'asc' }, { lokasi: 'asc' }],
       }),
-      prisma.masterDataDropBibitSulam.findMany({}),
-      prisma.masterDataRealSulam.findMany({}),
+      prisma.masterDataOrderSulam.findMany({
+        orderBy: [{ tanggalOrder: 'desc' }, { id: 'desc' }],
+      }),
+      prisma.masterDataDropBibitSulam.findMany({
+        orderBy: [{ tanggal: 'desc' }, { id: 'desc' }],
+      }),
+      prisma.masterDataRealSulam.findMany({
+        orderBy: [{ tanggal: 'desc' }, { id: 'desc' }],
+      }),
     ]);
 
-    const dropByLok = new Map<string, { totalBtg: number; totalRit: number }>();
-    for (const d of allDrops) {
-      const lok = d.lokasi.trim().toUpperCase();
-      if (!dropByLok.has(lok)) dropByLok.set(lok, { totalBtg: 0, totalRit: 0 });
-      const ent = dropByLok.get(lok)!;
-      ent.totalBtg += d.hasilBtg || 0;
-      ent.totalRit += d.jumlahRit || 0;
+    const orderMap = new Map<string, any>();
+    for (const ord of allOrders) {
+      const lok = ord.lokasi.trim().toUpperCase();
+      if (!orderMap.has(lok)) orderMap.set(lok, ord);
     }
 
-    const realByLok = new Map<string, { totalHa: number; totalBtg: number; totalRit: number }>();
-    for (const r of allReals) {
-      const lok = r.lokasi.trim().toUpperCase();
-      if (!realByLok.has(lok)) realByLok.set(lok, { totalHa: 0, totalBtg: 0, totalRit: 0 });
-      const ent = realByLok.get(lok)!;
-      ent.totalHa += r.hasilHa || 0;
-      ent.totalBtg += r.hasilBtg || 0;
-      ent.totalRit += r.ritPlanted || 0;
+    const dropMap = new Map<string, number>();
+    for (const drp of allDrops) {
+      const lok = drp.lokasi.trim().toUpperCase();
+      if (drp.statusDrop === 'V') {
+        const cur = dropMap.get(lok) || 0;
+        dropMap.set(lok, cur + (drp.jumlahRit || 0));
+      }
     }
 
-    const exportRows = listSulam.map((item, idx) => {
-      const cleanLok = item.lokasi.trim().toUpperCase();
-      const drp = dropByLok.get(cleanLok) || { totalBtg: 0, totalRit: 0 };
-      const rel = realByLok.get(cleanLok) || { totalHa: 0, totalBtg: 0, totalRit: 0 };
+    const realMap = new Map<string, { totalRitPlanted: number; lastDate: Date | null }>();
+    for (const rel of allReals) {
+      const lok = rel.lokasi.trim().toUpperCase();
+      if (!realMap.has(lok)) realMap.set(lok, { totalRitPlanted: 0, lastDate: null });
+      const ent = realMap.get(lok)!;
+      ent.totalRitPlanted += (rel.ritPlanted || 0);
+      if (rel.tanggal && (!ent.lastDate || rel.tanggal > ent.lastDate)) {
+        ent.lastDate = rel.tanggal;
+      }
+    }
 
-      const rencanaBtg = item.permintaanRitaseBtg || 0;
-      const rencanaRit = item.permintaanRitaseRit || 0;
-      const dropBtg = drp.totalBtg;
-      const dropRit = drp.totalRit;
-      const realBtg = rel.totalBtg;
-      const realRit = rel.totalRit;
-      const realHa = rel.totalHa;
+    const exportRows = masterLocations.map((mLoc, idx) => {
+      const cleanLok = mLoc.lokasi.trim().toUpperCase();
+      const ord = orderMap.get(cleanLok);
+      const drpRealRit = dropMap.get(cleanLok) || 0;
+      const relData = realMap.get(cleanLok) || { totalRitPlanted: 0, lastDate: null };
 
-      let umurForcing = item.umurForcing;
-      if (item.tglFMax) {
-        const diffMs = today.getTime() - new Date(item.tglFMax).getTime();
-        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+      // 1. Wilayah
+      const wil = mLoc.strucPlant || ord?.wilayah || 'AW01';
+
+      // 2. Lokasi
+      const lok = mLoc.lokasi;
+
+      // 3. Jenis Bibit
+      const jenisBibit = mLoc.jenis || '-';
+
+      // 4. Kelas Bibit
+      const kelasBibit = mLoc.kelas || '-';
+
+      // 5. Tanggal Rawat
+      const tglRawatStr = mLoc.tglRawat ? mLoc.tglRawat.toISOString().slice(0, 10) : '-';
+
+      // 6. Tanggal STD Forcing
+      const tglStdForcingStr = mLoc.forcingStd ? mLoc.forcingStd.toISOString().slice(0, 10) : '-';
+
+      // 7. Tanggal F Prod
+      const tglFProdStr = mLoc.forcingProd2026 ? mLoc.forcingProd2026.toISOString().slice(0, 10) : '-';
+
+      // 8. Tanggal F Max
+      let tglFMaxDate: Date | null = null;
+      if (mLoc.forcingStd && mLoc.forcingProd2026) {
+        tglFMaxDate = mLoc.forcingStd.getTime() >= mLoc.forcingProd2026.getTime() ? mLoc.forcingStd : mLoc.forcingProd2026;
+      } else if (mLoc.forcingStd) {
+        tglFMaxDate = mLoc.forcingStd;
+      } else if (mLoc.forcingProd2026) {
+        tglFMaxDate = mLoc.forcingProd2026;
+      }
+      const tglFMaxStr = tglFMaxDate ? tglFMaxDate.toISOString().slice(0, 10) : '-';
+
+      // 9. Tanggal Order
+      const tglOrderStr = ord?.tanggalOrder ? new Date(ord.tanggalOrder).toISOString().slice(0, 10) : '-';
+
+      // 10. Umur Forcing
+      let umurForcing: number | string = '-';
+      if (tglFMaxDate) {
+        const diffDays = (today.getTime() - tglFMaxDate.getTime()) / (1000 * 60 * 60 * 24);
         umurForcing = Math.round(diffDays / 30.4);
       }
 
-      const pctDrop = rencanaBtg > 0 ? Math.min(100, Math.round((dropBtg / rencanaBtg) * 100)) : (dropBtg > 0 ? 100 : 0);
-      const pctSulam = rencanaBtg > 0 ? Math.min(100, Math.round((realBtg / rencanaBtg) * 100)) : (realBtg > 0 ? 100 : 0);
-      const statusPetak = (rencanaBtg > 0 && realBtg >= rencanaBtg) || item.status === 'Close' ? 'Close' : 'Open';
+      // 11. Permintaan Ritase
+      const permintaanJumlah = ord?.jumlah ?? 0;
+      const permintaanRit = ord?.rit ?? 0;
+      const permintaanRealRit = ord?.realRit ?? 0;
+
+      // 12. Monitor Drop
+      const dropReal = drpRealRit;
+      const dropTotal = permintaanRealRit + dropReal;
+      const dropDev = permintaanRit - permintaanRealRit - dropReal;
+      const dropPct = permintaanRit > 0 ? `${(((permintaanRealRit + dropReal) / permintaanRit) * 100).toFixed(1)}%` : '0%';
+
+      // 13. Monitor Sulam
+      const sulamReal = relData.totalRitPlanted;
+      const sulamManual = ord?.manual ?? 0;
+      const sulamSaldo = (permintaanRealRit + dropReal) - sulamReal - sulamManual;
+
+      const pembagiSulam = dropReal + permintaanRealRit;
+      let sulamPct: string = '-';
+      if (pembagiSulam > 0) {
+        sulamPct = `${(((sulamReal + sulamManual) / pembagiSulam) * 100).toFixed(1)}%`;
+      }
+
+      const sulamLastDateStr = relData.lastDate ? relData.lastDate.toISOString().slice(0, 10) : '-';
+
+      // 14-17. Spek & Keterangan
+      const spekBibit = ord?.spekBibit || '-';
+      const keteranganProses = ord?.keteranganProses || '-';
+      const keteranganMati = ord?.keteranganMati || '-';
+      const keteranganRitase = ord?.keteranganRitase || '-';
 
       return {
         'No.': idx + 1,
-        'Wilayah': item.wilayah || 'AW01',
-        'Lokasi': item.lokasi,
-        'Spek BB': item.spekBB || '-',
-        'Tgl Rawat': item.tglRawat ? item.tglRawat.toISOString().slice(0, 10) : '-',
-        'Tgl Forcing Max': item.tglFMax ? item.tglFMax.toISOString().slice(0, 10) : '-',
-        'Tgl Order': item.tglOrder ? item.tglOrder.toISOString().slice(0, 10) : '-',
-        'Umur Forcing (Bulan)': umurForcing !== null && umurForcing !== undefined ? umurForcing : '-',
-        'Rencana Batang': rencanaBtg,
-        'Rencana Rit': rencanaRit,
-        'Drop Batang': dropBtg,
-        'Drop Rit': dropRit,
-        'Real Tanam Batang': realBtg,
-        'Real Tanam Rit': realRit,
-        'Real Tanam Ha': parseFloat(realHa.toFixed(2)),
-        '% Drop': `${pctDrop}%`,
-        '% Sulam': `${pctSulam}%`,
-        'Status Petak': statusPetak,
+        'Wilayah': wil,
+        'Lokasi': lok,
+        'Jenis Bibit': jenisBibit,
+        'Kelas Bibit': kelasBibit,
+        'Tanggal Rawat': tglRawatStr,
+        'Tanggal STD Forcing': tglStdForcingStr,
+        'Tanggal F Prod': tglFProdStr,
+        'Tanggal F Max': tglFMaxStr,
+        'Tanggal Order': tglOrderStr,
+        'Umur Forcing (Bulan)': umurForcing,
+        'Permintaan Jumlah': permintaanJumlah,
+        'Permintaan Rit': permintaanRit,
+        'Permintaan Real Rit': permintaanRealRit,
+        'Drop Real': dropReal,
+        'Drop Total': dropTotal,
+        'Drop Dev': dropDev,
+        'Drop %Drop': dropPct,
+        'Sulam Real': sulamReal,
+        'Sulam Manual': sulamManual,
+        'Sulam Saldo': sulamSaldo,
+        'Sulam %Sulam': sulamPct,
+        'Sulam Last Sulam': sulamLastDateStr,
+        'Spek Bibit': spekBibit,
+        'Keterangan Proses': keteranganProses,
+        'Keterangan Mati': keteranganMati,
+        'Keterangan Ritase': keteranganRitase,
       };
     });
 
     const ws = XLSX.utils.json_to_sheet(exportRows);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Monitoring Sulam PG1');
+    XLSX.utils.book_append_sheet(wb, ws, 'List Sulam');
 
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    const filename = `Monitoring_Sulam_PG1_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    const filename = `List_Sulam_Monitoring_${new Date().toISOString().slice(0, 10)}.xlsx`;
 
     return new NextResponse(buf, {
       status: 200,
@@ -95,8 +173,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error('Error exporting monitoring sulam:', error);
-    return NextResponse.json({ success: false, message: 'Gagal mengekspor data monitoring sulam.' }, { status: 500 });
+    console.error('Error exporting sulam monitoring:', error);
+    return NextResponse.json({ success: false, message: 'Gagal mengekspor data list sulam.' }, { status: 500 });
   }
 }
-

@@ -6,10 +6,10 @@ export const dynamic = 'force-dynamic';
 
 function cleanNum(val: any): number {
   if (val === null || val === undefined) return 0;
-  if (typeof val === 'number') return isNaN(val) ? 0 : Math.round(val);
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
   const s = String(val).trim().replace(/,/g, '');
   const n = Number(s);
-  return isNaN(n) ? 0 : Math.round(n);
+  return isNaN(n) ? 0 : n;
 }
 
 function parseExcelDate(val: any): Date | null {
@@ -25,7 +25,7 @@ function parseExcelDate(val: any): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
-// GET: Ambil data master order sulam dengan pagination, pencarian, dan filter wilayah
+// GET: Ambil data master order sulam (11 kolom)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -39,8 +39,10 @@ export async function GET(request: NextRequest) {
     if (search) {
       where.OR = [
         { lokasi: { contains: search, mode: 'insensitive' } },
-        { spekBB: { contains: search, mode: 'insensitive' } },
-        { keterangan: { contains: search, mode: 'insensitive' } },
+        { spekBibit: { contains: search, mode: 'insensitive' } },
+        { keteranganProses: { contains: search, mode: 'insensitive' } },
+        { keteranganMati: { contains: search, mode: 'insensitive' } },
+        { keteranganRitase: { contains: search, mode: 'insensitive' } },
       ];
     }
     if (wilayah && wilayah !== 'ALL' && wilayah !== 'Semua Wilayah') {
@@ -52,7 +54,7 @@ export async function GET(request: NextRequest) {
       prisma.masterDataOrderSulam.count({ where }),
       prisma.masterDataOrderSulam.findMany({
         where,
-        orderBy: [{ tanggal: 'desc' }, { id: 'desc' }],
+        orderBy: [{ tanggalOrder: 'desc' }, { id: 'desc' }],
         skip,
         take: limit,
       }),
@@ -77,7 +79,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST: Upload Excel (Replace All / Partial)
+// POST: Upload Excel (Replace All / Tambah Data) 11 Kolom
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -110,9 +112,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Deteksi header baris
+    // Deteksi header baris untuk 11 kolom
     let headerRowIdx = 0;
-    let cLokasi = -1, cWilayah = -1, cTanggal = -1, cSpek = -1, cBtg = -1, cRit = -1, cKet = -1;
+    let cLokasi = -1;
+    let cWilayah = -1;
+    let cTglOrder = -1;
+    let cJumlah = -1;
+    let cRit = -1;
+    let cRealRit = -1;
+    let cSpek = -1;
+    let cManual = -1;
+    let cKetProses = -1;
+    let cKetMati = -1;
+    let cKetRitase = -1;
 
     for (let r = 0; r < Math.min(rows.length, 10); r++) {
       const row = rows[r];
@@ -121,16 +133,22 @@ export async function POST(request: NextRequest) {
         const str = String(row[c] || '').toLowerCase().trim();
         if (str === 'lokasi' || str === 'petak') { cLokasi = c; headerRowIdx = r; }
         else if (str === 'wilayah' || str === 'wil') cWilayah = c;
-        else if (str.includes('tgl') || str.includes('tanggal') || str.includes('date')) cTanggal = c;
-        else if (str.includes('spek') || str.includes('bb') || str.includes('bibit')) cSpek = c;
-        else if (str.includes('btg') || str.includes('jumlah') || str.includes('batang')) cBtg = c;
-        else if (str.includes('rit')) cRit = c;
-        else if (str.includes('ket')) cKet = c;
+        else if (str.includes('order') && (str.includes('tgl') || str.includes('tanggal') || str.includes('date'))) cTglOrder = c;
+        else if (str === 'tanggal' || str === 'tgl' || str === 'tanggal order') { if (cTglOrder === -1) cTglOrder = c; }
+        else if (str.includes('jumlah') || str === 'jml' || str.includes('batang') || str.includes('btg')) cJumlah = c;
+        else if (str.includes('real rit') || str.includes('real_rit')) cRealRit = c;
+        else if (str === 'rit' || str.includes('permintaan rit')) { if (cRit === -1) cRit = c; }
+        else if (str.includes('spek') || str.includes('bibit')) cSpek = c;
+        else if (str === 'manual') cManual = c;
+        else if (str.includes('ket') && str.includes('proses')) cKetProses = c;
+        else if (str.includes('ket') && str.includes('mati')) cKetMati = c;
+        else if (str.includes('ket') && str.includes('ritase')) cKetRitase = c;
+        else if (str === 'keterangan' || str === 'ket') { if (cKetProses === -1) cKetProses = c; }
       }
       if (cLokasi !== -1) break;
     }
 
-    if (cLokasi === -1) cLokasi = 0; // fallback
+    if (cLokasi === -1) cLokasi = 0;
 
     const records: any[] = [];
     for (let r = headerRowIdx + 1; r < rows.length; r++) {
@@ -140,20 +158,28 @@ export async function POST(request: NextRequest) {
       if (!lok || lok === 'TOTAL' || lok.startsWith('TOTAL')) continue;
 
       const wil = cWilayah !== -1 && row[cWilayah] ? String(row[cWilayah]).trim().toUpperCase() : null;
-      const tgl = cTanggal !== -1 ? parseExcelDate(row[cTanggal]) : new Date();
-      const spek = cSpek !== -1 && row[cSpek] ? String(row[cSpek]).trim() : 'Sucker No. 2';
-      const btg = cBtg !== -1 ? cleanNum(row[cBtg]) : 0;
+      const tgl = cTglOrder !== -1 ? parseExcelDate(row[cTglOrder]) : null;
+      const jml = cJumlah !== -1 ? Math.round(cleanNum(row[cJumlah])) : 0;
       const rit = cRit !== -1 ? cleanNum(row[cRit]) : 0;
-      const ket = cKet !== -1 && row[cKet] ? String(row[cKet]).trim() : null;
+      const realRit = cRealRit !== -1 ? cleanNum(row[cRealRit]) : 0;
+      const spek = cSpek !== -1 && row[cSpek] ? String(row[cSpek]).trim() : null;
+      const manual = cManual !== -1 ? cleanNum(row[cManual]) : 0;
+      const ketProses = cKetProses !== -1 && row[cKetProses] ? String(row[cKetProses]).trim() : null;
+      const ketMati = cKetMati !== -1 && row[cKetMati] ? String(row[cKetMati]).trim() : null;
+      const ketRitase = cKetRitase !== -1 && row[cKetRitase] ? String(row[cKetRitase]).trim() : null;
 
       records.push({
         lokasi: lok,
         wilayah: wil,
-        tanggal: tgl,
-        spekBB: spek,
-        jumlahBtg: btg,
-        jumlahRit: rit,
-        keterangan: ket,
+        tanggalOrder: tgl,
+        jumlah: jml,
+        rit,
+        realRit,
+        spekBibit: spek,
+        manual,
+        keteranganProses: ketProses,
+        keteranganMati: ketMati,
+        keteranganRitase: ketRitase,
       });
     }
 
@@ -187,4 +213,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

@@ -145,11 +145,13 @@ export async function POST(request: NextRequest) {
         data: {
           lokasi: cleanLokasi,
           wilayah: cleanWilayah,
-          tanggal: new Date(),
-          spekBB: kelasBibit.trim(),
-          jumlahBtg: btgPerRit,
-          jumlahRit: (Number(ritCD) || 0) + (Number(ritFuso) || 0),
-          keterangan: keterangan?.trim() || null,
+          tanggalOrder: new Date(),
+          spekBibit: kelasBibit.trim(),
+          jumlah: btgPerRit,
+          rit: (Number(ritCD) || 0) + (Number(ritFuso) || 0),
+          realRit: 0,
+          manual: 0,
+          keteranganProses: keterangan?.trim() || null,
         },
       });
     } catch (e) {

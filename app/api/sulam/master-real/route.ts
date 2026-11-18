@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
         take: limit,
       }),
       prisma.listSulam.findMany({
-        select: { lokasi: true, spekBB: true },
+        select: { lokasi: true, spekBibit: true },
       }),
       prisma.masterSpekBibitSulam.findMany({}),
     ]);
@@ -59,13 +59,13 @@ export async function GET(request: NextRequest) {
     // Map List Sulam untuk lookup Bibit Ordered
     const listSulamMap = new Map<string, string>();
     for (const l of listSulam) {
-      if (l.spekBB) listSulamMap.set(l.lokasi.trim().toUpperCase(), l.spekBB.trim());
+      if (l.spekBibit) listSulamMap.set(l.lokasi.trim().toUpperCase(), l.spekBibit.trim());
     }
 
     // Map Spek BB untuk lookup Std Rit CD
     const spekMap = new Map<string, number>();
     for (const s of allSpek) {
-      spekMap.set(s.spekBB.toLowerCase().trim(), s.stdRitCD);
+      spekMap.set(s.spekBBSulamBtg.toLowerCase().trim(), s.cd);
     }
 
     // Transform data sesuai aturan 5, 6, 7
@@ -164,16 +164,16 @@ export async function POST(request: NextRequest) {
 
     // Ambil referensi List Sulam & Spek BB untuk kalkulasi otomatis
     const [listSulam, allSpek] = await Promise.all([
-      prisma.listSulam.findMany({ select: { lokasi: true, spekBB: true } }),
+      prisma.listSulam.findMany({ select: { lokasi: true, spekBibit: true } }),
       prisma.masterSpekBibitSulam.findMany({}),
     ]);
     const listSulamMap = new Map<string, string>();
     for (const l of listSulam) {
-      if (l.spekBB) listSulamMap.set(l.lokasi.trim().toUpperCase(), l.spekBB.trim());
+      if (l.spekBibit) listSulamMap.set(l.lokasi.trim().toUpperCase(), l.spekBibit.trim());
     }
     const spekMap = new Map<string, number>();
     for (const s of allSpek) {
-      spekMap.set(s.spekBB.toLowerCase().trim(), s.stdRitCD);
+      spekMap.set(s.spekBBSulamBtg.toLowerCase().trim(), s.cd);
     }
 
     let headerRowIdx = 0;
