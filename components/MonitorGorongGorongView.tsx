@@ -114,6 +114,25 @@ const CustomDonutTooltip = ({ active, payload }: any) => {
   );
 };
 
+// Custom Tooltip Pop-up Donut Chart Harian (Menampilkan simbol Ø dan pcs)
+const DailyDonutTooltip = ({ active, payload }: any) => {
+  if (!active || !payload || !payload.length) return null;
+  const item = payload[0]?.payload || {};
+  const diameter = item.diameter || '40';
+  const val = Number(item.value ?? 0);
+
+  return (
+    <div className="bg-slate-900 text-white px-2.5 py-1.5 rounded-xl shadow-xl border border-slate-700 text-center pointer-events-none z-50">
+      <div className="text-[11px] font-black tracking-wide text-slate-200">
+        Ø{diameter}
+      </div>
+      <div className="text-xs font-extrabold text-white mt-0.5">
+        {val.toLocaleString('id-ID')} pcs
+      </div>
+    </div>
+  );
+};
+
 // In-memory module cache agar navigasi antar menu 0 ms instan tanpa loading dari awal lagi
 let cachedSummaryData: any = null;
 let cachedMonitoringData: any = null;
@@ -224,9 +243,38 @@ export default function MonitorGorongGorongView() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
+  // State untuk Realisasi Harian (Drop & Pasang Manual)
+  const [dailyRealisasiData, setDailyRealisasiData] = useState<{
+    transactions: any[];
+    dropSummary: any;
+    pasangSummary: any;
+    wilayahBarData: any[];
+  }>({
+    transactions: [],
+    dropSummary: { d40: 0, d60: 0, d80: 0, d100: 0, total: 0, chartData: [] },
+    pasangSummary: { d40: 0, d60: 0, d80: 0, d100: 0, total: 0, chartData: [] },
+    wilayahBarData: [],
+  });
+
+  const fetchDailyRealisasi = async () => {
+    try {
+      const res = await fetch('/api/gorong-gorong/realisasi-harian');
+      const json = await res.json();
+      if (json.success && json.data) {
+        setDailyRealisasiData(json.data);
+      }
+    } catch (err) {
+      console.error('Error fetching realisasi harian:', err);
+    }
+  };
+
   // Auto-refresh saat ada transaksi baru disimpan di Form Order atau pembaruan master data
   useEffect(() => {
-    const handleUpdate = () => loadData(true);
+    fetchDailyRealisasi();
+    const handleUpdate = () => {
+      loadData(true);
+      fetchDailyRealisasi();
+    };
     window.addEventListener('gorong_gorong_updated', handleUpdate);
     window.addEventListener('master_data_updated', handleUpdate);
     return () => {
@@ -1630,8 +1678,11 @@ export default function MonitorGorongGorongView() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
         {/* PANEL KIRI: Grafik Donat Proporsi Luas FC Open (Ha) Berdasarkan Kelompok Umur Bulan (Ukuran Proporsional Penuh) */}
         <div className="lg:col-span-3 p-4 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs backdrop-blur-md flex flex-col justify-between">
-          <div className="flex items-center justify-end w-full mb-1">
-            <span className="text-xs font-extrabold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-2xs">
+          <div className="flex items-center justify-between gap-2 w-full mb-1">
+            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate" title="Distribusi Lokasi FC Proses Pasang">
+              Distribusi Lokasi FC Proses Pasang
+            </h4>
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-2xs shrink-0">
               {selectedDiameterFilter === 'ALL' ? 'Semua Ø' : `Ø${selectedDiameterFilter}`} • {selectedYears[0] || '2026'}
             </span>
           </div>
@@ -1906,6 +1957,225 @@ export default function MonitorGorongGorongView() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 3.5 PANEL REALISASI HARI INI: 2 DONUT (30%), GRAFIK BATANG AW01-AW07 (40%), & TABEL TRANSAKSI (30%) */}
+      <div className="grid grid-cols-1 lg:grid-cols-10 gap-4 items-stretch">
+        {/* KOLOM KIRI (30% -> col-span-3): 2 GRAFIK DONAT (DROP & PASANG MANUAL HARI INI) */}
+        <div className="lg:col-span-3 p-4 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs backdrop-blur-md flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2 mb-2">
+            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-blue-500" />
+              <span>Proporsi Drop & Pasang Hari Ini</span>
+            </h4>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
+              Hari Ini
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 flex-1 items-center">
+            {/* Donut 1: Drop */}
+            <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-blue-500/5 border border-blue-500/10 h-full">
+              <span className="text-[11px] font-black text-blue-600 dark:text-blue-400 mb-1">
+                Drop
+              </span>
+              <div className="relative w-[110px] h-[110px]">
+                {dailyRealisasiData.dropSummary?.chartData?.length === 0 ? (
+                  <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400 text-center font-medium">
+                    Belum ada data
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={dailyRealisasiData.dropSummary.chartData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={28}
+                        outerRadius={45}
+                        paddingAngle={2}
+                        stroke="none"
+                      >
+                        {dailyRealisasiData.dropSummary.chartData.map((entry: any, index: number) => (
+                          <Cell key={`drop-cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<DailyDonutTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+                {dailyRealisasiData.dropSummary?.total > 0 && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-sm font-black text-slate-900 dark:text-white">
+                      {dailyRealisasiData.dropSummary.total}
+                    </span>
+                    <span className="text-[8px] font-bold text-slate-400 uppercase">pcs</span>
+                  </div>
+                )}
+              </div>
+              <div className="text-[10px] font-bold text-slate-600 dark:text-slate-400 mt-1">
+                Total: <span className="font-extrabold text-blue-600 dark:text-blue-400">{dailyRealisasiData.dropSummary?.total || 0} pcs</span>
+              </div>
+            </div>
+
+            {/* Donut 2: Pasang Manual */}
+            <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10 h-full">
+              <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 mb-1">
+                Pasang Manual
+              </span>
+              <div className="relative w-[110px] h-[110px]">
+                {dailyRealisasiData.pasangSummary?.chartData?.length === 0 ? (
+                  <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400 text-center font-medium">
+                    Belum ada data
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={dailyRealisasiData.pasangSummary.chartData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={28}
+                        outerRadius={45}
+                        paddingAngle={2}
+                        stroke="none"
+                      >
+                        {dailyRealisasiData.pasangSummary.chartData.map((entry: any, index: number) => (
+                          <Cell key={`pasang-cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<DailyDonutTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+                {dailyRealisasiData.pasangSummary?.total > 0 && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-sm font-black text-slate-900 dark:text-white">
+                      {dailyRealisasiData.pasangSummary.total}
+                    </span>
+                    <span className="text-[8px] font-bold text-slate-400 uppercase">pcs</span>
+                  </div>
+                )}
+              </div>
+              <div className="text-[10px] font-bold text-slate-600 dark:text-slate-400 mt-1">
+                Total: <span className="font-extrabold text-emerald-600 dark:text-emerald-400">{dailyRealisasiData.pasangSummary?.total || 0} pcs</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* KOLOM TENGAH (40% -> col-span-4): GRAFIK BATANG REALISASI HARI INI */}
+        <div className="lg:col-span-4 p-4 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs backdrop-blur-md flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2 mb-2">
+            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#00873D]" />
+              <span>Realisasi Hari Ini</span>
+            </h4>
+            <div className="flex items-center gap-3 text-[10px] font-bold">
+              <span className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-xs bg-blue-500 inline-block" />
+                <span className="text-slate-600 dark:text-slate-400">Drop</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-xs bg-emerald-500 inline-block" />
+                <span className="text-slate-600 dark:text-slate-400">Pasang Manual</span>
+              </span>
+            </div>
+          </div>
+
+          <div className="w-full h-[180px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={dailyRealisasiData.wilayahBarData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.15} vertical={false} />
+                <XAxis dataKey="wilayah" tick={{ fontSize: 10, fill: '#64748B', fontWeight: 600 }} />
+                <YAxis tick={{ fontSize: 10, fill: '#64748B' }} />
+                <Tooltip
+                  formatter={(val: any, name: any) => [
+                    `${Number(val).toLocaleString('id-ID')} pcs`,
+                    name === 'drop' ? 'Drop' : 'Pasang Manual',
+                  ]}
+                  contentStyle={{
+                    backgroundColor: '#0f172a',
+                    borderColor: '#334155',
+                    borderRadius: '0.75rem',
+                    color: '#fff',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                  }}
+                />
+                <Bar dataKey="drop" name="drop" fill="#3B82F6" radius={[4, 4, 0, 0]} maxBarSize={18} />
+                <Bar dataKey="pasangManual" name="pasangManual" fill="#10B981" radius={[4, 4, 0, 0]} maxBarSize={18} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* KOLOM KANAN (30% -> col-span-3): LIST REAL TRANSAKSI GORONG-GORONG HARI INI */}
+        <div className="lg:col-span-3 p-4 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs backdrop-blur-md flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2 mb-2">
+            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate" title="List Real Transaksi Gorong-gorong Hari Ini">
+              List Real Transaksi Gorong-gorong Hari Ini
+            </h4>
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">
+              {dailyRealisasiData.transactions.length} Trx
+            </span>
+          </div>
+
+          <div className="w-full flex-1 max-h-[180px] overflow-y-auto overflow-x-auto scrollbar-thin border border-slate-200/80 dark:border-slate-800 rounded-xl">
+            <table className="w-full text-[10px] border-collapse">
+              <thead>
+                <tr className="bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 font-bold sticky top-0 z-10">
+                  <th className="py-1 px-1 text-center">No</th>
+                  <th className="py-1 px-1 text-center">Jenis</th>
+                  <th className="py-1 px-1 text-center">Lokasi</th>
+                  <th className="py-1 px-1 text-center">Wilayah</th>
+                  <th className="py-1 px-0.5 text-center text-emerald-600">Ø40</th>
+                  <th className="py-1 px-0.5 text-center text-blue-600">Ø60</th>
+                  <th className="py-1 px-0.5 text-center text-amber-600">Ø80</th>
+                  <th className="py-1 px-0.5 text-center text-purple-600">Ø100</th>
+                  <th className="py-1 px-1 text-center">Penginput</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {dailyRealisasiData.transactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="py-8 text-center text-slate-400 font-medium">
+                      Belum ada transaksi hari ini
+                    </td>
+                  </tr>
+                ) : (
+                  dailyRealisasiData.transactions.map((trx, idx) => (
+                    <tr key={`daily-trx-${trx.id || idx}`} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="py-1 px-1 text-center font-mono text-slate-400">{idx + 1}</td>
+                      <td className="py-1 px-1 text-center font-bold">
+                        <span className={`inline-block px-1 py-0.2 rounded text-[9px] ${
+                          trx.jenisTransaksi === 'DROP'
+                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                        }`}>
+                          {trx.jenisTransaksi === 'DROP' ? 'Drop' : 'Pasang'}
+                        </span>
+                      </td>
+                      <td className="py-1 px-1 text-center font-bold text-slate-800 dark:text-slate-200">{trx.lokasi}</td>
+                      <td className="py-1 px-1 text-center text-slate-600 dark:text-slate-400">{trx.wilayah || '-'}</td>
+                      <td className="py-1 px-0.5 text-center font-mono font-bold text-emerald-600">{trx.qtyD40 || 0}</td>
+                      <td className="py-1 px-0.5 text-center font-mono font-bold text-blue-600">{trx.qtyD60 || 0}</td>
+                      <td className="py-1 px-0.5 text-center font-mono font-bold text-amber-600">{trx.qtyD80 || 0}</td>
+                      <td className="py-1 px-0.5 text-center font-mono font-bold text-purple-600">{trx.qtyD100 || 0}</td>
+                      <td className="py-1 px-1 text-center text-slate-600 dark:text-slate-400 truncate max-w-[70px]" title={trx.createdBy || '-'}>
+                        {trx.createdBy || '-'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

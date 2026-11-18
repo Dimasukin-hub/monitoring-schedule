@@ -10,6 +10,7 @@ import MasterWaterloggingView from '@/components/MasterWaterloggingView';
 import MasterSapUploadView from '@/components/MasterSapUploadView';
 import MasterOrderView from '@/components/MasterOrderView';
 import MasterDropView from '@/components/MasterDropView';
+import MasterDataPasangManualView from '@/components/MasterDataPasangManualView';
 import MasterPindahView from '@/components/MasterPindahView';
 import UserManagementView from '@/components/UserManagementView';
 import { useAuth } from '@/components/AuthProvider';
@@ -154,6 +155,8 @@ export default function GorongGorongPage() {
           master_waterlogging: 'Master Waterlogging',
           master_order: 'Master Data Order',
           master_drop: 'Master Data Drop',
+          master_pasang_manual: 'Master Data Pasang Manual',
+          master_pindah: 'Master Data Pindah Lokasi',
           master_sap: 'Upload Realisasi SAP',
         };
         const sub = subTitles[masterDataSubTab];
@@ -215,7 +218,12 @@ export default function GorongGorongPage() {
               <MasterDropView />
             </div>
 
-            {/* 3.5 SUB MENU: MASTER DATA PINDAH LOKASI */}
+            {/* 3.5 SUB MENU: MASTER DATA PASANG MANUAL */}
+            <div className={masterDataSubTab === 'master_pasang_manual' ? 'block' : 'hidden'}>
+              <MasterDataPasangManualView />
+            </div>
+
+            {/* 3.6 SUB MENU: MASTER DATA PINDAH LOKASI */}
             <div className={masterDataSubTab === 'master_pindah' ? 'block' : 'hidden'}>
               <MasterPindahView />
             </div>

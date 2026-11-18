@@ -320,6 +320,36 @@ export async function POST(request: NextRequest) {
               },
             });
           }
+        } else if (d.jenisTransaksi === 'PASANG_MANUAL') {
+          const existingPasang = await prisma.masterDataPasangManual.findFirst({
+            where: { lokasi: d.lokasi },
+            orderBy: { tanggalPasangManual: 'desc' },
+          });
+
+          if (existingPasang) {
+            await prisma.masterDataPasangManual.update({
+              where: { id: existingPasang.id },
+              data: {
+                diameter40: (existingPasang.diameter40 || 0) + (d.qtyD40 || 0),
+                diameter60: (existingPasang.diameter60 || 0) + (d.qtyD60 || 0),
+                diameter80: (existingPasang.diameter80 || 0) + (d.qtyD80 || 0),
+                diameter100: (existingPasang.diameter100 || 0) + (d.qtyD100 || 0),
+                tanggalPasangManual: d.tanggal || existingPasang.tanggalPasangManual,
+              },
+            });
+          } else {
+            await prisma.masterDataPasangManual.create({
+              data: {
+                lokasi: d.lokasi,
+                wilayah: d.wilayah || 'AW01',
+                tanggalPasangManual: d.tanggal || new Date(),
+                diameter40: d.qtyD40 || 0,
+                diameter60: d.qtyD60 || 0,
+                diameter80: d.qtyD80 || 0,
+                diameter100: d.qtyD100 || 0,
+              },
+            });
+          }
         }
       } catch (errMaster) {
         console.warn(`Failed to update master tables for ${d.lokasi}:`, errMaster);
@@ -677,6 +707,24 @@ async function revertTransactionImpact(existing: any) {
           data: destRevert,
         });
       }
+
+      if (existing.jenisTransaksi === 'PASANG_MANUAL') {
+        const existingPasang = await prisma.masterDataPasangManual.findFirst({
+          where: { lokasi: existing.lokasi },
+          orderBy: { tanggalPasangManual: 'desc' },
+        });
+        if (existingPasang) {
+          await prisma.masterDataPasangManual.update({
+            where: { id: existingPasang.id },
+            data: {
+              diameter40: Math.max(0, (existingPasang.diameter40 || 0) - (existing.qtyD40 || 0)),
+              diameter60: Math.max(0, (existingPasang.diameter60 || 0) - (existing.qtyD60 || 0)),
+              diameter80: Math.max(0, (existingPasang.diameter80 || 0) - (existing.qtyD80 || 0)),
+              diameter100: Math.max(0, (existingPasang.diameter100 || 0) - (existing.qtyD100 || 0)),
+            },
+          });
+        }
+      }
     }
   } catch (err) {
     console.warn('Failed to revert LokasiOrderGorongGorong:', err);
@@ -789,6 +837,36 @@ async function applyTransactionImpact(d: {
             lokasi: d.lokasi,
             wilayah: d.wilayah || 'AW01',
             tanggal: d.tanggal || new Date(),
+            diameter40: d.qtyD40 || 0,
+            diameter60: d.qtyD60 || 0,
+            diameter80: d.qtyD80 || 0,
+            diameter100: d.qtyD100 || 0,
+          },
+        });
+      }
+    } else if (d.jenisTransaksi === 'PASANG_MANUAL') {
+      const existingPasang = await prisma.masterDataPasangManual.findFirst({
+        where: { lokasi: d.lokasi },
+        orderBy: { tanggalPasangManual: 'desc' },
+      });
+
+      if (existingPasang) {
+        await prisma.masterDataPasangManual.update({
+          where: { id: existingPasang.id },
+          data: {
+            diameter40: (existingPasang.diameter40 || 0) + (d.qtyD40 || 0),
+            diameter60: (existingPasang.diameter60 || 0) + (d.qtyD60 || 0),
+            diameter80: (existingPasang.diameter80 || 0) + (d.qtyD80 || 0),
+            diameter100: (existingPasang.diameter100 || 0) + (d.qtyD100 || 0),
+            tanggalPasangManual: d.tanggal || existingPasang.tanggalPasangManual,
+          },
+        });
+      } else {
+        await prisma.masterDataPasangManual.create({
+          data: {
+            lokasi: d.lokasi,
+            wilayah: d.wilayah || 'AW01',
+            tanggalPasangManual: d.tanggal || new Date(),
             diameter40: d.qtyD40 || 0,
             diameter60: d.qtyD60 || 0,
             diameter80: d.qtyD80 || 0,

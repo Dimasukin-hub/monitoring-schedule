@@ -217,6 +217,9 @@ export default function FormOrderGorongGorongView() {
       if (!target.closest('.datepicker-container')) {
         setIsCalendarOpen(false);
       }
+      if (!target.closest('.edit-datepicker-container')) {
+        setIsEditCalendarOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -515,6 +518,60 @@ export default function FormOrderGorongGorongView() {
   const [editQtyD80, setEditQtyD80] = useState<number | string>(0);
   const [editQtyD100, setEditQtyD100] = useState<number | string>(0);
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
+  const [isEditCalendarOpen, setIsEditCalendarOpen] = useState<boolean>(false);
+  const [editCalendarMonth, setEditCalendarMonth] = useState<number>(new Date().getMonth());
+  const [editCalendarYear, setEditCalendarYear] = useState<number>(new Date().getFullYear());
+
+  // Render Grid Kalender Popover Modal Edit
+  const renderEditCalendarGrid = () => {
+    const daysInMonth = new Date(editCalendarYear, editCalendarMonth + 1, 0).getDate();
+    const firstDayIndex = new Date(editCalendarYear, editCalendarMonth, 1).getDay(); // 0 = Minggu
+    const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
+    const blanks = Array.from({ length: firstDayIndex });
+    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+    const isCurrentSelected = (d: number) => {
+      const target = `${editCalendarYear}-${String(editCalendarMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      return editTanggal === target;
+    };
+
+    return (
+      <div className="space-y-2">
+        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400">
+          {dayNames.map((n) => (
+            <div key={`edit-dn-${n}`} className="py-1">{n}</div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {blanks.map((_, i) => (
+            <div key={`edit-blank-${i}`} className="p-1.5" />
+          ))}
+          {days.map((d) => {
+            const selected = isCurrentSelected(d);
+            return (
+              <button
+                key={`edit-d-${d}`}
+                type="button"
+                onClick={() => {
+                  const newDate = `${editCalendarYear}-${String(editCalendarMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                  setEditTanggal(newDate);
+                  setIsEditCalendarOpen(false);
+                }}
+                className={`py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  selected
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                {d}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   // Filter pilihan lokasi untuk Modal Edit
   const filteredEditLokasiOptions = masterLokasiList
@@ -553,11 +610,16 @@ export default function FormOrderGorongGorongView() {
     const mWilAsal = masterLokasiList.find((m) => m.lokasi?.trim().toUpperCase() === lokAsal.trim().toUpperCase())?.strucPlant || 'AW01';
     setEditWilayahAsal(mWilAsal);
 
-    setEditTanggal(
-      item.tanggal
-        ? new Date(item.tanggal).toISOString().slice(0, 10)
-        : new Date().toISOString().slice(0, 10)
-    );
+    const dStr = item.tanggal
+      ? new Date(item.tanggal).toISOString().slice(0, 10)
+      : new Date().toISOString().slice(0, 10);
+    setEditTanggal(dStr);
+    const dObj = new Date(dStr);
+    if (!isNaN(dObj.getTime())) {
+      setEditCalendarYear(dObj.getFullYear());
+      setEditCalendarMonth(dObj.getMonth());
+    }
+    setIsEditCalendarOpen(false);
     setEditQtyD40(item.qtyD40 ?? 0);
     setEditQtyD60(item.qtyD60 ?? 0);
     setEditQtyD80(item.qtyD80 ?? 0);
@@ -1682,15 +1744,7 @@ export default function FormOrderGorongGorongView() {
 
             {/* Form Edit */}
             <form onSubmit={handleSaveEdit} className="p-4 sm:p-5 space-y-4 max-h-[80vh] overflow-y-auto scrollbar-thin">
-              {/* Info Penginput Asal (Read-Only) */}
-              <div className="p-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
-                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Penginput Asal:</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200 text-right">
-                  {editingTrx.createdBy || '-'} <span className="text-slate-400 font-normal">({editingTrx.userRole || '-'})</span>
-                </span>
-              </div>
-
-              {/* 1. Pilih Jenis Transaksi */}
+              {/* 1. Pilih Jenis Transaksi (Posisi Paling Atas) */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                   <Package className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
@@ -1726,14 +1780,14 @@ export default function FormOrderGorongGorongView() {
                 </div>
               </div>
 
-              {/* 2. Lokasi & Wilayah Otomatis */}
+              {/* 2. Lokasi & Wilayah */}
               {editJenisTransaksi !== 'PINDAH_LOKASI' ? (
-                /* Format Standar: 1 Lokasi + 1 Wilayah Otomatis */
+                /* Format Standar: Lokasi + Wilayah */
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="relative edit-lokasi-dropdown-container">
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5 text-[#00873D]" />
-                      <span>Lokasi Petak *</span>
+                      <span>Lokasi</span>
                     </label>
                     <div className="relative">
                       <input
@@ -1803,7 +1857,7 @@ export default function FormOrderGorongGorongView() {
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                       <Layers className="w-3.5 h-3.5 text-blue-500" />
-                      <span>Wilayah (Otomatis)</span>
+                      <span>Wilayah</span>
                     </label>
                     <input
                       type="text"
@@ -1891,7 +1945,7 @@ export default function FormOrderGorongGorongView() {
                     <div>
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                         <Layers className="w-3.5 h-3.5 text-slate-500" />
-                        <span>Wilayah Asal (Otomatis)</span>
+                        <span>Wilayah Asal</span>
                       </label>
                       <input
                         type="text"
@@ -1977,7 +2031,7 @@ export default function FormOrderGorongGorongView() {
                     <div>
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                         <Layers className="w-3.5 h-3.5 text-slate-500" />
-                        <span>Wilayah Tujuan (Otomatis)</span>
+                        <span>Wilayah Tujuan</span>
                       </label>
                       <input
                         type="text"
@@ -1991,19 +2045,100 @@ export default function FormOrderGorongGorongView() {
                 </div>
               )}
 
-              {/* 3. Tanggal Transaksi */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Tanggal Transaksi *
-                </label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    value={editTanggal}
-                    onChange={(e) => setEditTanggal(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
+              {/* 3. Tanggal Transaksi & Penginput Asal (Sejajar 2 Kolom) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Kotak Tanggal Transaksi: Seluruh area kotak dapat diklik */}
+                <div className="relative edit-datepicker-container">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Tanggal Transaksi *</span>
+                  </label>
+                  <div
+                    onClick={() => setIsEditCalendarOpen((prev) => !prev)}
+                    className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-600 text-xs font-semibold text-slate-900 dark:text-slate-100 flex items-center justify-between cursor-pointer hover:border-blue-500 transition-colors shadow-2xs"
+                  >
+                    <span>{formatDateDisplay(editTanggal)}</span>
+                    <Calendar className="w-4 h-4 text-slate-400" />
+                  </div>
+
+                  {/* Popover Kalender Sama Persis Seperti di Form Input */}
+                  {isEditCalendarOpen && (
+                    <div className="absolute left-0 top-full mt-1.5 w-64 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
+                      <div className="flex items-center justify-between mb-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (editCalendarMonth === 0) {
+                              setEditCalendarMonth(11);
+                              setEditCalendarYear((y) => y - 1);
+                            } else {
+                              setEditCalendarMonth((m) => m - 1);
+                            }
+                          }}
+                          className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                        >
+                          <ChevronLeft className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                        </button>
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          {INDONESIAN_MONTHS[editCalendarMonth]} {editCalendarYear}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (editCalendarMonth === 11) {
+                              setEditCalendarMonth(0);
+                              setEditCalendarYear((y) => y + 1);
+                            } else {
+                              setEditCalendarMonth((m) => m + 1);
+                            }
+                          }}
+                          className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                        >
+                          <ChevronRight className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                        </button>
+                      </div>
+                      {renderEditCalendarGrid()}
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditTanggal('');
+                            setIsEditCalendarOpen(false);
+                          }}
+                          className="text-[11px] font-bold text-red-500 hover:text-red-600 hover:underline cursor-pointer"
+                        >
+                          Kosongkan
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const now = new Date();
+                            setEditCalendarYear(now.getFullYear());
+                            setEditCalendarMonth(now.getMonth());
+                            setEditTanggal(now.toISOString().slice(0, 10));
+                            setIsEditCalendarOpen(false);
+                          }}
+                          className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+                        >
+                          Hari Ini
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Kotak Penginput Asal (Sejajar dan Rapi) */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Penginput Asal</span>
+                  </label>
+                  <div className="w-full px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between cursor-not-allowed select-none min-h-[38px]">
+                    <span className="truncate">{editingTrx.createdBy || '-'}</span>
+                    <span className="text-[10px] font-normal text-slate-400 shrink-0 ml-1">({editingTrx.userRole || '-'})</span>
+                  </div>
                 </div>
               </div>
 
@@ -2023,7 +2158,7 @@ export default function FormOrderGorongGorongView() {
                       min={0}
                       max={999}
                       value={editQtyD40}
-                      onChange={(e) => setEditQtyD40(e.target.value)}
+                      onChange={(e) => setEditQtyD40(e.target.value === '' ? 0 : e.target.value)}
                       className="w-full text-center font-mono font-bold text-sm bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 rounded-lg py-1 px-1 focus:ring-2 focus:ring-emerald-500 outline-none"
                     />
                   </div>
@@ -2038,7 +2173,7 @@ export default function FormOrderGorongGorongView() {
                       min={0}
                       max={999}
                       value={editQtyD60}
-                      onChange={(e) => setEditQtyD60(e.target.value)}
+                      onChange={(e) => setEditQtyD60(e.target.value === '' ? 0 : e.target.value)}
                       className="w-full text-center font-mono font-bold text-sm bg-white dark:bg-slate-900 border border-blue-300 dark:border-blue-700 rounded-lg py-1 px-1 focus:ring-2 focus:ring-blue-500 outline-none"
                     />
                   </div>
@@ -2053,7 +2188,7 @@ export default function FormOrderGorongGorongView() {
                       min={0}
                       max={999}
                       value={editQtyD80}
-                      onChange={(e) => setEditQtyD80(e.target.value)}
+                      onChange={(e) => setEditQtyD80(e.target.value === '' ? 0 : e.target.value)}
                       className="w-full text-center font-mono font-bold text-sm bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 rounded-lg py-1 px-1 focus:ring-2 focus:ring-amber-500 outline-none"
                     />
                   </div>
@@ -2068,7 +2203,7 @@ export default function FormOrderGorongGorongView() {
                       min={0}
                       max={999}
                       value={editQtyD100}
-                      onChange={(e) => setEditQtyD100(e.target.value)}
+                      onChange={(e) => setEditQtyD100(e.target.value === '' ? 0 : e.target.value)}
                       className="w-full text-center font-mono font-bold text-sm bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 rounded-lg py-1 px-1 focus:ring-2 focus:ring-purple-500 outline-none"
                     />
                   </div>
@@ -2098,7 +2233,7 @@ export default function FormOrderGorongGorongView() {
                   ) : (
                     <>
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Simpan Perubahan</span>
+                      <span>Simpan</span>
                     </>
                   )}
                 </button>
