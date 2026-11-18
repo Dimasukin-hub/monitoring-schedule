@@ -505,11 +505,11 @@ model MasterDataPindahGorongGorong {
 
 model MasterSpekBibitSulam {
   id             Int      @id @default(autoincrement())
-  spekBBSulamBtg String   @unique @map("spekBB") // 1. Spek BB Sulam Btg
-  cd             Int      @default(0) @map("stdRitCD") // 2. CD
-  fuso           Int      @default(0) @map("stdRitFuso") // 3. Fuso
-  spesifikasi    String?  @map("spesifikasi") // 4. Spesifikasi
-  keterangan     String?  @map("keterangan") // 5. Keterangan
+  spekBBSulamBtg String   @unique // 1. Spek BB Sulam Btg
+  cd             Int      @default(0) // 2. CD
+  fuso           Int      @default(0) // 3. Fuso
+  spesifikasi    String?  // 4. Spesifikasi
+  keterangan     String?  // 5. Keterangan
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -564,13 +564,13 @@ model MasterDataOrderSulam {
   id               Int       @id @default(autoincrement())
   lokasi           String    // 1. Lokasi
   wilayah          String?   // 2. Wilayah
-  tanggalOrder     DateTime? @map("tanggal") // 3. Tanggal Order
-  jumlah           Int       @default(0) @map("jumlahBtg") // 4. Jumlah
-  rit              Float     @default(0) @map("jumlahRit") // 5. Rit
+  tanggalOrder     DateTime? // 3. Tanggal Order
+  jumlah           Int       @default(0) // 4. Jumlah
+  rit              Float     @default(0) // 5. Rit
   realRit          Float     @default(0) // 6. Real Rit
-  spekBibit        String?   @map("spekBB") // 7. Spek Bibit
+  spekBibit        String?   // 7. Spek Bibit
   manual           Float     @default(0) // 8. Manual
-  keteranganProses String?   @map("keterangan") // 9. Keterangan Proses
+  keteranganProses String?   // 9. Keterangan Proses
   keteranganMati   String?   // 10. Keterangan Mati
   keteranganRitase String?   // 11. Keterangan Ritase
   createdAt        DateTime  @default(now())
@@ -586,8 +586,8 @@ model MasterDataDropBibitSulam {
   lokasi       String    // 1. Lokasi
   hasilHa      Float?    // 2. Hasil Ha
   hasilBtg     Int       @default(0) // 3. Hasil Btg
-  tanggal      DateTime? @map("tanggalDrop") // 4. Tanggal
-  bibitOrdered String?   @map("spekBB") // 5. Bibit Ordered
+  tanggal      DateTime? // 4. Tanggal
+  bibitOrdered String?   // 5. Bibit Ordered
   stdRit       Int?      // 6. Std Rit
   jumlahRit    Int?      // 7. Jumlah Rit
   jenisUnit    String?   // 8. Jenis Unit

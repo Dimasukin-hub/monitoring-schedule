@@ -10,8 +10,9 @@ echo "📥 [1/4] Mengambil kode terbaru dari Git..."
 git checkout -- data/lokasi-order-snapshot.json 2>/dev/null || true
 git pull origin main
 
-# 2. Sinkronisasi Prisma Client (jika ada perubahan schema)
-echo "🗄️  [2/4] Sinkronisasi Prisma Client..."
+# 2. Sinkronisasi Skema Database & Prisma Client
+echo "🗄️  [2/4] Sinkronisasi Database & Prisma Client..."
+npx prisma db push --accept-data-loss
 npx prisma generate
 
 # 3. Build aplikasi untuk produksi

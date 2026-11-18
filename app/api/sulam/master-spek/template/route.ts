@@ -45,3 +45,4 @@ export async function GET() {
     return NextResponse.json({ success: false, message: 'Gagal mengunduh template.' }, { status: 500 });
   }
 }
+

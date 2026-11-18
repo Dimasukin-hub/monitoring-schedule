@@ -38,3 +38,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, message: 'Gagal mengekspor data master spek bibit sulam.' }, { status: 500 });
   }
 }
+
