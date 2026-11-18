@@ -1377,7 +1377,7 @@ export default function MonitorGorongGorongView() {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden animate-in fade-in duration-300">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden animate-in fade-in duration-300 pb-28 sm:pb-12">
       {/* 1. HEADER SECTION & FILTER BAR */}
       <div className="relative z-30 flex flex-col xl:flex-row xl:items-center justify-between gap-3 sm:gap-4 p-3.5 sm:p-5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-xs backdrop-blur-md">
         <div>
@@ -2681,7 +2681,7 @@ export default function MonitorGorongGorongView() {
       {activeTableTab === 'order' ? (
         /* TABEL 1: LIST LOKASI ORDER LENGKAP DENGAN 4 DIAMETER */
         <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-hidden w-full max-w-full">
-          <div className="overflow-x-auto max-h-[620px] scrollbar-thin border border-slate-200 dark:border-slate-800 touch-pan-x w-full max-w-full">
+          <div className="overflow-auto max-h-[68vh] sm:max-h-[640px] scrollbar-thin border border-slate-200 dark:border-slate-800 w-full max-w-full">
             <table className="w-full text-center border-separate border-spacing-0 text-[11px] whitespace-nowrap">
               {/* Header 2 Tingkat */}
               <thead className="text-slate-700 dark:text-slate-200 font-bold">
@@ -3193,6 +3193,15 @@ export default function MonitorGorongGorongView() {
               </tbody>
             </table>
           </div>
+          {/* Table 1 Footer Info Bar */}
+          <div className="px-3.5 sm:px-5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-700/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <span className="font-semibold text-slate-700 dark:text-slate-300">
+              Menampilkan {filteredOrderList.length} Lokasi Order
+            </span>
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 italic hidden sm:inline">
+              Scroll horizontal &amp; vertikal untuk melihat seluruh data
+            </span>
+          </div>
         </div>
       ) : (
         /* TABEL 2: LIST LOKASI BELUM ORDER */
@@ -3285,7 +3294,7 @@ export default function MonitorGorongGorongView() {
               </span>
             </div>
 
-          <div className="overflow-x-auto max-h-[580px] scrollbar-thin border border-slate-200 dark:border-slate-800 touch-pan-x w-full max-w-full">
+          <div className="overflow-auto max-h-[68vh] sm:max-h-[600px] scrollbar-thin border border-slate-200 dark:border-slate-800 w-full max-w-full">
             <table className="w-full text-center border-separate border-spacing-0 text-xs whitespace-nowrap">
               <thead className="text-slate-700 dark:text-slate-200 font-bold">
                 <tr className="h-[34px]">
@@ -3382,6 +3391,15 @@ export default function MonitorGorongGorongView() {
                 )}
               </tbody>
             </table>
+          </div>
+          {/* Table 2 Footer Info Bar */}
+          <div className="px-3.5 sm:px-5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-700/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <span className="font-semibold text-slate-700 dark:text-slate-300">
+              Menampilkan {filteredBelumOrderList.length} Lokasi Belum Order
+            </span>
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 italic hidden sm:inline">
+              Scroll horizontal &amp; vertikal untuk melihat seluruh data
+            </span>
           </div>
         </div>
       </div>

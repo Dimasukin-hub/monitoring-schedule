@@ -9,6 +9,8 @@ import {
   Search,
   Plus,
   Trash2,
+  Pencil,
+  X,
   Calendar,
   Layers,
   MapPin,
@@ -205,6 +207,12 @@ export default function FormOrderGorongGorongView() {
       }
       if (!target.closest('.jenis-dropdown-container')) {
         setIsJenisDropdownOpen(false);
+      }
+      if (!target.closest('.edit-lokasi-dropdown-container')) {
+        setIsEditLokasiDropdownOpen(false);
+      }
+      if (!target.closest('.edit-lokasi-asal-dropdown-container')) {
+        setIsEditLokasiAsalDropdownOpen(false);
       }
       if (!target.closest('.datepicker-container')) {
         setIsCalendarOpen(false);
@@ -489,12 +497,163 @@ export default function FormOrderGorongGorongView() {
     }
   };
 
-  // Delete Handler
-  const handleDeleteTrx = async (id: number) => {
-    if (isFormInputViewOnly) {
+  // State untuk Modal Edit Riwayat Transaksi (Khusus Super Admin & Admin)
+  const [editingTrx, setEditingTrx] = useState<any | null>(null);
+  const [editJenisTransaksi, setEditJenisTransaksi] = useState<'ORDER' | 'DROP' | 'PASANG_MANUAL' | 'PINDAH_LOKASI'>('ORDER');
+  const [editLokasi, setEditLokasi] = useState<string>('');
+  const [editLokasiSearch, setEditLokasiSearch] = useState<string>('');
+  const [isEditLokasiDropdownOpen, setIsEditLokasiDropdownOpen] = useState<boolean>(false);
+  const [editWilayah, setEditWilayah] = useState<string>('');
+  // Khusus Pindah Lokasi:
+  const [editLokasiAsal, setEditLokasiAsal] = useState<string>('');
+  const [editLokasiAsalSearch, setEditLokasiAsalSearch] = useState<string>('');
+  const [isEditLokasiAsalDropdownOpen, setIsEditLokasiAsalDropdownOpen] = useState<boolean>(false);
+  const [editWilayahAsal, setEditWilayahAsal] = useState<string>('');
+  const [editTanggal, setEditTanggal] = useState<string>('');
+  const [editQtyD40, setEditQtyD40] = useState<number | string>(0);
+  const [editQtyD60, setEditQtyD60] = useState<number | string>(0);
+  const [editQtyD80, setEditQtyD80] = useState<number | string>(0);
+  const [editQtyD100, setEditQtyD100] = useState<number | string>(0);
+  const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
+
+  // Filter pilihan lokasi untuk Modal Edit
+  const filteredEditLokasiOptions = masterLokasiList
+    .filter((it) => it.lokasi.toLowerCase().includes((editLokasiSearch || '').toLowerCase()))
+    .slice(0, 15);
+
+  const filteredEditLokasiAsalOptions = (lokasiSaldoList.length > 0 ? lokasiSaldoList : masterLokasiList)
+    .filter((it) => it.lokasi.toLowerCase().includes((editLokasiAsalSearch || '').toLowerCase()))
+    .slice(0, 15);
+
+  // Hak Akses Aksi Riwayat Transaksi:
+  // 1. Edit: Khusus Admin dan Super Admin
+  const canEditTrx = !isFormInputViewOnly && (isAdmin || isSuperAdmin);
+  // 2. Hapus: Disembunyikan untuk TK Verifikator FE dan Mandor Wilayah
+  const canDeleteTrx = !isFormInputViewOnly && !isTKVerifikatorFE && !isMandorWilayah && (isAdmin || isSuperAdmin || isKepalaWilayah);
+  // Kolom Aksi hanya tampil jika user memiliki hak Edit atau Hapus
+  const canShowActionColumn = canEditTrx || canDeleteTrx;
+
+  const handleOpenEditModal = (item: any) => {
+    setEditingTrx(item);
+    const isPindah = !!item.lokasiAsal;
+    const initialJenis = isPindah ? 'PINDAH_LOKASI' : (item.jenisTransaksi || 'ORDER');
+    setEditJenisTransaksi(initialJenis);
+
+    // Lokasi & Auto-Wilayah
+    const lok = item.lokasi || '';
+    setEditLokasi(lok);
+    setEditLokasiSearch(lok);
+    const mWil = masterLokasiList.find((m) => m.lokasi?.trim().toUpperCase() === lok.trim().toUpperCase())?.strucPlant || item.wilayah || 'AW01';
+    setEditWilayah(mWil);
+
+    // Lokasi Asal (jika pindah lokasi)
+    const lokAsal = item.lokasiAsal || '';
+    setEditLokasiAsal(lokAsal);
+    setEditLokasiAsalSearch(lokAsal);
+    const mWilAsal = masterLokasiList.find((m) => m.lokasi?.trim().toUpperCase() === lokAsal.trim().toUpperCase())?.strucPlant || 'AW01';
+    setEditWilayahAsal(mWilAsal);
+
+    setEditTanggal(
+      item.tanggal
+        ? new Date(item.tanggal).toISOString().slice(0, 10)
+        : new Date().toISOString().slice(0, 10)
+    );
+    setEditQtyD40(item.qtyD40 ?? 0);
+    setEditQtyD60(item.qtyD60 ?? 0);
+    setEditQtyD80(item.qtyD80 ?? 0);
+    setEditQtyD100(item.qtyD100 ?? 0);
+    setIsEditLokasiDropdownOpen(false);
+    setIsEditLokasiAsalDropdownOpen(false);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTrx) return;
+
+    if (!editLokasi.trim()) {
+      alert('Silakan pilih lokasi petak yang valid.');
+      return;
+    }
+
+    if (editJenisTransaksi === 'PINDAH_LOKASI' && !editLokasiAsal.trim()) {
+      alert('Silakan pilih lokasi pengirim (asal) untuk pindah lokasi.');
+      return;
+    }
+
+    if (
+      editJenisTransaksi === 'PINDAH_LOKASI' &&
+      editLokasi.trim().toUpperCase() === editLokasiAsal.trim().toUpperCase()
+    ) {
+      alert('Lokasi pengirim dan lokasi penerima tidak boleh sama.');
+      return;
+    }
+
+    const q40 = Math.round(Number(editQtyD40) || 0);
+    const q60 = Math.round(Number(editQtyD60) || 0);
+    const q80 = Math.round(Number(editQtyD80) || 0);
+    const q100 = Math.round(Number(editQtyD100) || 0);
+
+    if (q40 === 0 && q60 === 0 && q80 === 0 && q100 === 0) {
+      alert('Minimal salah satu diameter (Ø40, Ø60, Ø80, atau Ø100) harus lebih dari 0.');
+      return;
+    }
+
+    setIsSavingEdit(true);
+    try {
+      const res = await fetch('/api/gorong-gorong/order', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingTrx.id,
+          jenisTransaksi: editJenisTransaksi,
+          lokasi: editLokasi.trim().toUpperCase(),
+          lokasiAsal: editJenisTransaksi === 'PINDAH_LOKASI' ? editLokasiAsal.trim().toUpperCase() : null,
+          wilayah: editWilayah || 'AW01',
+          tanggal: editTanggal,
+          qtyD40: q40,
+          qtyD60: q60,
+          qtyD80: q80,
+          qtyD100: q100,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setNotification({
+          type: 'success',
+          message: data.message || 'Transaksi berhasil diperbarui.',
+        });
+        setEditingTrx(null);
+        await loadHistory();
+        loadLokasiSaldo();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('gorong_gorong_updated'));
+          window.dispatchEvent(
+            new CustomEvent('master_data_updated', { detail: { type: 'order' } })
+          );
+        }
+      } else {
+        setNotification({
+          type: 'error',
+          message: data.message || 'Gagal memperbarui transaksi.',
+        });
+      }
+    } catch (err: any) {
       setNotification({
         type: 'error',
-        message: 'Akun Anda dalam mode tinjauan (view only). Anda tidak memiliki izin untuk menghapus data.',
+        message: err.message || 'Terjadi kesalahan sistem saat memperbarui transaksi.',
+      });
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  // Delete Handler
+  const handleDeleteTrx = async (id: number) => {
+    if (isFormInputViewOnly || isTKVerifikatorFE || isMandorWilayah) {
+      setNotification({
+        type: 'error',
+        message: 'Anda tidak memiliki izin untuk menghapus data riwayat transaksi.',
       });
       return;
     }
@@ -514,6 +673,9 @@ export default function FormOrderGorongGorongView() {
         setNotification({ type: 'success', message: data.message || 'Transaksi berhasil dihapus.' });
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('gorong_gorong_updated'));
+          window.dispatchEvent(
+            new CustomEvent('master_data_updated', { detail: { type: 'order' } })
+          );
         }
       } else {
         setNotification({ type: 'error', message: data.message || 'Gagal menghapus transaksi.' });
@@ -555,7 +717,9 @@ export default function FormOrderGorongGorongView() {
                 ? ' (View Only)'
                 : isTKVerifikatorFE
                 ? ' (Khusus Drop)'
-                : isMandorWilayah || isKepalaWilayah
+                : isMandorWilayah
+                ? ' (Pasang & Pindah)'
+                : isKepalaWilayah
                 ? ' (Order, Pasang & Pindah)'
                 : ' (Akses Penuh)'}
             </span>
@@ -1352,7 +1516,7 @@ export default function FormOrderGorongGorongView() {
           </h3>
         </div>
 
-        <div className="overflow-x-auto max-h-[420px] scrollbar-thin rounded-xl border border-slate-200 dark:border-slate-800 touch-pan-x w-full max-w-full">
+        <div className="overflow-auto max-h-[65vh] sm:max-h-[440px] scrollbar-thin rounded-xl border border-slate-200 dark:border-slate-800 w-full max-w-full">
           <table className="w-full text-center border-separate border-spacing-0 text-xs whitespace-nowrap">
             <thead className="text-slate-700 dark:text-slate-200 font-bold">
               {/* Header Tier 1: Grup Header Diameter */}
@@ -1365,8 +1529,8 @@ export default function FormOrderGorongGorongView() {
                 <th colSpan={4} className="sticky top-0 z-20 px-3 py-1.5 text-center bg-slate-200 dark:bg-slate-700 border-r border-b border-slate-300 dark:border-slate-600 font-extrabold text-[#00873D] dark:text-emerald-400">
                   Diameter
                 </th>
-                <th rowSpan={2} className={`sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 px-3.5 py-2 text-center ${isFormInputViewOnly ? 'border-b' : 'border-r border-b'} border-slate-200 dark:border-slate-700 font-bold`}>Penginput</th>
-                {!isFormInputViewOnly && (
+                <th rowSpan={2} className={`sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 px-3.5 py-2 text-center ${!canShowActionColumn ? 'border-b' : 'border-r border-b'} border-slate-200 dark:border-slate-700 font-bold`}>Penginput</th>
+                {canShowActionColumn && (
                   <th rowSpan={2} className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 px-3 py-2 text-center border-b border-slate-200 dark:border-slate-700 font-bold">Aksi</th>
                 )}
               </tr>
@@ -1381,13 +1545,13 @@ export default function FormOrderGorongGorongView() {
             <tbody className="text-slate-700 dark:text-slate-300">
               {isLoadingHistory ? (
                 <tr>
-                  <td colSpan={isFormInputViewOnly ? 10 : 11} className="px-4 py-8 text-center text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                  <td colSpan={!canShowActionColumn ? 10 : 11} className="px-4 py-8 text-center text-slate-400 border-b border-slate-200 dark:border-slate-800">
                     Memuat riwayat transaksi...
                   </td>
                 </tr>
               ) : historyList.length === 0 ? (
                 <tr>
-                  <td colSpan={isFormInputViewOnly ? 10 : 11} className="px-4 py-8 text-center text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                  <td colSpan={!canShowActionColumn ? 10 : 11} className="px-4 py-8 text-center text-slate-400 border-b border-slate-200 dark:border-slate-800">
                     Belum ada riwayat transaksi.
                   </td>
                 </tr>
@@ -1450,19 +1614,33 @@ export default function FormOrderGorongGorongView() {
                     <td className="px-3 py-2 text-center font-mono font-semibold text-slate-700 dark:text-slate-200 border-r border-b border-slate-200 dark:border-slate-800">
                       {item.qtyD100 || 0}
                     </td>
-                    <td className={`px-3.5 py-2 text-[11px] text-slate-500 ${isFormInputViewOnly ? 'border-b' : 'border-r border-b'} border-slate-200 dark:border-slate-800 text-center`}>
+                    <td className={`px-3.5 py-2 text-[11px] text-slate-500 ${!canShowActionColumn ? 'border-b' : 'border-r border-b'} border-slate-200 dark:border-slate-800 text-center`}>
                       {item.createdBy} ({item.userRole})
                     </td>
-                    {!isFormInputViewOnly && (
+                    {canShowActionColumn && (
                       <td className="px-3 py-2 text-center border-b border-slate-200 dark:border-slate-800">
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteTrx(item.id)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer transition-colors"
-                          title="Hapus Transaksi"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center justify-center gap-1">
+                          {canEditTrx && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditModal(item)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-500/10 cursor-pointer transition-colors"
+                              title="Edit Transaksi (Super Admin & Admin)"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {canDeleteTrx && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteTrx(item.id)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer transition-colors"
+                              title="Hapus Transaksi"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -1472,6 +1650,463 @@ export default function FormOrderGorongGorongView() {
           </table>
         </div>
       </div>
+
+      {/* MODAL EDIT TRANSAKSI (KHUSUS SUPER ADMIN & ADMIN) */}
+      {editingTrx && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header Modal */}
+            <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400">
+                  <Pencil className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                    Edit Riwayat Transaksi
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Perbarui kuantiti atau tanggal transaksi
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingTrx(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                title="Tutup"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Form Edit */}
+            <form onSubmit={handleSaveEdit} className="p-4 sm:p-5 space-y-4 max-h-[80vh] overflow-y-auto scrollbar-thin">
+              {/* Info Penginput Asal (Read-Only) */}
+              <div className="p-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Penginput Asal:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200 text-right">
+                  {editingTrx.createdBy || '-'} <span className="text-slate-400 font-normal">({editingTrx.userRole || '-'})</span>
+                </span>
+              </div>
+
+              {/* 1. Pilih Jenis Transaksi */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                  <Package className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <span>Jenis Transaksi *</span>
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                  {[
+                    { id: 'ORDER', label: 'Order' },
+                    { id: 'DROP', label: 'Drop' },
+                    { id: 'PASANG_MANUAL', label: 'Pasang Manual' },
+                    { id: 'PINDAH_LOKASI', label: 'Pindah Lokasi' },
+                  ].map((jt) => (
+                    <button
+                      key={jt.id}
+                      type="button"
+                      onClick={() => {
+                        setEditJenisTransaksi(jt.id as any);
+                        if (jt.id !== 'PINDAH_LOKASI') {
+                          setEditLokasiAsal('');
+                          setEditLokasiAsalSearch('');
+                          setEditWilayahAsal('');
+                        }
+                      }}
+                      className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer text-center ${
+                        editJenisTransaksi === jt.id
+                          ? 'bg-blue-600 text-white shadow-xs'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      {jt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 2. Lokasi & Wilayah Otomatis */}
+              {editJenisTransaksi !== 'PINDAH_LOKASI' ? (
+                /* Format Standar: 1 Lokasi + 1 Wilayah Otomatis */
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="relative edit-lokasi-dropdown-container">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-[#00873D]" />
+                      <span>Lokasi Petak *</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={editLokasiSearch}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditLokasiSearch(val);
+                          setIsEditLokasiDropdownOpen(true);
+                          const match = masterLokasiList.find(
+                            (m) => m.lokasi?.trim().toUpperCase() === val.trim().toUpperCase()
+                          );
+                          if (match) {
+                            setEditLokasi(match.lokasi);
+                            setEditWilayah(match.strucPlant || 'AW01');
+                          } else {
+                            setEditLokasi(val.trim().toUpperCase());
+                          }
+                        }}
+                        onFocus={() => setIsEditLokasiDropdownOpen(true)}
+                        placeholder="Pilih lokasi petak..."
+                        className="w-full pl-3.5 pr-8 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-600 text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 uppercase"
+                      />
+                      {editLokasiSearch && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditLokasiSearch('');
+                            setEditLokasi('');
+                            setEditWilayah('');
+                            setIsEditLokasiDropdownOpen(false);
+                          }}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Dropdown Options */}
+                    {isEditLokasiDropdownOpen && (
+                      <div className="absolute left-0 right-0 top-full mt-1 max-h-40 overflow-y-auto rounded-xl bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 scrollbar-thin">
+                        {filteredEditLokasiOptions.length === 0 ? (
+                          <div className="px-3 py-2 text-xs text-slate-400 text-center">Lokasi tidak ditemukan</div>
+                        ) : (
+                          filteredEditLokasiOptions.map((opt) => (
+                            <button
+                              key={`edit-lok-${opt.lokasi}`}
+                              type="button"
+                              onClick={() => {
+                                setEditLokasi(opt.lokasi);
+                                setEditLokasiSearch(opt.lokasi);
+                                setEditWilayah(opt.strucPlant || 'AW01');
+                                setIsEditLokasiDropdownOpen(false);
+                              }}
+                              className="w-full px-3.5 py-2 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between cursor-pointer transition-colors"
+                            >
+                              <span className="font-bold text-blue-600 dark:text-blue-400">{opt.lokasi}</span>
+                              <span className="text-[11px] text-slate-500 font-semibold">{opt.strucPlant || 'AW01'}</span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5 text-blue-500" />
+                      <span>Wilayah (Otomatis)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={editWilayah || '-'}
+                      readOnly
+                      disabled
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-not-allowed select-none"
+                    />
+                  </div>
+                </div>
+              ) : (
+                /* Format Pindah Lokasi: Pengirim (Asal) & Penerima (Tujuan) */
+                <div className="space-y-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                  {/* Baris 1: Pengirim (Asal) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="relative edit-lokasi-asal-dropdown-container">
+                      <label className="block text-xs font-bold text-rose-700 dark:text-rose-400 mb-1.5 flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-rose-600" />
+                        <span>Lokasi Pengirim (Asal) *</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={editLokasiAsalSearch}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setEditLokasiAsalSearch(val);
+                            setIsEditLokasiAsalDropdownOpen(true);
+                            const match = (lokasiSaldoList.length > 0 ? lokasiSaldoList : masterLokasiList).find(
+                              (m) => m.lokasi?.trim().toUpperCase() === val.trim().toUpperCase()
+                            );
+                            if (match) {
+                              setEditLokasiAsal(match.lokasi);
+                              setEditWilayahAsal(match.strucPlant || 'AW01');
+                            } else {
+                              setEditLokasiAsal(val.trim().toUpperCase());
+                            }
+                          }}
+                          onFocus={() => setIsEditLokasiAsalDropdownOpen(true)}
+                          placeholder="Pilih lokasi asal..."
+                          className="w-full pl-3.5 pr-8 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-600 text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 uppercase"
+                        />
+                        {editLokasiAsalSearch && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditLokasiAsalSearch('');
+                              setEditLokasiAsal('');
+                              setEditWilayahAsal('');
+                              setIsEditLokasiAsalDropdownOpen(false);
+                            }}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      {isEditLokasiAsalDropdownOpen && (
+                        <div className="absolute left-0 right-0 top-full mt-1 max-h-40 overflow-y-auto rounded-xl bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 scrollbar-thin">
+                          {filteredEditLokasiAsalOptions.length === 0 ? (
+                            <div className="px-3 py-2 text-xs text-slate-400 text-center">Lokasi tidak ditemukan</div>
+                          ) : (
+                            filteredEditLokasiAsalOptions.map((opt) => (
+                              <button
+                                key={`edit-asal-${opt.lokasi}`}
+                                type="button"
+                                onClick={() => {
+                                  setEditLokasiAsal(opt.lokasi);
+                                  setEditLokasiAsalSearch(opt.lokasi);
+                                  setEditWilayahAsal(opt.strucPlant || 'AW01');
+                                  setIsEditLokasiAsalDropdownOpen(false);
+                                }}
+                                className="w-full px-3.5 py-2 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between cursor-pointer transition-colors"
+                              >
+                                <span className="font-bold text-rose-600 dark:text-rose-400">{opt.lokasi}</span>
+                                <span className="text-[11px] text-slate-500 font-semibold">{opt.strucPlant || 'AW01'}</span>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                        <Layers className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Wilayah Asal (Otomatis)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={editWilayahAsal || '-'}
+                        readOnly
+                        disabled
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-not-allowed select-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Baris 2: Penerima (Tujuan) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="relative edit-lokasi-dropdown-container">
+                      <label className="block text-xs font-bold text-[#00873D] dark:text-emerald-400 mb-1.5 flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-[#00873D]" />
+                        <span>Lokasi Penerima (Tujuan) *</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={editLokasiSearch}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setEditLokasiSearch(val);
+                            setIsEditLokasiDropdownOpen(true);
+                            const match = masterLokasiList.find(
+                              (m) => m.lokasi?.trim().toUpperCase() === val.trim().toUpperCase()
+                            );
+                            if (match) {
+                              setEditLokasi(match.lokasi);
+                              setEditWilayah(match.strucPlant || 'AW01');
+                            } else {
+                              setEditLokasi(val.trim().toUpperCase());
+                            }
+                          }}
+                          onFocus={() => setIsEditLokasiDropdownOpen(true)}
+                          placeholder="Pilih lokasi tujuan..."
+                          className="w-full pl-3.5 pr-8 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-600 text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#00873D] focus:ring-1 focus:ring-[#00873D] uppercase"
+                        />
+                        {editLokasiSearch && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditLokasiSearch('');
+                              setEditLokasi('');
+                              setEditWilayah('');
+                              setIsEditLokasiDropdownOpen(false);
+                            }}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      {isEditLokasiDropdownOpen && (
+                        <div className="absolute left-0 right-0 top-full mt-1 max-h-40 overflow-y-auto rounded-xl bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 shadow-xl z-50 divide-y divide-slate-100 dark:divide-slate-800 scrollbar-thin">
+                          {filteredEditLokasiOptions.length === 0 ? (
+                            <div className="px-3 py-2 text-xs text-slate-400 text-center">Lokasi tidak ditemukan</div>
+                          ) : (
+                            filteredEditLokasiOptions.map((opt) => (
+                              <button
+                                key={`edit-dest-${opt.lokasi}`}
+                                type="button"
+                                onClick={() => {
+                                  setEditLokasi(opt.lokasi);
+                                  setEditLokasiSearch(opt.lokasi);
+                                  setEditWilayah(opt.strucPlant || 'AW01');
+                                  setIsEditLokasiDropdownOpen(false);
+                                }}
+                                className="w-full px-3.5 py-2 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between cursor-pointer transition-colors"
+                              >
+                                <span className="font-bold text-[#00873D] dark:text-emerald-400">{opt.lokasi}</span>
+                                <span className="text-[11px] text-slate-500 font-semibold">{opt.strucPlant || 'AW01'}</span>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                        <Layers className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Wilayah Tujuan (Otomatis)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={editWilayah || '-'}
+                        readOnly
+                        disabled
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-not-allowed select-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. Tanggal Transaksi */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Tanggal Transaksi *
+                </label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={editTanggal}
+                    onChange={(e) => setEditTanggal(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* 4. 4 Diameter Gorong-Gorong */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  Jumlah Gorong-Gorong per Diameter (Pcs) *
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {/* Ø40 */}
+                  <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                    <span className="block text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400 mb-1">
+                      Ø40
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={999}
+                      value={editQtyD40}
+                      onChange={(e) => setEditQtyD40(e.target.value)}
+                      className="w-full text-center font-mono font-bold text-sm bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 rounded-lg py-1 px-1 focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                  </div>
+
+                  {/* Ø60 */}
+                  <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-center">
+                    <span className="block text-[11px] font-extrabold text-blue-700 dark:text-blue-400 mb-1">
+                      Ø60
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={999}
+                      value={editQtyD60}
+                      onChange={(e) => setEditQtyD60(e.target.value)}
+                      className="w-full text-center font-mono font-bold text-sm bg-white dark:bg-slate-900 border border-blue-300 dark:border-blue-700 rounded-lg py-1 px-1 focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+
+                  {/* Ø80 */}
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
+                    <span className="block text-[11px] font-extrabold text-amber-700 dark:text-amber-400 mb-1">
+                      Ø80
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={999}
+                      value={editQtyD80}
+                      onChange={(e) => setEditQtyD80(e.target.value)}
+                      className="w-full text-center font-mono font-bold text-sm bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 rounded-lg py-1 px-1 focus:ring-2 focus:ring-amber-500 outline-none"
+                    />
+                  </div>
+
+                  {/* Ø100 */}
+                  <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-center">
+                    <span className="block text-[11px] font-extrabold text-purple-700 dark:text-purple-400 mb-1">
+                      Ø100
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={999}
+                      value={editQtyD100}
+                      onChange={(e) => setEditQtyD100(e.target.value)}
+                      className="w-full text-center font-mono font-bold text-sm bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 rounded-lg py-1 px-1 focus:ring-2 focus:ring-purple-500 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Tombol Aksi Modal */}
+              <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingTrx(null)}
+                  disabled={isSavingEdit}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isSavingEdit ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Menyimpan...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Simpan Perubahan</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
