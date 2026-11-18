@@ -5,8 +5,9 @@ echo "============================================="
 echo "  🚀 Updating Field Establishment Dashboard"
 echo "============================================="
 
-# 1. Tarik pembaruan dari repository
+# 1. Bersihkan perubahan file cache lokal otomatis & tarik pembaruan dari repository
 echo "📥 [1/4] Mengambil kode terbaru dari Git..."
+git checkout -- data/lokasi-order-snapshot.json 2>/dev/null || true
 git pull origin main
 
 # 2. Sinkronisasi Prisma Client (jika ada perubahan schema)
