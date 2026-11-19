@@ -1002,7 +1002,7 @@ export default function FormOrderSulamView() {
                   {/* Kiri: Logo GGP & Perusahaan */}
                   <div className="col-span-4 p-2.5 flex items-center gap-2.5 border-r-2 border-black h-full">
                     <img
-                      src="/assets/logo.png"
+                      src="/assets/Logo GGP.png"
                       alt="Logo Great Giant Pineapple"
                       className="w-12 h-12 object-contain shrink-0"
                     />
