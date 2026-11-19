@@ -246,13 +246,14 @@ export async function POST(request: NextRequest) {
       validatedData.map((data) => prisma.transaksiGorongGorong.create({ data }))
     );
 
-    // 1. Sinkronisasi penambahan data ke tabel Master (Sebagai baris baru / list terpisah per transaksi)
-    for (const d of validatedData) {
+    // 1. Sinkronisasi penambahan data ke tabel Master (Sebagai baris baru terhubung transaksiId)
+    for (const d of created) {
       try {
         if (d.jenisTransaksi === 'ORDER') {
-          // Selalu buat baris baru di Master Data Order (tidak menumpuk ke baris lama)
+          // Selalu buat baris baru di Master Data Order terhubung transaksiId
           await prisma.masterDataOrderGorongGorong.create({
             data: {
+              transaksiId: d.id,
               lokasi: d.lokasi,
               wilayah: d.wilayah || 'AW01',
               tanggal: d.tanggal || new Date(),
@@ -274,6 +275,7 @@ export async function POST(request: NextRequest) {
             // Catat mutasi resmi ke MasterDataPindahGorongGorong
             await prisma.masterDataPindahGorongGorong.create({
               data: {
+                transaksiId: d.id,
                 lokasiPengirim: d.lokasiAsal,
                 wilayahPengirim: asalWil,
                 lokasiPenerima: d.lokasi,
@@ -283,7 +285,7 @@ export async function POST(request: NextRequest) {
                 diameter60: d.qtyD60 || 0,
                 diameter80: d.qtyD80 || 0,
                 diameter100: d.qtyD100 || 0,
-                keterangan: d.keterangan || null,
+                keterangan: (d as any).keterangan || null,
               },
             });
 
@@ -307,6 +309,7 @@ export async function POST(request: NextRequest) {
           // Tambah drop di tujuan sebagai baris baru di MasterDataDropGorongGorong
           await prisma.masterDataDropGorongGorong.create({
             data: {
+              transaksiId: d.id,
               lokasi: d.lokasi,
               wilayah: d.wilayah || 'AW01',
               tanggal: d.tanggal || new Date(),
@@ -317,9 +320,10 @@ export async function POST(request: NextRequest) {
             },
           });
         } else if (d.jenisTransaksi === 'PASANG_MANUAL') {
-          // Selalu buat baris baru di Master Data Pasang Manual (tidak menumpuk ke baris lama)
+          // Selalu buat baris baru di Master Data Pasang Manual terhubung transaksiId
           await prisma.masterDataPasangManual.create({
             data: {
+              transaksiId: d.id,
               lokasi: d.lokasi,
               wilayah: d.wilayah || 'AW01',
               tanggalPasangManual: d.tanggal || new Date(),
@@ -536,51 +540,67 @@ export async function POST(request: NextRequest) {
 async function revertTransactionImpact(existing: any) {
   try {
     if (existing.jenisTransaksi === 'ORDER') {
-      const exactOrder = await prisma.masterDataOrderGorongGorong.findFirst({
-        where: {
-          lokasi: existing.lokasi,
-          diameter40: existing.qtyD40 || 0,
-          diameter60: existing.qtyD60 || 0,
-          diameter80: existing.qtyD80 || 0,
-          diameter100: existing.qtyD100 || 0,
-        },
-        orderBy: { id: 'desc' },
-      });
-
-      if (exactOrder) {
-        await prisma.masterDataOrderGorongGorong.delete({
-          where: { id: exactOrder.id },
+      let deleted = false;
+      if (existing.id) {
+        const delRes = await prisma.masterDataOrderGorongGorong.deleteMany({
+          where: { transaksiId: existing.id },
         });
-      } else {
-        const masterOrd = await prisma.masterDataOrderGorongGorong.findFirst({
-          where: { lokasi: existing.lokasi },
+        if (delRes.count > 0) deleted = true;
+      }
+
+      if (!deleted) {
+        const exactOrder = await prisma.masterDataOrderGorongGorong.findFirst({
+          where: {
+            lokasi: existing.lokasi,
+            diameter40: existing.qtyD40 || 0,
+            diameter60: existing.qtyD60 || 0,
+            diameter80: existing.qtyD80 || 0,
+            diameter100: existing.qtyD100 || 0,
+          },
           orderBy: { id: 'desc' },
         });
-        if (masterOrd) {
-          const rem40 = Math.max(0, (masterOrd.diameter40 || 0) - (existing.qtyD40 || 0));
-          const rem60 = Math.max(0, (masterOrd.diameter60 || 0) - (existing.qtyD60 || 0));
-          const rem80 = Math.max(0, (masterOrd.diameter80 || 0) - (existing.qtyD80 || 0));
-          const rem100 = Math.max(0, (masterOrd.diameter100 || 0) - (existing.qtyD100 || 0));
-          if (rem40 === 0 && rem60 === 0 && rem80 === 0 && rem100 === 0) {
-            await prisma.masterDataOrderGorongGorong.delete({
-              where: { id: masterOrd.id },
-            });
-          } else {
-            await prisma.masterDataOrderGorongGorong.update({
-              where: { id: masterOrd.id },
-              data: {
-                diameter40: rem40,
-                diameter60: rem60,
-                diameter80: rem80,
-                diameter100: rem100,
-              },
-            });
+
+        if (exactOrder) {
+          await prisma.masterDataOrderGorongGorong.delete({
+            where: { id: exactOrder.id },
+          });
+        } else {
+          const masterOrd = await prisma.masterDataOrderGorongGorong.findFirst({
+            where: { lokasi: existing.lokasi },
+            orderBy: { id: 'desc' },
+          });
+          if (masterOrd) {
+            const rem40 = Math.max(0, (masterOrd.diameter40 || 0) - (existing.qtyD40 || 0));
+            const rem60 = Math.max(0, (masterOrd.diameter60 || 0) - (existing.qtyD60 || 0));
+            const rem80 = Math.max(0, (masterOrd.diameter80 || 0) - (existing.qtyD80 || 0));
+            const rem100 = Math.max(0, (masterOrd.diameter100 || 0) - (existing.qtyD100 || 0));
+            if (rem40 === 0 && rem60 === 0 && rem80 === 0 && rem100 === 0) {
+              await prisma.masterDataOrderGorongGorong.delete({
+                where: { id: masterOrd.id },
+              });
+            } else {
+              await prisma.masterDataOrderGorongGorong.update({
+                where: { id: masterOrd.id },
+                data: {
+                  diameter40: rem40,
+                  diameter60: rem60,
+                  diameter80: rem80,
+                  diameter100: rem100,
+                },
+              });
+            }
           }
         }
       }
     } else if (existing.jenisTransaksi === 'DROP') {
       // 1. Revert Lokasi Asal jika transfer DROP & hapus catatan di MasterDataPindahGorongGorong
       if (existing.lokasiAsal) {
+        if (existing.id) {
+          await prisma.masterDataPindahGorongGorong.deleteMany({
+            where: { transaksiId: existing.id },
+          });
+        }
+
         const matchingPindah = await prisma.masterDataPindahGorongGorong.findFirst({
           where: {
             lokasiPengirim: existing.lokasiAsal,
@@ -612,88 +632,108 @@ async function revertTransactionImpact(existing: any) {
       }
 
       // 2. Revert Lokasi Tujuan: hapus baris yang dibuat oleh transaksi form input
-      const exactDrop = await prisma.masterDataDropGorongGorong.findFirst({
-        where: {
-          lokasi: existing.lokasi,
-          diameter40: existing.qtyD40 || 0,
-          diameter60: existing.qtyD60 || 0,
-          diameter80: existing.qtyD80 || 0,
-          diameter100: existing.qtyD100 || 0,
-        },
-        orderBy: { id: 'desc' },
-      });
+      let deletedDrop = false;
+      if (existing.id) {
+        const delRes = await prisma.masterDataDropGorongGorong.deleteMany({
+          where: { transaksiId: existing.id },
+        });
+        if (delRes.count > 0) deletedDrop = true;
+      }
 
-      if (exactDrop) {
-        await prisma.masterDataDropGorongGorong.delete({
-          where: { id: exactDrop.id },
+      if (!deletedDrop) {
+        const exactDrop = await prisma.masterDataDropGorongGorong.findFirst({
+          where: {
+            lokasi: existing.lokasi,
+            diameter40: existing.qtyD40 || 0,
+            diameter60: existing.qtyD60 || 0,
+            diameter80: existing.qtyD80 || 0,
+            diameter100: existing.qtyD100 || 0,
+          },
+          orderBy: { id: 'desc' },
         });
-      } else {
-        const destDrop = await prisma.masterDataDropGorongGorong.findFirst({
-          where: { lokasi: existing.lokasi },
-          orderBy: { tanggal: 'desc' },
-        });
-        if (destDrop) {
-          const rem40 = Math.max(0, (destDrop.diameter40 || 0) - (existing.qtyD40 || 0));
-          const rem60 = Math.max(0, (destDrop.diameter60 || 0) - (existing.qtyD60 || 0));
-          const rem80 = Math.max(0, (destDrop.diameter80 || 0) - (existing.qtyD80 || 0));
-          const rem100 = Math.max(0, (destDrop.diameter100 || 0) - (existing.qtyD100 || 0));
-          if (rem40 === 0 && rem60 === 0 && rem80 === 0 && rem100 === 0) {
-            await prisma.masterDataDropGorongGorong.delete({
-              where: { id: destDrop.id },
-            });
-          } else {
-            await prisma.masterDataDropGorongGorong.update({
-              where: { id: destDrop.id },
-              data: {
-                diameter40: rem40,
-                diameter60: rem60,
-                diameter80: rem80,
-                diameter100: rem100,
-              },
-            });
+
+        if (exactDrop) {
+          await prisma.masterDataDropGorongGorong.delete({
+            where: { id: exactDrop.id },
+          });
+        } else {
+          const destDrop = await prisma.masterDataDropGorongGorong.findFirst({
+            where: { lokasi: existing.lokasi },
+            orderBy: { tanggal: 'desc' },
+          });
+          if (destDrop) {
+            const rem40 = Math.max(0, (destDrop.diameter40 || 0) - (existing.qtyD40 || 0));
+            const rem60 = Math.max(0, (destDrop.diameter60 || 0) - (existing.qtyD60 || 0));
+            const rem80 = Math.max(0, (destDrop.diameter80 || 0) - (existing.qtyD80 || 0));
+            const rem100 = Math.max(0, (destDrop.diameter100 || 0) - (existing.qtyD100 || 0));
+            if (rem40 === 0 && rem60 === 0 && rem80 === 0 && rem100 === 0) {
+              await prisma.masterDataDropGorongGorong.delete({
+                where: { id: destDrop.id },
+              });
+            } else {
+              await prisma.masterDataDropGorongGorong.update({
+                where: { id: destDrop.id },
+                data: {
+                  diameter40: rem40,
+                  diameter60: rem60,
+                  diameter80: rem80,
+                  diameter100: rem100,
+                },
+              });
+            }
           }
         }
       }
     } else if (existing.jenisTransaksi === 'PASANG_MANUAL') {
-      const exactPasang = await prisma.masterDataPasangManual.findFirst({
-        where: {
-          lokasi: existing.lokasi,
-          diameter40: existing.qtyD40 || 0,
-          diameter60: existing.qtyD60 || 0,
-          diameter80: existing.qtyD80 || 0,
-          diameter100: existing.qtyD100 || 0,
-        },
-        orderBy: { id: 'desc' },
-      });
+      let deletedPasang = false;
+      if (existing.id) {
+        const delRes = await prisma.masterDataPasangManual.deleteMany({
+          where: { transaksiId: existing.id },
+        });
+        if (delRes.count > 0) deletedPasang = true;
+      }
 
-      if (exactPasang) {
-        await prisma.masterDataPasangManual.delete({
-          where: { id: exactPasang.id },
+      if (!deletedPasang) {
+        const exactPasang = await prisma.masterDataPasangManual.findFirst({
+          where: {
+            lokasi: existing.lokasi,
+            diameter40: existing.qtyD40 || 0,
+            diameter60: existing.qtyD60 || 0,
+            diameter80: existing.qtyD80 || 0,
+            diameter100: existing.qtyD100 || 0,
+          },
+          orderBy: { id: 'desc' },
         });
-      } else {
-        const existingPasang = await prisma.masterDataPasangManual.findFirst({
-          where: { lokasi: existing.lokasi },
-          orderBy: { tanggalPasangManual: 'desc' },
-        });
-        if (existingPasang) {
-          const rem40 = Math.max(0, (existingPasang.diameter40 || 0) - (existing.qtyD40 || 0));
-          const rem60 = Math.max(0, (existingPasang.diameter60 || 0) - (existing.qtyD60 || 0));
-          const rem80 = Math.max(0, (existingPasang.diameter80 || 0) - (existing.qtyD80 || 0));
-          const rem100 = Math.max(0, (existingPasang.diameter100 || 0) - (existing.qtyD100 || 0));
-          if (rem40 === 0 && rem60 === 0 && rem80 === 0 && rem100 === 0) {
-            await prisma.masterDataPasangManual.delete({
-              where: { id: existingPasang.id },
-            });
-          } else {
-            await prisma.masterDataPasangManual.update({
-              where: { id: existingPasang.id },
-              data: {
-                diameter40: rem40,
-                diameter60: rem60,
-                diameter80: rem80,
-                diameter100: rem100,
-              },
-            });
+
+        if (exactPasang) {
+          await prisma.masterDataPasangManual.delete({
+            where: { id: exactPasang.id },
+          });
+        } else {
+          const existingPasang = await prisma.masterDataPasangManual.findFirst({
+            where: { lokasi: existing.lokasi },
+            orderBy: { tanggalPasangManual: 'desc' },
+          });
+          if (existingPasang) {
+            const rem40 = Math.max(0, (existingPasang.diameter40 || 0) - (existing.qtyD40 || 0));
+            const rem60 = Math.max(0, (existingPasang.diameter60 || 0) - (existing.qtyD60 || 0));
+            const rem80 = Math.max(0, (existingPasang.diameter80 || 0) - (existing.qtyD80 || 0));
+            const rem100 = Math.max(0, (existingPasang.diameter100 || 0) - (existing.qtyD100 || 0));
+            if (rem40 === 0 && rem60 === 0 && rem80 === 0 && rem100 === 0) {
+              await prisma.masterDataPasangManual.delete({
+                where: { id: existingPasang.id },
+              });
+            } else {
+              await prisma.masterDataPasangManual.update({
+                where: { id: existingPasang.id },
+                data: {
+                  diameter40: rem40,
+                  diameter60: rem60,
+                  diameter80: rem80,
+                  diameter100: rem100,
+                },
+              });
+            }
           }
         }
       }
@@ -791,6 +831,7 @@ async function revertTransactionImpact(existing: any) {
 
 // Helper: Terapkan dampak kuantiti transaksi baru pada MasterData & LokasiOrder
 async function applyTransactionImpact(d: {
+  transaksiId?: number;
   lokasi: string;
   lokasiAsal?: string | null;
   wilayah?: string | null;
@@ -806,6 +847,7 @@ async function applyTransactionImpact(d: {
     if (d.jenisTransaksi === 'ORDER') {
       await prisma.masterDataOrderGorongGorong.create({
         data: {
+          transaksiId: d.transaksiId || null,
           lokasi: d.lokasi,
           wilayah: d.wilayah || 'AW01',
           tanggal: d.tanggal || new Date(),
@@ -825,6 +867,7 @@ async function applyTransactionImpact(d: {
 
         await prisma.masterDataPindahGorongGorong.create({
           data: {
+            transaksiId: d.transaksiId || null,
             lokasiPengirim: d.lokasiAsal,
             wilayahPengirim: asalWil,
             lokasiPenerima: d.lokasi,
@@ -867,6 +910,7 @@ async function applyTransactionImpact(d: {
 
       await prisma.masterDataDropGorongGorong.create({
         data: {
+          transaksiId: d.transaksiId || null,
           lokasi: d.lokasi,
           wilayah: d.wilayah || 'AW01',
           tanggal: d.tanggal || new Date(),
@@ -879,6 +923,7 @@ async function applyTransactionImpact(d: {
     } else if (d.jenisTransaksi === 'PASANG_MANUAL') {
       await prisma.masterDataPasangManual.create({
         data: {
+          transaksiId: d.transaksiId || null,
           lokasi: d.lokasi,
           wilayah: d.wilayah || 'AW01',
           tanggalPasangManual: d.tanggal || new Date(),
@@ -1060,6 +1105,7 @@ export async function PUT(request: NextRequest) {
 
     // 2. Terapkan dampak transaksi baru
     await applyTransactionImpact({
+      transaksiId: id,
       lokasi: cleanLokasi,
       lokasiAsal: cleanLokasiAsal,
       wilayah: autoWil,
