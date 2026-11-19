@@ -153,7 +153,7 @@ export default function MonitorSulamView() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Total Lokasi</span>
-          <div className="text-2xl font-black text-slate-800 dark:text-slate-100">{totalCount} Petak</div>
+          <div className="text-2xl font-black text-slate-800 dark:text-slate-100">{totalCount} Lokasi</div>
         </div>
 
         <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
@@ -266,29 +266,29 @@ export default function MonitorSulamView() {
               {/* Baris 1 Header Grup */}
               <tr className="border-b border-slate-200 dark:border-slate-700">
                 <th rowSpan={2} className="py-2.5 px-2.5 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[45px]">No</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[70px]">1. Wilayah</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[85px]">2. Lokasi</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[80px]">3. Jenis Bibit</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[80px]">4. Kelas Bibit</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[100px]">5. Tgl Rawat</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[105px]">6. Tgl STD Forcing</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[105px]">7. Tgl F Prod</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[105px]">8. Tgl F Max</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[105px]">9. Tgl Order</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[95px]">10. Umur Forcing</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[70px]">Wilayah</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[85px]">Lokasi</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[80px]">Jenis Bibit</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[80px]">Kelas Bibit</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[100px]">Tgl Rawat</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[105px]">Tgl STD Forcing</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[105px]">Tgl F Prod</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[105px]">Tgl F Max</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[105px]">Tgl Order</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[95px]">Umur Forcing</th>
                 <th colSpan={3} className="py-2 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-blue-50/60 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300">
-                  11. Permintaan Ritase
+                  Permintaan Ritase
                 </th>
                 <th colSpan={4} className="py-2 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-amber-50/60 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300">
-                  12. Monitor Drop
+                  Monitor Drop
                 </th>
                 <th colSpan={5} className="py-2 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300">
-                  13. Monitor Sulam
+                  Monitor Sulam
                 </th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[140px]">14. Spek Bibit</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[130px]">15. Ket Proses</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[120px]">16. Ket Mati</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center min-w-[130px]">17. Ket Ritase</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[140px]">Spek Bibit</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[130px]">Ket Proses</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[120px]">Ket Mati</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center min-w-[130px]">Ket Ritase</th>
               </tr>
               {/* Baris 2 Sub Header */}
               <tr className="border-b border-slate-200 dark:border-slate-700 text-[10px]">
@@ -324,7 +324,7 @@ export default function MonitorSulamView() {
               ) : dataRows.length === 0 ? (
                 <tr>
                   <td colSpan={24} className="py-16 text-center text-slate-400">
-                    <p className="text-xs font-semibold">Tidak ada data petak yang cocok.</p>
+                    <p className="text-xs font-semibold">Tidak ada data lokasi yang cocok.</p>
                   </td>
                 </tr>
               ) : (
@@ -479,7 +479,7 @@ export default function MonitorSulamView() {
         {/* Clean Pagination Footer */}
         <div className="py-3.5 px-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 dark:text-slate-400 font-semibold">
           <div>
-            Halaman {page} dari {totalPages} ({totalCount} total petak)
+            Halaman {page} dari {totalPages} ({totalCount} total lokasi)
           </div>
 
           <div className="flex items-center gap-2">

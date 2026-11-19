@@ -1,37 +1,49 @@
 import { NextResponse } from 'next/server';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const templateData = [
-      {
-        'Lokasi': '092F',
-        'Hasil Ha': 0.07,
-        'Hasil Btg': 1400,
-        'Tanggal': '2026-09-20',
-        'Bibit Ordered': 'No. 0 Pangkas 60cm',
-        'Std Rit': 2000,
-        'Rit Planted': 1,
-      },
-      {
-        'Lokasi': '002G',
-        'Hasil Ha': 0.15,
-        'Hasil Btg': 2000,
-        'Tanggal': '2026-09-21',
-        'Bibit Ordered': 'No. 0 Pangkas 60cm',
-        'Std Rit': 2000,
-        'Rit Planted': 1,
-      },
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'PT GGP - PG1 Monitoring System';
+    workbook.created = new Date();
+
+    const worksheet = workbook.addWorksheet('Template Master Real Sulam', {
+      views: [{ showGridLines: true }],
+    });
+
+    worksheet.columns = [
+      { header: 'Lokasi', key: 'lokasi', width: 14 },
+      { header: 'Hasil Ha', key: 'hasilHa', width: 12 },
+      { header: 'Hasil Btg', key: 'hasilBtg', width: 14 },
+      { header: 'Tanggal', key: 'tanggal', width: 14 },
+      { header: 'Bibit Ordered', key: 'bibitOrdered', width: 22 },
+      { header: 'Std Rit (CD)', key: 'stdRit', width: 14 },
+      { header: 'Rit Planted', key: 'ritPlanted', width: 14 },
     ];
 
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Template Master Real Sulam');
+    const headerRow = worksheet.getRow(1);
+    headerRow.height = 26;
+    headerRow.eachCell((cell) => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF0D9488' }, // Teal theme
+      };
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+        bottom: { style: 'medium', color: { argb: 'FF9CA3AF' } },
+        left: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+        right: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+      };
+    });
 
-    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    return new NextResponse(buf, {
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    return new NextResponse(buffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -39,7 +51,7 @@ export async function GET() {
       },
     });
   } catch (error: any) {
+    console.error('Error downloading template master real sulam:', error);
     return NextResponse.json({ success: false, message: 'Gagal mengunduh template.' }, { status: 500 });
   }
 }
-

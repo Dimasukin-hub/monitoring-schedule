@@ -17,9 +17,11 @@ import {
   AlertCircle,
   X,
   FileText,
+  Calendar,
 } from 'lucide-react';
 
 const WILAYAH_LIST = ['AW01', 'AW02', 'AW03', 'AW04', 'AW05', 'AW06', 'AW07'];
+const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
 
 export default function MasterOrderSulamView() {
   const [dataList, setDataList] = useState<any[]>([]);
@@ -32,6 +34,10 @@ export default function MasterOrderSulamView() {
   const [selectedWilayah, setSelectedWilayah] = useState<string[]>([]);
   const [isWilayahOpen, setIsWilayahOpen] = useState(false);
 
+  const [orderMonthRange, setOrderMonthRange] = useState<{ startMonth: number; endMonth: number; year: number } | null>(null);
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState<boolean>(false);
+  const [pickerYear, setPickerYear] = useState<number>(2026);
+
   // Upload modal state
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [uploadMode, setUploadMode] = useState<'full_replace' | 'partial'>('full_replace');
@@ -39,6 +45,18 @@ export default function MasterOrderSulamView() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Click Outside Listener untuk menutup MonthPicker
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.order-monthpicker-container')) {
+        setIsMonthPickerOpen(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   const fetchData = async (isSilent = false) => {
     try {
@@ -52,6 +70,11 @@ export default function MasterOrderSulamView() {
       });
       if (search) params.set('search', search);
       if (wilParam) params.set('wilayah', wilParam);
+      if (orderMonthRange) {
+        params.set('year', String(orderMonthRange.year));
+        params.set('startMonth', String(orderMonthRange.startMonth));
+        params.set('endMonth', String(orderMonthRange.endMonth));
+      }
 
       const res = await fetch(`/api/sulam/master-order?${params.toString()}`);
       const json = await res.json();
@@ -68,7 +91,7 @@ export default function MasterOrderSulamView() {
 
   useEffect(() => {
     fetchData();
-  }, [page, search, selectedWilayah]);
+  }, [page, search, selectedWilayah, orderMonthRange]);
 
   // Real-time synchronization
   useEffect(() => {
@@ -81,7 +104,7 @@ export default function MasterOrderSulamView() {
       window.removeEventListener('sulam_updated', handleSync);
       window.removeEventListener('master_data_updated', handleSync);
     };
-  }, [page, search, selectedWilayah]);
+  }, [page, search, selectedWilayah, orderMonthRange]);
 
   const handleToggleWilayah = (wil: string) => {
     if (selectedWilayah.includes(wil)) {
@@ -157,9 +180,14 @@ export default function MasterOrderSulamView() {
             <FileSpreadsheet className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              Master Data Order Sulam
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                Master Data Order Sulam
+              </h1>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                {totalCount} Data
+              </span>
+            </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               Data master permintaan order sulam bibit nanas dengan rincian spesifikasi bibit (Spek BB)
             </p>
@@ -177,7 +205,19 @@ export default function MasterOrderSulamView() {
           </button>
 
           <a
-            href="/api/sulam/master-order/export"
+            href={(() => {
+              const p = new URLSearchParams();
+              if (search) p.set('search', search);
+              if (selectedWilayah.length > 0 && selectedWilayah.length < WILAYAH_LIST.length) {
+                p.set('wilayah', selectedWilayah.join(','));
+              }
+              if (orderMonthRange) {
+                p.set('year', String(orderMonthRange.year));
+                p.set('startMonth', String(orderMonthRange.startMonth));
+                p.set('endMonth', String(orderMonthRange.endMonth));
+              }
+              return `/api/sulam/master-order/export?${p.toString()}`;
+            })()}
             download
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-bold transition-all shadow-2xs cursor-pointer"
           >
@@ -225,62 +265,181 @@ export default function MasterOrderSulamView() {
           )}
         </div>
 
-        {/* Filter Wilayah Dropdown */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setIsWilayahOpen(!isWilayahOpen)}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors shadow-2xs cursor-pointer"
-          >
-            <Filter className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>{getWilayahLabel()}</span>
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isWilayahOpen ? 'rotate-180 text-emerald-600' : 'text-slate-400'}`} />
-          </button>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Filter Wilayah Dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsWilayahOpen(!isWilayahOpen)}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors shadow-2xs cursor-pointer"
+            >
+              <Filter className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>{getWilayahLabel()}</span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isWilayahOpen ? 'rotate-180 text-emerald-600' : 'text-slate-400'}`} />
+            </button>
 
-          {isWilayahOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setIsWilayahOpen(false)} />
-              <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-                <button
-                  type="button"
-                  onClick={handleSelectAllWilayah}
-                  className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors cursor-pointer"
-                >
-                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">Semua Wilayah</span>
-                  <span
-                    className={`w-2.5 h-2.5 rounded-full transition-all ${
-                      selectedWilayah.length === 0 || selectedWilayah.length === WILAYAH_LIST.length
-                        ? 'bg-emerald-500 ring-2 ring-emerald-200 dark:ring-emerald-900/50 scale-110'
-                        : 'bg-slate-200 dark:bg-slate-600'
-                    }`}
-                  />
-                </button>
-                <div className="my-1 border-t border-slate-100 dark:border-slate-700" />
-                <div className="max-h-56 overflow-y-auto space-y-0.5">
-                  {WILAYAH_LIST.map((wil) => {
-                    const isSelected = selectedWilayah.includes(wil);
+            {isWilayahOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsWilayahOpen(false)} />
+                <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <button
+                    type="button"
+                    onClick={handleSelectAllWilayah}
+                    className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">Semua Wilayah</span>
+                    <span
+                      className={`w-2.5 h-2.5 rounded-full transition-all ${
+                        selectedWilayah.length === 0 || selectedWilayah.length === WILAYAH_LIST.length
+                          ? 'bg-emerald-500 ring-2 ring-emerald-200 dark:ring-emerald-900/50 scale-110'
+                          : 'bg-slate-200 dark:bg-slate-600'
+                      }`}
+                    />
+                  </button>
+                  <div className="my-1 border-t border-slate-100 dark:border-slate-700" />
+                  <div className="max-h-56 overflow-y-auto space-y-0.5">
+                    {WILAYAH_LIST.map((wil) => {
+                      const isSelected = selectedWilayah.includes(wil);
+                      return (
+                        <button
+                          key={wil}
+                          type="button"
+                          onClick={() => handleToggleWilayah(wil)}
+                          className="w-full flex items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">{wil}</span>
+                          <span
+                            className={`w-2 h-2 rounded-full transition-all ${
+                              isSelected
+                                ? 'bg-emerald-500 ring-2 ring-emerald-200 dark:ring-emerald-900/50 scale-110'
+                                : 'bg-slate-200 dark:bg-slate-600'
+                            }`}
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Filter Rentang Bulan Order Sulam */}
+          <div className="relative order-monthpicker-container">
+            <button
+              type="button"
+              onClick={() => setIsMonthPickerOpen((prev) => !prev)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer shadow-2xs ${
+                orderMonthRange
+                  ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-bold'
+                  : 'bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
+              }`}
+            >
+              <div className="flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                <span>
+                  {orderMonthRange
+                    ? `${MONTH_NAMES_SHORT[orderMonthRange.startMonth]} – ${MONTH_NAMES_SHORT[orderMonthRange.endMonth]} ${orderMonthRange.year}`
+                    : 'Rentang Bulan Order Sulam'}
+                </span>
+              </div>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                  isMonthPickerOpen ? 'rotate-180' : 'rotate-0'
+                }`}
+              />
+            </button>
+
+            {isMonthPickerOpen && (
+              <div className="absolute right-0 top-full mt-1.5 w-72 p-3.5 rounded-2xl bg-[#1e2330] text-white border border-slate-700/80 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100">
+                {/* Header: Year Nav */}
+                <div className="flex items-center justify-between px-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setPickerYear((y) => y - 1)}
+                    className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-sm font-bold tracking-tight text-white">{pickerYear}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPickerYear((y) => y + 1)}
+                    className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Grid 12 Bulan */}
+                <div className="grid grid-cols-3 gap-1.5 my-2">
+                  {MONTH_NAMES_SHORT.map((mName, mIdx) => {
+                    const isSelectedYear = orderMonthRange && orderMonthRange.year === pickerYear;
+                    const s = isSelectedYear ? Math.min(orderMonthRange.startMonth, orderMonthRange.endMonth) : -1;
+                    const e = isSelectedYear ? Math.max(orderMonthRange.startMonth, orderMonthRange.endMonth) : -1;
+                    const isStart = isSelectedYear && mIdx === s;
+                    const isEnd = isSelectedYear && mIdx === e;
+                    const inRange = isSelectedYear && mIdx >= s && mIdx <= e;
+
+                    let btnClass = 'text-slate-300 hover:bg-slate-800/80 hover:text-white';
+                    if (isStart || isEnd) {
+                      btnClass = 'bg-emerald-600 text-white font-black shadow-xs';
+                    } else if (inRange) {
+                      btnClass = 'bg-emerald-600/30 text-emerald-300 font-bold';
+                    }
+
                     return (
                       <button
-                        key={wil}
+                        key={mName}
                         type="button"
-                        onClick={() => handleToggleWilayah(wil)}
-                        className="w-full flex items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors cursor-pointer"
+                        onClick={() => {
+                          if (!orderMonthRange || (orderMonthRange.startMonth !== orderMonthRange.endMonth)) {
+                            setOrderMonthRange({ startMonth: mIdx, endMonth: mIdx, year: pickerYear });
+                          } else {
+                            const first = orderMonthRange.startMonth;
+                            setOrderMonthRange({
+                              startMonth: Math.min(first, mIdx),
+                              endMonth: Math.max(first, mIdx),
+                              year: pickerYear,
+                            });
+                          }
+                          setPage(1);
+                        }}
+                        className={`py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${btnClass}`}
                       >
-                        <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">{wil}</span>
-                        <span
-                          className={`w-2 h-2 rounded-full transition-all ${
-                            isSelected
-                              ? 'bg-emerald-500 ring-2 ring-emerald-200 dark:ring-emerald-900/50 scale-110'
-                              : 'bg-slate-200 dark:bg-slate-600'
-                          }`}
-                        />
+                        {mName}
                       </button>
                     );
                   })}
                 </div>
+
+                {/* Footer Controls */}
+                <div className="pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOrderMonthRange(null);
+                      setIsMonthPickerOpen(false);
+                      setPage(1);
+                    }}
+                    className="text-rose-400 hover:text-rose-300 font-semibold cursor-pointer"
+                  >
+                    Reset Filter
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMonthPickerOpen(false);
+                      setPage(1);
+                    }}
+                    className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold cursor-pointer"
+                  >
+                    Terapkan
+                  </button>
+                </div>
               </div>
-            </>
-          )}
+            )}
+          </div>
         </div>
       </div>
 

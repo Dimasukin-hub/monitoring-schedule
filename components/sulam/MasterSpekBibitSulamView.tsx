@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
+  XCircle,
   FileText,
 } from 'lucide-react';
 
@@ -118,7 +119,12 @@ export default function MasterSpekBibitSulamView() {
             <span className="p-1.5 rounded-lg bg-white/20 backdrop-blur-xs">
               <Layers className="w-4 h-4 text-white" />
             </span>
-            <h2 className="text-base sm:text-lg font-black tracking-tight">Master Data Spek Bibit Sulam</h2>
+            <h2 className="text-base sm:text-lg font-black tracking-tight flex items-center gap-2">
+              <span>Master Data Spek Bibit Sulam</span>
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-white/20 text-white border border-white/30">
+                {totalCount} Data
+              </span>
+            </h2>
           </div>
           <p className="text-xs text-white/80 max-w-xl">
             Referensi standar kapasitas per rit (CD dan Fuso) serta spesifikasi bibit sulam untuk kalkulasi otomatis.
@@ -142,7 +148,7 @@ export default function MasterSpekBibitSulamView() {
             <span>Unggah Excel</span>
           </button>
           <a
-            href="/api/sulam/master-spek/export"
+            href={`/api/sulam/master-spek/export${search ? `?search=${encodeURIComponent(search)}` : ''}`}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-800/60 hover:bg-emerald-800/80 text-white transition-colors border border-emerald-400/30 cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
@@ -157,18 +163,26 @@ export default function MasterSpekBibitSulamView() {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Cari spek bibit atau keterangan..."
+            placeholder="Cari Lokasi"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
               setPage(1);
             }}
-            className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+            className="w-full pl-9 pr-8 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
           />
-        </div>
-
-        <div className="text-xs text-slate-500 font-semibold self-end sm:self-center">
-          Total: <span className="text-slate-900 dark:text-white font-bold">{totalCount}</span> Spek Bibit
+          {search && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                setPage(1);
+              }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+            >
+              <XCircle className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 

@@ -50,6 +50,22 @@ export async function GET(request: NextRequest) {
       where.wilayah = { in: wilList };
     }
 
+    const yearParam = searchParams.get('year');
+    const startMonthParam = searchParams.get('startMonth');
+    const endMonthParam = searchParams.get('endMonth');
+    if (yearParam !== null && startMonthParam !== null && endMonthParam !== null) {
+      const year = parseInt(yearParam, 10);
+      const startMonth = parseInt(startMonthParam, 10);
+      const endMonth = parseInt(endMonthParam, 10);
+      if (!isNaN(year) && !isNaN(startMonth) && !isNaN(endMonth)) {
+        const minM = Math.min(startMonth, endMonth);
+        const maxM = Math.max(startMonth, endMonth);
+        const startDate = new Date(Date.UTC(year, minM, 1, 0, 0, 0, 0));
+        const endDate = new Date(Date.UTC(year, maxM + 1, 0, 23, 59, 59, 999));
+        where.tanggalOrder = { gte: startDate, lte: endDate };
+      }
+    }
+
     const [total, data] = await Promise.all([
       prisma.masterDataOrderSulam.count({ where }),
       prisma.masterDataOrderSulam.findMany({

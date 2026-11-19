@@ -8,13 +8,16 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  Calendar,
   XCircle,
   RefreshCw,
   AlertCircle,
   X,
   FileText,
-  Calculator,
 } from 'lucide-react';
+
+const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
 
 export default function MasterRealSulamView() {
   const [dataList, setDataList] = useState<any[]>([]);
@@ -24,6 +27,9 @@ export default function MasterRealSulamView() {
   const pageSize = 50;
 
   const [search, setSearch] = useState('');
+  const [realMonthRange, setRealMonthRange] = useState<{ startMonth: number; endMonth: number; year: number } | null>(null);
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState<boolean>(false);
+  const [pickerYear, setPickerYear] = useState<number>(2026);
 
   // Upload modal state
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -33,6 +39,18 @@ export default function MasterRealSulamView() {
   const [uploadMessage, setUploadMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Click Outside Listener untuk menutup MonthPicker
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.real-monthpicker-container')) {
+        setIsMonthPickerOpen(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   const fetchData = async (isSilent = false) => {
     try {
       if (!isSilent && dataList.length === 0) setLoading(true);
@@ -41,6 +59,11 @@ export default function MasterRealSulamView() {
         limit: pageSize.toString(),
       });
       if (search) params.set('search', search);
+      if (realMonthRange) {
+        params.set('year', String(realMonthRange.year));
+        params.set('startMonth', String(realMonthRange.startMonth));
+        params.set('endMonth', String(realMonthRange.endMonth));
+      }
 
       const res = await fetch(`/api/sulam/master-real?${params.toString()}`);
       const json = await res.json();
@@ -57,7 +80,7 @@ export default function MasterRealSulamView() {
 
   useEffect(() => {
     fetchData();
-  }, [page, search]);
+  }, [page, search, realMonthRange]);
 
   // Real-time synchronization
   useEffect(() => {
@@ -70,7 +93,7 @@ export default function MasterRealSulamView() {
       window.removeEventListener('sulam_updated', handleSync);
       window.removeEventListener('master_data_updated', handleSync);
     };
-  }, [page, search]);
+  }, [page, search, realMonthRange]);
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,8 +144,11 @@ export default function MasterRealSulamView() {
             <CheckCircle2 className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              Master Data Real Sulam
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+              <span>Master Data Real Sulam</span>
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                {totalCount} Data
+              </span>
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               Data realisasi penanaman sulam lapangan dengan lookup otomatis Spek BB, Std Rit (CD), dan Rit Planted
@@ -141,7 +167,16 @@ export default function MasterRealSulamView() {
           </button>
 
           <a
-            href="/api/sulam/master-real/export"
+            href={(() => {
+              const p = new URLSearchParams();
+              if (search) p.set('search', search);
+              if (realMonthRange) {
+                p.set('year', String(realMonthRange.year));
+                p.set('startMonth', String(realMonthRange.startMonth));
+                p.set('endMonth', String(realMonthRange.endMonth));
+              }
+              return `/api/sulam/master-real/export?${p.toString()}`;
+            })()}
             download
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-bold transition-all shadow-2xs cursor-pointer"
           >
@@ -159,23 +194,6 @@ export default function MasterRealSulamView() {
             <span className="hidden sm:inline">Template</span>
           </a>
         </div>
-      </div>
-
-      {/* Info Formula Banner */}
-      <div className="p-3.5 rounded-2xl bg-teal-50/70 dark:bg-teal-950/20 border border-teal-200/80 dark:border-teal-800/50 flex flex-wrap items-center gap-3 text-xs text-teal-900 dark:text-teal-200 font-medium">
-        <div className="flex items-center gap-1.5 font-bold text-teal-800 dark:text-teal-300">
-          <Calculator className="w-4 h-4 text-teal-600" />
-          <span>Rumus Otomatis Real Sulam:</span>
-        </div>
-        <span className="text-[11px]">
-          1. <strong>Bibit Ordered</strong>: Otomatis mencocokkan ke <em>Spek BB</em> di List Sulam.
-        </span>
-        <span className="text-[11px]">
-          2. <strong>Std Rit</strong>: Otomatis mengambil nilai kapasitas CD dari master referensi Spek BB.
-        </span>
-        <span className="text-[11px]">
-          3. <strong>Rit Planted</strong>: <code className="bg-teal-100 dark:bg-teal-900 px-1 py-0.5 rounded font-mono font-bold">Math.ceil(Hasil Btg / Std Rit)</code> dibulatkan ke atas.
-        </span>
       </div>
 
       {/* Filter Bar */}
@@ -205,6 +223,123 @@ export default function MasterRealSulamView() {
             </button>
           )}
         </div>
+
+        {/* Filter Rentang Bulan Real Sulam */}
+        <div className="relative real-monthpicker-container">
+          <button
+            type="button"
+            onClick={() => setIsMonthPickerOpen((prev) => !prev)}
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer shadow-2xs ${
+              realMonthRange
+                ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-bold'
+                : 'bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-slate-500" />
+              <span>
+                {realMonthRange
+                  ? `${MONTH_NAMES_SHORT[realMonthRange.startMonth]} – ${MONTH_NAMES_SHORT[realMonthRange.endMonth]} ${realMonthRange.year}`
+                  : 'Rentang Bulan Real Sulam'}
+              </span>
+            </div>
+            <ChevronDown
+              className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                isMonthPickerOpen ? 'rotate-180' : 'rotate-0'
+              }`}
+            />
+          </button>
+
+          {isMonthPickerOpen && (
+            <div className="absolute right-0 top-full mt-1.5 w-72 p-3.5 rounded-2xl bg-[#1e2330] text-white border border-slate-700/80 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100">
+              {/* Header: Year Nav */}
+              <div className="flex items-center justify-between px-2 mb-2">
+                <button
+                  type="button"
+                  onClick={() => setPickerYear((y) => y - 1)}
+                  className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-sm font-bold tracking-tight text-white">{pickerYear}</span>
+                <button
+                  type="button"
+                  onClick={() => setPickerYear((y) => y + 1)}
+                  className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Grid 12 Bulan */}
+              <div className="grid grid-cols-3 gap-1.5 my-2">
+                {MONTH_NAMES_SHORT.map((mName, mIdx) => {
+                  const isSelectedYear = realMonthRange && realMonthRange.year === pickerYear;
+                  const s = isSelectedYear ? Math.min(realMonthRange.startMonth, realMonthRange.endMonth) : -1;
+                  const e = isSelectedYear ? Math.max(realMonthRange.startMonth, realMonthRange.endMonth) : -1;
+                  const isStart = isSelectedYear && mIdx === s;
+                  const isEnd = isSelectedYear && mIdx === e;
+                  const inRange = isSelectedYear && mIdx >= s && mIdx <= e;
+
+                  let btnClass = 'text-slate-300 hover:bg-slate-800/80 hover:text-white';
+                  if (isStart || isEnd) {
+                    btnClass = 'bg-emerald-600 text-white font-black shadow-xs';
+                  } else if (inRange) {
+                    btnClass = 'bg-emerald-600/30 text-emerald-300 font-bold';
+                  }
+
+                  return (
+                    <button
+                      key={mName}
+                      type="button"
+                      onClick={() => {
+                        if (!realMonthRange || (realMonthRange.startMonth !== realMonthRange.endMonth)) {
+                          setRealMonthRange({ startMonth: mIdx, endMonth: mIdx, year: pickerYear });
+                        } else {
+                          const first = realMonthRange.startMonth;
+                          setRealMonthRange({
+                            startMonth: Math.min(first, mIdx),
+                            endMonth: Math.max(first, mIdx),
+                            year: pickerYear,
+                          });
+                        }
+                        setPage(1);
+                      }}
+                      className={`py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${btnClass}`}
+                    >
+                      {mName}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Footer Controls */}
+              <div className="pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRealMonthRange(null);
+                    setIsMonthPickerOpen(false);
+                    setPage(1);
+                  }}
+                  className="text-rose-400 hover:text-rose-300 font-semibold cursor-pointer"
+                >
+                  Reset Filter
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMonthPickerOpen(false);
+                    setPage(1);
+                  }}
+                  className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold cursor-pointer"
+                >
+                  Terapkan
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Main Table */}
@@ -214,18 +349,18 @@ export default function MasterRealSulamView() {
             <thead className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 uppercase font-bold tracking-wider shadow-xs">
               <tr className="border-b border-slate-200 dark:border-slate-700">
                 <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[50px]">No</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[100px]">1. Lokasi</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[90px]">2. Hasil Ha</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[110px]">3. Hasil Btg</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[110px]">4. Tanggal</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[100px]">Lokasi</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[90px]">Hasil Ha</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[110px]">Hasil Btg</th>
+                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[110px]">Tanggal</th>
                 <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[180px] text-teal-700 dark:text-teal-400">
-                  5. Bibit Ordered
+                  Bibit Ordered
                 </th>
                 <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[100px] text-teal-700 dark:text-teal-400">
-                  6. Std Rit (CD)
+                  Std Rit (CD)
                 </th>
                 <th className="py-3 px-3 text-center min-w-[110px] text-teal-700 dark:text-teal-400">
-                  7. Rit Planted
+                  Rit Planted
                 </th>
               </tr>
             </thead>
