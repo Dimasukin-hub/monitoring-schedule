@@ -154,6 +154,9 @@ export default function MasterDataPasangManualView() {
               <Wrench className="w-5 h-5" />
             </span>
             <span>Master Data Pasang Manual</span>
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-teal-100 dark:bg-teal-950/80 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
+              {totalCount} Data
+            </span>
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Kelola dan tinjau data realisasi pasang manual gorong-gorong 4 diameter
@@ -161,16 +164,6 @@ export default function MasterDataPasangManualView() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Action: Refresh Data */}
-          <button
-            onClick={() => loadData(page, true)}
-            disabled={isLoading}
-            className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors shadow-2xs cursor-pointer"
-            title="Muat Ulang Data"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
-
           {/* Action: Export Excel */}
           <button
             onClick={handleExport}
@@ -478,7 +471,7 @@ export default function MasterDataPasangManualView() {
         {/* Pagination Footer */}
         <div className="py-3.5 px-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 dark:text-slate-400 font-semibold">
           <div>
-            Halaman {page} dari {totalPages} (Total: {totalCount} data)
+            Halaman {page} dari {totalPages}
           </div>
 
           <div className="flex items-center gap-2">
