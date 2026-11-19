@@ -126,8 +126,39 @@ export async function POST(request: NextRequest) {
     const validJenis = ['ORDER', 'DROP', 'PASANG_MANUAL', 'PINDAH_LOKASI'];
     const validatedData = [];
 
+    // Validasi ketat: Seluruh lokasi wajib terdaftar resmi di MasterStatusLokasi
+    const masterLocations = await prisma.masterStatusLokasi.findMany({
+      select: { lokasi: true },
+    });
+    const validLokasiSet = new Set(
+      masterLocations.map((m) => m.lokasi?.trim().toUpperCase()).filter(Boolean)
+    );
+
     for (const it of itemsToProcess) {
-      const cleanLokasi = it.lokasi.trim().toUpperCase();
+      const cleanLokasi = String(it.lokasi || '').trim().toUpperCase();
+      if (!cleanLokasi || !validLokasiSet.has(cleanLokasi)) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Lokasi '${it.lokasi}' tidak valid atau tidak terdaftar di Master Status Lokasi! Harap gunakan lokasi resmi yang berawalan angka 0 (contoh: 085C).`,
+          },
+          { status: 400 }
+        );
+      }
+
+      if (it.lokasiAsal) {
+        const cleanAsal = String(it.lokasiAsal || '').trim().toUpperCase();
+        if (!validLokasiSet.has(cleanAsal)) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: `Lokasi Asal '${it.lokasiAsal}' tidak valid atau tidak terdaftar di Master Status Lokasi!`,
+            },
+            { status: 400 }
+          );
+        }
+      }
+
       const cleanJenis = String(it.jenisTransaksi || 'ORDER').toUpperCase().trim();
 
       if (!validJenis.includes(cleanJenis)) {
@@ -994,12 +1025,37 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Lookup auto-wilayah
-    let autoWil = null;
+    // Validasi ketat: Lokasi wajib terdaftar resmi di MasterStatusLokasi
     const mLoc = await prisma.masterStatusLokasi.findUnique({
       where: { lokasi: cleanLokasi },
     });
-    autoWil = mLoc?.strucPlant || body.wilayah || existing.wilayah || 'AW01';
+
+    if (!mLoc) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Lokasi '${cleanLokasi}' tidak valid atau tidak terdaftar di Master Status Lokasi! Harap gunakan lokasi resmi yang berawalan angka 0 (contoh: 085C).`,
+        },
+        { status: 400 }
+      );
+    }
+
+    if (cleanLokasiAsal) {
+      const mAsal = await prisma.masterStatusLokasi.findUnique({
+        where: { lokasi: cleanLokasiAsal },
+      });
+      if (!mAsal) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Lokasi Asal '${cleanLokasiAsal}' tidak valid atau tidak terdaftar di Master Status Lokasi!`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    const autoWil = mLoc.strucPlant || body.wilayah || existing.wilayah || 'AW01';
 
     // Hitung kuantiti baru (0 - 999)
     const newQtyD40 = body.qtyD40 !== undefined ? Math.max(0, Math.min(999, Math.round(Number(body.qtyD40) || 0))) : existing.qtyD40;

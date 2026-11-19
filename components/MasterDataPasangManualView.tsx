@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/components/AuthProvider';
 import {
   Calendar,
   Search,
@@ -10,12 +9,8 @@ import {
   ChevronDown,
   XCircle,
   RefreshCw,
-  Download,
-  Upload,
   FileSpreadsheet,
   CheckCircle2,
-  AlertCircle,
-  X,
   Wrench,
 } from 'lucide-react';
 
@@ -23,7 +18,6 @@ const WILAYAH_LIST = ['AW01', 'AW02', 'AW03', 'AW04', 'AW05', 'AW06', 'AW07'];
 const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
 
 export default function MasterDataPasangManualView() {
-  const { canUploadMasterData } = useAuth();
   const [dataList, setDataList] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [page, setPage] = useState<number>(1);
@@ -38,13 +32,8 @@ export default function MasterDataPasangManualView() {
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState<boolean>(false);
   const [pickerYear, setPickerYear] = useState<number>(2026);
 
-  // Export & Upload Modal States
+  // Export State
   const [isExporting, setIsExporting] = useState<boolean>(false);
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
-  const [uploadMode, setUploadMode] = useState<'full_replace' | 'partial'>('full_replace');
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [uploadResult, setUploadResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Click outside listener
   useEffect(() => {
@@ -155,42 +144,6 @@ export default function MasterDataPasangManualView() {
     }
   };
 
-  const handleUploadSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!uploadFile) {
-      setUploadResult({ success: false, message: 'Pilih file Excel terlebih dahulu' });
-      return;
-    }
-
-    try {
-      setIsUploading(true);
-      setUploadResult(null);
-
-      const formData = new FormData();
-      formData.append('file', uploadFile);
-      formData.append('mode', uploadMode);
-
-      const res = await fetch('/api/gorong-gorong/master-pasang-manual/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      const json = await res.json();
-
-      if (json.success) {
-        setUploadResult({ success: true, message: json.message });
-        setUploadFile(null);
-        loadData(1, true);
-        window.dispatchEvent(new CustomEvent('master_data_updated'));
-      } else {
-        setUploadResult({ success: false, message: json.message || 'Gagal mengunggah file' });
-      }
-    } catch (err: any) {
-      setUploadResult({ success: false, message: err.message || 'Terjadi kesalahan sistem' });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   return (
     <div className="space-y-4">
       {/* Header Bar: Title, Search, Filters & Actions */}
@@ -218,16 +171,6 @@ export default function MasterDataPasangManualView() {
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
 
-          {/* Action: Download Template */}
-          <a
-            href="/api/gorong-gorong/master-pasang-manual/template"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-colors shadow-2xs"
-            download
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Template Excel</span>
-          </a>
-
           {/* Action: Export Excel */}
           <button
             onClick={handleExport}
@@ -237,21 +180,6 @@ export default function MasterDataPasangManualView() {
             <FileSpreadsheet className="w-3.5 h-3.5" />
             <span>{isExporting ? 'Mengunduh...' : 'Export Excel'}</span>
           </button>
-
-          {/* Action: Upload Excel (Hanya jika punya hak upload) */}
-          {canUploadMasterData && (
-            <button
-              onClick={() => {
-                setUploadResult(null);
-                setUploadFile(null);
-                setIsUploadModalOpen(true);
-              }}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold text-xs transition-all shadow-xs cursor-pointer"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              <span>Upload Excel</span>
-            </button>
-          )}
         </div>
       </div>
 
@@ -573,140 +501,7 @@ export default function MasterDataPasangManualView() {
           </div>
         </div>
       </div>
-
-      {/* Modal Upload Excel */}
-      {isUploadModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
-                  <FileSpreadsheet className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                    Upload Excel Master Data Pasang Manual
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Format file: .xlsx / .xls sesuai template
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsUploadModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <form onSubmit={handleUploadSubmit} className="p-5 space-y-4">
-              {/* Pilihan Mode Upload */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Mode Pengunggahan:
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setUploadMode('full_replace')}
-                    className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
-                      uploadMode === 'full_replace'
-                        ? 'border-teal-500 bg-teal-50/50 dark:bg-teal-950/30 text-teal-950 dark:text-teal-200 font-bold'
-                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
-                    }`}
-                  >
-                    <div className="text-xs font-bold">Replace Total (Hapus Semua)</div>
-                    <div className="text-[10px] text-slate-500 font-normal mt-0.5">
-                      Ganti seluruh data master pasang manual dengan isi file
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setUploadMode('partial')}
-                    className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
-                      uploadMode === 'partial'
-                        ? 'border-teal-500 bg-teal-50/50 dark:bg-teal-950/30 text-teal-950 dark:text-teal-200 font-bold'
-                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
-                    }`}
-                  >
-                    <div className="text-xs font-bold">Tambah / Sisipkan Data</div>
-                    <div className="text-[10px] text-slate-500 font-normal mt-0.5">
-                      Tambahkan data baru tanpa menghapus data yang ada
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Upload Input File */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Pilih File Excel:
-                </label>
-                <input
-                  type="file"
-                  accept=".xlsx, .xls"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) setUploadFile(f);
-                  }}
-                  className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-teal-50 file:text-teal-700 dark:file:bg-teal-950/50 dark:file:text-teal-300 hover:file:bg-teal-100 cursor-pointer"
-                />
-              </div>
-
-              {/* Notifikasi Hasil Upload */}
-              {uploadResult && (
-                <div
-                  className={`p-3 rounded-xl text-xs flex items-start gap-2.5 ${
-                    uploadResult.success
-                      ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                      : 'bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
-                  }`}
-                >
-                  {uploadResult.success ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                  )}
-                  <span>{uploadResult.message}</span>
-                </div>
-              )}
-
-              {/* Modal Actions */}
-              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsUploadModalOpen(false)}
-                  disabled={isUploading}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
-                >
-                  Tutup
-                </button>
-                <button
-                  type="submit"
-                  disabled={isUploading || !uploadFile}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 active:scale-95 disabled:opacity-50 rounded-xl shadow-xs transition-all cursor-pointer"
-                >
-                  {isUploading ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Mengunggah...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Proses Upload</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
+

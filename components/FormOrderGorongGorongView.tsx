@@ -411,6 +411,47 @@ export default function FormOrderGorongGorongView() {
       return;
     }
 
+    // Validasi Ketat: Lokasi wajib terdaftar di master database sistem (berawalan 0)
+    for (const s of filledSlots) {
+      if (isPindah) {
+        if (s.selectedLokasiPengirim) {
+          const isValidPengirim = masterLokasiList.some(
+            (m) => m.lokasi?.trim().toUpperCase() === s.selectedLokasiPengirim.trim().toUpperCase()
+          );
+          if (!isValidPengirim) {
+            setNotification({
+              type: 'error',
+              message: `Lokasi pengirim '${s.selectedLokasiPengirim}' tidak terdaftar di sistem! Harap pilih lokasi resmi yang tersedia di dropdown (contoh: pastikan ada angka 0 seperti 085C).`,
+            });
+            return;
+          }
+        }
+        if (s.selectedLokasiPenerima) {
+          const isValidPenerima = masterLokasiList.some(
+            (m) => m.lokasi?.trim().toUpperCase() === s.selectedLokasiPenerima.trim().toUpperCase()
+          );
+          if (!isValidPenerima) {
+            setNotification({
+              type: 'error',
+              message: `Lokasi penerima '${s.selectedLokasiPenerima}' tidak terdaftar di sistem! Harap pilih lokasi resmi yang tersedia di dropdown (contoh: pastikan ada angka 0 seperti 085C).`,
+            });
+            return;
+          }
+        }
+      } else {
+        const isValid = masterLokasiList.some(
+          (m) => m.lokasi?.trim().toUpperCase() === s.selectedLokasi.trim().toUpperCase()
+        );
+        if (!isValid) {
+          setNotification({
+            type: 'error',
+            message: `Lokasi '${s.selectedLokasi}' tidak terdaftar di sistem! Harap pilih lokasi resmi yang tersedia di dropdown (contoh: pastikan ada angka 0 seperti 085C).`,
+          });
+          return;
+        }
+      }
+    }
+
     // Validasi kuantiti per slot
     for (const s of filledSlots) {
       const n40 = parseInt(s.qtyD40 || '0', 10);
@@ -633,13 +674,30 @@ export default function FormOrderGorongGorongView() {
     if (!editingTrx) return;
 
     if (!editLokasi.trim()) {
-      alert('Silakan pilih lokasi petak yang valid.');
+      alert('Silakan pilih lokasi yang valid.');
       return;
     }
 
-    if (editJenisTransaksi === 'PINDAH_LOKASI' && !editLokasiAsal.trim()) {
-      alert('Silakan pilih lokasi pengirim (asal) untuk pindah lokasi.');
+    const isValidEditLokasi = masterLokasiList.some(
+      (m) => m.lokasi?.trim().toUpperCase() === editLokasi.trim().toUpperCase()
+    );
+    if (!isValidEditLokasi) {
+      alert(`Lokasi '${editLokasi}' tidak terdaftar di sistem! Harap pilih lokasi resmi yang tersedia di pilihan dropdown (contoh: pastikan ada angka 0 seperti 085C).`);
       return;
+    }
+
+    if (editJenisTransaksi === 'PINDAH_LOKASI') {
+      if (!editLokasiAsal.trim()) {
+        alert('Silakan pilih lokasi pengirim (asal) untuk pindah lokasi.');
+        return;
+      }
+      const isValidEditAsal = masterLokasiList.some(
+        (m) => m.lokasi?.trim().toUpperCase() === editLokasiAsal.trim().toUpperCase()
+      );
+      if (!isValidEditAsal) {
+        alert(`Lokasi pengirim (asal) '${editLokasiAsal}' tidak terdaftar di sistem! Harap pilih lokasi resmi yang tersedia.`);
+        return;
+      }
     }
 
     if (

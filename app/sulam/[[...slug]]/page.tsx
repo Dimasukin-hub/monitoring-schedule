@@ -123,7 +123,7 @@ export default function SulamPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200 w-full max-w-full overflow-x-hidden">
       {/* Header Utama Portal Sulam */}
       <Header
         activeTab={activeTab}
@@ -133,8 +133,8 @@ export default function SulamPage() {
         onMasterDataSubTabChange={handleMasterDataSubTabChange}
       />
 
-      {/* Main Body Content - Keep-Alive DOM Preservation (0 ms Tanpa Loading Jeda) */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Main Body Content - Full Width Margin Rapi Sampai Samping */}
+      <main className="flex-1 p-2 sm:p-4 md:p-5 pb-20 sm:pb-8 space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
         <div className={activeTab === 'monitor_sulam' ? 'space-y-6 animate-in fade-in duration-150' : 'hidden'}>
           <MonitorSulamView />
         </div>
