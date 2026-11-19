@@ -16,204 +16,102 @@ export async function reconcileAllGorongGorongMasterData() {
 
     if (!allTrx || allTrx.length === 0) return { success: true, count: 0 };
 
-    // 1. Reconcile PASANG_MANUAL -> MasterDataPasangManual
+    // 1. Reconcile PASANG_MANUAL -> MasterDataPasangManual (per baris transaksi)
     const manualTrx = allTrx.filter((t) => t.jenisTransaksi === 'PASANG_MANUAL');
-    if (manualTrx.length > 0) {
-      const manualByLok = new Map<string, {
-        lokasi: string;
-        wilayah: string;
-        latestTanggal: Date;
-        d40: number;
-        d60: number;
-        d80: number;
-        d100: number;
-      }>();
-
-      for (const t of manualTrx) {
+    for (const t of manualTrx) {
+      try {
         const lok = t.lokasi.trim().toUpperCase();
-        if (!manualByLok.has(lok)) {
-          manualByLok.set(lok, {
+        const existing = await prisma.masterDataPasangManual.findFirst({
+          where: {
             lokasi: lok,
-            wilayah: t.wilayah || 'AW01',
-            latestTanggal: t.tanggal || new Date(),
-            d40: 0,
-            d60: 0,
-            d80: 0,
-            d100: 0,
+            diameter40: t.qtyD40 || 0,
+            diameter60: t.qtyD60 || 0,
+            diameter80: t.qtyD80 || 0,
+            diameter100: t.qtyD100 || 0,
+          },
+        });
+
+        if (!existing) {
+          await prisma.masterDataPasangManual.create({
+            data: {
+              lokasi: lok,
+              wilayah: t.wilayah || 'AW01',
+              tanggalPasangManual: t.tanggal || new Date(),
+              diameter40: t.qtyD40 || 0,
+              diameter60: t.qtyD60 || 0,
+              diameter80: t.qtyD80 || 0,
+              diameter100: t.qtyD100 || 0,
+            },
           });
         }
-        const item = manualByLok.get(lok)!;
-        item.d40 += t.qtyD40 || 0;
-        item.d60 += t.qtyD60 || 0;
-        item.d80 += t.qtyD80 || 0;
-        item.d100 += t.qtyD100 || 0;
-        if (t.tanggal && (!item.latestTanggal || new Date(t.tanggal) > item.latestTanggal)) {
-          item.latestTanggal = new Date(t.tanggal);
-        }
-      }
-
-      for (const [lok, agg] of manualByLok.entries()) {
-        try {
-          const existing = await prisma.masterDataPasangManual.findFirst({
-            where: { lokasi: lok },
-            orderBy: { tanggalPasangManual: 'desc' },
-          });
-
-          if (!existing) {
-            await prisma.masterDataPasangManual.create({
-              data: {
-                lokasi: lok,
-                wilayah: agg.wilayah,
-                tanggalPasangManual: agg.latestTanggal,
-                diameter40: agg.d40,
-                diameter60: agg.d60,
-                diameter80: agg.d80,
-                diameter100: agg.d100,
-              },
-            });
-          } else {
-            const sumMaster = (existing.diameter40 || 0) + (existing.diameter60 || 0) + (existing.diameter80 || 0) + (existing.diameter100 || 0);
-            const sumAgg = agg.d40 + agg.d60 + agg.d80 + agg.d100;
-            if (sumMaster < sumAgg) {
-              await prisma.masterDataPasangManual.update({
-                where: { id: existing.id },
-                data: {
-                  diameter40: Math.max(existing.diameter40 || 0, agg.d40),
-                  diameter60: Math.max(existing.diameter60 || 0, agg.d60),
-                  diameter80: Math.max(existing.diameter80 || 0, agg.d80),
-                  diameter100: Math.max(existing.diameter100 || 0, agg.d100),
-                  tanggalPasangManual: agg.latestTanggal || existing.tanggalPasangManual,
-                },
-              });
-            }
-          }
-        } catch (e) {
-          console.warn(`[reconcileMasterData] Warning checking pasang manual for ${lok}:`, e);
-        }
+      } catch (e) {
+        console.warn(`[reconcileMasterData] Warning checking pasang manual for ${t.lokasi}:`, e);
       }
     }
 
-    // 2. Reconcile ORDER -> MasterDataOrderGorongGorong
+    // 2. Reconcile ORDER -> MasterDataOrderGorongGorong (per baris transaksi)
     const orderTrx = allTrx.filter((t) => t.jenisTransaksi === 'ORDER');
-    if (orderTrx.length > 0) {
-      const orderByLok = new Map<string, {
-        lokasi: string;
-        wilayah: string;
-        latestTanggal: Date;
-        d40: number;
-        d60: number;
-        d80: number;
-        d100: number;
-      }>();
-
-      for (const t of orderTrx) {
+    for (const t of orderTrx) {
+      try {
         const lok = t.lokasi.trim().toUpperCase();
-        if (!orderByLok.has(lok)) {
-          orderByLok.set(lok, {
+        const existing = await prisma.masterDataOrderGorongGorong.findFirst({
+          where: {
             lokasi: lok,
-            wilayah: t.wilayah || 'AW01',
-            latestTanggal: t.tanggal || new Date(),
-            d40: 0,
-            d60: 0,
-            d80: 0,
-            d100: 0,
+            diameter40: t.qtyD40 || 0,
+            diameter60: t.qtyD60 || 0,
+            diameter80: t.qtyD80 || 0,
+            diameter100: t.qtyD100 || 0,
+          },
+        });
+
+        if (!existing) {
+          await prisma.masterDataOrderGorongGorong.create({
+            data: {
+              lokasi: lok,
+              wilayah: t.wilayah || 'AW01',
+              tanggal: t.tanggal || new Date(),
+              diameter40: t.qtyD40 || 0,
+              diameter60: t.qtyD60 || 0,
+              diameter80: t.qtyD80 || 0,
+              diameter100: t.qtyD100 || 0,
+            },
           });
         }
-        const item = orderByLok.get(lok)!;
-        item.d40 += t.qtyD40 || 0;
-        item.d60 += t.qtyD60 || 0;
-        item.d80 += t.qtyD80 || 0;
-        item.d100 += t.qtyD100 || 0;
-        if (t.tanggal && (!item.latestTanggal || new Date(t.tanggal) > item.latestTanggal)) {
-          item.latestTanggal = new Date(t.tanggal);
-        }
-      }
-
-      for (const [lok, agg] of orderByLok.entries()) {
-        try {
-          const existing = await prisma.masterDataOrderGorongGorong.findFirst({
-            where: { lokasi: lok },
-            orderBy: { id: 'desc' },
-          });
-
-          if (!existing) {
-            await prisma.masterDataOrderGorongGorong.create({
-              data: {
-                lokasi: lok,
-                wilayah: agg.wilayah,
-                tanggal: agg.latestTanggal,
-                diameter40: agg.d40,
-                diameter60: agg.d60,
-                diameter80: agg.d80,
-                diameter100: agg.d100,
-              },
-            });
-          }
-        } catch (e) {
-          console.warn(`[reconcileMasterData] Warning checking order for ${lok}:`, e);
-        }
+      } catch (e) {
+        console.warn(`[reconcileMasterData] Warning checking order for ${t.lokasi}:`, e);
       }
     }
 
-    // 3. Reconcile DROP (murni) -> MasterDataDropGorongGorong
+    // 3. Reconcile DROP (murni) -> MasterDataDropGorongGorong (per baris transaksi)
     const dropTrx = allTrx.filter((t) => t.jenisTransaksi === 'DROP' && !t.lokasiAsal);
-    if (dropTrx.length > 0) {
-      const dropByLok = new Map<string, {
-        lokasi: string;
-        wilayah: string;
-        latestTanggal: Date;
-        d40: number;
-        d60: number;
-        d80: number;
-        d100: number;
-      }>();
-
-      for (const t of dropTrx) {
+    for (const t of dropTrx) {
+      try {
         const lok = t.lokasi.trim().toUpperCase();
-        if (!dropByLok.has(lok)) {
-          dropByLok.set(lok, {
+        const existing = await prisma.masterDataDropGorongGorong.findFirst({
+          where: {
             lokasi: lok,
-            wilayah: t.wilayah || 'AW01',
-            latestTanggal: t.tanggal || new Date(),
-            d40: 0,
-            d60: 0,
-            d80: 0,
-            d100: 0,
+            diameter40: t.qtyD40 || 0,
+            diameter60: t.qtyD60 || 0,
+            diameter80: t.qtyD80 || 0,
+            diameter100: t.qtyD100 || 0,
+          },
+        });
+
+        if (!existing) {
+          await prisma.masterDataDropGorongGorong.create({
+            data: {
+              lokasi: lok,
+              wilayah: t.wilayah || 'AW01',
+              tanggal: t.tanggal || new Date(),
+              diameter40: t.qtyD40 || 0,
+              diameter60: t.qtyD60 || 0,
+              diameter80: t.qtyD80 || 0,
+              diameter100: t.qtyD100 || 0,
+            },
           });
         }
-        const item = dropByLok.get(lok)!;
-        item.d40 += t.qtyD40 || 0;
-        item.d60 += t.qtyD60 || 0;
-        item.d80 += t.qtyD80 || 0;
-        item.d100 += t.qtyD100 || 0;
-        if (t.tanggal && (!item.latestTanggal || new Date(t.tanggal) > item.latestTanggal)) {
-          item.latestTanggal = new Date(t.tanggal);
-        }
-      }
-
-      for (const [lok, agg] of dropByLok.entries()) {
-        try {
-          const existing = await prisma.masterDataDropGorongGorong.findFirst({
-            where: { lokasi: lok },
-            orderBy: { tanggal: 'desc' },
-          });
-
-          if (!existing) {
-            await prisma.masterDataDropGorongGorong.create({
-              data: {
-                lokasi: lok,
-                wilayah: agg.wilayah,
-                tanggal: agg.latestTanggal,
-                diameter40: agg.d40,
-                diameter60: agg.d60,
-                diameter80: agg.d80,
-                diameter100: agg.d100,
-              },
-            });
-          }
-        } catch (e) {
-          console.warn(`[reconcileMasterData] Warning checking drop for ${lok}:`, e);
-        }
+      } catch (e) {
+        console.warn(`[reconcileMasterData] Warning checking drop for ${t.lokasi}:`, e);
       }
     }
 

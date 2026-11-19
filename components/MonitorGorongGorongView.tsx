@@ -190,6 +190,19 @@ export default function MonitorGorongGorongView() {
     setHiddenSeries((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  // Series visibility untuk Grafik Batang Realisasi Hari Ini
+  const [hiddenDailySeries, setHiddenDailySeries] = useState<Record<string, boolean>>({
+    drop: false,
+    pasangManual: false,
+  });
+  const toggleDailySeries = (key: string) => {
+    setHiddenDailySeries((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // Hover states untuk Pop-up Donut Chart Hari Ini (menghilangkan angka tengah saat tooltip aktif)
+  const [isHoveringDropDonut, setIsHoveringDropDonut] = useState<boolean>(false);
+  const [isHoveringPasangDonut, setIsHoveringPasangDonut] = useState<boolean>(false);
+
   // Custom Dropdown Open States
   const [isWilayahDropdownOpen, setIsWilayahDropdownOpen] = useState<boolean>(false);
   const [isStatusOpenCloseDropdownOpen, setIsStatusOpenCloseDropdownOpen] = useState<boolean>(false);
@@ -1982,13 +1995,28 @@ export default function MonitorGorongGorongView() {
                 Drop
               </span>
               <div className="relative w-[110px] h-[110px]">
+                {dailyRealisasiData.dropSummary?.total > 0 && (
+                  <div
+                    className={`absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-opacity duration-200 z-0 ${
+                      isHoveringDropDonut ? 'opacity-0' : 'opacity-100'
+                    }`}
+                  >
+                    <span className="text-sm font-black text-slate-900 dark:text-white">
+                      {dailyRealisasiData.dropSummary.total}
+                    </span>
+                    <span className="text-[8px] font-bold text-slate-400 uppercase">pcs</span>
+                  </div>
+                )}
                 {dailyRealisasiData.dropSummary?.chartData?.length === 0 ? (
                   <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400 text-center font-medium">
                     Belum ada data
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
+                  <ResponsiveContainer width="100%" height="100%" className="relative z-10">
+                    <PieChart
+                      onMouseEnter={() => setIsHoveringDropDonut(true)}
+                      onMouseLeave={() => setIsHoveringDropDonut(false)}
+                    >
                       <Pie
                         data={dailyRealisasiData.dropSummary.chartData}
                         dataKey="value"
@@ -2008,14 +2036,6 @@ export default function MonitorGorongGorongView() {
                     </PieChart>
                   </ResponsiveContainer>
                 )}
-                {dailyRealisasiData.dropSummary?.total > 0 && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <span className="text-sm font-black text-slate-900 dark:text-white">
-                      {dailyRealisasiData.dropSummary.total}
-                    </span>
-                    <span className="text-[8px] font-bold text-slate-400 uppercase">pcs</span>
-                  </div>
-                )}
               </div>
               <div className="text-[10px] font-bold text-slate-600 dark:text-slate-400 mt-1">
                 Total: <span className="font-extrabold text-blue-600 dark:text-blue-400">{dailyRealisasiData.dropSummary?.total || 0} pcs</span>
@@ -2028,13 +2048,28 @@ export default function MonitorGorongGorongView() {
                 Pasang Manual
               </span>
               <div className="relative w-[110px] h-[110px]">
+                {dailyRealisasiData.pasangSummary?.total > 0 && (
+                  <div
+                    className={`absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-opacity duration-200 z-0 ${
+                      isHoveringPasangDonut ? 'opacity-0' : 'opacity-100'
+                    }`}
+                  >
+                    <span className="text-sm font-black text-slate-900 dark:text-white">
+                      {dailyRealisasiData.pasangSummary.total}
+                    </span>
+                    <span className="text-[8px] font-bold text-slate-400 uppercase">pcs</span>
+                  </div>
+                )}
                 {dailyRealisasiData.pasangSummary?.chartData?.length === 0 ? (
                   <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400 text-center font-medium">
                     Belum ada data
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
+                  <ResponsiveContainer width="100%" height="100%" className="relative z-10">
+                    <PieChart
+                      onMouseEnter={() => setIsHoveringPasangDonut(true)}
+                      onMouseLeave={() => setIsHoveringPasangDonut(false)}
+                    >
                       <Pie
                         data={dailyRealisasiData.pasangSummary.chartData}
                         dataKey="value"
@@ -2054,14 +2089,6 @@ export default function MonitorGorongGorongView() {
                     </PieChart>
                   </ResponsiveContainer>
                 )}
-                {dailyRealisasiData.pasangSummary?.total > 0 && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <span className="text-sm font-black text-slate-900 dark:text-white">
-                      {dailyRealisasiData.pasangSummary.total}
-                    </span>
-                    <span className="text-[8px] font-bold text-slate-400 uppercase">pcs</span>
-                  </div>
-                )}
               </div>
               <div className="text-[10px] font-bold text-slate-600 dark:text-slate-400 mt-1">
                 Total: <span className="font-extrabold text-emerald-600 dark:text-emerald-400">{dailyRealisasiData.pasangSummary?.total || 0} pcs</span>
@@ -2077,15 +2104,31 @@ export default function MonitorGorongGorongView() {
               <span className="w-2 h-2 rounded-full bg-[#00873D]" />
               <span>Realisasi Hari Ini</span>
             </h4>
-            <div className="flex items-center gap-3 text-[10px] font-bold">
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-xs bg-blue-500 inline-block" />
-                <span className="text-slate-600 dark:text-slate-400">Drop</span>
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-xs bg-emerald-500 inline-block" />
-                <span className="text-slate-600 dark:text-slate-400">Pasang Manual</span>
-              </span>
+            <div className="flex items-center gap-3 text-[10px] font-bold select-none">
+              {[
+                { key: 'drop', label: 'Drop', color: '#3B82F6' },
+                { key: 'pasangManual', label: 'Pasang Manual', color: '#10B981' },
+              ].map((it) => {
+                const isHidden = !!hiddenDailySeries[it.key];
+                return (
+                  <span
+                    key={it.key}
+                    onClick={() => toggleDailySeries(it.key)}
+                    className={`inline-flex items-center gap-1.5 transition-all duration-200 cursor-pointer ${
+                      isHidden
+                        ? 'opacity-35 text-slate-400 dark:text-slate-500'
+                        : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                    title={`Klik untuk ${isHidden ? 'menampilkan' : 'menyembunyikan'} ${it.label}`}
+                  >
+                    <span
+                      className="w-2.5 h-2.5 rounded-xs shrink-0"
+                      style={{ backgroundColor: isHidden ? '#94a3b8' : it.color }}
+                    />
+                    <span className={isHidden ? 'line-through' : ''}>{it.label}</span>
+                  </span>
+                );
+              })}
             </div>
           </div>
 
@@ -2109,8 +2152,8 @@ export default function MonitorGorongGorongView() {
                     fontWeight: 'bold',
                   }}
                 />
-                <Bar dataKey="drop" name="drop" fill="#3B82F6" radius={[4, 4, 0, 0]} maxBarSize={18} />
-                <Bar dataKey="pasangManual" name="pasangManual" fill="#10B981" radius={[4, 4, 0, 0]} maxBarSize={18} />
+                <Bar dataKey="drop" name="drop" fill="#3B82F6" radius={[4, 4, 0, 0]} maxBarSize={18} hide={hiddenDailySeries['drop']} />
+                <Bar dataKey="pasangManual" name="pasangManual" fill="#10B981" radius={[4, 4, 0, 0]} maxBarSize={18} hide={hiddenDailySeries['pasangManual']} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -2123,12 +2166,12 @@ export default function MonitorGorongGorongView() {
               List Real Transaksi Gorong-gorong Hari Ini
             </h4>
             <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">
-              {dailyRealisasiData.transactions.length} Trx
+              {dailyRealisasiData.transactions.length} Data
             </span>
           </div>
 
-          <div className="w-full flex-1 max-h-[180px] overflow-y-auto overflow-x-auto scrollbar-thin border border-slate-200/80 dark:border-slate-800 rounded-xl">
-            <table className="w-full text-[10px] border-collapse">
+          <div className="w-full flex-1 h-[180px] max-h-[180px] overflow-y-auto overflow-x-auto scrollbar-thin border border-slate-200/80 dark:border-slate-800 rounded-xl flex flex-col">
+            <table className={`w-full text-[10px] border-collapse ${dailyRealisasiData.transactions.length > 0 && dailyRealisasiData.transactions.length <= 4 ? 'h-full flex-1' : ''}`}>
               <thead>
                 <tr className="bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 font-bold sticky top-0 z-10">
                   <th className="py-1 px-1 text-center">No</th>
