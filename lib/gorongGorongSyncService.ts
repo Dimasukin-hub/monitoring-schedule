@@ -1,17 +1,284 @@
 import { prisma } from '@/lib/prisma';
 
 /**
+ * Memastikan semua data transaksi dari tabel induk TransaksiGorongGorong
+ * tersinkronisasi 100% ke tabel Master Data masing-masing:
+ * 1. PASANG_MANUAL -> MasterDataPasangManual
+ * 2. ORDER -> MasterDataOrderGorongGorong
+ * 3. DROP (tanpa lokasiAsal) -> MasterDataDropGorongGorong
+ * 4. PINDAH_LOKASI / DROP (dengan lokasiAsal) -> MasterDataPindahGorongGorong & MasterDataDropGorongGorong
+ */
+export async function reconcileAllGorongGorongMasterData() {
+  try {
+    const allTrx = await prisma.transaksiGorongGorong.findMany({
+      orderBy: { tanggal: 'asc' },
+    });
+
+    if (!allTrx || allTrx.length === 0) return { success: true, count: 0 };
+
+    // 1. Reconcile PASANG_MANUAL -> MasterDataPasangManual
+    const manualTrx = allTrx.filter((t) => t.jenisTransaksi === 'PASANG_MANUAL');
+    if (manualTrx.length > 0) {
+      const manualByLok = new Map<string, {
+        lokasi: string;
+        wilayah: string;
+        latestTanggal: Date;
+        d40: number;
+        d60: number;
+        d80: number;
+        d100: number;
+      }>();
+
+      for (const t of manualTrx) {
+        const lok = t.lokasi.trim().toUpperCase();
+        if (!manualByLok.has(lok)) {
+          manualByLok.set(lok, {
+            lokasi: lok,
+            wilayah: t.wilayah || 'AW01',
+            latestTanggal: t.tanggal || new Date(),
+            d40: 0,
+            d60: 0,
+            d80: 0,
+            d100: 0,
+          });
+        }
+        const item = manualByLok.get(lok)!;
+        item.d40 += t.qtyD40 || 0;
+        item.d60 += t.qtyD60 || 0;
+        item.d80 += t.qtyD80 || 0;
+        item.d100 += t.qtyD100 || 0;
+        if (t.tanggal && (!item.latestTanggal || new Date(t.tanggal) > item.latestTanggal)) {
+          item.latestTanggal = new Date(t.tanggal);
+        }
+      }
+
+      for (const [lok, agg] of manualByLok.entries()) {
+        try {
+          const existing = await prisma.masterDataPasangManual.findFirst({
+            where: { lokasi: lok },
+            orderBy: { tanggalPasangManual: 'desc' },
+          });
+
+          if (!existing) {
+            await prisma.masterDataPasangManual.create({
+              data: {
+                lokasi: lok,
+                wilayah: agg.wilayah,
+                tanggalPasangManual: agg.latestTanggal,
+                diameter40: agg.d40,
+                diameter60: agg.d60,
+                diameter80: agg.d80,
+                diameter100: agg.d100,
+              },
+            });
+          } else {
+            const sumMaster = (existing.diameter40 || 0) + (existing.diameter60 || 0) + (existing.diameter80 || 0) + (existing.diameter100 || 0);
+            const sumAgg = agg.d40 + agg.d60 + agg.d80 + agg.d100;
+            if (sumMaster < sumAgg) {
+              await prisma.masterDataPasangManual.update({
+                where: { id: existing.id },
+                data: {
+                  diameter40: Math.max(existing.diameter40 || 0, agg.d40),
+                  diameter60: Math.max(existing.diameter60 || 0, agg.d60),
+                  diameter80: Math.max(existing.diameter80 || 0, agg.d80),
+                  diameter100: Math.max(existing.diameter100 || 0, agg.d100),
+                  tanggalPasangManual: agg.latestTanggal || existing.tanggalPasangManual,
+                },
+              });
+            }
+          }
+        } catch (e) {
+          console.warn(`[reconcileMasterData] Warning checking pasang manual for ${lok}:`, e);
+        }
+      }
+    }
+
+    // 2. Reconcile ORDER -> MasterDataOrderGorongGorong
+    const orderTrx = allTrx.filter((t) => t.jenisTransaksi === 'ORDER');
+    if (orderTrx.length > 0) {
+      const orderByLok = new Map<string, {
+        lokasi: string;
+        wilayah: string;
+        latestTanggal: Date;
+        d40: number;
+        d60: number;
+        d80: number;
+        d100: number;
+      }>();
+
+      for (const t of orderTrx) {
+        const lok = t.lokasi.trim().toUpperCase();
+        if (!orderByLok.has(lok)) {
+          orderByLok.set(lok, {
+            lokasi: lok,
+            wilayah: t.wilayah || 'AW01',
+            latestTanggal: t.tanggal || new Date(),
+            d40: 0,
+            d60: 0,
+            d80: 0,
+            d100: 0,
+          });
+        }
+        const item = orderByLok.get(lok)!;
+        item.d40 += t.qtyD40 || 0;
+        item.d60 += t.qtyD60 || 0;
+        item.d80 += t.qtyD80 || 0;
+        item.d100 += t.qtyD100 || 0;
+        if (t.tanggal && (!item.latestTanggal || new Date(t.tanggal) > item.latestTanggal)) {
+          item.latestTanggal = new Date(t.tanggal);
+        }
+      }
+
+      for (const [lok, agg] of orderByLok.entries()) {
+        try {
+          const existing = await prisma.masterDataOrderGorongGorong.findFirst({
+            where: { lokasi: lok },
+            orderBy: { id: 'desc' },
+          });
+
+          if (!existing) {
+            await prisma.masterDataOrderGorongGorong.create({
+              data: {
+                lokasi: lok,
+                wilayah: agg.wilayah,
+                tanggal: agg.latestTanggal,
+                diameter40: agg.d40,
+                diameter60: agg.d60,
+                diameter80: agg.d80,
+                diameter100: agg.d100,
+              },
+            });
+          }
+        } catch (e) {
+          console.warn(`[reconcileMasterData] Warning checking order for ${lok}:`, e);
+        }
+      }
+    }
+
+    // 3. Reconcile DROP (murni) -> MasterDataDropGorongGorong
+    const dropTrx = allTrx.filter((t) => t.jenisTransaksi === 'DROP' && !t.lokasiAsal);
+    if (dropTrx.length > 0) {
+      const dropByLok = new Map<string, {
+        lokasi: string;
+        wilayah: string;
+        latestTanggal: Date;
+        d40: number;
+        d60: number;
+        d80: number;
+        d100: number;
+      }>();
+
+      for (const t of dropTrx) {
+        const lok = t.lokasi.trim().toUpperCase();
+        if (!dropByLok.has(lok)) {
+          dropByLok.set(lok, {
+            lokasi: lok,
+            wilayah: t.wilayah || 'AW01',
+            latestTanggal: t.tanggal || new Date(),
+            d40: 0,
+            d60: 0,
+            d80: 0,
+            d100: 0,
+          });
+        }
+        const item = dropByLok.get(lok)!;
+        item.d40 += t.qtyD40 || 0;
+        item.d60 += t.qtyD60 || 0;
+        item.d80 += t.qtyD80 || 0;
+        item.d100 += t.qtyD100 || 0;
+        if (t.tanggal && (!item.latestTanggal || new Date(t.tanggal) > item.latestTanggal)) {
+          item.latestTanggal = new Date(t.tanggal);
+        }
+      }
+
+      for (const [lok, agg] of dropByLok.entries()) {
+        try {
+          const existing = await prisma.masterDataDropGorongGorong.findFirst({
+            where: { lokasi: lok },
+            orderBy: { tanggal: 'desc' },
+          });
+
+          if (!existing) {
+            await prisma.masterDataDropGorongGorong.create({
+              data: {
+                lokasi: lok,
+                wilayah: agg.wilayah,
+                tanggal: agg.latestTanggal,
+                diameter40: agg.d40,
+                diameter60: agg.d60,
+                diameter80: agg.d80,
+                diameter100: agg.d100,
+              },
+            });
+          }
+        } catch (e) {
+          console.warn(`[reconcileMasterData] Warning checking drop for ${lok}:`, e);
+        }
+      }
+    }
+
+    // 4. Reconcile PINDAH LOKASI -> MasterDataPindahGorongGorong
+    const pindahTrx = allTrx.filter((t) => (t.jenisTransaksi === 'DROP' && !!t.lokasiAsal) || (t.jenisTransaksi as string) === 'PINDAH_LOKASI');
+    for (const pt of pindahTrx) {
+      try {
+        const existingPindah = await prisma.masterDataPindahGorongGorong.findFirst({
+          where: {
+            lokasiPengirim: pt.lokasiAsal!,
+            lokasiPenerima: pt.lokasi,
+            diameter40: pt.qtyD40 || 0,
+            diameter60: pt.qtyD60 || 0,
+            diameter80: pt.qtyD80 || 0,
+            diameter100: pt.qtyD100 || 0,
+          },
+        });
+
+        if (!existingPindah) {
+          const mAsal = await prisma.masterStatusLokasi.findUnique({
+            where: { lokasi: pt.lokasiAsal! },
+          });
+          await prisma.masterDataPindahGorongGorong.create({
+            data: {
+              lokasiPengirim: pt.lokasiAsal!,
+              wilayahPengirim: mAsal?.strucPlant || 'AW01',
+              lokasiPenerima: pt.lokasi,
+              wilayahPenerima: pt.wilayah || 'AW01',
+              tanggal: pt.tanggal || new Date(),
+              diameter40: pt.qtyD40 || 0,
+              diameter60: pt.qtyD60 || 0,
+              diameter80: pt.qtyD80 || 0,
+              diameter100: pt.qtyD100 || 0,
+              keterangan: pt.keterangan || null,
+            },
+          });
+        }
+      } catch (e) {
+        console.warn(`[reconcileMasterData] Warning checking pindah for ${pt.lokasi}:`, e);
+      }
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.warn('[reconcileAllGorongGorongMasterData] Warning:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Service untuk menyinkronkan tabel database LokasiOrderGorongGorong secara dinamis
  * dari tabel Master:
  * 1. MasterDataOrderGorongGorong (lokasi, tanggal, order 40, 60, 80, 100)
  * 2. MasterDataDropGorongGorong (drop 40, 60, 80, 100, tglDrop 40)
- * 3. MasterStatusLokasi (strucPlant -> wilayah, luasNetto -> luas, status -> statusTanaman, umurBulan)
- * 4. MasterWaterlogging (dsmbkPlot -> dsmBk, dsmPlot -> dsmSt)
- * 5. Land (aplikasiTerakhir -> aktBk)
- * 6. MasterSapGorongGorong & TransaksiGorongGorong (pasang & transaksi tambahan)
+ * 3. MasterDataPasangManual (pasangMan 40, 60, 80, 100)
+ * 4. MasterStatusLokasi (strucPlant -> wilayah, luasNetto -> luas, status -> statusTanaman, umurBulan)
+ * 5. MasterWaterlogging (dsmbkPlot -> dsmBk, dsmPlot -> dsmSt)
+ * 6. Land (aplikasiTerakhir -> aktBk)
+ * 7. MasterSapGorongGorong & TransaksiGorongGorong (pasang & transaksi tambahan)
  */
 export async function syncLokasiOrderDatabase() {
   try {
+    // 1. Rekonsiliasi transaksi riwayat form input ke tabel master terlebih dahulu
+    await reconcileAllGorongGorongMasterData();
+
     const [
       statusLokasiList,
       waterloggingList,
@@ -21,6 +288,7 @@ export async function syncLokasiOrderDatabase() {
       masterOrders,
       masterDrops,
       masterPindahs,
+      masterPasangManuals,
     ] = await Promise.all([
       prisma.masterStatusLokasi.findMany({}),
       prisma.masterWaterlogging.findMany({}),
@@ -45,6 +313,7 @@ export async function syncLokasiOrderDatabase() {
       prisma.masterDataOrderGorongGorong.findMany({ orderBy: { tanggal: 'asc' } }),
       prisma.masterDataDropGorongGorong.findMany({ orderBy: { tanggal: 'asc' } }),
       prisma.masterDataPindahGorongGorong.findMany({ orderBy: { tanggal: 'asc' } }),
+      prisma.masterDataPasangManual.findMany({ orderBy: { tanggalPasangManual: 'asc' } }).catch(() => []),
     ]);
 
     const masterLokMap = new Map<string, any>();
@@ -230,11 +499,25 @@ export async function syncLokasiOrderDatabase() {
       }
     }
 
-    // Daftar lokasi resmi yang memiliki order/drop/pindah dari Master Data
+    // Pasang Manual Map (dari MasterDataPasangManual)
+    const pasangManualMap = new Map<string, { d40: number; d60: number; d80: number; d100: number }>();
+    for (const pm of masterPasangManuals) {
+      const k = pm.lokasi.trim().toUpperCase();
+      if (!pasangManualMap.has(k)) pasangManualMap.set(k, { d40: 0, d60: 0, d80: 0, d100: 0 });
+      const ent = pasangManualMap.get(k)!;
+      ent.d40 += pm.diameter40 || 0;
+      ent.d60 += pm.diameter60 || 0;
+      ent.d80 += pm.diameter80 || 0;
+      ent.d100 += pm.diameter100 || 0;
+    }
+
+    // Daftar lokasi resmi yang memiliki order/drop/pindah/pasang manual dari Master Data atau Transaksi
     const allCandidateLokasi = new Set<string>([
       ...orderMap.keys(),
       ...dropMap.keys(),
       ...pindahMap.keys(),
+      ...pasangManualMap.keys(),
+      ...trxMap.keys(),
     ]);
 
     const upsertPromises: any[] = [];
@@ -286,6 +569,12 @@ export async function syncLokasiOrderDatabase() {
       const pasangSapD80 = sp.d80;
       const pasangSapD100 = sp.d100;
 
+      const pm = pasangManualMap.get(lok) || { d40: 0, d60: 0, d80: 0, d100: 0 };
+      const totMan40 = Math.max(trxMan40, pm.d40);
+      const totMan60 = Math.max(trxMan60, pm.d60);
+      const totMan80 = Math.max(trxMan80, pm.d80);
+      const totMan100 = Math.max(trxMan100, pm.d100);
+
       // Status per Diameter
       const calcDiaStatus = (ordQ: number, drpQ: number, manQ: number, sapQ: number) => {
         const totPasang = Math.max(manQ, sapQ);
@@ -297,10 +586,10 @@ export async function syncLokasiOrderDatabase() {
         return '-';
       };
 
-      const statusD40 = calcDiaStatus(orderD40, dropD40, trxMan40, pasangSapD40);
-      const statusD60 = calcDiaStatus(orderD60, dropD60, trxMan60, pasangSapD60);
-      const statusD80 = calcDiaStatus(orderD80, dropD80, trxMan80, pasangSapD80);
-      const statusD100 = calcDiaStatus(orderD100, dropD100, trxMan100, pasangSapD100);
+      const statusD40 = calcDiaStatus(orderD40, dropD40, totMan40, pasangSapD40);
+      const statusD60 = calcDiaStatus(orderD60, dropD60, totMan60, pasangSapD60);
+      const statusD80 = calcDiaStatus(orderD80, dropD80, totMan80, pasangSapD80);
+      const statusD100 = calcDiaStatus(orderD100, dropD100, totMan100, pasangSapD100);
 
       // Status All mengikuti status per diameter
       const diaStatuses = [statusD40, statusD60, statusD80, statusD100];
@@ -358,28 +647,28 @@ export async function syncLokasiOrderDatabase() {
         dropD40,
         tglDropD40: tglDropD40Str,
         pindahD40,
-        pasangManD40: trxMan40,
+        pasangManD40: totMan40,
         pasangSapD40,
         statusD40,
 
         orderD60,
         dropD60,
         pindahD60,
-        pasangManD60: trxMan60,
+        pasangManD60: totMan60,
         pasangSapD60,
         statusD60,
 
         orderD80,
         dropD80,
         pindahD80,
-        pasangManD80: trxMan80,
+        pasangManD80: totMan80,
         pasangSapD80,
         statusD80,
 
         orderD100,
         dropD100,
         pindahD100,
-        pasangManD100: trxMan100,
+        pasangManD100: totMan100,
         pasangSapD100,
         statusD100,
       };

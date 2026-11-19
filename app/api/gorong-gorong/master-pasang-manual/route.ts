@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { reconcileAllGorongGorongMasterData } from '@/lib/gorongGorongSyncService';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    // Sinkronisasi otomatis dari transaksi riwayat jika ada data yang belum tercatat di tabel master
+    try {
+      await reconcileAllGorongGorongMasterData();
+    } catch (syncErr) {
+      console.warn('Reconcile warning on master pasang manual GET:', syncErr);
+    }
+
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search')?.trim().toUpperCase();
     const wilayah = searchParams.get('wilayah');

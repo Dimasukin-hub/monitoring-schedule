@@ -652,6 +652,22 @@ async function revertTransactionImpact(existing: any) {
           },
         });
       }
+    } else if (existing.jenisTransaksi === 'PASANG_MANUAL') {
+      const existingPasang = await prisma.masterDataPasangManual.findFirst({
+        where: { lokasi: existing.lokasi },
+        orderBy: { tanggalPasangManual: 'desc' },
+      });
+      if (existingPasang) {
+        await prisma.masterDataPasangManual.update({
+          where: { id: existingPasang.id },
+          data: {
+            diameter40: Math.max(0, (existingPasang.diameter40 || 0) - (existing.qtyD40 || 0)),
+            diameter60: Math.max(0, (existingPasang.diameter60 || 0) - (existing.qtyD60 || 0)),
+            diameter80: Math.max(0, (existingPasang.diameter80 || 0) - (existing.qtyD80 || 0)),
+            diameter100: Math.max(0, (existingPasang.diameter100 || 0) - (existing.qtyD100 || 0)),
+          },
+        });
+      }
     }
   } catch (err) {
     console.warn('Failed to revert MasterData:', err);
@@ -737,24 +753,6 @@ async function revertTransactionImpact(existing: any) {
           where: { lokasi: existing.lokasi },
           data: destRevert,
         });
-      }
-
-      if (existing.jenisTransaksi === 'PASANG_MANUAL') {
-        const existingPasang = await prisma.masterDataPasangManual.findFirst({
-          where: { lokasi: existing.lokasi },
-          orderBy: { tanggalPasangManual: 'desc' },
-        });
-        if (existingPasang) {
-          await prisma.masterDataPasangManual.update({
-            where: { id: existingPasang.id },
-            data: {
-              diameter40: Math.max(0, (existingPasang.diameter40 || 0) - (existing.qtyD40 || 0)),
-              diameter60: Math.max(0, (existingPasang.diameter60 || 0) - (existing.qtyD60 || 0)),
-              diameter80: Math.max(0, (existingPasang.diameter80 || 0) - (existing.qtyD80 || 0)),
-              diameter100: Math.max(0, (existingPasang.diameter100 || 0) - (existing.qtyD100 || 0)),
-            },
-          });
-        }
       }
     }
   } catch (err) {
