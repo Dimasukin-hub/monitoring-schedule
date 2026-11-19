@@ -578,15 +578,15 @@ export default function FormOrderGorongGorongView() {
     };
 
     return (
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400">
           {dayNames.map((n) => (
-            <div key={`edit-dn-${n}`} className="py-1">{n}</div>
+            <div key={`edit-dn-${n}`} className="py-0.5">{n}</div>
           ))}
         </div>
         <div className="grid grid-cols-7 gap-1">
           {blanks.map((_, i) => (
-            <div key={`edit-blank-${i}`} className="p-1.5" />
+            <div key={`edit-blank-${i}`} className="p-1" />
           ))}
           {days.map((d) => {
             const selected = isCurrentSelected(d);
@@ -599,7 +599,7 @@ export default function FormOrderGorongGorongView() {
                   setEditTanggal(newDate);
                   setIsEditCalendarOpen(false);
                 }}
-                className={`py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                className={`py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   selected
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -1773,10 +1773,10 @@ export default function FormOrderGorongGorongView() {
 
       {/* MODAL EDIT TRANSAKSI (KHUSUS SUPER ADMIN & ADMIN) */}
       {editingTrx && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full relative animate-in zoom-in-95 duration-200 my-auto">
             {/* Header Modal */}
-            <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+            <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50 rounded-t-2xl">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400">
                   <Pencil className="w-4 h-4" />
@@ -1793,7 +1793,7 @@ export default function FormOrderGorongGorongView() {
               <button
                 type="button"
                 onClick={() => setEditingTrx(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 title="Tutup"
               >
                 <X className="w-4 h-4" />
@@ -1801,7 +1801,7 @@ export default function FormOrderGorongGorongView() {
             </div>
 
             {/* Form Edit */}
-            <form onSubmit={handleSaveEdit} className="p-4 sm:p-5 space-y-4 max-h-[80vh] overflow-y-auto scrollbar-thin">
+            <form onSubmit={handleSaveEdit} className="p-4 sm:p-5 space-y-4">
               {/* 1. Pilih Jenis Transaksi (Posisi Paling Atas) */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
@@ -2217,7 +2217,7 @@ export default function FormOrderGorongGorongView() {
                       max={999}
                       value={editQtyD40}
                       onChange={(e) => setEditQtyD40(e.target.value === '' ? 0 : e.target.value)}
-                      className="w-full text-center font-mono font-bold text-sm bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 rounded-lg py-1 px-1 focus:ring-2 focus:ring-emerald-500 outline-none"
+                      className="w-full text-center font-mono font-bold text-sm bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 rounded-lg py-1 px-1 focus:ring-2 focus:ring-emerald-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
 
@@ -2232,7 +2232,7 @@ export default function FormOrderGorongGorongView() {
                       max={999}
                       value={editQtyD60}
                       onChange={(e) => setEditQtyD60(e.target.value === '' ? 0 : e.target.value)}
-                      className="w-full text-center font-mono font-bold text-sm bg-white dark:bg-slate-900 border border-blue-300 dark:border-blue-700 rounded-lg py-1 px-1 focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="w-full text-center font-mono font-bold text-sm bg-white dark:bg-slate-900 border border-blue-300 dark:border-blue-700 rounded-lg py-1 px-1 focus:ring-2 focus:ring-blue-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
 
@@ -2247,7 +2247,7 @@ export default function FormOrderGorongGorongView() {
                       max={999}
                       value={editQtyD80}
                       onChange={(e) => setEditQtyD80(e.target.value === '' ? 0 : e.target.value)}
-                      className="w-full text-center font-mono font-bold text-sm bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 rounded-lg py-1 px-1 focus:ring-2 focus:ring-amber-500 outline-none"
+                      className="w-full text-center font-mono font-bold text-sm bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 rounded-lg py-1 px-1 focus:ring-2 focus:ring-amber-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
 
@@ -2262,7 +2262,7 @@ export default function FormOrderGorongGorongView() {
                       max={999}
                       value={editQtyD100}
                       onChange={(e) => setEditQtyD100(e.target.value === '' ? 0 : e.target.value)}
-                      className="w-full text-center font-mono font-bold text-sm bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 rounded-lg py-1 px-1 focus:ring-2 focus:ring-purple-500 outline-none"
+                      className="w-full text-center font-mono font-bold text-sm bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 rounded-lg py-1 px-1 focus:ring-2 focus:ring-purple-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
                 </div>
