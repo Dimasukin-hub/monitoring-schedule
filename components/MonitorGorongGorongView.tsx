@@ -2125,7 +2125,7 @@ export default function MonitorGorongGorongView() {
                       className="w-2.5 h-2.5 rounded-xs shrink-0"
                       style={{ backgroundColor: isHidden ? '#94a3b8' : it.color }}
                     />
-                    <span className={isHidden ? 'line-through' : ''}>{it.label}</span>
+                    <span>{it.label}</span>
                   </span>
                 );
               })}
