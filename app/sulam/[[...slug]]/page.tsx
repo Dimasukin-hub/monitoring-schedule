@@ -20,20 +20,20 @@ import {
 } from '@/lib/portalRoutes';
 
 export default function SulamPage() {
-  const { user, isAdmin, isSuperAdmin, isUserPlanting, isUserWilayah, isLoading: authLoading } = useAuth();
+  const { user, isAdmin, isSuperAdmin, isUserPlanting, isUserWilayah, isKepalaWilayah, isLoading: authLoading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
-  // Guard login khusus Super Admin
+  // Guard login
   useEffect(() => {
-    if (!authLoading && (!user || !isSuperAdmin)) {
+    if (!authLoading && !user) {
       router.replace(
-        `/login?role=super_admin&callbackUrl=${encodeURIComponent(
-          pathname || SULAM_ROUTES.monitor
+        `/login?callbackUrl=${encodeURIComponent(
+          pathname || SULAM_ROUTES.formOrder
         )}`
       );
     }
-  }, [authLoading, user, isSuperAdmin, pathname, router]);
+  }, [authLoading, user, pathname, router]);
 
   // Inisialisasi awal berdasarkan URL saat ini
   const initial = parseSulamPathname(pathname || '/sulam');
@@ -45,8 +45,8 @@ export default function SulamPage() {
     if (!pathname) return;
     const parsed = parseSulamPathname(pathname);
 
-    // Jika User Wilayah mencoba membuka monitor atau master data, arahkan ke form order
-    if (!authLoading && user && !isAdmin && !isUserPlanting && isUserWilayah) {
+    // 1. Jika User Wilayah (Mandor): hanya boleh akses form order sulam
+    if (!authLoading && user && !isAdmin && !isSuperAdmin && !isUserPlanting && !isKepalaWilayah && isUserWilayah) {
       if (
         pathname === '/sulam' ||
         pathname === SULAM_ROUTES.monitor ||
@@ -56,6 +56,24 @@ export default function SulamPage() {
       ) {
         setActiveTab('form_order_sulam');
         router.replace(SULAM_ROUTES.formOrder);
+        return;
+      }
+    }
+
+    // 2. Jika User Planting: default ke form order sulam jika membuka root /sulam
+    if (!authLoading && user && isUserPlanting && !isAdmin && !isSuperAdmin) {
+      if (pathname === '/sulam' || parsed.activeTab === 'user_management') {
+        setActiveTab('form_order_sulam');
+        router.replace(SULAM_ROUTES.formOrder);
+        return;
+      }
+    }
+
+    // 3. Jika Kepala Wilayah: dapat akses semua menu sulam kecuali manajemen user
+    if (!authLoading && user && isKepalaWilayah) {
+      if (parsed.activeTab === 'user_management') {
+        setActiveTab('monitor_sulam');
+        router.replace(SULAM_ROUTES.monitor);
         return;
       }
     }
@@ -71,7 +89,7 @@ export default function SulamPage() {
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('ggf_active_portal', pathname);
     }
-  }, [pathname, router, authLoading, user, isAdmin, isUserPlanting, isUserWilayah]);
+  }, [pathname, router, authLoading, user, isAdmin, isSuperAdmin, isUserPlanting, isUserWilayah, isKepalaWilayah]);
 
   // Dukung tombol Back / Forward browser tanpa reload
   useEffect(() => {
@@ -108,14 +126,14 @@ export default function SulamPage() {
     }
   };
 
-  // Tampilan loading / pemeriksaan hak akses sebelum diarahkan ke login super admin
-  if (authLoading || !user || !isSuperAdmin) {
+  // Tampilan loading / pemeriksaan hak akses
+  if (authLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
           <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-            Memeriksa hak akses Super Administrator...
+            Memeriksa hak akses pengguna...
           </span>
         </div>
       </div>

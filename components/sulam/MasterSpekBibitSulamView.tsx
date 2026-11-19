@@ -15,8 +15,10 @@ import {
   XCircle,
   FileText,
 } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
 
 export default function MasterSpekBibitSulamView() {
+  const { canUploadMasterData } = useAuth();
   const [dataList, setDataList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
@@ -132,21 +134,25 @@ export default function MasterSpekBibitSulamView() {
         </div>
 
         <div className="flex items-center gap-2">
-          <a
-            href="/api/sulam/master-spek/template"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white backdrop-blur-xs transition-colors border border-white/20 cursor-pointer"
-          >
-            <FileText className="w-3.5 h-3.5" />
-            <span>Unduh Template</span>
-          </a>
-          <button
-            type="button"
-            onClick={() => setIsUploadOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-white text-emerald-800 hover:bg-emerald-50 transition-colors shadow-xs cursor-pointer"
-          >
-            <Upload className="w-3.5 h-3.5" />
-            <span>Unggah Excel</span>
-          </button>
+          {canUploadMasterData && (
+            <a
+              href="/api/sulam/master-spek/template"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white backdrop-blur-xs transition-colors border border-white/20 cursor-pointer"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Unduh Template</span>
+            </a>
+          )}
+          {canUploadMasterData && (
+            <button
+              type="button"
+              onClick={() => setIsUploadOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-white text-emerald-800 hover:bg-emerald-50 transition-colors shadow-xs cursor-pointer"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Unggah Excel</span>
+            </button>
+          )}
           <a
             href={`/api/sulam/master-spek/export${search ? `?search=${encodeURIComponent(search)}` : ''}`}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-800/60 hover:bg-emerald-800/80 text-white transition-colors border border-emerald-400/30 cursor-pointer"

@@ -53,7 +53,7 @@ interface GeneratedFormDoc {
 }
 
 export default function FormOrderSulamView() {
-  const { user, isAdmin, isUserPlanting, isUserWilayah } = useAuth();
+  const { user, isAdmin, isUserPlanting, isUserWilayah, isKepalaWilayah, roleDisplayName } = useAuth();
 
   // Form states
   const [lokasiList, setLokasiList] = useState<{ lokasi: string; wilayah: string | null }[]>([]);
@@ -286,6 +286,7 @@ export default function FormOrderSulamView() {
           id: ticketId,
           status: nextStatus,
           approverName: user?.name || user?.email || 'User Planting',
+          approverRole: user?.role || (isAdmin ? 'admin' : 'user_planting'),
         }),
       });
       const json = await res.json();
@@ -413,7 +414,7 @@ export default function FormOrderSulamView() {
         {/* Role badge */}
         <div className="flex items-center gap-2 self-start sm:self-auto px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
           <User className="w-3.5 h-3.5" />
-          <span>Peran: {isAdmin ? 'Administrator' : isUserPlanting ? 'User Planting (Approver)' : 'User Wilayah (Pemohon)'}</span>
+          <span>Peran: {roleDisplayName || (isAdmin ? 'Administrator' : isUserPlanting ? 'User Planting (Approver)' : 'User Wilayah (Pemohon)')}</span>
         </div>
       </div>
 
@@ -451,18 +452,19 @@ export default function FormOrderSulamView() {
         </div>
       </div>
 
-      {/* 1. BAGIAN FORM INPUT (DI POSISI ATAS) */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 gap-2">
-          <div>
-            <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <FileText className="w-5 h-5 text-emerald-600" />
-              <span>Input Form Order Sulam (User Wilayah)</span>
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Isi data pengajuan bibit sulam di bawah ini dan cetak formulir dokumen resmi F/NS/PLT/PL.06
-            </p>
-          </div>
+      {/* 1. BAGIAN FORM INPUT (DI POSISI ATAS - Disembunyikan untuk User Planting) */}
+      {!isUserPlanting && (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 gap-2">
+            <div>
+              <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <FileText className="w-5 h-5 text-emerald-600" />
+                <span>Input Form Order Sulam (User Wilayah)</span>
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Isi data pengajuan bibit sulam di bawah ini dan cetak formulir dokumen resmi F/NS/PLT/PL.06
+              </p>
+            </div>
 
           {isLookupLoading && (
             <span className="text-xs text-emerald-600 flex items-center gap-1.5 font-bold bg-emerald-50 dark:bg-emerald-950/50 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800 w-fit">
@@ -752,6 +754,7 @@ export default function FormOrderSulamView() {
           </div>
         </form>
       </div>
+      )}
 
       {/* 2. BAGIAN DAFTAR PENGAJUAN & APPROVAL TIKET (DI POSISI BAWAH) */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">

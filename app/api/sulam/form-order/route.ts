@@ -172,11 +172,37 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PATCH: Update status formulir / Approval oleh User Planting
+// PATCH: Update status formulir / Approval oleh User Planting & Admin
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, status, approverName, catatan } = body;
+    const { id, status, approverName, approverRole, catatan } = body;
+
+    // Verifikasi Hak Akses: Hanya User Planting dan Administrator yang berhak melakukan approval / workflow update
+    const cookieHeader = request.headers.get('cookie') || '';
+    const match = cookieHeader.match(/ggf_session=([^;]+)/);
+    let sessionRole = '';
+    if (match) {
+      try {
+        const decoded = decodeURIComponent(match[1]);
+        const sessUser = JSON.parse(decoded);
+        sessionRole = sessUser.role || '';
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    const effectiveRole = sessionRole || approverRole || '';
+    const allowedRoles = ['user_planting', 'admin', 'super_admin'];
+    if (effectiveRole && !allowedRoles.includes(effectiveRole)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Akses ditolak. Hanya User Planting dan Administrator yang berhak menyetujui atau memperbarui status alur kerja order sulam.',
+        },
+        { status: 403 }
+      );
+    }
 
     if (!id) {
       return NextResponse.json(

@@ -264,6 +264,7 @@ export default function Header({
     isUserFE,
     isUserWilayah,
     isUserPlanting,
+    isKepalaWilayah,
     canAccessMonitor,
     canAccessMasterData,
     roleDisplayName,
@@ -296,13 +297,13 @@ export default function Header({
       if (currentPortal === 'gorong_gorong') {
         return Boolean(user && canAccessMasterData);
       }
-      return Boolean(user && (isAdmin || (currentPortal === 'sulam' && isUserPlanting)));
+      return Boolean(user && (isAdmin || isKepalaWilayah || (currentPortal === 'sulam' && isUserPlanting)));
     }
     if (currentPortal === 'gorong_gorong' && item.id === 'monitor_gorong_gorong') {
       return Boolean(user && canAccessMonitor);
     }
     if (currentPortal === 'sulam' && item.id === 'monitor_sulam') {
-      if (user?.role === 'user_wilayah' || (!isAdmin && !isUserPlanting)) {
+      if (isUserWilayah || (!isAdmin && !isUserPlanting && !isKepalaWilayah)) {
         return false;
       }
     }

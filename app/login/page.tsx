@@ -19,7 +19,7 @@ import {
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, user, isAdmin, isSuperAdmin, isManagement, isKepalaWilayah } = useAuth();
+  const { login, user, isAdmin, isSuperAdmin, isManagement, isKepalaWilayah, isMandorWilayah, isUserWilayah, isUserPlanting } = useAuth();
 
   // Form States Login
   const [username, setUsername] = useState('');
@@ -51,10 +51,23 @@ function LoginContent() {
   // Redirect jika sudah login dan berhak mengakses targetUrl
   useEffect(() => {
     if (user) {
+      // Mandor Wilayah dan User Planting langsung diarahkan ke form order sulam
+      const isWilayahOrPlanting =
+        isUserPlanting ||
+        isUserWilayah ||
+        isMandorWilayah ||
+        user.role === 'user_planting' ||
+        user.role === 'user_wilayah' ||
+        user.role === 'user';
+
+      if (isWilayahOrPlanting) {
+        router.push('/sulam/form-order-sulam');
+        return;
+      }
+
       let finalTarget = targetUrl;
       const isLabitaTarget = finalTarget.startsWith('/labita');
-      const isSulamTarget = finalTarget.startsWith('/sulam');
-      if ((isLabitaTarget || isSulamTarget) && !isSuperAdmin) {
+      if (isLabitaTarget && !isSuperAdmin) {
         setErrorMsg('Akses ditolak. Modul ini khusus untuk Super Administrator.');
         return;
       }
@@ -65,7 +78,7 @@ function LoginContent() {
       }
       router.push(finalTarget);
     }
-  }, [user, isAdmin, isSuperAdmin, isManagement, isKepalaWilayah, router, targetUrl]);
+  }, [user, isAdmin, isSuperAdmin, isManagement, isKepalaWilayah, isMandorWilayah, isUserWilayah, isUserPlanting, router, targetUrl]);
 
   // Handle Submit Login Langsung
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -81,7 +94,20 @@ function LoginContent() {
     if (res.success) {
       setSuccessMsg('Login berhasil! Mengalihkan ke sistem...');
       setTimeout(() => {
-        router.push(targetUrl);
+        let dest = targetUrl;
+        const stored = typeof window !== 'undefined' ? localStorage.getItem('ggf_auth_user') : null;
+        let storedRole = '';
+        if (stored) {
+          try {
+            storedRole = JSON.parse(stored).role;
+          } catch (e) {}
+        }
+        if (storedRole === 'user_planting' || storedRole === 'user_wilayah' || storedRole === 'user') {
+          dest = '/sulam/form-order-sulam';
+        } else if (!dest || dest === '/') {
+          dest = '/gorong-gorong/monitor-gorong-gorong';
+        }
+        router.push(dest);
       }, 350);
     } else {
       setErrorMsg(res.message || 'Username atau kata sandi tidak sesuai.');
