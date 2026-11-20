@@ -24,8 +24,18 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const filterYear = searchParams.get('year') || '2026';
-    const filterWilayah = searchParams.get('wilayah') || '';
+    const now = new Date();
+    const currentYear = searchParams.get('year') ? parseInt(searchParams.get('year')!, 10) : now.getFullYear();
+    const currentMonth = searchParams.get('month') ? parseInt(searchParams.get('month')!, 10) - 1 : now.getMonth();
+
+    const isCurrentMonth = (d: Date | string | null): boolean => {
+      if (!d) return false;
+      const dateObj = new Date(d);
+      if (isNaN(dateObj.getTime())) return false;
+      return dateObj.getFullYear() === currentYear && dateObj.getMonth() === currentMonth;
+    };
+
+    const startOfCurrentMonth = new Date(currentYear, currentMonth, 1);
 
     // Ambil data dari tabel terkait
     const [allSap, allManual, allDrops, allOrders] = await Promise.all([
@@ -50,7 +60,7 @@ export async function GET(request: NextRequest) {
     }
     if (totalOrderPcs === 0) totalOrderPcs = 1; // Cegah div/0
 
-    // 2. Data Tabel Verifikasi Pasang Manual vs SAP (per Tanggal & Lokasi)
+    // 2. Data Tabel Verifikasi Pasang Manual vs SAP (per Tanggal & Lokasi Khusus Bulan Ini)
     // Map key: `${dateStr}_${lokasi}`
     const tableMap = new Map<string, {
       rawDate: string;
@@ -76,9 +86,9 @@ export async function GET(request: NextRequest) {
 
     const formatDateKey = (d: Date) => d.toISOString().slice(0, 10);
 
-    // Masukkan Pasang Manual
+    // Masukkan Pasang Manual (Khusus Bulan Ini)
     for (const m of allManual) {
-      if (!m.tanggalPasangManual) continue;
+      if (!m.tanggalPasangManual || !isCurrentMonth(m.tanggalPasangManual)) continue;
       const dObj = new Date(m.tanggalPasangManual);
       const rawDate = formatDateKey(dObj);
       const lok = m.lokasi.trim().toUpperCase();
@@ -111,7 +121,7 @@ export async function GET(request: NextRequest) {
     let totalSapAll = 0;
     for (const s of allSap) {
       totalSapAll += (s.qty || 0);
-      if (!s.tanggalRealisasi) continue;
+      if (!s.tanggalRealisasi || !isCurrentMonth(s.tanggalRealisasi)) continue;
       const dObj = new Date(s.tanggalRealisasi);
       const rawDate = formatDateKey(dObj);
       const lok = s.lokasi.trim().toUpperCase();
@@ -156,17 +166,27 @@ export async function GET(request: NextRequest) {
       })
       .sort((a, b) => b.rawDate.localeCompare(a.rawDate) || a.lokasi.localeCompare(b.lokasi));
 
-    // 3. Data Grafik Harian % Kedatangan (Batang: Drop harian, Garis: % Kedatangan kumulatif)
+    // 3. Data Grafik Harian % Kedatangan (Batang: Drop harian bulan ini, Garis: % Kedatangan kumulatif)
+    let totalAllDrop = 0;
+    let priorDrop = 0;
     const dropByDateMap = new Map<string, number>();
+
     for (const d of allDrops) {
       if (!d.tanggal) continue;
-      const k = formatDateKey(new Date(d.tanggal));
+      const dObj = new Date(d.tanggal);
       const tot = (d.diameter40 || 0) + (d.diameter60 || 0) + (d.diameter80 || 0) + (d.diameter100 || 0);
-      dropByDateMap.set(k, (dropByDateMap.get(k) || 0) + tot);
+      totalAllDrop += tot;
+
+      if (dObj < startOfCurrentMonth) {
+        priorDrop += tot;
+      } else if (isCurrentMonth(dObj)) {
+        const k = formatDateKey(dObj);
+        dropByDateMap.set(k, (dropByDateMap.get(k) || 0) + tot);
+      }
     }
 
     const sortedDropDates = Array.from(dropByDateMap.keys()).sort();
-    let cumDrop = 0;
+    let cumDrop = priorDrop;
     const dailyKedatangan = sortedDropDates.map((dateStr) => {
       const dropQty = dropByDateMap.get(dateStr) || 0;
       cumDrop += dropQty;
@@ -183,18 +203,28 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // 4. Data Grafik Harian % Pemasangan (Batang: Pasang Manual harian, Garis: % Pemasangan kumulatif thdp drop)
+    // 4. Data Grafik Harian % Pemasangan (Batang: Pasang Manual harian bulan ini, Garis: % Pemasangan kumulatif thdp drop)
+    let totalAllPasangManual = 0;
+    let priorPasangManual = 0;
     const pasangManualByDateMap = new Map<string, number>();
+
     for (const m of allManual) {
       if (!m.tanggalPasangManual) continue;
-      const k = formatDateKey(new Date(m.tanggalPasangManual));
+      const dObj = new Date(m.tanggalPasangManual);
       const tot = (m.diameter40 || 0) + (m.diameter60 || 0) + (m.diameter80 || 0) + (m.diameter100 || 0);
-      pasangManualByDateMap.set(k, (pasangManualByDateMap.get(k) || 0) + tot);
+      totalAllPasangManual += tot;
+
+      if (dObj < startOfCurrentMonth) {
+        priorPasangManual += tot;
+      } else if (isCurrentMonth(dObj)) {
+        const k = formatDateKey(dObj);
+        pasangManualByDateMap.set(k, (pasangManualByDateMap.get(k) || 0) + tot);
+      }
     }
 
     const sortedPasangDates = Array.from(pasangManualByDateMap.keys()).sort();
-    let cumPasangManual = 0;
-    const totalDropPcs = cumDrop > 0 ? cumDrop : 1;
+    let cumPasangManual = priorPasangManual;
+    const totalDropPcs = totalAllDrop > 0 ? totalAllDrop : 1;
 
     const dailyPemasangan = sortedPasangDates.map((dateStr) => {
       const pasangQty = pasangManualByDateMap.get(dateStr) || 0;
@@ -215,11 +245,11 @@ export async function GET(request: NextRequest) {
     // KPI Summary
     const summary = {
       totalOrder: totalOrderPcs,
-      totalDrop: cumDrop,
-      totalPasangManual: cumPasangManual,
+      totalDrop: totalAllDrop,
+      totalPasangManual: totalAllPasangManual,
       totalPasangSap: totalSapAll, // Sesuai permintaan: Total Terpasang SAP
-      pctKedatangan: parseFloat(((cumDrop / totalOrderPcs) * 100).toFixed(1)),
-      pctPemasangan: parseFloat(((cumPasangManual / totalDropPcs) * 100).toFixed(1)),
+      pctKedatangan: parseFloat(((totalAllDrop / totalOrderPcs) * 100).toFixed(1)),
+      pctPemasangan: parseFloat(((totalAllPasangManual / totalDropPcs) * 100).toFixed(1)),
     };
 
     return NextResponse.json({

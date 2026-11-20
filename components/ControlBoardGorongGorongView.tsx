@@ -120,6 +120,12 @@ export default function ControlBoardGorongGorongView() {
   const [dailyKedatangan, setDailyKedatangan] = useState<DailyKedatanganItem[]>([]);
   const [dailyPemasangan, setDailyPemasangan] = useState<DailyPemasanganItem[]>([]);
 
+  // Legend Toggle States (Redup bila non-aktif, tanpa coret garis)
+  const [showDrop, setShowDrop] = useState<boolean>(true);
+  const [showPctKedatangan, setShowPctKedatangan] = useState<boolean>(true);
+  const [showPasangManual, setShowPasangManual] = useState<boolean>(true);
+  const [showPctPemasangan, setShowPctPemasangan] = useState<boolean>(true);
+
   // Filter & Search
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'Match' | 'Check'>('ALL');
@@ -184,8 +190,8 @@ export default function ControlBoardGorongGorongView() {
               Control Board Gorong-Gorong PG1
             </h1>
           </div>
-          <p className="text-xs text-blue-100/80 max-w-2xl leading-relaxed">
-            Summary harian verifikasi Pasang Manual vs Pasang SAP, serta monitoring tren kedatangan drop dan pemasangan gorong-gorong.
+          <p className="text-xs text-blue-100/80 max-w-4xl leading-relaxed">
+            Summary harian verifikasi Pasang Manual vs Pasang SAP, serta monitoring tren kedatangan drop dan pemasangan <span className="whitespace-nowrap">gorong-gorong.</span>
           </p>
         </div>
       </div>
@@ -319,7 +325,7 @@ export default function ControlBoardGorongGorongView() {
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="Cari lokasi / tanggal..."
+                placeholder="Cari Lokasi"
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -356,30 +362,30 @@ export default function ControlBoardGorongGorongView() {
 
               {/* Row 2 Header: Diameter sizes */}
               <tr className="border-t border-slate-200/70 dark:border-slate-700/70 text-[11px]">
-                <th colSpan={2} className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 text-emerald-700 dark:text-emerald-400 bg-emerald-500/10">
+                <th colSpan={2} className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-950/40">
                   Ø40
                 </th>
-                <th colSpan={2} className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 text-blue-700 dark:text-blue-400 bg-blue-500/10">
+                <th colSpan={2} className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 text-blue-700 dark:text-blue-400 bg-blue-500/10 dark:bg-blue-950/40">
                   Ø60
                 </th>
-                <th colSpan={2} className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 text-amber-700 dark:text-amber-400 bg-amber-500/10">
+                <th colSpan={2} className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 text-amber-700 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-950/40">
                   Ø80
                 </th>
-                <th colSpan={2} className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 text-purple-700 dark:text-purple-400 bg-purple-500/10">
+                <th colSpan={2} className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 text-purple-700 dark:text-purple-400 bg-purple-500/10 dark:bg-purple-950/40">
                   Ø100
                 </th>
               </tr>
 
               {/* Row 3 Header: Manual vs SAP */}
               <tr className="border-t border-slate-200/70 dark:border-slate-700/70 text-[10px] text-slate-500 dark:text-slate-400 font-semibold">
-                <th className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 bg-emerald-500/5">Manual</th>
-                <th className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 bg-emerald-500/5">SAP</th>
-                <th className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 bg-blue-500/5">Manual</th>
-                <th className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 bg-blue-500/5">SAP</th>
-                <th className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 bg-amber-500/5">Manual</th>
-                <th className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 bg-amber-500/5">SAP</th>
-                <th className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 bg-purple-500/5">Manual</th>
-                <th className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 bg-purple-500/5">SAP</th>
+                <th className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 bg-emerald-500/5 dark:bg-emerald-950/20 text-slate-600 dark:text-slate-300">Manual</th>
+                <th className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 bg-emerald-500/5 dark:bg-emerald-950/20 text-slate-600 dark:text-slate-300">SAP</th>
+                <th className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 bg-blue-500/5 dark:bg-blue-950/20 text-slate-600 dark:text-slate-300">Manual</th>
+                <th className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 bg-blue-500/5 dark:bg-blue-950/20 text-slate-600 dark:text-slate-300">SAP</th>
+                <th className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 bg-amber-500/5 dark:bg-amber-950/20 text-slate-600 dark:text-slate-300">Manual</th>
+                <th className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 bg-amber-500/5 dark:bg-amber-950/20 text-slate-600 dark:text-slate-300">SAP</th>
+                <th className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 bg-purple-500/5 dark:bg-purple-950/20 text-slate-600 dark:text-slate-300">Manual</th>
+                <th className="px-2 py-1 border-r border-slate-200 dark:border-slate-700 bg-purple-500/5 dark:bg-purple-950/20 text-slate-600 dark:text-slate-300">SAP</th>
               </tr>
             </thead>
 
@@ -411,34 +417,34 @@ export default function ControlBoardGorongGorongView() {
                       </td>
 
                       {/* Ø40 Manual & SAP */}
-                      <td className={`px-2 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center ${row.d40Manual !== row.d40Sap ? 'text-amber-600 font-bold bg-amber-50/30' : ''}`}>
+                      <td className={`px-2 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center font-mono font-bold ${row.d40Manual !== row.d40Sap ? 'text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-950/40' : 'text-slate-800 dark:text-slate-100'}`}>
                         {row.d40Manual}
                       </td>
-                      <td className={`px-2 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center ${row.d40Manual !== row.d40Sap ? 'text-amber-600 font-bold bg-amber-50/30' : ''}`}>
+                      <td className={`px-2 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center font-mono font-bold ${row.d40Manual !== row.d40Sap ? 'text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-950/40' : 'text-slate-800 dark:text-slate-100'}`}>
                         {row.d40Sap}
                       </td>
 
                       {/* Ø60 Manual & SAP */}
-                      <td className={`px-2 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center ${row.d60Manual !== row.d60Sap ? 'text-amber-600 font-bold bg-amber-50/30' : ''}`}>
+                      <td className={`px-2 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center font-mono font-bold ${row.d60Manual !== row.d60Sap ? 'text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-950/40' : 'text-slate-800 dark:text-slate-100'}`}>
                         {row.d60Manual}
                       </td>
-                      <td className={`px-2 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center ${row.d60Manual !== row.d60Sap ? 'text-amber-600 font-bold bg-amber-50/30' : ''}`}>
+                      <td className={`px-2 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center font-mono font-bold ${row.d60Manual !== row.d60Sap ? 'text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-950/40' : 'text-slate-800 dark:text-slate-100'}`}>
                         {row.d60Sap}
                       </td>
 
                       {/* Ø80 Manual & SAP */}
-                      <td className={`px-2 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center ${row.d80Manual !== row.d80Sap ? 'text-amber-600 font-bold bg-amber-50/30' : ''}`}>
+                      <td className={`px-2 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center font-mono font-bold ${row.d80Manual !== row.d80Sap ? 'text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-950/40' : 'text-slate-800 dark:text-slate-100'}`}>
                         {row.d80Manual}
                       </td>
-                      <td className={`px-2 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center ${row.d80Manual !== row.d80Sap ? 'text-amber-600 font-bold bg-amber-50/30' : ''}`}>
+                      <td className={`px-2 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center font-mono font-bold ${row.d80Manual !== row.d80Sap ? 'text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-950/40' : 'text-slate-800 dark:text-slate-100'}`}>
                         {row.d80Sap}
                       </td>
 
                       {/* Ø100 Manual & SAP */}
-                      <td className={`px-2 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center ${row.d100Manual !== row.d100Sap ? 'text-amber-600 font-bold bg-amber-50/30' : ''}`}>
+                      <td className={`px-2 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center font-mono font-bold ${row.d100Manual !== row.d100Sap ? 'text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-950/40' : 'text-slate-800 dark:text-slate-100'}`}>
                         {row.d100Manual}
                       </td>
-                      <td className={`px-2 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center ${row.d100Manual !== row.d100Sap ? 'text-amber-600 font-bold bg-amber-50/30' : ''}`}>
+                      <td className={`px-2 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center font-mono font-bold ${row.d100Manual !== row.d100Sap ? 'text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-950/40' : 'text-slate-800 dark:text-slate-100'}`}>
                         {row.d100Sap}
                       </td>
 
@@ -474,28 +480,28 @@ export default function ControlBoardGorongGorongView() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between pt-2 text-xs text-slate-500">
-            <span>
-              Menampilkan {(currentPage - 1) * pageSize + 1} -{' '}
-              {Math.min(currentPage * pageSize, filteredTableData.length)} dari {filteredTableData.length} baris
-            </span>
-            <div className="flex items-center gap-1.5">
+          <div className="flex items-center justify-between pt-2 text-xs text-slate-600 dark:text-slate-400 font-semibold">
+            <div>
+              Halaman {currentPage} dari {totalPages}
+            </div>
+            <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs font-semibold text-xs text-slate-700 dark:text-slate-300"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>Prev</span>
               </button>
-              <span className="font-semibold px-2">
-                {currentPage} / {totalPages}
-              </span>
               <button
+                type="button"
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs font-semibold text-xs text-slate-700 dark:text-slate-300"
               >
-                <ChevronRight className="w-4 h-4" />
+                <span>Next</span>
+                <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
@@ -506,7 +512,7 @@ export default function ControlBoardGorongGorongView() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Grafik 1: % Kedatangan Harian */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-2xs space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
                 <span className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
@@ -517,8 +523,39 @@ export default function ControlBoardGorongGorongView() {
                 </h3>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Batang: Volume Drop Harian (pcs) • Garis: Progres % Kedatangan Kumulatif
+                Batang: Drop • Garis: % Kedatangan
               </p>
+            </div>
+
+            {/* Tombol Legenda Sejajar Judul Grafik */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowDrop((prev) => !prev)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                  showDrop
+                    ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 shadow-2xs'
+                    : 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-40 hover:opacity-70'
+                }`}
+                title="Klik untuk tampilkan/sembunyikan data Drop"
+              >
+                <span className={`w-2.5 h-2.5 rounded-xs ${showDrop ? 'bg-blue-500' : 'bg-slate-400'}`} />
+                <span>Drop</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowPctKedatangan((prev) => !prev)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                  showPctKedatangan
+                    ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 shadow-2xs'
+                    : 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-40 hover:opacity-70'
+                }`}
+                title="Klik untuk tampilkan/sembunyikan data % Kedatangan"
+              >
+                <span className={`w-2.5 h-0.5 rounded-full ${showPctKedatangan ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                <span>% Kedatangan</span>
+              </button>
             </div>
           </div>
 
@@ -564,35 +601,34 @@ export default function ControlBoardGorongGorongView() {
                       fontSize: '11px',
                     }}
                     formatter={(val: any, name: any) => {
-                      if (name === 'dropPcs') return [`${val} pcs`, 'Drop Harian'];
-                      if (name === 'pctKedatangan') return [`${val}%`, '% Kedatangan'];
+                      if (name === 'dropPcs' || name === 'Drop') return [`${val} pcs`, 'Drop'];
+                      if (name === 'pctKedatangan' || name === '% Kedatangan') return [`${val}%`, '% Kedatangan'];
                       return [val, name];
                     }}
                   />
-                  <Legend
-                    verticalAlign="top"
-                    align="right"
-                    wrapperStyle={{ fontSize: '11px', paddingBottom: '10px' }}
-                  />
-                  <Bar
-                    yAxisId="left"
-                    dataKey="dropPcs"
-                    name="Drop Harian (pcs)"
-                    fill="#3b82f6"
-                    radius={[6, 6, 0, 0]}
-                    maxBarSize={45}
-                    label={renderCustomBarLabel}
-                  />
-                  <Line
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="pctKedatangan"
-                    name="% Kedatangan"
-                    stroke="#10b981"
-                    strokeWidth={2.5}
-                    dot={{ fill: '#10b981', r: 4, strokeWidth: 2, stroke: '#ffffff' }}
-                    label={renderCustomLineLabel}
-                  />
+                  {showDrop && (
+                    <Bar
+                      yAxisId="left"
+                      dataKey="dropPcs"
+                      name="Drop"
+                      fill="#3b82f6"
+                      radius={[6, 6, 0, 0]}
+                      maxBarSize={45}
+                      label={renderCustomBarLabel}
+                    />
+                  )}
+                  {showPctKedatangan && (
+                    <Line
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="pctKedatangan"
+                      name="% Kedatangan"
+                      stroke="#10b981"
+                      strokeWidth={2.5}
+                      dot={{ fill: '#10b981', r: 4, strokeWidth: 2, stroke: '#ffffff' }}
+                      label={renderCustomLineLabel}
+                    />
+                  )}
                 </ComposedChart>
               </ResponsiveContainer>
             )}
@@ -601,7 +637,7 @@ export default function ControlBoardGorongGorongView() {
 
         {/* Grafik 2: % Pemasangan Harian */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-2xs space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
                 <span className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
@@ -612,8 +648,39 @@ export default function ControlBoardGorongGorongView() {
                 </h3>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Batang: Volume Pasang Manual Harian (pcs) • Garis: Progres % Pemasangan Kumulatif
+                Batang: Pasang Manual • Garis: % Pemasangan
               </p>
+            </div>
+
+            {/* Tombol Legenda Sejajar Judul Grafik */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowPasangManual((prev) => !prev)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                  showPasangManual
+                    ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 shadow-2xs'
+                    : 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-40 hover:opacity-70'
+                }`}
+                title="Klik untuk tampilkan/sembunyikan data Pasang Manual"
+              >
+                <span className={`w-2.5 h-2.5 rounded-xs ${showPasangManual ? 'bg-amber-500' : 'bg-slate-400'}`} />
+                <span>Pasang Manual</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowPctPemasangan((prev) => !prev)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                  showPctPemasangan
+                    ? 'bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800 shadow-2xs'
+                    : 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-40 hover:opacity-70'
+                }`}
+                title="Klik untuk tampilkan/sembunyikan data % Pemasangan"
+              >
+                <span className={`w-2.5 h-0.5 rounded-full ${showPctPemasangan ? 'bg-purple-500' : 'bg-slate-400'}`} />
+                <span>% Pemasangan</span>
+              </button>
             </div>
           </div>
 
@@ -659,35 +726,34 @@ export default function ControlBoardGorongGorongView() {
                       fontSize: '11px',
                     }}
                     formatter={(val: any, name: any) => {
-                      if (name === 'pasangPcs') return [`${val} pcs`, 'Pasang Manual'];
-                      if (name === 'pctPemasangan') return [`${val}%`, '% Pemasangan'];
+                      if (name === 'pasangPcs' || name === 'Pasang Manual') return [`${val} pcs`, 'Pasang Manual'];
+                      if (name === 'pctPemasangan' || name === '% Pemasangan') return [`${val}%`, '% Pemasangan'];
                       return [val, name];
                     }}
                   />
-                  <Legend
-                    verticalAlign="top"
-                    align="right"
-                    wrapperStyle={{ fontSize: '11px', paddingBottom: '10px' }}
-                  />
-                  <Bar
-                    yAxisId="left"
-                    dataKey="pasangPcs"
-                    name="Pasang Manual (pcs)"
-                    fill="#f59e0b"
-                    radius={[6, 6, 0, 0]}
-                    maxBarSize={45}
-                    label={renderCustomBarLabel}
-                  />
-                  <Line
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="pctPemasangan"
-                    name="% Pemasangan"
-                    stroke="#8b5cf6"
-                    strokeWidth={2.5}
-                    dot={{ fill: '#8b5cf6', r: 4, strokeWidth: 2, stroke: '#ffffff' }}
-                    label={renderCustomLineLabel}
-                  />
+                  {showPasangManual && (
+                    <Bar
+                      yAxisId="left"
+                      dataKey="pasangPcs"
+                      name="Pasang Manual"
+                      fill="#f59e0b"
+                      radius={[6, 6, 0, 0]}
+                      maxBarSize={45}
+                      label={renderCustomBarLabel}
+                    />
+                  )}
+                  {showPctPemasangan && (
+                    <Line
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="pctPemasangan"
+                      name="% Pemasangan"
+                      stroke="#8b5cf6"
+                      strokeWidth={2.5}
+                      dot={{ fill: '#8b5cf6', r: 4, strokeWidth: 2, stroke: '#ffffff' }}
+                      label={renderCustomLineLabel}
+                    />
+                  )}
                 </ComposedChart>
               </ResponsiveContainer>
             )}
