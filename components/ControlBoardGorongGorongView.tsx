@@ -61,7 +61,7 @@ interface DailyPemasanganItem {
 // Custom Label untuk Nilai Bar
 const renderCustomBarLabel = (props: any) => {
   const { x, y, width, value } = props;
-  if (!value || value === 0) return null;
+  if (!value || value === 0 || (width && width < 20)) return null;
   return (
     <text
       x={x + width / 2}
@@ -111,7 +111,14 @@ export default function ControlBoardGorongGorongView() {
   const [showPctPemasangan, setShowPctPemasangan] = useState<boolean>(true);
 
   // Filter Rentang Bulan (Sama seperti di Master Data)
-  const [monthRange, setMonthRange] = useState<{ startMonth: number; endMonth: number; year: number } | null>(null);
+  const [monthRange, setMonthRange] = useState<{ startMonth: number; endMonth: number; year: number } | null>(() => {
+    const now = new Date();
+    return {
+      startMonth: now.getMonth(),
+      endMonth: now.getMonth(),
+      year: now.getFullYear(),
+    };
+  });
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
   const [pickerYear, setPickerYear] = useState<number>(new Date().getFullYear());
 
@@ -187,6 +194,9 @@ export default function ControlBoardGorongGorongView() {
     currentPage * pageSize
   );
 
+  const isDenseKedatangan = dailyKedatangan.length > 31;
+  const isDensePemasangan = dailyPemasangan.length > 31;
+
   return (
     <div className="space-y-6">
       {/* 1. Header Banner */}
@@ -221,8 +231,10 @@ export default function ControlBoardGorongGorongView() {
                 <Calendar className="w-3.5 h-3.5 text-blue-200" />
                 <span>
                   {monthRange
-                    ? `${MONTH_NAMES_SHORT[monthRange.startMonth]} – ${MONTH_NAMES_SHORT[monthRange.endMonth]} ${monthRange.year}`
-                    : 'Rentang Bulan'}
+                    ? (monthRange.startMonth === monthRange.endMonth
+                        ? `${MONTH_NAMES_SHORT[monthRange.startMonth]} ${monthRange.year}`
+                        : `${MONTH_NAMES_SHORT[monthRange.startMonth]} – ${MONTH_NAMES_SHORT[monthRange.endMonth]} ${monthRange.year}`)
+                    : 'Semua Bulan'}
                 </span>
               </div>
               <ChevronDown
@@ -671,7 +683,7 @@ export default function ControlBoardGorongGorongView() {
                       fill="#3b82f6"
                       radius={[6, 6, 0, 0]}
                       maxBarSize={45}
-                      label={renderCustomBarLabel}
+                      label={isDenseKedatangan ? undefined : renderCustomBarLabel}
                     />
                   )}
                   {showPctKedatangan && (
@@ -682,8 +694,8 @@ export default function ControlBoardGorongGorongView() {
                       name="% Kedatangan"
                       stroke="#10b981"
                       strokeWidth={2.5}
-                      dot={{ fill: '#10b981', r: 4, strokeWidth: 2, stroke: '#ffffff' }}
-                      label={renderCustomLineLabel}
+                      dot={isDenseKedatangan ? false : { fill: '#10b981', r: 4, strokeWidth: 2, stroke: '#ffffff' }}
+                      label={isDenseKedatangan ? undefined : renderCustomLineLabel}
                     />
                   )}
                 </ComposedChart>
@@ -798,7 +810,7 @@ export default function ControlBoardGorongGorongView() {
                       fill="#f59e0b"
                       radius={[6, 6, 0, 0]}
                       maxBarSize={45}
-                      label={renderCustomBarLabel}
+                      label={isDensePemasangan ? undefined : renderCustomBarLabel}
                     />
                   )}
                   {showPctPemasangan && (
@@ -809,8 +821,8 @@ export default function ControlBoardGorongGorongView() {
                       name="% Pemasangan"
                       stroke="#8b5cf6"
                       strokeWidth={2.5}
-                      dot={{ fill: '#8b5cf6', r: 4, strokeWidth: 2, stroke: '#ffffff' }}
-                      label={renderCustomLineLabel}
+                      dot={isDensePemasangan ? false : { fill: '#8b5cf6', r: 4, strokeWidth: 2, stroke: '#ffffff' }}
+                      label={isDensePemasangan ? undefined : renderCustomLineLabel}
                     />
                   )}
                 </ComposedChart>
