@@ -51,7 +51,16 @@ function LoginContent() {
   // Redirect jika sudah login dan berhak mengakses targetUrl
   useEffect(() => {
     if (user) {
-      // Mandor Wilayah dan User Planting langsung diarahkan ke form order sulam
+      let finalTarget = targetUrl;
+      const isSulamTarget = finalTarget.startsWith('/sulam');
+      const isLabitaTarget = finalTarget.startsWith('/labita');
+
+      if (isLabitaTarget && !isSuperAdmin) {
+        setErrorMsg('Akses ditolak. Modul ini khusus untuk Super Administrator.');
+        return;
+      }
+
+      // Mandor Wilayah dan User Planting: arahkan sesuai portal dashboard asal
       const isWilayahOrPlanting =
         isUserPlanting ||
         isUserWilayah ||
@@ -61,14 +70,11 @@ function LoginContent() {
         user.role === 'user';
 
       if (isWilayahOrPlanting) {
-        router.push('/sulam/form-order-sulam');
-        return;
-      }
-
-      let finalTarget = targetUrl;
-      const isLabitaTarget = finalTarget.startsWith('/labita');
-      if (isLabitaTarget && !isSuperAdmin) {
-        setErrorMsg('Akses ditolak. Modul ini khusus untuk Super Administrator.');
+        if (isSulamTarget) {
+          router.push('/sulam/form-order-sulam');
+        } else {
+          router.push('/gorong-gorong/form-input/order-gorong-gorong');
+        }
         return;
       }
 
@@ -102,8 +108,19 @@ function LoginContent() {
             storedRole = JSON.parse(stored).role;
           } catch (e) {}
         }
-        if (storedRole === 'user_planting' || storedRole === 'user_wilayah' || storedRole === 'user') {
-          dest = '/sulam/form-order-sulam';
+
+        const isWilayahOrPlanting =
+          storedRole === 'user_planting' ||
+          storedRole === 'user_wilayah' ||
+          storedRole === 'user';
+        const isSulamTarget = Boolean(dest && dest.startsWith('/sulam'));
+
+        if (isWilayahOrPlanting) {
+          if (isSulamTarget) {
+            dest = '/sulam/form-order-sulam';
+          } else {
+            dest = '/gorong-gorong/form-input/order-gorong-gorong';
+          }
         } else if (!dest || dest === '/') {
           dest = '/gorong-gorong/monitor-gorong-gorong';
         }
