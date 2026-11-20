@@ -57,12 +57,14 @@ export default function MasterLokasiDetailDrawer({
   orderData,
 }: MasterLokasiDetailDrawerProps) {
   const [masterData, setMasterData] = useState<MasterStatusLokasiData | null>(null);
+  const [historyList, setHistoryList] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen || !lokasi) {
       setMasterData(null);
+      setHistoryList([]);
       setError(null);
       return;
     }
@@ -77,6 +79,7 @@ export default function MasterLokasiDetailDrawer({
         if (!isMounted) return;
         if (json.success && json.data) {
           setMasterData(json.data);
+          setHistoryList(json.history || []);
         } else {
           setError(json.message || `Data master untuk lokasi ${lokasi} tidak ditemukan.`);
         }
@@ -272,53 +275,90 @@ export default function MasterLokasiDetailDrawer({
                     </div>
                   </div>
 
-                  {/* Tabel Status Gorong Gorong Freeze Panes */}
+                  {/* Tabel Riwayat Transaksi Gorong-Gorong (Drop & Pasang Manual) */}
                   <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-x-auto shadow-2xs">
                     <table className="w-full text-center border-collapse text-xs whitespace-nowrap">
                       <thead className="bg-slate-100/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 font-bold border-b border-slate-200 dark:border-slate-700">
                         <tr>
-                          <th className="sticky left-0 z-20 bg-slate-100 dark:bg-slate-800 px-3.5 py-2.5 border-r border-slate-200 dark:border-slate-700 text-center">
-                            Ukuran Diameter
+                          <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 dark:border-slate-700 w-10 text-center">
+                            No
                           </th>
-                          <th className="px-3.5 py-2.5 border-r border-slate-200 dark:border-slate-700 text-center">
-                            Tanggal Drop
+                          <th rowSpan={2} className="px-3.5 py-2 border-r border-slate-200 dark:border-slate-700 text-center">
+                            Tanggal
                           </th>
-                          <th className="px-3.5 py-2.5 border-r border-slate-200 dark:border-slate-700 text-center">
-                            Tanggal Pasang
+                          <th rowSpan={2} className="px-3.5 py-2 border-r border-slate-200 dark:border-slate-700 text-center">
+                            Jenis
                           </th>
-                          <th className="px-3.5 py-2.5 border-r border-slate-200 dark:border-slate-700 text-center text-emerald-700 dark:text-emerald-400">
-                            Drop (pcs)
+                          <th colSpan={4} className="px-3 py-1.5 border-r border-slate-200 dark:border-slate-700 text-center bg-slate-200/50 dark:bg-slate-700/50">
+                            Diameter
                           </th>
-                          <th className="px-3.5 py-2.5 text-center text-blue-700 dark:text-blue-400">
-                            Terpasang (pcs)
+                          <th rowSpan={2} className="px-4 py-2 text-left">
+                            Penginput
+                          </th>
+                        </tr>
+                        <tr className="border-t border-slate-200/70 dark:border-slate-700/70 text-[11px]">
+                          <th className="px-2.5 py-1 border-r border-slate-200 dark:border-slate-700 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 font-mono">
+                            Ø40
+                          </th>
+                          <th className="px-2.5 py-1 border-r border-slate-200 dark:border-slate-700 text-blue-600 dark:text-blue-400 bg-blue-500/5 font-mono">
+                            Ø60
+                          </th>
+                          <th className="px-2.5 py-1 border-r border-slate-200 dark:border-slate-700 text-amber-600 dark:text-amber-400 bg-amber-500/5 font-mono">
+                            Ø80
+                          </th>
+                          <th className="px-2.5 py-1 border-r border-slate-200 dark:border-slate-700 text-purple-600 dark:text-purple-400 bg-purple-500/5 font-mono">
+                            Ø100
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
-                        {[40, 60, 80, 100].map((dia) => {
-                          const det = orderData[`d${dia}`] || orderData.details?.[`d${dia}`] || {};
-                          const tglDrop = det.tglTerakhirDrop && det.tglTerakhirDrop !== '-' ? formatDate(det.tglTerakhirDrop) : '-';
-                          const tglPasang = det.tglTerakhirPasang && det.tglTerakhirPasang !== '-' ? formatDate(det.tglTerakhirPasang) : '-';
-                          return (
-                            <tr key={dia} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                              <td className="sticky left-0 z-10 bg-white dark:bg-slate-900 px-3.5 py-2.5 font-bold font-mono text-[#00873D] border-r border-slate-200/70 dark:border-slate-800/70 text-center">
-                                D{dia}
-                              </td>
-                              <td className="px-3.5 py-2.5 font-mono text-slate-600 dark:text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70 text-center">
-                                {tglDrop}
-                              </td>
-                              <td className="px-3.5 py-2.5 font-mono text-slate-600 dark:text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70 text-center">
-                                {tglPasang}
-                              </td>
-                              <td className="px-3.5 py-2.5 font-mono font-bold text-emerald-600 dark:text-emerald-400 border-r border-slate-200/70 dark:border-slate-800/70 text-center">
-                                {det.drop ?? 0}
-                              </td>
-                              <td className="px-3.5 py-2.5 font-mono font-bold text-blue-600 dark:text-blue-400 text-center">
-                                {det.totalPasang ?? 0}
-                              </td>
-                            </tr>
-                          );
-                        })}
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-800 dark:text-slate-200 font-mono">
+                        {historyList.length === 0 ? (
+                          <tr>
+                            <td colSpan={8} className="py-8 text-center text-slate-400 font-sans italic text-xs">
+                              Belum ada riwayat transaksi Drop atau Pasang Manual pada lokasi ini.
+                            </td>
+                          </tr>
+                        ) : (
+                          historyList.map((item, index) => {
+                            const isDrop = item.jenisTransaksi === 'DROP';
+                            return (
+                              <tr key={item.id || index} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                <td className="px-3 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center text-slate-400 font-sans text-[11px]">
+                                  {index + 1}
+                                </td>
+                                <td className="px-3.5 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center text-slate-600 dark:text-slate-400 text-xs">
+                                  {formatDate(item.tanggal)}
+                                </td>
+                                <td className="px-3.5 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center font-sans">
+                                  <span
+                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border shadow-2xs ${
+                                      isDrop
+                                        ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                                        : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                                    }`}
+                                  >
+                                    {isDrop ? 'Drop' : 'Pasang Manual'}
+                                  </span>
+                                </td>
+                                <td className="px-2.5 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center font-bold text-emerald-600 dark:text-emerald-400">
+                                  {item.qtyD40 ?? 0}
+                                </td>
+                                <td className="px-2.5 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center font-bold text-blue-600 dark:text-blue-400">
+                                  {item.qtyD60 ?? 0}
+                                </td>
+                                <td className="px-2.5 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center font-bold text-amber-600 dark:text-amber-400">
+                                  {item.qtyD80 ?? 0}
+                                </td>
+                                <td className="px-2.5 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center font-bold text-purple-600 dark:text-purple-400">
+                                  {item.qtyD100 ?? 0}
+                                </td>
+                                <td className="px-4 py-2 text-left font-sans text-xs text-slate-700 dark:text-slate-300">
+                                  {item.penginput || 'User'}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
                       </tbody>
                     </table>
                   </div>

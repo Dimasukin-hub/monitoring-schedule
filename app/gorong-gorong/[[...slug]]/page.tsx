@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import MonitorGorongGorongView from '@/components/MonitorGorongGorongView';
+import ControlBoardGorongGorongView from '@/components/ControlBoardGorongGorongView';
 import FormOrderGorongGorongView from '@/components/FormOrderGorongGorongView';
 import MasterStatusLokasiView from '@/components/MasterStatusLokasiView';
 import MasterWaterloggingView from '@/components/MasterWaterloggingView';
@@ -51,8 +52,8 @@ export default function GorongGorongPage() {
         router.replace(GORONG_GORONG_ROUTES.formInput);
         return;
       }
-      // 2. Guard monitor gorong-gorong: hanya jika canAccessMonitor
-      if (!canAccessMonitor && (pathname === '/gorong-gorong' || pathname === GORONG_GORONG_ROUTES.monitor || parsed.activeTab === 'monitor_gorong_gorong')) {
+      // 2. Guard monitor gorong-gorong & control board: hanya jika canAccessMonitor
+      if (!canAccessMonitor && (pathname === '/gorong-gorong' || pathname === GORONG_GORONG_ROUTES.monitor || pathname === GORONG_GORONG_ROUTES.controlBoard || parsed.activeTab === 'monitor_gorong_gorong' || parsed.activeTab === 'control_board')) {
         setActiveTab('form_input');
         router.replace(GORONG_GORONG_ROUTES.formInput);
         return;
@@ -100,7 +101,7 @@ export default function GorongGorongPage() {
       if (!isAdmin && activeTab === 'user_management') {
         setActiveTab('form_input');
         router.replace(GORONG_GORONG_ROUTES.formInput);
-      } else if (!canAccessMonitor && activeTab === 'monitor_gorong_gorong') {
+      } else if (!canAccessMonitor && (activeTab === 'monitor_gorong_gorong' || activeTab === 'control_board')) {
         setActiveTab('form_input');
         router.replace(GORONG_GORONG_ROUTES.formInput);
       } else if (!canAccessMasterData && activeTab === 'master_data') {
@@ -145,6 +146,8 @@ export default function GorongGorongPage() {
     switch (activeTab) {
       case 'monitor_gorong_gorong':
         return 'Monitor Gorong-Gorong PG1';
+      case 'control_board':
+        return 'Control Board • Summary & Verifikasi Harian';
       case 'form_input':
       case 'order_wilayah': {
         return 'Form Input • Order Gorong-Gorong';
@@ -189,6 +192,13 @@ export default function GorongGorongPage() {
         <div className={activeTab === 'monitor_gorong_gorong' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
           <MonitorGorongGorongView />
         </div>
+
+        {/* 1.5. MENU: CONTROL BOARD */}
+        {canAccessMonitor && (
+          <div className={activeTab === 'control_board' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
+            <ControlBoardGorongGorongView />
+          </div>
+        )}
 
         {/* 2. MENU: FORM INPUT (Order Gorong-Gorong) */}
         <div className={(activeTab === 'form_input' || activeTab === 'order_wilayah') ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>

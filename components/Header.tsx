@@ -22,6 +22,7 @@ export const LABITA_MAIN_MENU_ITEMS: MainMenuItem[] = [
 
 export const GORONG_GORONG_MAIN_MENU_ITEMS: MainMenuItem[] = [
   { id: 'monitor_gorong_gorong', label: 'Monitor Gorong-Gorong' },
+  { id: 'control_board', label: 'Control Board' },
   { id: 'form_input', label: 'Form Input' },
   { id: 'master_data', label: 'Master Data' },
   { id: 'user_management', label: 'Manajemen User' },
@@ -180,6 +181,15 @@ export const MENU_THEMES: Record<string, MenuThemeConfig> = {
     subActiveLine: 'bg-blue-600 dark:bg-blue-400',
     subHoverText: 'hover:text-blue-600 dark:hover:text-blue-300',
   },
+  control_board: {
+    activeText: 'text-cyan-700 dark:text-cyan-300',
+    activeLine: 'bg-cyan-600 dark:bg-cyan-400',
+    hoverText: 'hover:text-cyan-600 dark:hover:text-cyan-300',
+    hoverLine: 'bg-cyan-500/40',
+    subActiveText: 'text-cyan-700 dark:text-cyan-300',
+    subActiveLine: 'bg-cyan-600 dark:bg-cyan-400',
+    subHoverText: 'hover:text-cyan-600 dark:hover:text-cyan-300',
+  },
   monitor_sulam: {
     activeText: 'text-emerald-700 dark:text-emerald-300',
     activeLine: 'bg-emerald-600 dark:bg-emerald-400',
@@ -299,7 +309,7 @@ export default function Header({
       }
       return Boolean(user && (isAdmin || isKepalaWilayah || (currentPortal === 'sulam' && isUserPlanting)));
     }
-    if (currentPortal === 'gorong_gorong' && item.id === 'monitor_gorong_gorong') {
+    if (currentPortal === 'gorong_gorong' && (item.id === 'monitor_gorong_gorong' || item.id === 'control_board')) {
       return Boolean(user && canAccessMonitor);
     }
     if (currentPortal === 'sulam' && item.id === 'monitor_sulam') {

@@ -288,22 +288,6 @@ export async function POST(request: NextRequest) {
                 keterangan: (d as any).keterangan || null,
               },
             });
-
-            const existingDropAsal = await prisma.masterDataDropGorongGorong.findFirst({
-              where: { lokasi: d.lokasiAsal },
-              orderBy: { tanggal: 'desc' },
-            });
-            if (existingDropAsal) {
-              await prisma.masterDataDropGorongGorong.update({
-                where: { id: existingDropAsal.id },
-                data: {
-                  diameter40: Math.max(0, (existingDropAsal.diameter40 || 0) - (d.qtyD40 || 0)),
-                  diameter60: Math.max(0, (existingDropAsal.diameter60 || 0) - (d.qtyD60 || 0)),
-                  diameter80: Math.max(0, (existingDropAsal.diameter80 || 0) - (d.qtyD80 || 0)),
-                  diameter100: Math.max(0, (existingDropAsal.diameter100 || 0) - (d.qtyD100 || 0)),
-                },
-              });
-            }
           }
 
           // Tambah drop di tujuan sebagai baris baru di MasterDataDropGorongGorong
@@ -737,6 +721,20 @@ async function revertTransactionImpact(existing: any) {
           }
         }
       }
+    }
+
+    // Jika lokasi bukan lokasi resmi di MasterStatusLokasi, bersihkan seluruh sisa data yatim
+    const isOfficial = await prisma.masterStatusLokasi.findUnique({
+      where: { lokasi: existing.lokasi },
+    });
+    if (!isOfficial) {
+      await prisma.masterDataDropGorongGorong.deleteMany({ where: { lokasi: existing.lokasi } });
+      await prisma.masterDataOrderGorongGorong.deleteMany({ where: { lokasi: existing.lokasi } });
+      await prisma.masterDataPasangManual.deleteMany({ where: { lokasi: existing.lokasi } });
+      await prisma.masterDataPindahGorongGorong.deleteMany({
+        where: { OR: [{ lokasiPengirim: existing.lokasi }, { lokasiPenerima: existing.lokasi }] },
+      });
+      await prisma.lokasiOrderGorongGorong.deleteMany({ where: { lokasi: existing.lokasi } });
     }
   } catch (err) {
     console.warn('Failed to revert MasterData:', err);

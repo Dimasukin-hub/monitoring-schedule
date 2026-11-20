@@ -8,6 +8,9 @@ export const GORONG_GORONG_ROUTES = {
   // Menu 1: Monitor
   monitor: '/gorong-gorong/monitor-gorong-gorong',
 
+  // Menu 1.5: Control Board
+  controlBoard: '/gorong-gorong/control-board',
+
   // Menu 2: Form Input
   formInput: '/gorong-gorong/form-input/order-gorong-gorong',
   order: '/gorong-gorong/form-input/order-gorong-gorong',
@@ -29,6 +32,8 @@ export function getGorongGorongRoute(activeTab: string, subTab?: string): string
   switch (activeTab) {
     case 'monitor_gorong_gorong':
       return GORONG_GORONG_ROUTES.monitor;
+    case 'control_board':
+      return GORONG_GORONG_ROUTES.controlBoard;
     case 'form_input':
     case 'order_wilayah':
       return GORONG_GORONG_ROUTES.formInput;
@@ -64,6 +69,16 @@ export function parseGorongGorongPathname(pathname: string) {
   if (clean === '/gorong-gorong/monitor-gorong-gorong') {
     return {
       activeTab: 'monitor_gorong_gorong',
+      orderWilayahSubTab: 'order_gorong_gorong',
+      masterDataSubTab: 'master_status_lokasi',
+      redirectTo: null,
+    };
+  }
+
+  // 1.5 Control Board
+  if (clean === '/gorong-gorong/control-board') {
+    return {
+      activeTab: 'control_board',
       orderWilayahSubTab: 'order_gorong_gorong',
       masterDataSubTab: 'master_status_lokasi',
       redirectTo: null,

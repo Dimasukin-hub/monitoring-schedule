@@ -9,7 +9,64 @@ export async function GET(request: NextRequest) {
       const record = await prisma.masterStatusLokasi.findUnique({
         where: { lokasi: singleLokasi },
       });
-      return NextResponse.json({ success: true, data: record });
+
+      // Ambil transaksi DROP dan PASANG_MANUAL untuk lokasi ini
+      const trxList = await prisma.transaksiGorongGorong.findMany({
+        where: {
+          lokasi: singleLokasi,
+          jenisTransaksi: { in: ['DROP', 'PASANG_MANUAL'] },
+        },
+        orderBy: { tanggal: 'desc' },
+      });
+
+      // Ambil juga jika ada data unlinked dari master drop / master pasang manual
+      const unlinkedDrops = await prisma.masterDataDropGorongGorong.findMany({
+        where: { lokasi: singleLokasi, transaksiId: null },
+        orderBy: { tanggal: 'desc' },
+      });
+      const unlinkedPasang = await prisma.masterDataPasangManual.findMany({
+        where: { lokasi: singleLokasi, transaksiId: null },
+        orderBy: { tanggalPasangManual: 'desc' },
+      });
+
+      const history = [
+        ...trxList.map((t) => ({
+          id: `trx-${t.id}`,
+          tanggal: t.tanggal ? t.tanggal.toISOString() : null,
+          jenisTransaksi: t.jenisTransaksi,
+          qtyD40: t.qtyD40 || 0,
+          qtyD60: t.qtyD60 || 0,
+          qtyD80: t.qtyD80 || 0,
+          qtyD100: t.qtyD100 || 0,
+          penginput: t.createdBy ? `${t.createdBy} (${t.userRole || 'USER'})` : 'User',
+        })),
+        ...unlinkedDrops.map((d) => ({
+          id: `drop-${d.id}`,
+          tanggal: d.tanggal ? d.tanggal.toISOString() : null,
+          jenisTransaksi: 'DROP',
+          qtyD40: d.diameter40 || 0,
+          qtyD60: d.diameter60 || 0,
+          qtyD80: d.diameter80 || 0,
+          qtyD100: d.diameter100 || 0,
+          penginput: 'Master Upload / SAP',
+        })),
+        ...unlinkedPasang.map((p) => ({
+          id: `pasang-${p.id}`,
+          tanggal: p.tanggalPasangManual ? p.tanggalPasangManual.toISOString() : null,
+          jenisTransaksi: 'PASANG_MANUAL',
+          qtyD40: p.diameter40 || 0,
+          qtyD60: p.diameter60 || 0,
+          qtyD80: p.diameter80 || 0,
+          qtyD100: p.diameter100 || 0,
+          penginput: 'Master Upload / SAP',
+        })),
+      ].sort((a, b) => {
+        const timeA = a.tanggal ? new Date(a.tanggal).getTime() : 0;
+        const timeB = b.tanggal ? new Date(b.tanggal).getTime() : 0;
+        return timeB - timeA;
+      });
+
+      return NextResponse.json({ success: true, data: record, history });
     }
 
     const search = searchParams.get('search')?.trim().toUpperCase();

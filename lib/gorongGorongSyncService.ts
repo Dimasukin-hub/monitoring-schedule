@@ -10,6 +10,36 @@ import { prisma } from '@/lib/prisma';
  */
 export async function reconcileAllGorongGorongMasterData() {
   try {
+    // 0. Auto-healing data baseline lama yang terlanjur tertumpuk atau orphan (seperti 085C, 85C1, 4I)
+    try {
+      // Periksa 085C: jika baris baseline (transaksiId: null) bernilai > 105, pulihkan ke 105 dan tanggal 2026-10-01
+      const base085C = await prisma.masterDataOrderGorongGorong.findFirst({
+        where: { lokasi: '085C', transaksiId: null, diameter40: { gt: 105 } },
+      });
+      if (base085C) {
+        await prisma.masterDataOrderGorongGorong.update({
+          where: { id: base085C.id },
+          data: {
+            diameter40: 105,
+            tanggal: new Date('2026-10-01T00:00:00.000Z'),
+          },
+        });
+      }
+
+      // Bersihkan data orphan tidak resmi (85C1, 4I)
+      await prisma.masterDataDropGorongGorong.deleteMany({
+        where: { lokasi: { in: ['85C1', '4I', '85c1', '4i'] } },
+      });
+      await prisma.masterDataOrderGorongGorong.deleteMany({
+        where: { lokasi: { in: ['85C1', '4I', '85c1', '4i'] } },
+      });
+      await prisma.lokasiOrderGorongGorong.deleteMany({
+        where: { lokasi: { in: ['85C1', '4I', '85c1', '4i'] } },
+      });
+    } catch (eHealing) {
+      console.warn('[reconcileMasterData] Warning auto-healing:', eHealing);
+    }
+
     const allTrx = await prisma.transaksiGorongGorong.findMany({
       orderBy: { tanggal: 'asc' },
     });
