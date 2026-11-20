@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   TrendingUp,
+  Package,
   CheckCircle2,
   AlertTriangle,
   Search,
@@ -14,6 +15,7 @@ import {
   ChevronRight,
   ChevronDown,
   Activity,
+  FileCheck2,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -26,6 +28,15 @@ import {
   Legend,
   CartesianGrid,
 } from 'recharts';
+
+interface SummaryData {
+  totalOrder: number;
+  totalDrop: number;
+  totalPasangManual: number;
+  totalPasangSap: number;
+  pctKedatangan: number;
+  pctPemasangan: number;
+}
 
 interface TableRow {
   rawDate: string;
@@ -100,6 +111,14 @@ const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu
 
 export default function ControlBoardGorongGorongView() {
   const [loading, setLoading] = useState<boolean>(true);
+  const [summary, setSummary] = useState<SummaryData>({
+    totalOrder: 0,
+    totalDrop: 0,
+    totalPasangManual: 0,
+    totalPasangSap: 0,
+    pctKedatangan: 0,
+    pctPemasangan: 0,
+  });
   const [tableData, setTableData] = useState<TableRow[]>([]);
   const [dailyKedatangan, setDailyKedatangan] = useState<DailyKedatanganItem[]>([]);
   const [dailyPemasangan, setDailyPemasangan] = useState<DailyPemasanganItem[]>([]);
@@ -153,6 +172,14 @@ export default function ControlBoardGorongGorongView() {
       const res = await fetch(url);
       const json = await res.json();
       if (json.success) {
+        setSummary(json.summary || {
+          totalOrder: 0,
+          totalDrop: 0,
+          totalPasangManual: 0,
+          totalPasangSap: 0,
+          pctKedatangan: 0,
+          pctPemasangan: 0,
+        });
         setTableData(json.tableVerification || []);
         setDailyKedatangan(json.dailyKedatangan || []);
         setDailyPemasangan(json.dailyPemasangan || []);
@@ -332,7 +359,112 @@ export default function ControlBoardGorongGorongView() {
         </div>
       </div>
 
-      {/* 2. TABEL VERIFIKASI HARIAN PASANG MANUAL VS SAP */}
+      {/* 2. KPI Summary Cards (Rekap Khusus Bulan Berjalan / Terpilih) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* Total Order Bulan Ini */}
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {monthRange
+                ? (monthRange.startMonth === monthRange.endMonth
+                    ? `Order (${MONTH_NAMES_SHORT[monthRange.startMonth]} ${monthRange.year})`
+                    : `Order (${MONTH_NAMES_SHORT[monthRange.startMonth]} – ${MONTH_NAMES_SHORT[monthRange.endMonth]})`)
+                : 'Total Order'}
+            </span>
+            <span className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+              <Package className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-2 text-2xl font-black text-slate-900 dark:text-white font-mono">
+            {summary.totalOrder.toLocaleString('id-ID')}
+            <span className="text-xs font-normal text-slate-400 ml-1.5 font-sans">pcs</span>
+          </div>
+          <div className="mt-1 text-[11px] text-slate-400">
+            {monthRange
+              ? `Kebutuhan order ${MONTH_NAMES_SHORT[monthRange.startMonth]} ${monthRange.year}`
+              : 'Akumulasi kebutuhan petak'}
+          </div>
+        </div>
+
+        {/* Total Drop & % Kedatangan Bulan Ini */}
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {monthRange
+                ? (monthRange.startMonth === monthRange.endMonth
+                    ? `Drop (${MONTH_NAMES_SHORT[monthRange.startMonth]} ${monthRange.year})`
+                    : `Drop (${MONTH_NAMES_SHORT[monthRange.startMonth]} – ${MONTH_NAMES_SHORT[monthRange.endMonth]})`)
+                : 'Total Drop'}
+            </span>
+            <span className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+              <TrendingUp className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-slate-900 dark:text-white font-mono">
+              {summary.totalDrop.toLocaleString('id-ID')}
+            </span>
+            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 font-mono">
+              ({summary.pctKedatangan}%)
+            </span>
+          </div>
+          <div className="mt-1 text-[11px] text-slate-400">
+            Form input verifikator FE
+          </div>
+        </div>
+
+        {/* Total Pasang Manual & % Pemasangan Bulan Ini */}
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {monthRange
+                ? (monthRange.startMonth === monthRange.endMonth
+                    ? `Pasang Manual (${MONTH_NAMES_SHORT[monthRange.startMonth]} ${monthRange.year})`
+                    : `Pasang Manual (${MONTH_NAMES_SHORT[monthRange.startMonth]} – ${MONTH_NAMES_SHORT[monthRange.endMonth]})`)
+                : 'Pasang Manual'}
+            </span>
+            <span className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <Activity className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-slate-900 dark:text-white font-mono">
+              {summary.totalPasangManual.toLocaleString('id-ID')}
+            </span>
+            <span className="text-xs font-bold text-amber-600 dark:text-amber-400 font-mono">
+              ({summary.pctPemasangan}%)
+            </span>
+          </div>
+          <div className="mt-1 text-[11px] text-slate-400">
+            Form input mandor wilayah
+          </div>
+        </div>
+
+        {/* Total Pasang SAP Bulan Ini */}
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {monthRange
+                ? (monthRange.startMonth === monthRange.endMonth
+                    ? `Pasang SAP (${MONTH_NAMES_SHORT[monthRange.startMonth]} ${monthRange.year})`
+                    : `Pasang SAP (${MONTH_NAMES_SHORT[monthRange.startMonth]} – ${MONTH_NAMES_SHORT[monthRange.endMonth]})`)
+                : 'Pasang SAP (Real)'}
+            </span>
+            <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <FileCheck2 className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-2 text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
+            {summary.totalPasangSap.toLocaleString('id-ID')}
+            <span className="text-xs font-normal text-slate-400 ml-1.5 font-sans">pcs</span>
+          </div>
+          <div className="mt-1 text-[11px] text-slate-400">
+            Realisasi SAP terverifikasi
+          </div>
+        </div>
+      </div>
+
+      {/* 3. TABEL VERIFIKASI HARIAN PASANG MANUAL VS SAP */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-2xs space-y-4">
         {/* Table Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
