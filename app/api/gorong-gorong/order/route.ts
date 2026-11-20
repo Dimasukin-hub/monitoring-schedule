@@ -521,7 +521,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Helper: Revert dampak kuantiti transaksi lama pada MasterData & LokasiOrder
-async function revertTransactionImpact(existing: any) {
+export async function revertTransactionImpact(existing: any) {
   try {
     if (existing.jenisTransaksi === 'ORDER') {
       let deleted = false;

@@ -5,6 +5,24 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    // Validasi otorisasi: Hanya 6 role (Super Admin, Admin FE, Kabag FE, Manajer FE, Manajer FM, Manajer OSD)
+    const cookieHeader = request.headers.get('cookie') || '';
+    const match = cookieHeader.match(/ggf_session=([^;]+)/);
+    if (match) {
+      try {
+        const user = JSON.parse(decodeURIComponent(match[1]));
+        const allowedRoles = ['super_admin', 'admin', 'kepala_bagian_fe', 'manajer_fe', 'manajer_fm', 'manajer_osd'];
+        if (user && user.role && !allowedRoles.includes(user.role)) {
+          return NextResponse.json(
+            { success: false, message: 'Akses ditolak: Anda tidak memiliki hak akses ke Control Board.' },
+            { status: 403 }
+          );
+        }
+      } catch (eAuth) {
+        // Abaikan parse error jika sesi corrupt
+      }
+    }
+
     const { searchParams } = new URL(request.url);
     const filterYear = searchParams.get('year') || '2026';
     const filterWilayah = searchParams.get('wilayah') || '';

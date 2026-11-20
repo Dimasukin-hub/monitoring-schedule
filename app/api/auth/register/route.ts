@@ -56,8 +56,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // Tentukan role (user_wilayah, user_fe, atau user biasa; dilarang mendaftar admin secara bebas)
-    const allowedRoles = ['user_wilayah', 'user_fe', 'user'];
+    // Tentukan role (user_wilayah atau user biasa; dilarang mendaftar admin secara bebas)
+    const allowedRoles = ['user_wilayah', 'user'];
     const targetRole = allowedRoles.includes(body.role) ? body.role : 'user';
 
     // Buat user baru dengan role yang sesuai

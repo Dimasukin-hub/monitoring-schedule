@@ -22,7 +22,7 @@ import {
 } from '@/lib/portalRoutes';
 
 export default function GorongGorongPage() {
-  const { user, isAdmin, canAccessMonitor, canAccessMasterData, isLoading: authLoading } = useAuth();
+  const { user, isAdmin, canAccessMonitor, canAccessControlBoard, canAccessMasterData, isLoading: authLoading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -52,8 +52,14 @@ export default function GorongGorongPage() {
         router.replace(GORONG_GORONG_ROUTES.formInput);
         return;
       }
-      // 2. Guard monitor gorong-gorong & control board: hanya jika canAccessMonitor
-      if (!canAccessMonitor && (pathname === '/gorong-gorong' || pathname === GORONG_GORONG_ROUTES.monitor || pathname === GORONG_GORONG_ROUTES.controlBoard || parsed.activeTab === 'monitor_gorong_gorong' || parsed.activeTab === 'control_board')) {
+      // 2. Guard monitor gorong-gorong: hanya jika canAccessMonitor
+      if (!canAccessMonitor && (pathname === '/gorong-gorong' || pathname === GORONG_GORONG_ROUTES.monitor || parsed.activeTab === 'monitor_gorong_gorong')) {
+        setActiveTab('form_input');
+        router.replace(GORONG_GORONG_ROUTES.formInput);
+        return;
+      }
+      // 2.5 Guard control board: hanya jika canAccessControlBoard (6 role khusus)
+      if (!canAccessControlBoard && (pathname === GORONG_GORONG_ROUTES.controlBoard || parsed.activeTab === 'control_board')) {
         setActiveTab('form_input');
         router.replace(GORONG_GORONG_ROUTES.formInput);
         return;
@@ -101,7 +107,10 @@ export default function GorongGorongPage() {
       if (!isAdmin && activeTab === 'user_management') {
         setActiveTab('form_input');
         router.replace(GORONG_GORONG_ROUTES.formInput);
-      } else if (!canAccessMonitor && (activeTab === 'monitor_gorong_gorong' || activeTab === 'control_board')) {
+      } else if (!canAccessMonitor && activeTab === 'monitor_gorong_gorong') {
+        setActiveTab('form_input');
+        router.replace(GORONG_GORONG_ROUTES.formInput);
+      } else if (!canAccessControlBoard && activeTab === 'control_board') {
         setActiveTab('form_input');
         router.replace(GORONG_GORONG_ROUTES.formInput);
       } else if (!canAccessMasterData && activeTab === 'master_data') {
@@ -194,7 +203,7 @@ export default function GorongGorongPage() {
         </div>
 
         {/* 1.5. MENU: CONTROL BOARD */}
-        {canAccessMonitor && (
+        {canAccessControlBoard && (
           <div className={activeTab === 'control_board' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
             <ControlBoardGorongGorongView />
           </div>

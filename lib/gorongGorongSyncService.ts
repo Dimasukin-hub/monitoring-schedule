@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { revertTransactionImpact } from '@/app/api/gorong-gorong/order/route';
 
 /**
  * Memastikan semua data transaksi dari tabel induk TransaksiGorongGorong
@@ -10,8 +11,35 @@ import { prisma } from '@/lib/prisma';
  */
 export async function reconcileAllGorongGorongMasterData() {
   try {
-    // 0. Auto-healing data baseline lama yang terlanjur tertumpuk atau orphan (seperti 085C, 85C1, 4I)
+    // 0. Auto-healing data baseline lama yang terlanjur tertumpuk atau orphan (seperti 085C, 85C1, 4I, serta data eks-TK Verifikator FE)
     try {
+      // Bersihkan seluruh transaksi yang diinput oleh TK Verifikator FE (jika ada) dan pulihkan master datanya
+      const feTrx = await prisma.transaksiGorongGorong.findMany({
+        where: {
+          OR: [
+            { userRole: { in: ['USER_FE', 'user_fe', 'TK_VERIFIKATOR_FE', 'tk_verifikator_fe'] } },
+            { createdBy: { contains: 'Verifikator', mode: 'insensitive' } },
+            { createdBy: { contains: 'User FE', mode: 'insensitive' } },
+          ],
+        },
+      });
+
+      for (const trx of feTrx) {
+        await revertTransactionImpact(trx);
+        await prisma.transaksiGorongGorong.delete({ where: { id: trx.id } });
+      }
+
+      // Hapus akun pengguna TK Verifikator FE dari tabel User
+      await prisma.user.deleteMany({
+        where: {
+          OR: [
+            { role: 'user_fe' },
+            { email: 'fe' },
+            { name: { contains: 'Verifikator', mode: 'insensitive' } },
+          ],
+        },
+      });
+
       // Periksa 085C: jika baris baseline (transaksiId: null) bernilai > 105, pulihkan ke 105 dan tanggal 2026-10-01
       const base085C = await prisma.masterDataOrderGorongGorong.findFirst({
         where: { lokasi: '085C', transaksiId: null, diameter40: { gt: 105 } },

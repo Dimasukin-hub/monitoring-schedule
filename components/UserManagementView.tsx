@@ -43,7 +43,6 @@ const ALL_ASSIGNABLE_ROLES: { role: UserRole; label: string; requireSuperAdmin?:
   { role: 'manajer_fm', label: 'Manajer FM' },
   { role: 'manajer_osd', label: 'Manajer OSD' },
   { role: 'kepala_wilayah', label: 'Kepala Wilayah' },
-  { role: 'user_fe', label: 'TK Verifikator FE' },
   { role: 'user_wilayah', label: 'Mandor Wilayah' },
   { role: 'user_planting', label: 'User Planting' },
 ];
@@ -413,13 +412,6 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
             <span>{getRoleDisplayName(role)}</span>
           </span>
         );
-      case 'user_fe':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/70 border border-purple-300/60 dark:border-purple-700/50 text-purple-800 dark:text-purple-300 text-[11px] font-bold">
-            <User className="w-3 h-3" />
-            <span>{getRoleDisplayName(role)}</span>
-          </span>
-        );
       case 'user_wilayah':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/70 border border-blue-300/60 dark:border-blue-700/50 text-blue-800 dark:text-blue-300 text-[11px] font-bold">
@@ -556,8 +548,8 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Wilayah & Lapangan</p>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 tracking-tight">{users.filter(u => ['kepala_wilayah', 'user_wilayah', 'user_fe', ...(isGorongGorong ? [] : ['user_planting'])].includes(u.role)).length}</p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500">Kawil, Mandor, Verifikator</p>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 tracking-tight">{users.filter(u => ['kepala_wilayah', 'user_wilayah', ...(isGorongGorong ? [] : ['user_planting'])].includes(u.role)).length}</p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500">Kawil & Mandor Wilayah</p>
           </div>
           <div className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200/40 dark:border-blue-800/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
             <User className="w-5 h-5" />
@@ -941,7 +933,7 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
                   ))}
                 </select>
                 <p className="text-[10px] text-slate-400">
-                  Khusus Mandor Wilayah & TK Verifikator FE untuk mengunci pilihan lokasi petak di Form Input.
+                  Khusus Mandor Wilayah untuk mengunci pilihan lokasi petak di Form Input.
                 </p>
               </div>
 
@@ -1118,7 +1110,7 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
                   ))}
                 </select>
                 <p className="text-[10px] text-slate-400">
-                  Khusus Mandor Wilayah & TK Verifikator FE untuk mengunci pilihan lokasi petak di Form Input.
+                  Khusus Mandor Wilayah untuk mengunci pilihan lokasi petak di Form Input.
                 </p>
               </div>
 
