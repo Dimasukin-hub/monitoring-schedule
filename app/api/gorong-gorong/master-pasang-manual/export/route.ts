@@ -10,7 +10,16 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search')?.trim().toUpperCase();
     const wilayah = searchParams.get('wilayah');
 
-    const where: any = {};
+    const where: any = {
+      NOT: {
+        AND: [
+          { diameter40: 0 },
+          { diameter60: 0 },
+          { diameter80: 0 },
+          { diameter100: 0 },
+        ],
+      },
+    };
     if (search) {
       where.OR = [
         { lokasi: { contains: search, mode: 'insensitive' } },

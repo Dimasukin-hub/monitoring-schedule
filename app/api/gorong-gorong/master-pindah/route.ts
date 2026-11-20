@@ -11,7 +11,16 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1', 10);
     const pageSize = parseInt(searchParams.get('pageSize') || '50', 10);
 
-    const where: any = {};
+    const where: any = {
+      NOT: {
+        AND: [
+          { diameter40: 0 },
+          { diameter60: 0 },
+          { diameter80: 0 },
+          { diameter100: 0 },
+        ],
+      },
+    };
     if (search) {
       where.OR = [
         { lokasiPengirim: { contains: search, mode: 'insensitive' } },

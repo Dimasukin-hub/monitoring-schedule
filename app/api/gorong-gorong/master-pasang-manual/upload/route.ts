@@ -138,6 +138,11 @@ export async function POST(request: NextRequest) {
       const d80 = colD80 !== -1 ? parseInt(String(row[colD80] || '0').replace(/[^0-9]/g, '') || '0', 10) : 0;
       const d100 = colD100 !== -1 ? parseInt(String(row[colD100] || '0').replace(/[^0-9]/g, '') || '0', 10) : 0;
 
+      // Abaikan baris jika seluruh diameter bernilai 0 / kosong
+      if (d40 === 0 && d60 === 0 && d80 === 0 && d100 === 0) {
+        continue;
+      }
+
       rowsToInsert.push({
         lokasi,
         wilayah,

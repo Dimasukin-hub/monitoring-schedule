@@ -64,6 +64,20 @@ export async function reconcileAllGorongGorongMasterData() {
       await prisma.lokasiOrderGorongGorong.deleteMany({
         where: { lokasi: { in: ['85C1', '4I', '85c1', '4i'] } },
       });
+
+      // Bersihkan seluruh data master yang semua diameternya bernilai 0 (invalid/sisa revert/baris kosong)
+      await prisma.masterDataDropGorongGorong.deleteMany({
+        where: { diameter40: 0, diameter60: 0, diameter80: 0, diameter100: 0 },
+      });
+      await prisma.masterDataOrderGorongGorong.deleteMany({
+        where: { diameter40: 0, diameter60: 0, diameter80: 0, diameter100: 0 },
+      });
+      await prisma.masterDataPasangManual.deleteMany({
+        where: { diameter40: 0, diameter60: 0, diameter80: 0, diameter100: 0 },
+      });
+      await prisma.masterDataPindahGorongGorong.deleteMany({
+        where: { diameter40: 0, diameter60: 0, diameter80: 0, diameter100: 0 },
+      });
     } catch (eHealing) {
       console.warn('[reconcileMasterData] Warning auto-healing:', eHealing);
     }

@@ -1234,6 +1234,11 @@ export async function syncMasterDataOrderFromWorkbook(
     const d80 = cleanNumberQty(getCellVal(r, cD80));
     const d100 = cleanNumberQty(getCellVal(r, cD100));
 
+    // Abaikan baris jika seluruh diameter bernilai 0 / kosong
+    if (d40 === 0 && d60 === 0 && d80 === 0 && d100 === 0) {
+      continue;
+    }
+
     // Lookup 1: Wilayah dari sel sheet terlebih dahulu (jika valid AW01-AW07), fallback ke MasterStatusLokasi.strucPlant
     const rawWil = getCellVal(r, cWilayah);
     const sheetWil = rawWil ? String(rawWil).trim().toUpperCase() : null;
@@ -1440,6 +1445,11 @@ export async function syncMasterDataDropFromWorkbook(
     const d60 = cleanNumberQty(getCellVal(r, cD60));
     const d80 = cleanNumberQty(getCellVal(r, cD80));
     const d100 = cleanNumberQty(getCellVal(r, cD100));
+
+    // Abaikan baris jika seluruh diameter bernilai 0 / kosong
+    if (d40 === 0 && d60 === 0 && d80 === 0 && d100 === 0) {
+      continue;
+    }
 
     // Lookup wilayah dari MasterStatusLokasi.strucPlant
     const rawWil = getCellVal(r, cWilayah);
@@ -1652,6 +1662,11 @@ export async function syncMasterDataPindahFromWorkbook(
     const d60 = cleanNumberQty(getCellVal(r, cD60));
     const d80 = cleanNumberQty(getCellVal(r, cD80));
     const d100 = cleanNumberQty(getCellVal(r, cD100));
+
+    // Abaikan baris jika seluruh diameter bernilai 0 / kosong
+    if (d40 === 0 && d60 === 0 && d80 === 0 && d100 === 0) {
+      continue;
+    }
 
     // Lookup wilayah pengirim & penerima
     const rawWilPengirim = getCellVal(r, cWilayahPengirim);
