@@ -6,7 +6,6 @@ import {
   Package,
   CheckCircle2,
   AlertTriangle,
-  RefreshCw,
   Search,
   Filter,
   Layers,
@@ -175,7 +174,7 @@ export default function ControlBoardGorongGorongView() {
   return (
     <div className="space-y-6">
       {/* 1. Header Banner */}
-      <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 rounded-2xl p-4 sm:p-6 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 rounded-2xl p-4 sm:p-6 text-white shadow-md">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
             <span className="p-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/20">
@@ -189,15 +188,6 @@ export default function ControlBoardGorongGorongView() {
             Summary harian verifikasi Pasang Manual vs Pasang SAP, serta monitoring tren kedatangan drop dan pemasangan gorong-gorong.
           </p>
         </div>
-
-        <button
-          onClick={loadControlBoardData}
-          disabled={loading}
-          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition-colors border border-white/20 cursor-pointer disabled:opacity-50 self-start sm:self-auto shadow-xs"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>Segarkan Data</span>
-        </button>
       </div>
 
       {/* 2. KPI Summary Cards */}

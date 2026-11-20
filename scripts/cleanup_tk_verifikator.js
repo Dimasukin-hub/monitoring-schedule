@@ -101,3 +101,4 @@ async function cleanupTkVerifikator() {
 cleanupTkVerifikator()
   .catch((e) => console.error('Error saat pembersihan:', e))
   .finally(() => prisma.$disconnect());
+
