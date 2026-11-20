@@ -20,7 +20,9 @@ export interface AuthUser {
   id: number;
   name: string;
   email: string;
+  username?: string;
   role: UserRole;
+  wilayah?: string | null;
   avatar?: string | null;
 }
 

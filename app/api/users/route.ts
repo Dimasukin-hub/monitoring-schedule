@@ -61,6 +61,7 @@ export async function GET(req: Request) {
         email: true,
         password: true,
         role: true,
+        wilayah: true,
         avatar: true,
         createdAt: true,
         updatedAt: true,
@@ -85,6 +86,7 @@ export async function GET(req: Request) {
         username: u.email,
         password: isSuper ? u.password : undefined,
         role: u.role,
+        wilayah: u.wilayah || null,
         avatar: u.avatar,
         createdAt: u.createdAt,
         updatedAt: u.updatedAt,
@@ -173,12 +175,18 @@ export async function POST(req: Request) {
       );
     }
 
+    const rawWilayah = body.wilayah;
+    const cleanWilayah = rawWilayah && String(rawWilayah).trim().toUpperCase() !== 'ALL'
+      ? String(rawWilayah).trim().toUpperCase()
+      : null;
+
     const newUser = await prisma.user.create({
       data: {
         name: cleanName,
         email: cleanUsername,
         password: rawPassword.trim(),
         role: role,
+        wilayah: cleanWilayah,
       },
     });
 
@@ -190,6 +198,7 @@ export async function POST(req: Request) {
         name: newUser.name,
         username: newUser.email,
         role: newUser.role,
+        wilayah: newUser.wilayah,
         createdAt: newUser.createdAt,
       },
     });

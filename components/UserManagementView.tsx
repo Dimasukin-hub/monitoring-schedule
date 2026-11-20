@@ -29,6 +29,7 @@ export interface UserItem {
   username: string;
   password?: string;
   role: UserRole;
+  wilayah?: string | null;
   avatar?: string | null;
   createdAt: string;
   updatedAt?: string;
@@ -45,6 +46,17 @@ const ALL_ASSIGNABLE_ROLES: { role: UserRole; label: string; requireSuperAdmin?:
   { role: 'user_fe', label: 'TK Verifikator FE' },
   { role: 'user_wilayah', label: 'Mandor Wilayah' },
   { role: 'user_planting', label: 'User Planting' },
+];
+
+const WILAYAH_OPTIONS = [
+  { value: '', label: 'Semua Wilayah (Bebas / Admin)' },
+  { value: 'AW01', label: 'Wilayah 01 (AW01)' },
+  { value: 'AW02', label: 'Wilayah 02 (AW02)' },
+  { value: 'AW03', label: 'Wilayah 03 (AW03)' },
+  { value: 'AW04', label: 'Wilayah 04 (AW04)' },
+  { value: 'AW05', label: 'Wilayah 05 (AW05)' },
+  { value: 'AW06', label: 'Wilayah 06 (AW06)' },
+  { value: 'AW07', label: 'Wilayah 07 (AW07)' },
 ];
 
 export default function UserManagementView({ portal }: { portal?: string } = {}) {
@@ -83,12 +95,14 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
     password: string;
     confirmPassword: string;
     role: UserRole | '';
+    wilayah: string;
   }>({
     username: '',
     name: '',
     password: '',
     confirmPassword: '',
     role: '',
+    wilayah: '',
   });
   const [showAddPassword, setShowAddPassword] = useState<boolean>(false);
   const [isSubmittingAdd, setIsSubmittingAdd] = useState<boolean>(false);
@@ -100,11 +114,13 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
     name: string;
     username: string;
     role: UserRole;
+    wilayah: string;
     newPassword: string;
   }>({
     name: '',
     username: '',
     role: 'user_wilayah',
+    wilayah: '',
     newPassword: '',
   });
   const [showEditPassword, setShowEditPassword] = useState<boolean>(false);
@@ -216,6 +232,7 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
           name: cleanName || cleanUsername,
           password: addForm.password,
           role: addForm.role,
+          wilayah: addForm.wilayah || null,
         }),
       });
       const data = await res.json();
@@ -229,6 +246,7 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
           password: '',
           confirmPassword: '',
           role: '',
+          wilayah: '',
         });
         fetchUsers(true);
       } else {
@@ -252,6 +270,7 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
       name: target.name,
       username: target.username,
       role: target.role,
+      wilayah: target.wilayah || '',
       newPassword: '',
     });
     setEditError(null);
@@ -289,6 +308,7 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
           name: editForm.name.trim(),
           username: editForm.username.trim().toLowerCase(),
           role: editForm.role,
+          wilayah: editForm.wilayah || null,
           password: editForm.newPassword ? editForm.newPassword.trim() : undefined,
         }),
       });
@@ -469,6 +489,7 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
               password: '',
               confirmPassword: '',
               role: '',
+              wilayah: '',
             });
             setAddError(null);
             setShowAddPassword(false);
@@ -641,6 +662,7 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
                     </th>
                   )}
                   <th className="py-3 px-4 text-center">Role Akses</th>
+                  <th className="py-3 px-4 text-center">Wilayah Tugas</th>
                   <th className="py-3 px-4 text-center">Tanggal Dibuat</th>
                   <th className="py-3 px-4 text-center w-36">Aksi</th>
                 </tr>
@@ -709,6 +731,15 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
                       )}
                       <td className="py-3 px-4 text-center">
                         {renderRoleBadge(item.role)}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {item.wilayah ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 shadow-2xs">
+                            {item.wilayah}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-xs italic">Semua</span>
+                        )}
                       </td>
                       <td className="py-3 px-4 text-center text-slate-500 dark:text-slate-400">
                         {formatDate(item.createdAt)}
@@ -893,6 +924,27 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
                 </div>
               </div>
 
+              {/* Wilayah Tugas */}
+              <div className="space-y-1.5 pt-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Wilayah Tugas (Form Input)
+                </label>
+                <select
+                  value={addForm.wilayah}
+                  onChange={(e) => setAddForm({ ...addForm, wilayah: e.target.value })}
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500"
+                >
+                  {WILAYAH_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400">
+                  Khusus Mandor Wilayah & TK Verifikator FE untuk mengunci pilihan lokasi petak di Form Input.
+                </p>
+              </div>
+
               {/* Modal Actions */}
               <div className="pt-2 flex items-center justify-end gap-2">
                 <button
@@ -1047,6 +1099,27 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
                     );
                   })}
                 </div>
+              </div>
+
+              {/* Wilayah Tugas */}
+              <div className="space-y-1.5 pt-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Wilayah Tugas (Form Input)
+                </label>
+                <select
+                  value={editForm.wilayah}
+                  onChange={(e) => setEditForm({ ...editForm, wilayah: e.target.value })}
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500"
+                >
+                  {WILAYAH_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400">
+                  Khusus Mandor Wilayah & TK Verifikator FE untuk mengunci pilihan lokasi petak di Form Input.
+                </p>
               </div>
 
               {/* Modal Actions */}

@@ -29,6 +29,7 @@ export async function POST(req: Request) {
       name: user.name,
       email: user.email,
       role: user.role,
+      wilayah: (user as any).wilayah || null,
       avatar: (user as any).avatar || null,
     };
 

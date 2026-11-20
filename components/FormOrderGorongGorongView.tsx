@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Package,
   CheckCircle2,
@@ -67,16 +67,36 @@ export default function FormOrderGorongGorongView() {
     roleDisplayName,
   } = useAuth();
 
+  // Deteksi Wilayah Tugas Pengguna (Khusus Mandor Wilayah & TK Verifikator FE)
+  const assignedWilayah = useMemo<string | null>(() => {
+    // Admin dan Super Admin bebas akses semua wilayah
+    if (isAdmin || isSuperAdmin) return null;
+
+    // 1. Ambil dari field wilayah User jika sudah diset
+    if (user?.wilayah && user.wilayah.trim() !== '' && user.wilayah.toUpperCase() !== 'ALL') {
+      return user.wilayah.trim().toUpperCase();
+    }
+
+    // 2. Fallback deteksi cerdas dari username atau nama jika belum diset di database
+    const textToCheck = `${user?.username || user?.email || ''} ${user?.name || ''}`.toLowerCase();
+    const match = textToCheck.match(/\b(?:aw|w|wilayah\s*)0?([1-7])\b/i);
+    if (match) {
+      return `AW0${match[1]}`;
+    }
+
+    return null;
+  }, [user, isAdmin, isSuperAdmin]);
+
   // State Form Multi-Lokasi: Default 3 Slot
   const createEmptySlot = (id: string): LocationSlot => ({
     id,
     selectedLokasi: '',
-    autoWilayah: '',
+    autoWilayah: assignedWilayah || '',
     searchLokasiInput: '',
     isDropdownOpen: false,
 
     selectedLokasiPengirim: '',
-    autoWilayahPengirim: '',
+    autoWilayahPengirim: assignedWilayah || '',
     searchLokasiPengirimInput: '',
     isDropdownPengirimOpen: false,
 
@@ -411,17 +431,24 @@ export default function FormOrderGorongGorongView() {
       return;
     }
 
-    // Validasi Ketat: Lokasi wajib terdaftar di master database sistem (berawalan 0)
+    // Validasi Ketat: Lokasi wajib terdaftar di master database sistem & sesuai wilayah tugas pengguna
     for (const s of filledSlots) {
       if (isPindah) {
         if (s.selectedLokasiPengirim) {
-          const isValidPengirim = masterLokasiList.some(
+          const mPengirim = masterLokasiList.find(
             (m) => m.lokasi?.trim().toUpperCase() === s.selectedLokasiPengirim.trim().toUpperCase()
           );
-          if (!isValidPengirim) {
+          if (!mPengirim) {
             setNotification({
               type: 'error',
               message: `Lokasi pengirim '${s.selectedLokasiPengirim}' tidak terdaftar di sistem! Harap pilih lokasi resmi yang tersedia di dropdown (contoh: pastikan ada angka 0 seperti 085C).`,
+            });
+            return;
+          }
+          if (assignedWilayah && (mPengirim.strucPlant || mPengirim.wilayah || 'AW01') !== assignedWilayah) {
+            setNotification({
+              type: 'error',
+              message: `Lokasi pengirim '${s.selectedLokasiPengirim}' (${mPengirim.strucPlant || mPengirim.wilayah || 'AW01'}) bukan bagian dari wilayah tugas Anda (${assignedWilayah})!`,
             });
             return;
           }
@@ -439,13 +466,20 @@ export default function FormOrderGorongGorongView() {
           }
         }
       } else {
-        const isValid = masterLokasiList.some(
+        const matchLokasi = masterLokasiList.find(
           (m) => m.lokasi?.trim().toUpperCase() === s.selectedLokasi.trim().toUpperCase()
         );
-        if (!isValid) {
+        if (!matchLokasi) {
           setNotification({
             type: 'error',
             message: `Lokasi '${s.selectedLokasi}' tidak terdaftar di sistem! Harap pilih lokasi resmi yang tersedia di dropdown (contoh: pastikan ada angka 0 seperti 085C).`,
+          });
+          return;
+        }
+        if (assignedWilayah && (matchLokasi.strucPlant || matchLokasi.wilayah || 'AW01') !== assignedWilayah) {
+          setNotification({
+            type: 'error',
+            message: `Lokasi '${s.selectedLokasi}' (${matchLokasi.strucPlant || matchLokasi.wilayah || 'AW01'}) bukan bagian dari wilayah tugas Anda (${assignedWilayah})! Anda hanya dapat menginput data untuk petak wilayah ${assignedWilayah}.`,
           });
           return;
         }
@@ -1091,19 +1125,36 @@ export default function FormOrderGorongGorongView() {
             </div>
           </div>
 
+          {/* Info Wilayah Tugas Pengguna (Khusus Mandor Wilayah / TK Verifikator FE) */}
+          {assignedWilayah && (
+            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 text-xs text-emerald-800 dark:text-emerald-300 shadow-2xs">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <div className="flex-1">
+                <span className="font-bold">Wilayah Tugas Anda: {assignedWilayah}</span>
+                <span className="text-emerald-700/80 dark:text-emerald-400/80 ml-1.5">
+                  — Form input otomatis dikunci khusus untuk petak lokasi di wilayah {assignedWilayah}.
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* DAFTAR SLOT LOKASI (DEFAULT 3 SLOT) */}
           <div className="space-y-4">
             {slots.map((slot, index) => {
               const filteredLokasiOptions = masterLokasiList
-                .filter((item) =>
-                  item.lokasi.toUpperCase().includes((slot.searchLokasiInput || '').toUpperCase())
-                )
+                .filter((item) => {
+                  const matchSearch = item.lokasi.toUpperCase().includes((slot.searchLokasiInput || '').toUpperCase());
+                  const matchWilayah = !assignedWilayah || (item.strucPlant || item.wilayah) === assignedWilayah;
+                  return matchSearch && matchWilayah;
+                })
                 .slice(0, 30);
 
               const filteredPengirimOptions = lokasiSaldoList
-                .filter((item) =>
-                  item.lokasi.toUpperCase().includes((slot.searchLokasiPengirimInput || '').toUpperCase())
-                )
+                .filter((item) => {
+                  const matchSearch = item.lokasi.toUpperCase().includes((slot.searchLokasiPengirimInput || '').toUpperCase());
+                  const matchWilayah = !assignedWilayah || (item.strucPlant || item.wilayah) === assignedWilayah;
+                  return matchSearch && matchWilayah;
+                })
                 .slice(0, 30);
 
               const filteredPenerimaOptions = masterLokasiList
@@ -1158,19 +1209,23 @@ export default function FormOrderGorongGorongView() {
                             onChange={(e) => {
                               const val = e.target.value;
                               const match = lokasiSaldoList.find(
-                                (item) => item.lokasi.trim().toUpperCase() === val.trim().toUpperCase()
+                                (item) =>
+                                  item.lokasi.trim().toUpperCase() === val.trim().toUpperCase() &&
+                                  (!assignedWilayah || (item.strucPlant || item.wilayah) === assignedWilayah)
                               );
                               updateSlot(slot.id, {
                                 searchLokasiPengirimInput: val,
                                 isDropdownPengirimOpen: true,
                                 selectedLokasiPengirim: match ? match.lokasi : val.trim().toUpperCase(),
-                                autoWilayahPengirim: match ? (match.strucPlant || match.wilayah || 'AW01') : slot.autoWilayahPengirim,
+                                autoWilayahPengirim: match ? (match.strucPlant || match.wilayah || 'AW01') : (assignedWilayah || slot.autoWilayahPengirim),
                               });
                             }}
                             onBlur={() => {
                               if (slot.searchLokasiPengirimInput.trim()) {
                                 const match = lokasiSaldoList.find(
-                                  (item) => item.lokasi.trim().toUpperCase() === slot.searchLokasiPengirimInput.trim().toUpperCase()
+                                  (item) =>
+                                    item.lokasi.trim().toUpperCase() === slot.searchLokasiPengirimInput.trim().toUpperCase() &&
+                                    (!assignedWilayah || (item.strucPlant || item.wilayah) === assignedWilayah)
                                 );
                                 if (match) {
                                   updateSlot(slot.id, {
@@ -1381,19 +1436,23 @@ export default function FormOrderGorongGorongView() {
                             onChange={(e) => {
                               const val = e.target.value;
                               const match = masterLokasiList.find(
-                                (item) => item.lokasi.trim().toUpperCase() === val.trim().toUpperCase()
+                                (item) =>
+                                  item.lokasi.trim().toUpperCase() === val.trim().toUpperCase() &&
+                                  (!assignedWilayah || (item.strucPlant || item.wilayah) === assignedWilayah)
                               );
                               updateSlot(slot.id, {
                                 searchLokasiInput: val,
                                 isDropdownOpen: true,
                                 selectedLokasi: match ? match.lokasi : val.trim().toUpperCase(),
-                                autoWilayah: match ? (match.strucPlant || 'AW01') : slot.autoWilayah,
+                                autoWilayah: match ? (match.strucPlant || 'AW01') : (assignedWilayah || slot.autoWilayah),
                               });
                             }}
                             onBlur={() => {
                               if (slot.searchLokasiInput.trim()) {
                                 const match = masterLokasiList.find(
-                                  (item) => item.lokasi.trim().toUpperCase() === slot.searchLokasiInput.trim().toUpperCase()
+                                  (item) =>
+                                    item.lokasi.trim().toUpperCase() === slot.searchLokasiInput.trim().toUpperCase() &&
+                                    (!assignedWilayah || (item.strucPlant || item.wilayah) === assignedWilayah)
                                 );
                                 if (match) {
                                   updateSlot(slot.id, {

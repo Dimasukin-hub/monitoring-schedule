@@ -61,7 +61,7 @@ export async function PUT(
     }
 
     const body = await req.json();
-    const { name, role, password, username } = body;
+    const { name, role, password, username, wilayah } = body;
 
     const existingUser = await prisma.user.findUnique({
       where: { id: userId },
@@ -172,6 +172,12 @@ export async function PUT(
       updateData.password = password.trim();
     }
 
+    if (wilayah !== undefined) {
+      updateData.wilayah = wilayah && String(wilayah).trim().toUpperCase() !== 'ALL'
+        ? String(wilayah).trim().toUpperCase()
+        : null;
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: updateData,
@@ -185,6 +191,7 @@ export async function PUT(
         name: updatedUser.name,
         username: updatedUser.email,
         role: updatedUser.role,
+        wilayah: updatedUser.wilayah,
         updatedAt: updatedUser.updatedAt,
       },
     });
