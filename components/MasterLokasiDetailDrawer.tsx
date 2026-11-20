@@ -204,29 +204,29 @@ export default function MasterLokasiDetailDrawer({
                   </h3>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40">
-                    <span className="text-[10px] font-semibold text-slate-400 block">Tanggal Rawat</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono mt-1 block">
+                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40 text-center flex flex-col items-center justify-center">
+                    <span className="text-[10px] font-semibold text-slate-400 block text-center">Tanggal Rawat</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono mt-1 block text-center">
                       {formatDate(masterData?.tglRawat)}
                     </span>
                   </div>
-                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40">
-                    <span className="text-[10px] font-semibold text-slate-400 block">Umur Bulan</span>
-                    <span className="text-xs font-bold text-[#00873D] dark:text-emerald-400 font-mono mt-1 block">
+                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40 text-center flex flex-col items-center justify-center">
+                    <span className="text-[10px] font-semibold text-slate-400 block text-center">Umur Bulan</span>
+                    <span className="text-xs font-bold text-[#00873D] dark:text-emerald-400 font-mono mt-1 block text-center">
                       {masterData?.umurBulan !== null && masterData?.umurBulan !== undefined
                         ? `${masterData.umurBulan} Bln`
                         : (orderData?.umurBulan ? `${orderData.umurBulan} Bln` : '-')}
                     </span>
                   </div>
-                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40">
-                    <span className="text-[10px] font-semibold text-slate-400 block">Jenis Bibit</span>
-                    <span className="text-xs font-bold text-amber-600 dark:text-amber-400 mt-1 block">
+                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40 text-center flex flex-col items-center justify-center">
+                    <span className="text-[10px] font-semibold text-slate-400 block text-center">Jenis Bibit</span>
+                    <span className="text-xs font-bold text-amber-600 dark:text-amber-400 mt-1 block text-center">
                       {masterData?.jenis || '-'}
                     </span>
                   </div>
-                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40">
-                    <span className="text-[10px] font-semibold text-slate-400 block">Kelas Bibit</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 block">
+                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40 text-center flex flex-col items-center justify-center">
+                    <span className="text-[10px] font-semibold text-slate-400 block text-center">Kelas Bibit</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 block text-center">
                       {masterData?.kelas || '-'}
                     </span>
                   </div>
@@ -292,7 +292,7 @@ export default function MasterLokasiDetailDrawer({
                           <th colSpan={4} className="px-3 py-1.5 border-r border-slate-200 dark:border-slate-700 text-center bg-slate-200/50 dark:bg-slate-700/50">
                             Diameter
                           </th>
-                          <th rowSpan={2} className="px-4 py-2 text-left">
+                          <th rowSpan={2} className="px-4 py-2 text-center">
                             Penginput
                           </th>
                         </tr>
@@ -352,7 +352,7 @@ export default function MasterLokasiDetailDrawer({
                                 <td className="px-2.5 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center font-bold text-purple-600 dark:text-purple-400">
                                   {item.qtyD100 ?? 0}
                                 </td>
-                                <td className="px-4 py-2 text-left font-sans text-xs text-slate-700 dark:text-slate-300">
+                                <td className="px-4 py-2 text-center font-sans text-xs text-slate-700 dark:text-slate-300">
                                   {item.penginput || 'User'}
                                 </td>
                               </tr>
