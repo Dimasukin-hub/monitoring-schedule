@@ -51,21 +51,31 @@ export async function GET(request: NextRequest) {
 
     const lokasi = searchParams.get('lokasi')?.trim().toUpperCase();
     const jenis = searchParams.get('jenis')?.trim().toUpperCase();
-    const limit = parseInt(searchParams.get('limit') || '50', 10);
+    const limit = parseInt(searchParams.get('limit') || '25', 10);
+    const page = parseInt(searchParams.get('page') || '1', 10);
 
     const where: any = {};
     if (lokasi) where.lokasi = { contains: lokasi, mode: 'insensitive' };
     if (jenis && jenis !== 'ALL') where.jenisTransaksi = jenis;
 
-    const list = await prisma.transaksiGorongGorong.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take: Math.min(limit, 200),
-    });
+    const [total, list] = await Promise.all([
+      prisma.transaksiGorongGorong.count({ where }),
+      prisma.transaksiGorongGorong.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+    ]);
+
+    const totalPages = Math.max(1, Math.ceil(total / limit));
 
     return NextResponse.json({
       success: true,
       data: list,
+      total,
+      page,
+      totalPages,
     });
   } catch (error: any) {
     console.error('Error fetching order transactions:', error);
