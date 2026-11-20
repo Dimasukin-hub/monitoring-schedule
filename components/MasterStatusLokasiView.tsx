@@ -27,7 +27,15 @@ let cachedMasterLokasiList: any[] = [];
 let cachedTotalCount = 0;
 let cachedTotalPages = 1;
 
-export default function MasterStatusLokasiView() {
+interface MasterStatusLokasiViewProps {
+  hideUploadAndTemplate?: boolean;
+  portal?: string;
+}
+
+export default function MasterStatusLokasiView({
+  hideUploadAndTemplate = false,
+  portal,
+}: MasterStatusLokasiViewProps = {}) {
   const { canUploadMasterData } = useAuth();
   const [dataList, setDataList] = useState<any[]>(cachedMasterLokasiList);
   const [totalCount, setTotalCount] = useState<number>(cachedTotalCount);
@@ -209,7 +217,7 @@ export default function MasterStatusLokasiView() {
             Total: {totalCount} Lokasi
           </span>
 
-          {canUploadMasterData && (
+          {!hideUploadAndTemplate && portal !== 'sulam' && canUploadMasterData && (
             <a
               href="/api/gorong-gorong/master-lokasi/template"
               download="Template_Master_Status_Lokasi.xlsx"
@@ -232,7 +240,7 @@ export default function MasterStatusLokasiView() {
             <span>{isExporting ? 'Mengekspor...' : 'Unduh Excel'}</span>
           </button>
 
-          {canUploadMasterData && (
+          {!hideUploadAndTemplate && portal !== 'sulam' && canUploadMasterData && (
             <button
               type="button"
               onClick={() => {

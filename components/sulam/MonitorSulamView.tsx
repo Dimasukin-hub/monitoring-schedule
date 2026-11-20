@@ -223,15 +223,6 @@ export default function MonitorSulamView() {
             </select>
           )}
 
-          <button
-            type="button"
-            onClick={() => fetchData()}
-            disabled={loading}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white backdrop-blur-xs transition-colors border border-white/20 cursor-pointer disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Segarkan</span>
-          </button>
           <a
             href="/api/sulam/export"
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white text-emerald-800 hover:bg-emerald-50 transition-colors shadow-xs cursor-pointer"

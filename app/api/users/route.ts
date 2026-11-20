@@ -78,19 +78,28 @@ export async function GET(req: Request) {
       userCount: users.filter((u) => u.role === 'user' || u.role === 'user_wilayah' || u.role === 'user_planting' || u.role === 'user_fe').length,
     };
 
+    function detectWilayah(username: string): string | null {
+      const match = username.toLowerCase().match(/(?:aw|w|wilayah[\s_-]*|wil[\s_-]*)0?([1-7])(?!\d)/i);
+      return match ? `AW0${match[1]}` : null;
+    }
+
     return NextResponse.json({
       success: true,
-      data: users.map((u) => ({
-        id: u.id,
-        name: u.name,
-        username: u.email,
-        password: isSuper ? u.password : undefined,
-        role: u.role,
-        wilayah: u.wilayah || null,
-        avatar: u.avatar,
-        createdAt: u.createdAt,
-        updatedAt: u.updatedAt,
-      })),
+      data: users.map((u) => {
+        const isFieldRole = ['kepala_wilayah', 'user_wilayah', 'user'].includes(u.role);
+        const effectiveWilayah = isFieldRole ? (u.wilayah || detectWilayah(u.email)) : null;
+        return {
+          id: u.id,
+          name: u.name,
+          username: u.email,
+          password: isSuper ? u.password : undefined,
+          role: u.role,
+          wilayah: effectiveWilayah,
+          avatar: u.avatar,
+          createdAt: u.createdAt,
+          updatedAt: u.updatedAt,
+        };
+      }),
       stats,
     });
   } catch (error: any) {
@@ -176,9 +185,20 @@ export async function POST(req: Request) {
     }
 
     const rawWilayah = body.wilayah;
-    const cleanWilayah = rawWilayah && String(rawWilayah).trim().toUpperCase() !== 'ALL'
+    let cleanWilayah = rawWilayah && String(rawWilayah).trim().toUpperCase() !== 'ALL'
       ? String(rawWilayah).trim().toUpperCase()
       : null;
+
+    // Hanya role kepala_wilayah dan user_wilayah / user yang memiliki wilayah tugas
+    if (!['kepala_wilayah', 'user_wilayah', 'user'].includes(role)) {
+      cleanWilayah = null;
+    } else if (!cleanWilayah) {
+      // Auto deteksi dari username jika mengandung w01..w07
+      const match = cleanUsername.match(/(?:aw|w|wilayah[\s_-]*|wil[\s_-]*)0?([1-7])(?!\d)/i);
+      if (match) {
+        cleanWilayah = `AW0${match[1]}`;
+      }
+    }
 
     const newUser = await prisma.user.create({
       data: {

@@ -172,10 +172,22 @@ export async function PUT(
       updateData.password = password.trim();
     }
 
-    if (wilayah !== undefined) {
-      updateData.wilayah = wilayah && String(wilayah).trim().toUpperCase() !== 'ALL'
+    const targetRole = role || existingUser.role;
+    if (!['kepala_wilayah', 'user_wilayah', 'user'].includes(targetRole)) {
+      updateData.wilayah = null;
+    } else if (wilayah !== undefined) {
+      let cleanWilayah = wilayah && String(wilayah).trim().toUpperCase() !== 'ALL'
         ? String(wilayah).trim().toUpperCase()
         : null;
+      if (!cleanWilayah) {
+        // Cek username baru atau existing untuk w01..w07
+        const uToCheck = (updateData.email || existingUser.email || '').toLowerCase();
+        const match = uToCheck.match(/(?:aw|w|wilayah[\s_-]*|wil[\s_-]*)0?([1-7])(?!\d)/i);
+        if (match) {
+          cleanWilayah = `AW0${match[1]}`;
+        }
+      }
+      updateData.wilayah = cleanWilayah;
     }
 
     const updatedUser = await prisma.user.update({

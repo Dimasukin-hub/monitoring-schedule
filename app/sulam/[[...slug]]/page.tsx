@@ -161,7 +161,7 @@ export default function SulamPage() {
         </div>
         <div className={(activeTab === 'master_data' || activeTab === 'master_data_sulam') ? 'space-y-6 animate-in fade-in duration-150' : 'hidden'}>
           <div className={masterDataSubTab === 'master_status_lokasi' ? 'block' : 'hidden'}>
-            <MasterStatusLokasiView />
+            <MasterStatusLokasiView hideUploadAndTemplate={true} portal="sulam" />
           </div>
           <div className={masterDataSubTab === 'master_order' ? 'block' : 'hidden'}>
             <MasterOrderSulamView />

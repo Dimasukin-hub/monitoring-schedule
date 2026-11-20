@@ -34,14 +34,19 @@ export async function GET(request: NextRequest) {
 
     // Map Order per Lokasi (ambil record order pertama / terbaru)
     const orderMap = new Map<string, any>();
-    const allProsesSet = new Set<string>();
+    const prosesMap = new Map<string, string>(); // lowercase key -> canonical label
     for (const ord of allOrders) {
       const lok = ord.lokasi.trim().toUpperCase();
       if (!orderMap.has(lok)) {
         orderMap.set(lok, ord);
       }
       if (ord.keteranganProses && ord.keteranganProses.trim()) {
-        allProsesSet.add(ord.keteranganProses.trim());
+        const raw = ord.keteranganProses.trim();
+        const lower = raw.toLowerCase();
+        if (!prosesMap.has(lower)) {
+          const canonical = raw.charAt(0).toUpperCase() + raw.slice(1);
+          prosesMap.set(lower, canonical);
+        }
       }
     }
 
@@ -133,6 +138,9 @@ export async function GET(request: NextRequest) {
 
       const sulamLastDateStr = relData.lastDate ? relData.lastDate.toISOString().slice(0, 10) : '-';
 
+      const rawKp = ord?.keteranganProses?.trim();
+      const canonicalKp = rawKp ? (prosesMap.get(rawKp.toLowerCase()) || rawKp) : '-';
+
       return {
         wilayah: wil,
         lokasi: mLoc.lokasi,
@@ -159,15 +167,15 @@ export async function GET(request: NextRequest) {
         sulamPctNum,
         sulamLastDate: sulamLastDateStr,
         spekBibit: ord?.spekBibit || '-',
-        keteranganProses: ord?.keteranganProses || '-',
+        keteranganProses: canonicalKp,
         keteranganMati: ord?.keteranganMati || '-',
         keteranganRitase: ord?.keteranganRitase || '-',
       };
     });
 
-    // 3. Filter data berdasarkan proses jika dipilih
+    // 3. Filter data berdasarkan proses jika dipilih (case-insensitive)
     const filteredByProsesRows = proses && proses !== 'ALL'
-      ? allCalculatedRows.filter((r) => r.keteranganProses === proses)
+      ? allCalculatedRows.filter((r) => (r.keteranganProses || '').trim().toLowerCase() === proses.trim().toLowerCase())
       : allCalculatedRows;
 
     // 4. Kalkulasi Summary Monitor Sulam Per Wilayah (AW01 s/d AW07)
@@ -334,7 +342,7 @@ export async function GET(request: NextRequest) {
       umurForcingChart,
       overallDropVsSulam,
       sebaranBibitChart,
-      prosesList: Array.from(allProsesSet).sort(),
+      prosesList: Array.from(prosesMap.values()).sort(),
       rows: paginatedRows,
       pagination: {
         page,

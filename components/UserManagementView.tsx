@@ -48,7 +48,7 @@ const ALL_ASSIGNABLE_ROLES: { role: UserRole; label: string; requireSuperAdmin?:
 ];
 
 const WILAYAH_OPTIONS = [
-  { value: '', label: 'Semua Wilayah (Bebas / Admin)' },
+  { value: '', label: 'Semua Wilayah' },
   { value: 'AW01', label: 'Wilayah 01 (AW01)' },
   { value: 'AW02', label: 'Wilayah 02 (AW02)' },
   { value: 'AW03', label: 'Wilayah 03 (AW03)' },
@@ -57,6 +57,15 @@ const WILAYAH_OPTIONS = [
   { value: 'AW06', label: 'Wilayah 06 (AW06)' },
   { value: 'AW07', label: 'Wilayah 07 (AW07)' },
 ];
+
+export function detectWilayahFromUsernameOrName(username?: string, name?: string): string | null {
+  const text = `${username || ''} ${name || ''}`.toLowerCase();
+  const match = text.match(/(?:aw|w|wilayah[\s_-]*|wil[\s_-]*)0?([1-7])(?!\d)/i);
+  if (match) {
+    return `AW0${match[1]}`;
+  }
+  return null;
+}
 
 export default function UserManagementView({ portal }: { portal?: string } = {}) {
   const pathname = usePathname();
@@ -223,6 +232,7 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
 
     try {
       setIsSubmittingAdd(true);
+      const isFieldRole = ['kepala_wilayah', 'user_wilayah', 'user'].includes(addForm.role);
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
@@ -231,7 +241,7 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
           name: cleanName || cleanUsername,
           password: addForm.password,
           role: addForm.role,
-          wilayah: addForm.wilayah || null,
+          wilayah: isFieldRole ? (addForm.wilayah || null) : null,
         }),
       });
       const data = await res.json();
@@ -264,12 +274,14 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
       showToast('error', 'Hanya Super Admin yang berhak mengubah akun Admin atau Super Admin.');
       return;
     }
+    const isFieldRole = ['kepala_wilayah', 'user_wilayah', 'user'].includes(target.role);
+    const initialWil = target.wilayah || (isFieldRole ? detectWilayahFromUsernameOrName(target.username, target.name) : null) || '';
     setEditingUser(target);
     setEditForm({
       name: target.name,
       username: target.username,
       role: target.role,
-      wilayah: target.wilayah || '',
+      wilayah: isFieldRole ? initialWil : '',
       newPassword: '',
     });
     setEditError(null);
@@ -300,6 +312,7 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
 
     try {
       setIsSubmittingEdit(true);
+      const isFieldRole = ['kepala_wilayah', 'user_wilayah', 'user'].includes(editForm.role);
       const res = await fetch(`/api/users/${editingUser.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
@@ -307,7 +320,7 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
           name: editForm.name.trim(),
           username: editForm.username.trim().toLowerCase(),
           role: editForm.role,
-          wilayah: editForm.wilayah || null,
+          wilayah: isFieldRole ? (editForm.wilayah || null) : null,
           password: editForm.newPassword ? editForm.newPassword.trim() : undefined,
         }),
       });
@@ -437,7 +450,7 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full">
       {/* Toast Notification */}
       {toast && (
         <div
@@ -494,67 +507,129 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
         </button>
       </div>
 
-      {/* KPI Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+      {/* KPI Summary Cards - Terpisah Per Role agar Jelas Jumlah Akun Masing-Masing */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-9 gap-3">
         {/* Total Users */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Pengguna</p>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{users.length}</p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500">Semua akun aktif</p>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-3.5 shadow-xs flex items-center justify-between">
+          <div className="space-y-0.5">
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Total Pengguna</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">{users.length}</p>
+            <p className="text-[10px] text-slate-400">Semua akun</p>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/40 dark:border-indigo-800/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
-            <Users className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Total Super Admin */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Super Admin</p>
-            <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 tracking-tight">{users.filter(u => u.role === 'super_admin').length}</p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500">Kendali penuh sistem</p>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/40 dark:border-indigo-800/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
-            <ShieldAlert className="w-5 h-5" />
+          <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/40 dark:border-indigo-800/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+            <Users className="w-4 h-4" />
           </div>
         </div>
 
-        {/* Total Admin FE */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Admin FE</p>
-            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 tracking-tight">{users.filter(u => u.role === 'admin').length}</p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500">Operasional & Data</p>
+        {/* Super Admin */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-3.5 shadow-xs flex items-center justify-between">
+          <div className="space-y-0.5">
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Super Admin</p>
+            <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400 tracking-tight">{users.filter(u => u.role === 'super_admin').length}</p>
+            <p className="text-[10px] text-slate-400">Kendali sistem</p>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/40 dark:border-emerald-800/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Total Eksekutif / Manajemen */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Manajemen FE/FM/OSD</p>
-            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 tracking-tight">{users.filter(u => ['kepala_bagian_fe', 'manajer_fe', 'manajer_fm', 'manajer_osd'].includes(u.role)).length}</p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500">Kabag & Manajer</p>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200/40 dark:border-amber-800/40 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-            <ShieldCheck className="w-5 h-5" />
+          <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/40 dark:border-indigo-800/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+            <ShieldAlert className="w-4 h-4" />
           </div>
         </div>
 
-        {/* Total Wilayah & Lapangan */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Wilayah & Lapangan</p>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 tracking-tight">{users.filter(u => ['kepala_wilayah', 'user_wilayah', ...(isGorongGorong ? [] : ['user_planting'])].includes(u.role)).length}</p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500">Kawil & Mandor Wilayah</p>
+        {/* Admin FE */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-3.5 shadow-xs flex items-center justify-between">
+          <div className="space-y-0.5">
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Admin FE</p>
+            <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 tracking-tight">{users.filter(u => u.role === 'admin').length}</p>
+            <p className="text-[10px] text-slate-400">Admin Operasional</p>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200/40 dark:border-blue-800/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-            <User className="w-5 h-5" />
+          <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/40 dark:border-emerald-800/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+            <ShieldCheck className="w-4 h-4" />
           </div>
         </div>
+
+        {/* Kepala Bagian FE */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-3.5 shadow-xs flex items-center justify-between">
+          <div className="space-y-0.5">
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Kabag FE</p>
+            <p className="text-xl font-bold text-amber-600 dark:text-amber-400 tracking-tight">{users.filter(u => u.role === 'kepala_bagian_fe').length}</p>
+            <p className="text-[10px] text-slate-400">Kepala Bagian</p>
+          </div>
+          <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200/40 dark:border-amber-800/40 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+            <ShieldCheck className="w-4 h-4" />
+          </div>
+        </div>
+
+        {/* Manajer FE */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-3.5 shadow-xs flex items-center justify-between">
+          <div className="space-y-0.5">
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Manajer FE</p>
+            <p className="text-xl font-bold text-blue-600 dark:text-blue-400 tracking-tight">{users.filter(u => u.role === 'manajer_fe').length}</p>
+            <p className="text-[10px] text-slate-400">Divisi FE</p>
+          </div>
+          <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200/40 dark:border-blue-800/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+            <ShieldCheck className="w-4 h-4" />
+          </div>
+        </div>
+
+        {/* Manajer FM */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-3.5 shadow-xs flex items-center justify-between">
+          <div className="space-y-0.5">
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Manajer FM</p>
+            <p className="text-xl font-bold text-purple-600 dark:text-purple-400 tracking-tight">{users.filter(u => u.role === 'manajer_fm').length}</p>
+            <p className="text-[10px] text-slate-400">Divisi FM</p>
+          </div>
+          <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200/40 dark:border-purple-800/40 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
+            <ShieldCheck className="w-4 h-4" />
+          </div>
+        </div>
+
+        {/* Manajer OSD */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-3.5 shadow-xs flex items-center justify-between">
+          <div className="space-y-0.5">
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Manajer OSD</p>
+            <p className="text-xl font-bold text-rose-600 dark:text-rose-400 tracking-tight">{users.filter(u => u.role === 'manajer_osd').length}</p>
+            <p className="text-[10px] text-slate-400">Divisi OSD</p>
+          </div>
+          <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200/40 dark:border-rose-800/40 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
+            <ShieldCheck className="w-4 h-4" />
+          </div>
+        </div>
+
+        {/* Kepala Wilayah */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-3.5 shadow-xs flex items-center justify-between">
+          <div className="space-y-0.5">
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Kepala Wilayah</p>
+            <p className="text-xl font-bold text-cyan-600 dark:text-cyan-400 tracking-tight">{users.filter(u => u.role === 'kepala_wilayah').length}</p>
+            <p className="text-[10px] text-slate-400">Wilayah</p>
+          </div>
+          <div className="w-8 h-8 rounded-xl bg-cyan-50 dark:bg-cyan-950/60 border border-cyan-200/40 dark:border-cyan-800/40 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shrink-0">
+            <User className="w-4 h-4" />
+          </div>
+        </div>
+
+        {/* Mandor Wilayah */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-3.5 shadow-xs flex items-center justify-between">
+          <div className="space-y-0.5">
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Mandor Wilayah</p>
+            <p className="text-xl font-bold text-teal-600 dark:text-teal-400 tracking-tight">{users.filter(u => u.role === 'user_wilayah' || u.role === 'user').length}</p>
+            <p className="text-[10px] text-slate-400">Mandor Lapangan</p>
+          </div>
+          <div className="w-8 h-8 rounded-xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200/40 dark:border-teal-800/40 flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
+            <User className="w-4 h-4" />
+          </div>
+        </div>
+
+        {/* User Planting (jika ada akun non-gorong-gorong) */}
+        {!isGorongGorong && users.some(u => u.role === 'user_planting') && (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-3.5 shadow-xs flex items-center justify-between">
+            <div className="space-y-0.5">
+              <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">User Planting</p>
+              <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 tracking-tight">{users.filter(u => u.role === 'user_planting').length}</p>
+              <p className="text-[10px] text-slate-400">Planting</p>
+            </div>
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/40 dark:border-emerald-800/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+              <User className="w-4 h-4" />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Control Bar: Search & Role Filters */}
@@ -566,7 +641,7 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari username atau nama..."
+            placeholder="Cari Username atau Nama"
             className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
           />
           {search && (
@@ -725,13 +800,21 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
                         {renderRoleBadge(item.role)}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        {item.wilayah ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 shadow-2xs">
-                            {item.wilayah}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 text-xs italic">Semua</span>
-                        )}
+                        {(() => {
+                          const isFieldRole = ['kepala_wilayah', 'user_wilayah', 'user'].includes(item.role);
+                          const effectiveWil = item.wilayah || (isFieldRole ? detectWilayahFromUsernameOrName(item.username, item.name) : null);
+                          if (effectiveWil) {
+                            return (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 shadow-2xs">
+                                {effectiveWil}
+                              </span>
+                            );
+                          }
+                          if (isFieldRole) {
+                            return <span className="text-slate-400 text-xs italic">Semua Wilayah</span>;
+                          }
+                          return <span className="text-slate-300 dark:text-slate-600 text-xs">-</span>;
+                        })()}
                       </td>
                       <td className="py-3 px-4 text-center text-slate-500 dark:text-slate-400">
                         {formatDate(item.createdAt)}
@@ -916,26 +999,25 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
                 </div>
               </div>
 
-              {/* Wilayah Tugas */}
-              <div className="space-y-1.5 pt-1">
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Wilayah Tugas (Form Input)
-                </label>
-                <select
-                  value={addForm.wilayah}
-                  onChange={(e) => setAddForm({ ...addForm, wilayah: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500"
-                >
-                  {WILAYAH_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[10px] text-slate-400">
-                  Khusus Mandor Wilayah untuk mengunci pilihan lokasi petak di Form Input.
-                </p>
-              </div>
+              {/* Wilayah Tugas (Hanya untuk Kepala Wilayah & Mandor Wilayah) */}
+              {['kepala_wilayah', 'user_wilayah', 'user'].includes(addForm.role) && (
+                <div className="space-y-1.5 pt-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Wilayah Tugas
+                  </label>
+                  <select
+                    value={addForm.wilayah}
+                    onChange={(e) => setAddForm({ ...addForm, wilayah: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500"
+                  >
+                    {WILAYAH_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Modal Actions */}
               <div className="pt-2 flex items-center justify-end gap-2">
@@ -1093,26 +1175,25 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
                 </div>
               </div>
 
-              {/* Wilayah Tugas */}
-              <div className="space-y-1.5 pt-1">
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Wilayah Tugas (Form Input)
-                </label>
-                <select
-                  value={editForm.wilayah}
-                  onChange={(e) => setEditForm({ ...editForm, wilayah: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500"
-                >
-                  {WILAYAH_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[10px] text-slate-400">
-                  Khusus Mandor Wilayah untuk mengunci pilihan lokasi petak di Form Input.
-                </p>
-              </div>
+              {/* Wilayah Tugas (Hanya untuk Kepala Wilayah & Mandor Wilayah) */}
+              {['kepala_wilayah', 'user_wilayah', 'user'].includes(editForm.role) && (
+                <div className="space-y-1.5 pt-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Wilayah Tugas
+                  </label>
+                  <select
+                    value={editForm.wilayah}
+                    onChange={(e) => setEditForm({ ...editForm, wilayah: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500"
+                  >
+                    {WILAYAH_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Modal Actions */}
               <div className="pt-2 flex items-center justify-end gap-2">

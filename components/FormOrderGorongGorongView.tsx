@@ -65,25 +65,25 @@ export default function FormOrderGorongGorongView() {
     roleDisplayName,
   } = useAuth();
 
-  // Deteksi Wilayah Tugas Pengguna (Khusus Mandor Wilayah)
+  // Deteksi Wilayah Tugas Pengguna (Khusus Mandor Wilayah dan Kepala Wilayah)
   const assignedWilayah = useMemo<string | null>(() => {
-    // Admin dan Super Admin bebas akses semua wilayah
-    if (isAdmin || isSuperAdmin) return null;
+    // Admin, Super Admin, dan Manajemen FE/FM/OSD bebas akses semua wilayah
+    if (isAdmin || isSuperAdmin || isManagement) return null;
 
     // 1. Ambil dari field wilayah User jika sudah diset
     if (user?.wilayah && user.wilayah.trim() !== '' && user.wilayah.toUpperCase() !== 'ALL') {
       return user.wilayah.trim().toUpperCase();
     }
 
-    // 2. Fallback deteksi cerdas dari username atau nama jika belum diset di database
+    // 2. Fallback deteksi cerdas dari username atau nama (w01, w02, ... w07, mandorw01, dll)
     const textToCheck = `${user?.username || user?.email || ''} ${user?.name || ''}`.toLowerCase();
-    const match = textToCheck.match(/\b(?:aw|w|wilayah\s*)0?([1-7])\b/i);
+    const match = textToCheck.match(/(?:aw|w|wilayah[\s_-]*|wil[\s_-]*)0?([1-7])(?!\d)/i);
     if (match) {
       return `AW0${match[1]}`;
     }
 
     return null;
-  }, [user, isAdmin, isSuperAdmin]);
+  }, [user, isAdmin, isSuperAdmin, isManagement]);
 
   // State Form Multi-Lokasi: Default 3 Slot
   const createEmptySlot = (id: string): LocationSlot => ({
