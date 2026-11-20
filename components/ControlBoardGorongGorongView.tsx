@@ -13,6 +13,7 @@ import {
   MapPin,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Activity,
   FileCheck2,
 } from 'lucide-react';
@@ -106,6 +107,8 @@ const renderCustomLineLabel = (props: any) => {
   );
 };
 
+const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
 export default function ControlBoardGorongGorongView() {
   const [loading, setLoading] = useState<boolean>(true);
   const [summary, setSummary] = useState<SummaryData>({
@@ -126,16 +129,40 @@ export default function ControlBoardGorongGorongView() {
   const [showPasangManual, setShowPasangManual] = useState<boolean>(true);
   const [showPctPemasangan, setShowPctPemasangan] = useState<boolean>(true);
 
+  // Filter Rentang Bulan (Sama seperti di Master Data)
+  const [monthRange, setMonthRange] = useState<{ startMonth: number; endMonth: number; year: number } | null>(null);
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
+  const [pickerYear, setPickerYear] = useState<number>(new Date().getFullYear());
+
   // Filter & Search
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'Match' | 'Check'>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 15;
 
+  // Tutup dropdown picker saat klik di luar
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.control-board-monthpicker-container')) {
+        setIsMonthPickerOpen(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   const loadControlBoardData = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/gorong-gorong/control-board');
+      const params = new URLSearchParams();
+      if (monthRange) {
+        params.set('year', String(monthRange.year));
+        params.set('startMonth', String(monthRange.startMonth));
+        params.set('endMonth', String(monthRange.endMonth));
+      }
+      const url = `/api/gorong-gorong/control-board${params.toString() ? '?' + params.toString() : ''}`;
+      const res = await fetch(url);
       const json = await res.json();
       if (json.success) {
         setSummary(json.summary || {
@@ -158,8 +185,18 @@ export default function ControlBoardGorongGorongView() {
   };
 
   useEffect(() => {
+    setCurrentPage(1);
     loadControlBoardData();
-  }, []);
+  }, [monthRange]);
+
+  // Real-time synchronization
+  useEffect(() => {
+    const handleSync = () => {
+      loadControlBoardData();
+    };
+    window.addEventListener('gorong_gorong_updated', handleSync);
+    return () => window.removeEventListener('gorong_gorong_updated', handleSync);
+  }, [monthRange]);
 
   // Filter table data
   const filteredTableData = tableData.filter((row) => {
@@ -181,18 +218,132 @@ export default function ControlBoardGorongGorongView() {
     <div className="space-y-6">
       {/* 1. Header Banner */}
       <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 rounded-2xl p-4 sm:p-6 text-white shadow-md">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2.5">
-            <span className="p-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/20">
-              <Activity className="w-5 h-5 text-blue-200" />
-            </span>
-            <h1 className="text-lg sm:text-xl font-black tracking-tight">
-              Control Board Gorong-Gorong PG1
-            </h1>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2.5">
+              <span className="p-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/20">
+                <Activity className="w-5 h-5 text-blue-200" />
+              </span>
+              <h1 className="text-lg sm:text-xl font-black tracking-tight">
+                Control Board Gorong-Gorong PG1
+              </h1>
+            </div>
+            <p className="text-xs text-blue-100/80 max-w-4xl leading-relaxed">
+              Summary harian verifikasi Pasang Manual vs Pasang SAP, serta monitoring tren kedatangan drop dan pemasangan <span className="whitespace-nowrap">gorong-gorong.</span>
+            </p>
           </div>
-          <p className="text-xs text-blue-100/80 max-w-4xl leading-relaxed">
-            Summary harian verifikasi Pasang Manual vs Pasang SAP, serta monitoring tren kedatangan drop dan pemasangan <span className="whitespace-nowrap">gorong-gorong.</span>
-          </p>
+
+          {/* Filter Rentang Bulan (Sama persis seperti di Master Data) */}
+          <div className="relative control-board-monthpicker-container shrink-0 self-start sm:self-center">
+            <button
+              type="button"
+              onClick={() => setIsMonthPickerOpen((prev) => !prev)}
+              className={`flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-colors shadow-2xs ${
+                monthRange
+                  ? 'bg-emerald-500/20 border-emerald-400 text-emerald-200 font-bold'
+                  : 'bg-white/10 hover:bg-white/20 border-white/20 text-white'
+              }`}
+            >
+              <div className="flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-blue-200" />
+                <span>
+                  {monthRange
+                    ? `${MONTH_NAMES_SHORT[monthRange.startMonth]} – ${MONTH_NAMES_SHORT[monthRange.endMonth]} ${monthRange.year}`
+                    : 'Rentang Bulan'}
+                </span>
+              </div>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-blue-200 transition-transform duration-200 ${
+                  isMonthPickerOpen ? 'rotate-180' : 'rotate-0'
+                }`}
+              />
+            </button>
+
+            {isMonthPickerOpen && (
+              <div className="absolute right-0 top-full mt-1.5 w-72 p-3.5 rounded-2xl bg-[#1e2330] text-white border border-slate-700/80 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100">
+                {/* Header: Year Nav */}
+                <div className="flex items-center justify-between px-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setPickerYear((y) => y - 1)}
+                    className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-sm font-bold tracking-tight text-white">{pickerYear}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPickerYear((y) => y + 1)}
+                    className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Grid 12 Bulan (3 kolom x 4 baris) */}
+                <div className="grid grid-cols-3 gap-1.5 my-2">
+                  {MONTH_NAMES_SHORT.map((mName, mIdx) => {
+                    const isSelectedYear = monthRange && monthRange.year === pickerYear;
+                    const s = isSelectedYear ? Math.min(monthRange.startMonth, monthRange.endMonth) : -1;
+                    const e = isSelectedYear ? Math.max(monthRange.startMonth, monthRange.endMonth) : -1;
+                    const isStart = isSelectedYear && mIdx === s;
+                    const isEnd = isSelectedYear && mIdx === e;
+                    const inRange = isSelectedYear && mIdx >= s && mIdx <= e;
+
+                    let btnClass = 'text-slate-300 hover:bg-slate-800/80 hover:text-white';
+                    if (isStart || isEnd) {
+                      btnClass = 'bg-[#00873D] text-white font-black shadow-xs';
+                    } else if (inRange) {
+                      btnClass = 'bg-[#00873D]/30 text-emerald-300 font-bold';
+                    }
+
+                    return (
+                      <button
+                        key={mName}
+                        type="button"
+                        onClick={() => {
+                          if (!monthRange || (monthRange.startMonth !== monthRange.endMonth)) {
+                            setMonthRange({ startMonth: mIdx, endMonth: mIdx, year: pickerYear });
+                          } else {
+                            const first = monthRange.startMonth;
+                            setMonthRange({
+                              startMonth: Math.min(first, mIdx),
+                              endMonth: Math.max(first, mIdx),
+                              year: pickerYear,
+                            });
+                          }
+                        }}
+                        className={`py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${btnClass}`}
+                      >
+                        {mName}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Footer Controls */}
+                <div className="pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMonthRange(null);
+                      setIsMonthPickerOpen(false);
+                    }}
+                    className="text-rose-400 hover:text-rose-300 font-semibold cursor-pointer"
+                  >
+                    Reset Filter
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsMonthPickerOpen(false)}
+                    className="px-3 py-1 rounded-lg bg-[#00873D] hover:bg-[#007033] text-white font-bold cursor-pointer"
+                  >
+                    Terapkan
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -210,7 +361,11 @@ export default function ControlBoardGorongGorongView() {
             {summary.totalOrder.toLocaleString('id-ID')}
             <span className="text-xs font-normal text-slate-400 ml-1.5 font-sans">pcs</span>
           </div>
-          <div className="mt-1 text-[11px] text-slate-400">Baseline kebutuhan petak</div>
+          <div className="mt-1 text-[11px] text-slate-400">
+            {monthRange
+              ? `Order ${MONTH_NAMES_SHORT[monthRange.startMonth]}${monthRange.startMonth !== monthRange.endMonth ? ' – ' + MONTH_NAMES_SHORT[monthRange.endMonth] : ''} ${monthRange.year}`
+              : 'Baseline kebutuhan petak'}
+          </div>
         </div>
 
         {/* Total Drop & % Kedatangan */}
@@ -229,7 +384,11 @@ export default function ControlBoardGorongGorongView() {
               ({summary.pctKedatangan}%)
             </span>
           </div>
-          <div className="mt-1 text-[11px] text-slate-400">Total drop ke lapangan</div>
+          <div className="mt-1 text-[11px] text-slate-400">
+            {monthRange
+              ? `Drop ${MONTH_NAMES_SHORT[monthRange.startMonth]}${monthRange.startMonth !== monthRange.endMonth ? ' – ' + MONTH_NAMES_SHORT[monthRange.endMonth] : ''} ${monthRange.year}`
+              : 'Total drop ke lapangan'}
+          </div>
         </div>
 
         {/* Total Pasang Manual */}
@@ -248,7 +407,11 @@ export default function ControlBoardGorongGorongView() {
               ({summary.pctPemasangan}%)
             </span>
           </div>
-          <div className="mt-1 text-[11px] text-slate-400">Input verifikator & mandor</div>
+          <div className="mt-1 text-[11px] text-slate-400">
+            {monthRange
+              ? `Pasang manual ${MONTH_NAMES_SHORT[monthRange.startMonth]}${monthRange.startMonth !== monthRange.endMonth ? ' – ' + MONTH_NAMES_SHORT[monthRange.endMonth] : ''} ${monthRange.year}`
+              : 'Input verifikator & mandor'}
+          </div>
         </div>
 
         {/* Total Pasang SAP */}
@@ -263,7 +426,11 @@ export default function ControlBoardGorongGorongView() {
             {summary.totalPasangSap.toLocaleString('id-ID')}
             <span className="text-xs font-normal text-slate-400 ml-1.5 font-sans">pcs</span>
           </div>
-          <div className="mt-1 text-[11px] text-slate-400">Tersinkronisasi ke Monitor Gorong-Gorong</div>
+          <div className="mt-1 text-[11px] text-slate-400">
+            {monthRange
+              ? `Pasang SAP ${MONTH_NAMES_SHORT[monthRange.startMonth]}${monthRange.startMonth !== monthRange.endMonth ? ' – ' + MONTH_NAMES_SHORT[monthRange.endMonth] : ''} ${monthRange.year}`
+              : 'Tersinkronisasi ke Monitor Gorong-Gorong'}
+          </div>
         </div>
       </div>
 
@@ -280,7 +447,9 @@ export default function ControlBoardGorongGorongView() {
                 Verifikasi Harian Pasang Manual vs SAP
               </h2>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Pencocokan kuantitas pasang manual (form input) dan SAP (excel upload) per tanggal & lokasi
+                {monthRange
+                  ? `Pencocokan pasang manual & SAP periode ${MONTH_NAMES_SHORT[monthRange.startMonth]}${monthRange.startMonth !== monthRange.endMonth ? ' – ' + MONTH_NAMES_SHORT[monthRange.endMonth] : ''} ${monthRange.year}`
+                  : 'Pencocokan kuantitas pasang manual (form input) dan SAP (excel upload) per tanggal & lokasi'}
               </p>
             </div>
           </div>
@@ -523,7 +692,9 @@ export default function ControlBoardGorongGorongView() {
                 </h3>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Batang: Drop • Garis: % Kedatangan
+                {monthRange
+                  ? `Batang: Drop • Garis: % Kedatangan (${MONTH_NAMES_SHORT[monthRange.startMonth]}${monthRange.startMonth !== monthRange.endMonth ? ' – ' + MONTH_NAMES_SHORT[monthRange.endMonth] : ''} ${monthRange.year})`
+                  : 'Batang: Drop • Garis: % Kedatangan'}
               </p>
             </div>
 
@@ -648,7 +819,9 @@ export default function ControlBoardGorongGorongView() {
                 </h3>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Batang: Pasang Manual • Garis: % Pemasangan
+                {monthRange
+                  ? `Batang: Pasang Manual • Garis: % Pemasangan (${MONTH_NAMES_SHORT[monthRange.startMonth]}${monthRange.startMonth !== monthRange.endMonth ? ' – ' + MONTH_NAMES_SHORT[monthRange.endMonth] : ''} ${monthRange.year})`
+                  : 'Batang: Pasang Manual • Garis: % Pemasangan'}
               </p>
             </div>
 
