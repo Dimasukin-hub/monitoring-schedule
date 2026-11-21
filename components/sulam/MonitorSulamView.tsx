@@ -337,16 +337,16 @@ export default function MonitorSulamView() {
         </div>
 
         <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-x-auto shadow-2xs">
-          <table className="w-full text-center border-collapse text-xs whitespace-nowrap">
-            <thead className="bg-slate-100/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 font-bold border-b border-slate-200 dark:border-slate-700">
-              <tr>
-                <th className="py-2.5 px-3 border-r border-slate-200 dark:border-slate-700 text-center w-24">Wilayah</th>
-                <th className="py-2.5 px-3 border-r border-slate-200 dark:border-slate-700 text-center">Order (Rit)</th>
-                <th className="py-2.5 px-3 border-r border-slate-200 dark:border-slate-700 text-center">Drop (Rit)</th>
-                <th className="py-2.5 px-3 border-r border-slate-200 dark:border-slate-700 text-center">Deviasi (Rit)</th>
-                <th className="py-2.5 px-3 border-r border-slate-200 dark:border-slate-700 text-center">Sulam (Rit)</th>
-                <th className="py-2.5 px-3 border-r border-slate-200 dark:border-slate-700 text-center">% Drop</th>
-                <th className="py-2.5 px-3 text-center">% Sulam</th>
+          <table className="w-full text-center border-separate border-spacing-0 text-xs whitespace-nowrap">
+            <thead className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold border-b border-slate-200 dark:border-slate-700">
+              <tr className="bg-slate-100 dark:bg-slate-800">
+                <th className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-center w-24">Wilayah</th>
+                <th className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-center">Order (Rit)</th>
+                <th className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-center">Drop (Rit)</th>
+                <th className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-center">Deviasi (Rit)</th>
+                <th className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-center">Sulam (Rit)</th>
+                <th className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-center">% Drop</th>
+                <th className="py-2.5 px-3 border-b border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-center">% Sulam</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono text-slate-800 dark:text-slate-200">
@@ -658,54 +658,54 @@ export default function MonitorSulamView() {
       {/* 6. Main Table: 17 Kolom Berurutan List Sulam */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
         <div className="max-h-[640px] overflow-x-auto overflow-y-auto">
-          <table className="w-full text-xs border-collapse">
+          <table className="w-full text-xs border-separate border-spacing-0">
             <thead className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 uppercase font-bold tracking-wider shadow-xs">
               {/* Baris 1 Header Grup */}
-              <tr className="border-b border-slate-200 dark:border-slate-700">
-                <th rowSpan={2} className="py-2.5 px-2.5 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[45px]">No</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[70px]">Wilayah</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[85px]">Lokasi</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[80px]">Jenis Bibit</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[80px]">Kelas Bibit</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[100px]">Tgl Rawat</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[105px]">Tgl STD Forcing</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[105px]">Tgl F Prod</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[105px]">Tgl F Max</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[105px]">Tgl Order</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[95px]">Umur Forcing</th>
-                <th colSpan={3} className="py-2 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-blue-50/60 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300">
+              <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
+                <th rowSpan={2} className="py-2.5 px-2.5 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[45px]">No</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[70px]">Wilayah</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[85px]">Lokasi</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[80px]">Jenis Bibit</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[80px]">Kelas Bibit</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[100px]">Tgl Rawat</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[105px]">Tgl STD Forcing</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[105px]">Tgl F Prod</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[105px]">Tgl F Max</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[105px]">Tgl Order</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[95px]">Umur Forcing</th>
+                <th colSpan={3} className="py-2 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-blue-100 dark:bg-blue-950 text-blue-900 dark:text-blue-200 font-extrabold">
                   Permintaan Ritase
                 </th>
-                <th colSpan={4} className="py-2 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-amber-50/60 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300">
+                <th colSpan={4} className="py-2 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 font-extrabold">
                   Monitor Drop
                 </th>
-                <th colSpan={5} className="py-2 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300">
+                <th colSpan={5} className="py-2 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-200 font-extrabold">
                   Monitor Sulam
                 </th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[140px]">Spek Bibit</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[130px]">Ket Proses</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[120px]">Ket Mati</th>
-                <th rowSpan={2} className="py-2.5 px-3 text-center min-w-[130px]">Ket Ritase</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[140px]">Spek Bibit</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[130px]">Ket Proses</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[120px]">Ket Mati</th>
+                <th rowSpan={2} className="py-2.5 px-3 text-center border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[130px]">Ket Ritase</th>
               </tr>
               {/* Baris 2 Sub Header */}
-              <tr className="border-b border-slate-200 dark:border-slate-700 text-[10px]">
+              <tr className="border-b border-slate-200 dark:border-slate-700 text-[10px] bg-slate-100 dark:bg-slate-800">
                 {/* 11. Permintaan Ritase */}
-                <th className="py-1.5 px-2 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-blue-50/40 dark:bg-blue-950/20 min-w-[75px]">Jumlah</th>
-                <th className="py-1.5 px-2 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-blue-50/40 dark:bg-blue-950/20 min-w-[65px]">Rit</th>
-                <th className="py-1.5 px-2 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-blue-50/40 dark:bg-blue-950/20 min-w-[65px]">Real Rit</th>
+                <th className="py-1.5 px-2 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-blue-50 dark:bg-blue-900 text-blue-900 dark:text-blue-100 font-bold min-w-[75px]">Jumlah</th>
+                <th className="py-1.5 px-2 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-blue-50 dark:bg-blue-900 text-blue-900 dark:text-blue-100 font-bold min-w-[65px]">Rit</th>
+                <th className="py-1.5 px-2 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-blue-50 dark:bg-blue-900 text-blue-900 dark:text-blue-100 font-bold min-w-[65px]">Real Rit</th>
 
                 {/* 12. Monitor Drop */}
-                <th className="py-1.5 px-2 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-amber-50/40 dark:bg-amber-950/20 min-w-[65px]">Real</th>
-                <th className="py-1.5 px-2 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-amber-50/40 dark:bg-amber-950/20 min-w-[65px]">Total</th>
-                <th className="py-1.5 px-2 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-amber-50/40 dark:bg-amber-950/20 min-w-[65px]">Dev</th>
-                <th className="py-1.5 px-2 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-amber-50/40 dark:bg-amber-950/20 min-w-[70px]">%Drop</th>
+                <th className="py-1.5 px-2 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-amber-50 dark:bg-amber-900 text-amber-900 dark:text-amber-100 font-bold min-w-[65px]">Real</th>
+                <th className="py-1.5 px-2 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-amber-50 dark:bg-amber-900 text-amber-900 dark:text-amber-100 font-bold min-w-[65px]">Total</th>
+                <th className="py-1.5 px-2 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-amber-50 dark:bg-amber-900 text-amber-900 dark:text-amber-100 font-bold min-w-[65px]">Dev</th>
+                <th className="py-1.5 px-2 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-amber-50 dark:bg-amber-900 text-amber-900 dark:text-amber-100 font-bold min-w-[70px]">%Drop</th>
 
                 {/* 13. Monitor Sulam */}
-                <th className="py-1.5 px-2 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-emerald-50/40 dark:bg-emerald-950/20 min-w-[65px]">Real</th>
-                <th className="py-1.5 px-2 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-emerald-50/40 dark:bg-emerald-950/20 min-w-[65px]">Manual</th>
-                <th className="py-1.5 px-2 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-emerald-50/40 dark:bg-emerald-950/20 min-w-[65px]">Saldo</th>
-                <th className="py-1.5 px-2 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-emerald-50/40 dark:bg-emerald-950/20 min-w-[70px]">%Sulam</th>
-                <th className="py-1.5 px-2 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-emerald-50/40 dark:bg-emerald-950/20 min-w-[95px]">Last Sulam</th>
+                <th className="py-1.5 px-2 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-emerald-50 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100 font-bold min-w-[65px]">Real</th>
+                <th className="py-1.5 px-2 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-emerald-50 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100 font-bold min-w-[65px]">Manual</th>
+                <th className="py-1.5 px-2 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-emerald-50 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100 font-bold min-w-[65px]">Saldo</th>
+                <th className="py-1.5 px-2 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-emerald-50 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100 font-bold min-w-[70px]">%Sulam</th>
+                <th className="py-1.5 px-2 text-center border-b border-slate-200/80 dark:border-slate-700/80 bg-emerald-50 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100 font-bold min-w-[95px]">Last Sulam</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">

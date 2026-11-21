@@ -351,21 +351,21 @@ export default function MasterRealSulamView() {
       {/* Main Table */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
         <div className="max-h-[600px] overflow-x-auto overflow-y-auto">
-          <table className="w-full text-xs border-collapse">
+          <table className="w-full text-xs border-separate border-spacing-0">
             <thead className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 uppercase font-bold tracking-wider shadow-xs">
-              <tr className="border-b border-slate-200 dark:border-slate-700">
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[50px]">No</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[100px]">Lokasi</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[90px]">Hasil Ha</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[110px]">Hasil Btg</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[110px]">Tanggal</th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[180px] text-teal-700 dark:text-teal-400">
+              <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
+                <th className="py-3 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[50px]">No</th>
+                <th className="py-3 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[100px]">Lokasi</th>
+                <th className="py-3 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[90px]">Hasil Ha</th>
+                <th className="py-3 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[110px]">Hasil Btg</th>
+                <th className="py-3 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[110px]">Tanggal</th>
+                <th className="py-3 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[180px] text-teal-700 dark:text-teal-400">
                   Bibit Ordered
                 </th>
-                <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 min-w-[100px] text-teal-700 dark:text-teal-400">
+                <th className="py-3 px-3 text-center border-r border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[100px] text-teal-700 dark:text-teal-400">
                   Std Rit (CD)
                 </th>
-                <th className="py-3 px-3 text-center min-w-[110px] text-teal-700 dark:text-teal-400">
+                <th className="py-3 px-3 text-center border-b border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 min-w-[110px] text-teal-700 dark:text-teal-400">
                   Rit Planted
                 </th>
               </tr>
