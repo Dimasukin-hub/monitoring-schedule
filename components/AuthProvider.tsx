@@ -11,6 +11,7 @@ export type UserRole =
   | 'manajer_fm'
   | 'manajer_osd'
   | 'kepala_wilayah'
+  | 'user_fe'
   | 'user_wilayah'
   | 'user'
   | 'user_planting';
@@ -41,6 +42,8 @@ export function getRoleDisplayName(role: UserRole | string | null | undefined): 
       return 'Manajer OSD';
     case 'kepala_wilayah':
       return 'Kepala Wilayah';
+    case 'user_fe':
+      return 'TK Verifikator FE';
     case 'user_wilayah':
     case 'user':
       return 'Mandor Wilayah';
@@ -201,9 +204,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAdmin = role === 'admin' || role === 'super_admin';
   const isManagement = ['kepala_bagian_fe', 'manajer_fe', 'manajer_fm', 'manajer_osd'].includes(role || '');
   const isKepalaWilayah = role === 'kepala_wilayah';
-  const isTKVerifikatorFE = false;
+  const isTKVerifikatorFE = role === 'user_fe';
   const isMandorWilayah = role === 'user_wilayah' || role === 'user';
-  const isUserFE = false;
+  const isUserFE = isTKVerifikatorFE;
   const isUserWilayah = isMandorWilayah;
   const isUserPlanting = role === 'user_planting';
   const isUser = !isAdmin && !isManagement && !isKepalaWilayah;

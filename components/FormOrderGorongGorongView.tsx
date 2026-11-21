@@ -60,7 +60,9 @@ export default function FormOrderGorongGorongView() {
     isUserWilayah,
     isManagement,
     isKepalaWilayah,
+    isTKVerifikatorFE,
     isMandorWilayah,
+    isUserFE,
     isFormInputViewOnly,
     roleDisplayName,
   } = useAuth();
@@ -124,13 +126,15 @@ export default function FormOrderGorongGorongView() {
 
   // Auto-set default jenis transaksi sesuai role user
   useEffect(() => {
-    if (isMandorWilayah) {
+    if (isTKVerifikatorFE || isUserFE) {
+      setJenisTransaksi('DROP');
+    } else if (isMandorWilayah) {
       // Role Mandor Wilayah: default dikosongkan, pilihan (Pasang Manual & Pindah Lokasi) muncul saat dropdown diklik
       setJenisTransaksi('');
     } else if (isKepalaWilayah) {
       setJenisTransaksi('ORDER');
     }
-  }, [isMandorWilayah, isKepalaWilayah]);
+  }, [isTKVerifikatorFE, isUserFE, isMandorWilayah, isKepalaWilayah]);
 
   // Sinkronisasi otomatis wilayah tugas ke dalam slot form ketika assignedWilayah berhasil dimuat
   useEffect(() => {
@@ -283,7 +287,9 @@ export default function FormOrderGorongGorongView() {
       createEmptySlot('slot-3'),
     ]);
     setJenisTransaksi(
-      isKepalaWilayah
+      isTKVerifikatorFE || isUserFE
+        ? 'DROP'
+        : isKepalaWilayah
         ? 'ORDER'
         : ''
     );
@@ -683,8 +689,8 @@ export default function FormOrderGorongGorongView() {
   // Hak Akses Aksi Riwayat Transaksi:
   // 1. Edit: Khusus Admin dan Super Admin
   const canEditTrx = !isFormInputViewOnly && (isAdmin || isSuperAdmin);
-  // 2. Hapus: Disembunyikan untuk Mandor Wilayah
-  const canDeleteTrx = !isFormInputViewOnly && !isMandorWilayah && (isAdmin || isSuperAdmin || isKepalaWilayah);
+  // 2. Hapus: Disembunyikan untuk TK Verifikator FE dan Mandor Wilayah
+  const canDeleteTrx = !isFormInputViewOnly && !isTKVerifikatorFE && !isMandorWilayah && (isAdmin || isSuperAdmin || isKepalaWilayah);
   // Kolom Aksi hanya tampil jika user memiliki hak Edit atau Hapus
   const canShowActionColumn = canEditTrx || canDeleteTrx;
 
@@ -848,7 +854,7 @@ export default function FormOrderGorongGorongView() {
 
   // Delete Handler
   const handleDeleteTrx = async (id: number) => {
-    if (isFormInputViewOnly || isMandorWilayah) {
+    if (isFormInputViewOnly || isTKVerifikatorFE || isMandorWilayah) {
       setNotification({
         type: 'error',
         message: 'Anda tidak memiliki izin untuk menghapus data riwayat transaksi.',
@@ -914,6 +920,8 @@ export default function FormOrderGorongGorongView() {
               {roleDisplayName || 'User'}
               {isFormInputViewOnly
                 ? ' (View Only)'
+                : isTKVerifikatorFE
+                ? ' (Khusus Drop)'
                 : isMandorWilayah
                 ? ' (Pasang & Pindah)'
                 : isKepalaWilayah
@@ -966,12 +974,12 @@ export default function FormOrderGorongGorongView() {
 
               <div
                 onClick={() => {
-                  if (!isFormInputViewOnly) {
+                  if (!isTKVerifikatorFE && !isFormInputViewOnly) {
                     setIsJenisDropdownOpen((prev) => !prev);
                   }
                 }}
                 className={`w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-600 text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center justify-between transition-colors ${
-                  isFormInputViewOnly
+                  isTKVerifikatorFE || isFormInputViewOnly
                     ? 'cursor-default bg-slate-50 dark:bg-slate-800/80 opacity-90'
                     : 'cursor-pointer shadow-2xs hover:border-[#00873D]'
                 }`}
@@ -987,7 +995,7 @@ export default function FormOrderGorongGorongView() {
                     ? 'Pindah Lokasi'
                     : 'Pilih Jenis Transaksi'}
                 </span>
-                {!isFormInputViewOnly && (
+                {!isTKVerifikatorFE && !isFormInputViewOnly && (
                   <ChevronDown
                     className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
                       isJenisDropdownOpen ? 'rotate-180' : 'rotate-0'
@@ -996,10 +1004,10 @@ export default function FormOrderGorongGorongView() {
                 )}
               </div>
 
-              {isJenisDropdownOpen && !isFormInputViewOnly && (
+              {isJenisDropdownOpen && !isTKVerifikatorFE && !isFormInputViewOnly && (
                 <div className="absolute left-0 right-0 top-full mt-1.5 rounded-xl bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 shadow-xl z-50 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-150">
-                  {/* Order: Ditampilkan untuk Admin, Kepala Wilayah, Management (Dikecualikan untuk Mandor Wilayah) */}
-                  {!isMandorWilayah && (isAdmin || isSuperAdmin || isKepalaWilayah || isManagement) && (
+                  {/* Order: Ditampilkan untuk Admin, Kepala Wilayah, Management (Dikecualikan untuk Mandor Wilayah dan TK Verifikator FE) */}
+                  {!isMandorWilayah && !isTKVerifikatorFE && !isUserFE && (isAdmin || isSuperAdmin || isKepalaWilayah || isManagement) && (
                     <button
                       type="button"
                       onClick={() => {
@@ -1017,8 +1025,8 @@ export default function FormOrderGorongGorongView() {
                     </button>
                   )}
 
-                  {/* Drop: Ditampilkan untuk Admin dan Management (Dikecualikan untuk Mandor Wilayah) */}
-                  {!isMandorWilayah && (isAdmin || isSuperAdmin || isManagement) && (
+                  {/* Drop: Ditampilkan untuk Admin, TK Verifikator FE, dan Management (Dikecualikan untuk Mandor Wilayah) */}
+                  {!isMandorWilayah && (isAdmin || isSuperAdmin || isTKVerifikatorFE || isUserFE || isManagement) && (
                     <button
                       type="button"
                       onClick={() => {
@@ -1036,8 +1044,8 @@ export default function FormOrderGorongGorongView() {
                     </button>
                   )}
 
-                  {/* Pasang Manual: Ditampilkan untuk Admin, Mandor Wilayah, Kepala Wilayah */}
-                  {(isAdmin || isSuperAdmin || isMandorWilayah || isKepalaWilayah || isManagement) && (
+                  {/* Pasang Manual: Ditampilkan untuk Admin, Mandor Wilayah, Kepala Wilayah (Dikecualikan untuk TK Verifikator FE) */}
+                  {(isAdmin || isSuperAdmin || isMandorWilayah || isKepalaWilayah || isManagement) && !isTKVerifikatorFE && !isUserFE && (
                     <button
                       type="button"
                       onClick={() => {
@@ -1055,8 +1063,8 @@ export default function FormOrderGorongGorongView() {
                     </button>
                   )}
 
-                  {/* Pindah Lokasi: Ditampilkan untuk Admin, Mandor Wilayah, Kepala Wilayah */}
-                  {(isAdmin || isSuperAdmin || isMandorWilayah || isKepalaWilayah || isManagement) && (
+                  {/* Pindah Lokasi: Ditampilkan untuk Admin, Mandor Wilayah, Kepala Wilayah (Dikecualikan untuk TK Verifikator FE) */}
+                  {(isAdmin || isSuperAdmin || isMandorWilayah || isKepalaWilayah || isManagement) && !isTKVerifikatorFE && !isUserFE && (
                     <button
                       type="button"
                       onClick={() => {

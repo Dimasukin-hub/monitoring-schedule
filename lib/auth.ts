@@ -83,6 +83,15 @@ export const DEFAULT_USERS: Array<AuthUser & { password: string }> = [
     avatar: null,
   },
   {
+    id: 6,
+    name: 'TK Verifikator FE',
+    email: 'fe',
+    password: 'fe123',
+    role: 'user_fe',
+    wilayah: null,
+    avatar: null,
+  },
+  {
     id: 7,
     name: 'Kepala Bagian FE',
     email: 'kabag_fe',

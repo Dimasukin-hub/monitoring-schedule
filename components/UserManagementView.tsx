@@ -43,6 +43,7 @@ const ALL_ASSIGNABLE_ROLES: { role: UserRole; label: string; requireSuperAdmin?:
   { role: 'manajer_fm', label: 'Manajer FM' },
   { role: 'manajer_osd', label: 'Manajer OSD' },
   { role: 'kepala_wilayah', label: 'Kepala Wilayah' },
+  { role: 'user_fe', label: 'TK Verifikator FE' },
   { role: 'user_wilayah', label: 'Mandor Wilayah' },
   { role: 'user_planting', label: 'User Planting' },
 ];
@@ -421,6 +422,13 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
       case 'kepala_wilayah':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-950/70 border border-cyan-300/60 dark:border-cyan-700/50 text-cyan-800 dark:text-cyan-300 text-[11px] font-bold">
+            <User className="w-3 h-3" />
+            <span>{getRoleDisplayName(role)}</span>
+          </span>
+        );
+      case 'user_fe':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/70 border border-purple-300/60 dark:border-purple-700/50 text-purple-800 dark:text-purple-300 text-[11px] font-bold">
             <User className="w-3 h-3" />
             <span>{getRoleDisplayName(role)}</span>
           </span>
