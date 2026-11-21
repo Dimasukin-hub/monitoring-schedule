@@ -70,6 +70,14 @@
   background: rgba(0, 168, 76, 0.75);
 }
 
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.dark ::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Solid Panel helpers: 100% Solid, Non-transparent */
 .glass-panel {
   background: #ffffff !important;
@@ -265,6 +273,11 @@ svg.recharts-surface:focus-visible {
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 168, 76, 0.75);
+}
+
+.custom-scrollbar::-webkit-scrollbar-corner,
+.dark .custom-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* Firefox scrollbar support */

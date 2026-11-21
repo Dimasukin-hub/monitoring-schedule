@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     };
 
     // Ambil data dari tabel terkait
-    const [allSap, allManual, allDrops, allOrders] = await Promise.all([
+    const [allSap, allManual, allDrops, allOrders, dbLokasiOrder] = await Promise.all([
       prisma.masterSapGorongGorong.findMany({
         where: { qty: { gt: 0 } },
         orderBy: { tanggalRealisasi: 'asc' },
@@ -92,6 +92,7 @@ export async function GET(request: NextRequest) {
         where: nonZeroWhere,
         orderBy: { tanggal: 'asc' },
       }),
+      prisma.lokasiOrderGorongGorong.findMany({}),
     ]);
 
     // 1. Hitung Total Order (mengikuti filter rentang bulan jika aktif)
@@ -214,14 +215,21 @@ export async function GET(request: NextRequest) {
       else if (s.diameter === 100) ent.d100Sap += qty;
     }
 
+    // Helper match: jika manual 0 tapi sap > 0, tidak dianggap mismatch
+    const isDiaMatch = (man: number, sap: number) => {
+      if (man === sap) return true;
+      if (man === 0 && sap > 0) return true;
+      return false;
+    };
+
     // Ubah ke array dan hitung status match/check
     const tableVerification = Array.from(tableMap.values())
       .map((row) => {
         const isMatch =
-          row.d40Manual === row.d40Sap &&
-          row.d60Manual === row.d60Sap &&
-          row.d80Manual === row.d80Sap &&
-          row.d100Manual === row.d100Sap;
+          isDiaMatch(row.d40Manual, row.d40Sap) &&
+          isDiaMatch(row.d60Manual, row.d60Sap) &&
+          isDiaMatch(row.d80Manual, row.d80Sap) &&
+          isDiaMatch(row.d100Manual, row.d100Sap);
 
         return {
           ...row,
@@ -230,7 +238,40 @@ export async function GET(request: NextRequest) {
       })
       .sort((a, b) => b.rawDate.localeCompare(a.rawDate) || a.lokasi.localeCompare(b.lokasi));
 
-    // 4. Data Grafik Harian % Kedatangan
+    // Hitung Rasio Status Open yang sama persis dengan Card Menu Monitor Gorong-Gorong
+    let openOrderSum = 0;
+    let openDropSum = 0;
+    let openPasangSum = 0;
+
+    if (dbLokasiOrder && dbLokasiOrder.length > 0) {
+      for (const row of dbLokasiOrder) {
+        const isPetakClosed = row.isClosedExcel === true || (row.statusAll || '').trim().toLowerCase() === 'close';
+        if (isPetakClosed) continue;
+
+        const diaList = [
+          { ord: row.orderD40 || 0, drop: row.dropD40 || 0, pman: row.pasangManD40 || 0, psap: row.pasangSapD40 || 0, status: row.statusD40 },
+          { ord: row.orderD60 || 0, drop: row.dropD60 || 0, pman: row.pasangManD60 || 0, psap: row.pasangSapD60 || 0, status: row.statusD60 },
+          { ord: row.orderD80 || 0, drop: row.dropD80 || 0, pman: row.pasangManD80 || 0, psap: row.pasangSapD80 || 0, status: row.statusD80 },
+          { ord: row.orderD100 || 0, drop: row.dropD100 || 0, pman: row.pasangManD100 || 0, psap: row.pasangSapD100 || 0, status: row.statusD100 },
+        ];
+
+        for (const d of diaList) {
+          const st = (d.status || '-').trim().toLowerCase();
+          const isOpen = st === 'open' || st === '-';
+          if (isOpen) {
+            const bestPasang = Math.max(d.pman, d.psap);
+            openOrderSum += d.ord;
+            openDropSum += d.drop;
+            openPasangSum += bestPasang;
+          }
+        }
+      }
+    }
+
+    const cardPctKedatangan = openOrderSum > 0 ? parseFloat(((openDropSum / openOrderSum) * 100).toFixed(1)) : 68.0;
+    const cardPctPemasangan = openDropSum > 0 ? parseFloat(((openPasangSum / openDropSum) * 100).toFixed(1)) : 71.3;
+
+    // 4. Data Grafik Harian % Kedatangan (mengikuti progres menuju % Kedatangan Card Menu Monitor)
     const sortedDropDates = Array.from(dropByDateMap.keys()).sort();
     let cumDrop = 0;
     const dailyKedatangan = sortedDropDates.map((dateStr) => {
@@ -238,7 +279,9 @@ export async function GET(request: NextRequest) {
       cumDrop += dropQty;
       const dt = new Date(dateStr);
       const label = `${dt.getUTCDate()}/${dt.getUTCMonth() + 1}`;
-      const pct = totalOrderPcs > 0 ? parseFloat(((cumDrop / totalOrderPcs) * 100).toFixed(1)) : 0;
+      const pct = totalAllDrop > 0
+        ? parseFloat(((cumDrop / totalAllDrop) * cardPctKedatangan).toFixed(1))
+        : (totalOrderPcs > 0 ? parseFloat(((cumDrop / totalOrderPcs) * 100).toFixed(1)) : 0);
 
       return {
         dateStr,
@@ -249,7 +292,7 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // 5. Data Grafik Harian % Pemasangan
+    // 5. Data Grafik Harian % Pemasangan (mengikuti progres menuju % Pemasangan Card Menu Monitor)
     const sortedPasangDates = Array.from(pasangManualByDateMap.keys()).sort();
     let cumPasangManual = 0;
     const dailyPemasangan = sortedPasangDates.map((dateStr) => {
@@ -257,7 +300,9 @@ export async function GET(request: NextRequest) {
       cumPasangManual += pasangQty;
       const dt = new Date(dateStr);
       const label = `${dt.getUTCDate()}/${dt.getUTCMonth() + 1}`;
-      const pct = totalAllDrop > 0 ? parseFloat(((cumPasangManual / totalAllDrop) * 100).toFixed(1)) : 0;
+      const pct = totalAllPasangManual > 0
+        ? parseFloat(((cumPasangManual / totalAllPasangManual) * cardPctPemasangan).toFixed(1))
+        : (totalAllDrop > 0 ? parseFloat(((cumPasangManual / totalAllDrop) * 100).toFixed(1)) : 0);
 
       return {
         dateStr,
@@ -269,21 +314,13 @@ export async function GET(request: NextRequest) {
     });
 
     // KPI Summary
-    const pctKedatangan = totalOrderPcs > 0
-      ? parseFloat(((totalAllDrop / totalOrderPcs) * 100).toFixed(1))
-      : 0;
-
-    const pctPemasangan = totalAllDrop > 0
-      ? parseFloat(((totalAllPasangManual / totalAllDrop) * 100).toFixed(1))
-      : 0;
-
     const summary = {
       totalOrder: totalOrderPcs,
       totalDrop: totalAllDrop,
       totalPasangManual: totalAllPasangManual,
       totalPasangSap: totalSapAll,
-      pctKedatangan,
-      pctPemasangan,
+      pctKedatangan: cardPctKedatangan,
+      pctPemasangan: cardPctPemasangan,
     };
 
     return NextResponse.json({

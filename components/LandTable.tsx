@@ -2835,7 +2835,7 @@ export default function LandTable({
       {/* Table Data with Grouped Header (Bab 18 & 19 PRD + Revisi Aplikasi) - Freeze Panes from Wilayah to Selesai Tanam */}
       <div
         ref={tableContainerRef}
-        className="overflow-auto scroll-smooth max-h-[calc(100vh-325px)] min-h-[420px] touch-pan-x w-full max-w-full"
+        className="overflow-auto scroll-smooth max-h-[calc(100vh-210px)] min-h-[580px] touch-pan-x w-full max-w-full"
       >
         <table className="min-w-full text-left text-xs border-separate border-spacing-0">
           <colgroup>
