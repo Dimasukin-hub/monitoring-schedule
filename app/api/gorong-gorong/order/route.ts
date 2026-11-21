@@ -136,17 +136,33 @@ export async function POST(request: NextRequest) {
     const validJenis = ['ORDER', 'DROP', 'PASANG_MANUAL', 'PINDAH_LOKASI'];
     const validatedData = [];
 
+    // Baca sesi user dari cookie ggf_session untuk verifikasi hak akses wilayah tugas di sisi server
+    const cookieHeader = request.headers.get('cookie') || '';
+    const match = cookieHeader.match(/ggf_session=([^;]+)/);
+    let sessionUser: any = null;
+    if (match) {
+      try {
+        sessionUser = JSON.parse(decodeURIComponent(match[1]));
+      } catch (e) {}
+    }
+
+    const isPrivileged = sessionUser && ['admin', 'super_admin', 'kepala_bagian_fe', 'manajer_fe', 'manajer_fm', 'manajer_osd'].includes(sessionUser.role);
+    const userWilayah = sessionUser?.wilayah && sessionUser.wilayah !== 'ALL' ? sessionUser.wilayah.trim().toUpperCase() : null;
+
     // Validasi ketat: Seluruh lokasi wajib terdaftar resmi di MasterStatusLokasi
     const masterLocations = await prisma.masterStatusLokasi.findMany({
-      select: { lokasi: true },
+      select: { lokasi: true, strucPlant: true },
     });
-    const validLokasiSet = new Set(
-      masterLocations.map((m) => m.lokasi?.trim().toUpperCase()).filter(Boolean)
-    );
+    const validLokasiMap = new Map<string, string>();
+    for (const m of masterLocations) {
+      if (m.lokasi) {
+        validLokasiMap.set(m.lokasi.trim().toUpperCase(), m.strucPlant || 'AW01');
+      }
+    }
 
     for (const it of itemsToProcess) {
       const cleanLokasi = String(it.lokasi || '').trim().toUpperCase();
-      if (!cleanLokasi || !validLokasiSet.has(cleanLokasi)) {
+      if (!cleanLokasi || !validLokasiMap.has(cleanLokasi)) {
         return NextResponse.json(
           {
             success: false,
@@ -158,7 +174,7 @@ export async function POST(request: NextRequest) {
 
       if (it.lokasiAsal) {
         const cleanAsal = String(it.lokasiAsal || '').trim().toUpperCase();
-        if (!validLokasiSet.has(cleanAsal)) {
+        if (!validLokasiMap.has(cleanAsal)) {
           return NextResponse.json(
             {
               success: false,
@@ -226,10 +242,34 @@ export async function POST(request: NextRequest) {
       // Ambil wilayah otomatis dari master jika belum ada
       let autoWil = it.wilayah;
       if (!autoWil || autoWil === '-' || autoWil === '') {
-        const masterLokasi = await prisma.masterStatusLokasi.findUnique({
-          where: { lokasi: cleanLokasi },
-        });
-        autoWil = masterLokasi?.strucPlant || 'AW01';
+        autoWil = validLokasiMap.get(cleanLokasi) || 'AW01';
+      }
+
+      // Validasi ketat hak akses wilayah di sisi server: Mandor Wilayah dan Kepala Wilayah hanya berhak pada wilayah tugasnya
+      if (!isPrivileged && userWilayah) {
+        if (autoWil && autoWil.toUpperCase() !== userWilayah) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: `Akses Ditolak: Lokasi '${cleanLokasi}' (${autoWil}) berada di luar wilayah tugas resmi Anda (${userWilayah}).`,
+            },
+            { status: 403 }
+          );
+        }
+
+        if (it.lokasiAsal) {
+          const cleanAsal = String(it.lokasiAsal || '').trim().toUpperCase();
+          const asalWil = validLokasiMap.get(cleanAsal) || 'AW01';
+          if (asalWil.toUpperCase() !== userWilayah) {
+            return NextResponse.json(
+              {
+                success: false,
+                message: `Akses Ditolak: Lokasi asal/pengirim '${cleanAsal}' (${asalWil}) berada di luar wilayah tugas resmi Anda (${userWilayah}).`,
+              },
+              { status: 403 }
+            );
+          }
+        }
       }
 
       const trxDate = it.tanggal ? new Date(it.tanggal) : new Date();
@@ -1076,6 +1116,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    let asalWil: string | null = null;
     if (cleanLokasiAsal) {
       const mAsal = await prisma.masterStatusLokasi.findUnique({
         where: { lokasi: cleanLokasiAsal },
@@ -1089,9 +1130,44 @@ export async function PUT(request: NextRequest) {
           { status: 400 }
         );
       }
+      asalWil = mAsal.strucPlant || 'AW01';
     }
 
     const autoWil = mLoc.strucPlant || body.wilayah || existing.wilayah || 'AW01';
+
+    // Verifikasi hak akses wilayah di sisi server untuk edit transaksi
+    const cookieHeader = request.headers.get('cookie') || '';
+    const match = cookieHeader.match(/ggf_session=([^;]+)/);
+    let sessionUser: any = null;
+    if (match) {
+      try {
+        sessionUser = JSON.parse(decodeURIComponent(match[1]));
+      } catch (e) {}
+    }
+
+    const isPrivileged = sessionUser && ['admin', 'super_admin', 'kepala_bagian_fe', 'manajer_fe', 'manajer_fm', 'manajer_osd'].includes(sessionUser.role);
+    const userWilayah = sessionUser?.wilayah && sessionUser.wilayah !== 'ALL' ? sessionUser.wilayah.trim().toUpperCase() : null;
+
+    if (!isPrivileged && userWilayah) {
+      if (autoWil && autoWil.toUpperCase() !== userWilayah) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Akses Ditolak: Lokasi '${cleanLokasi}' (${autoWil}) berada di luar wilayah tugas resmi Anda (${userWilayah}).`,
+          },
+          { status: 403 }
+        );
+      }
+      if (cleanLokasiAsal && asalWil && asalWil.toUpperCase() !== userWilayah) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Akses Ditolak: Lokasi asal '${cleanLokasiAsal}' (${asalWil}) berada di luar wilayah tugas resmi Anda (${userWilayah}).`,
+          },
+          { status: 403 }
+        );
+      }
+    }
 
     // Hitung kuantiti baru (0 - 999)
     const newQtyD40 = body.qtyD40 !== undefined ? Math.max(0, Math.min(999, Math.round(Number(body.qtyD40) || 0))) : existing.qtyD40;
@@ -1181,6 +1257,31 @@ export async function DELETE(request: NextRequest) {
         { success: false, message: 'Data transaksi tidak ditemukan atau sudah dihapus.' },
         { status: 404 }
       );
+    }
+
+    // Verifikasi hak akses wilayah di sisi server untuk delete transaksi
+    const cookieHeader = request.headers.get('cookie') || '';
+    const match = cookieHeader.match(/ggf_session=([^;]+)/);
+    let sessionUser: any = null;
+    if (match) {
+      try {
+        sessionUser = JSON.parse(decodeURIComponent(match[1]));
+      } catch (e) {}
+    }
+
+    const isPrivileged = sessionUser && ['admin', 'super_admin', 'kepala_bagian_fe', 'manajer_fe', 'manajer_fm', 'manajer_osd'].includes(sessionUser.role);
+    const userWilayah = sessionUser?.wilayah && sessionUser.wilayah !== 'ALL' ? sessionUser.wilayah.trim().toUpperCase() : null;
+
+    if (!isPrivileged && userWilayah) {
+      if (existing.wilayah && existing.wilayah.toUpperCase() !== userWilayah) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Akses Ditolak: Anda tidak dapat menghapus transaksi di wilayah ${existing.wilayah} karena wilayah tugas Anda adalah ${userWilayah}.`,
+          },
+          { status: 403 }
+        );
+      }
     }
 
     // Revert dampak pada MasterData dan LokasiOrder

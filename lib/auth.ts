@@ -79,6 +79,7 @@ export const DEFAULT_USERS: Array<AuthUser & { password: string }> = [
     email: 'wilayah',
     password: 'wilayah123',
     role: 'user_wilayah',
+    wilayah: 'AW01',
     avatar: null,
   },
   {
@@ -119,6 +120,7 @@ export const DEFAULT_USERS: Array<AuthUser & { password: string }> = [
     email: 'kawil',
     password: 'kawil123',
     role: 'kepala_wilayah',
+    wilayah: 'AW03',
     avatar: null,
   },
 ];
@@ -280,6 +282,7 @@ export async function findUserByEmail(identifier: string) {
         email: user.email,
         password: user.password,
         role: user.role as any,
+        wilayah: (user as any).wilayah || null,
         avatar: (user as any).avatar || null,
       };
     }

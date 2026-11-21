@@ -132,6 +132,19 @@ export default function FormOrderGorongGorongView() {
     }
   }, [isMandorWilayah, isKepalaWilayah]);
 
+  // Sinkronisasi otomatis wilayah tugas ke dalam slot form ketika assignedWilayah berhasil dimuat
+  useEffect(() => {
+    if (assignedWilayah) {
+      setSlots((prev) =>
+        prev.map((s) => ({
+          ...s,
+          autoWilayah: s.selectedLokasi ? s.autoWilayah : assignedWilayah,
+          autoWilayahPengirim: s.selectedLokasiPengirim ? s.autoWilayahPengirim : assignedWilayah,
+        }))
+      );
+    }
+  }, [assignedWilayah]);
+
   // Calendar View State
   const initialDate = new Date();
   const [calendarYear, setCalendarYear] = useState<number>(initialDate.getFullYear());
@@ -648,13 +661,23 @@ export default function FormOrderGorongGorongView() {
     );
   };
 
-  // Filter pilihan lokasi untuk Modal Edit
+  // Filter pilihan lokasi untuk Modal Edit (Dibatasi ketat sesuai wilayah tugas user)
   const filteredEditLokasiOptions = masterLokasiList
-    .filter((it) => it.lokasi.toLowerCase().includes((editLokasiSearch || '').toLowerCase()))
+    .filter((it) => {
+      const matchSearch = it.lokasi.toLowerCase().includes((editLokasiSearch || '').toLowerCase());
+      const itemWil = (it.strucPlant || it.wilayah || '').trim().toUpperCase();
+      const matchWil = !assignedWilayah || itemWil === assignedWilayah.trim().toUpperCase();
+      return matchSearch && matchWil;
+    })
     .slice(0, 15);
 
   const filteredEditLokasiAsalOptions = (lokasiSaldoList.length > 0 ? lokasiSaldoList : masterLokasiList)
-    .filter((it) => it.lokasi.toLowerCase().includes((editLokasiAsalSearch || '').toLowerCase()))
+    .filter((it) => {
+      const matchSearch = it.lokasi.toLowerCase().includes((editLokasiAsalSearch || '').toLowerCase());
+      const itemWil = (it.strucPlant || it.wilayah || '').trim().toUpperCase();
+      const matchWil = !assignedWilayah || itemWil === assignedWilayah.trim().toUpperCase();
+      return matchSearch && matchWil;
+    })
     .slice(0, 15);
 
   // Hak Akses Aksi Riwayat Transaksi:
@@ -720,6 +743,17 @@ export default function FormOrderGorongGorongView() {
       return;
     }
 
+    if (assignedWilayah) {
+      const matchEditLokasi = masterLokasiList.find(
+        (m) => m.lokasi?.trim().toUpperCase() === editLokasi.trim().toUpperCase()
+      );
+      const wilLok = (matchEditLokasi?.strucPlant || matchEditLokasi?.wilayah || 'AW01').trim().toUpperCase();
+      if (wilLok !== assignedWilayah.trim().toUpperCase()) {
+        alert(`Akses Ditolak: Lokasi '${editLokasi}' (${wilLok}) bukan bagian dari wilayah tugas Anda (${assignedWilayah})!`);
+        return;
+      }
+    }
+
     if (editJenisTransaksi === 'PINDAH_LOKASI') {
       if (!editLokasiAsal.trim()) {
         alert('Silakan pilih lokasi pengirim (asal) untuk pindah lokasi.');
@@ -731,6 +765,16 @@ export default function FormOrderGorongGorongView() {
       if (!isValidEditAsal) {
         alert(`Lokasi pengirim (asal) '${editLokasiAsal}' tidak terdaftar di sistem! Harap pilih lokasi resmi yang tersedia.`);
         return;
+      }
+      if (assignedWilayah) {
+        const matchEditAsal = masterLokasiList.find(
+          (m) => m.lokasi?.trim().toUpperCase() === editLokasiAsal.trim().toUpperCase()
+        );
+        const wilAsal = (matchEditAsal?.strucPlant || matchEditAsal?.wilayah || 'AW01').trim().toUpperCase();
+        if (wilAsal !== assignedWilayah.trim().toUpperCase()) {
+          alert(`Akses Ditolak: Lokasi pengirim (asal) '${editLokasiAsal}' (${wilAsal}) bukan bagian dari wilayah tugas Anda (${assignedWilayah})!`);
+          return;
+        }
       }
     }
 
