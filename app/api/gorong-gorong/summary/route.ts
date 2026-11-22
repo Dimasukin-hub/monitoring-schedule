@@ -5,6 +5,22 @@ import { loadSnapshotFromFile, isExcludedGorongGorongLocation, isLocationWithout
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+function parseDateSafe(val: any): Date | null {
+  if (!val || val === '-') return null;
+  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+  if (typeof val === 'string') {
+    const s = val.trim();
+    if (/^\d{2}-\d{2}-\d{4}$/.test(s)) {
+      const [d, m, y] = s.split('-');
+      const dt = new Date(Date.UTC(Number(y), Number(m) - 1, Number(d)));
+      return isNaN(dt.getTime()) ? null : dt;
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+}
+
 export async function GET(request: NextRequest) {
   try {
     await ensureMasterSapLoaded();
@@ -145,7 +161,8 @@ export async function GET(request: NextRequest) {
       const cleanLok = lok.trim().toUpperCase();
       if (isExcludedGorongGorongLocation(cleanLok)) continue;
       const wil = isLocationWithoutWilayah(cleanLok) ? '' : (snap.wilayah ? snap.wilayah.trim().toUpperCase() : (wilMap.get(cleanLok) || ''));
-      const snapYear = snap.tanggalOrder ? new Date(snap.tanggalOrder).getFullYear() : 2026;
+      const snapDt = parseDateSafe(snap.tanggalOrder);
+      const snapYear = snapDt ? snapDt.getFullYear() : 2026;
       const is2026 = snapYear === 2026;
 
       const pairs: [number, number, number][] = [
@@ -348,7 +365,7 @@ export async function GET(request: NextRequest) {
           const rWil = (r.wilayah || '').toUpperCase();
           if (!wList.some((w) => rWil.includes(w))) continue;
         }
-        const d = r.tanggalOrder ? new Date(r.tanggalOrder) : null;
+        const d = parseDateSafe(r.tanggalOrder);
         const yr = d ? d.getFullYear() : 2026;
         if (isYearMatching(yr)) {
           const qty = selectedDia
@@ -429,7 +446,8 @@ export async function GET(request: NextRequest) {
         if (!wList.some((w) => rowWil.includes(w))) continue;
       }
 
-      const rowYear = row.tanggalOrder ? new Date(row.tanggalOrder).getFullYear() : 2026;
+      const rowDt = parseDateSafe(row.tanggalOrder);
+      const rowYear = rowDt ? rowDt.getFullYear() : 2026;
       const is2025or2026 = rowYear === 2025 || rowYear === 2026;
 
       const isPetakClosed = row.isClosedExcel === true || (row.statusAll || '').trim().toLowerCase() === 'close';
@@ -548,8 +566,8 @@ export async function GET(request: NextRequest) {
       const lok = row.lokasi.trim().toUpperCase();
       if (isExcludedGorongGorongLocation(lok)) continue;
       if (!row.tanggalOrder) continue;
-      const d = new Date(row.tanggalOrder);
-      if (isNaN(d.getTime()) || d.getFullYear() !== targetYear) continue;
+      const d = parseDateSafe(row.tanggalOrder);
+      if (!d || isNaN(d.getTime()) || d.getFullYear() !== targetYear) continue;
 
       if (wilayah && wilayah !== 'ALL') {
         const wList = wilayah.split(',').map((w) => w.trim().toUpperCase()).filter(Boolean);
@@ -641,7 +659,8 @@ export async function GET(request: NextRequest) {
         const matchesWil = rowWil.includes(w) || rowWil.includes(w.replace('AW0', 'Wilayah '));
         if (!matchesWil) continue;
 
-        const rowYear = row.tanggalOrder ? new Date(row.tanggalOrder).getFullYear() : 2026;
+        const rowDt = parseDateSafe(row.tanggalOrder);
+      const rowYear = rowDt ? rowDt.getFullYear() : 2026;
         const is2025or2026 = rowYear === 2025 || rowYear === 2026;
         if (!is2025or2026) continue;
 

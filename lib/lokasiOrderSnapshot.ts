@@ -65,31 +65,31 @@ export function isLocationWithoutWilayah(lok: string | null | undefined): boolea
 
 function parseExcelDate(val: any): string | null {
   if (!val) return null;
-  const toDDMMYYYY = (d: Date): string | null => {
+  const toISO = (d: Date): string | null => {
     if (isNaN(d.getTime())) return null;
     const day = String(d.getUTCDate()).padStart(2, '0');
     const month = String(d.getUTCMonth() + 1).padStart(2, '0');
     const year = d.getUTCFullYear();
-    return `${day}-${month}-${year}`;
+    return `${year}-${month}-${day}`;
   };
 
-  if (val instanceof Date) return toDDMMYYYY(val);
+  if (val instanceof Date) return toISO(val);
   const num = Number(val);
   if (!isNaN(num) && num > 20000 && num < 70000) {
     const utcDays = num - 25569;
     const d = new Date(Math.round(utcDays * 86400 * 1000));
-    return toDDMMYYYY(d);
+    return toISO(d);
   }
   if (typeof val === 'string') {
     const trimmed = val.trim();
     if (trimmed === '' || trimmed === '-') return null;
-    if (/^\d{2}-\d{2}-\d{4}$/.test(trimmed)) return trimmed;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-      const [y, m, d] = trimmed.split('-');
-      return `${d}-${m}-${y}`;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+    if (/^\d{2}-\d{2}-\d{4}$/.test(trimmed)) {
+      const [d, m, y] = trimmed.split('-');
+      return `${y}-${m}-${d}`;
     }
     const d = new Date(trimmed);
-    return toDDMMYYYY(d);
+    return toISO(d);
   }
   return null;
 }

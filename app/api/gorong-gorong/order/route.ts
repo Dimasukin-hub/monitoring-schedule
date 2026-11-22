@@ -382,13 +382,13 @@ export async function POST(request: NextRequest) {
     // 2. Sinkronisasi pembaruan kuantiti dan transisi prioritas otomatis ke tabel LokasiOrderGorongGorong
     for (const d of validatedData) {
       try {
-        const formatToDDMMYYYY = (dt: Date | string | null | undefined): string => {
+        const formatToISO = (dt: Date | string | null | undefined): string => {
           if (!dt || dt === '-') return '-';
           if (typeof dt === 'string') {
-            if (/^\d{2}-\d{2}-\d{4}$/.test(dt)) return dt;
-            if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
-              const [y, m, d] = dt.split('-');
-              return `${d}-${m}-${y}`;
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) return dt;
+            if (/^\d{2}-\d{2}-\d{4}$/.test(dt)) {
+              const [d, m, y] = dt.split('-');
+              return `${y}-${m}-${d}`;
             }
           }
           const dObj = new Date(dt);
@@ -396,9 +396,9 @@ export async function POST(request: NextRequest) {
           const day = String(dObj.getUTCDate()).padStart(2, '0');
           const month = String(dObj.getUTCMonth() + 1).padStart(2, '0');
           const year = dObj.getUTCFullYear();
-          return `${day}-${month}-${year}`;
+          return `${year}-${month}-${day}`;
         };
-        const tglStr = d.tanggal ? formatToDDMMYYYY(d.tanggal) : '-';
+        const tglStr = d.tanggal ? formatToISO(d.tanggal) : '-';
 
         // 1. Jika transaksi DROP memiliki Lokasi Asal (Pindah Lokasi antar petak):
         // Lokasi Asal (Pengirim) berkurang Drop-nya dan Pindah Lokasi bernilai minus (-)

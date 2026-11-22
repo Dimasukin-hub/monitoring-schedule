@@ -765,10 +765,17 @@ export default function MonitorGorongGorongView() {
       list = list.filter((item: any) => {
         if (!item.tanggalOrder || item.tanggalOrder === '-') return false;
         try {
-          const d = new Date(item.tanggalOrder);
-          if (isNaN(d.getTime())) return false;
-          const y = d.getFullYear();
-          const m = d.getMonth();
+          let y: number, m: number;
+          if (/^\d{2}-\d{2}-\d{4}$/.test(item.tanggalOrder)) {
+            const parts = item.tanggalOrder.split('-');
+            y = parseInt(parts[2], 10);
+            m = parseInt(parts[1], 10) - 1;
+          } else {
+            const d = new Date(item.tanggalOrder);
+            if (isNaN(d.getTime())) return false;
+            y = d.getFullYear();
+            m = d.getMonth();
+          }
           if (y !== orderMonthRange.year) return false;
           const minM = Math.min(orderMonthRange.startMonth, orderMonthRange.endMonth);
           const maxM = Math.max(orderMonthRange.startMonth, orderMonthRange.endMonth);
@@ -925,8 +932,20 @@ export default function MonitorGorongGorongView() {
           const vB = Number(objB.pindah ?? 0);
           if (vA !== vB) return sortOrder === 'asc' ? vA - vB : vB - vA;
         } else if (col === 'tglDrop') {
-          const vA = objA.tglTerakhirDrop === '-' || !objA.tglTerakhirDrop ? (sortOrder === 'asc' ? '9999-99-99' : '0000-00-00') : objA.tglTerakhirDrop;
-          const vB = objB.tglTerakhirDrop === '-' || !objB.tglTerakhirDrop ? (sortOrder === 'asc' ? '9999-99-99' : '0000-00-00') : objB.tglTerakhirDrop;
+          const toDateKey = (val: string | null | undefined): string => {
+            if (!val || val === '-') return sortOrder === 'asc' ? '99999999' : '00000000';
+            if (/^\d{2}-\d{2}-\d{4}$/.test(val)) {
+              const [d, m, y] = val.split('-');
+              return `${y}${m}${d}`;
+            }
+            if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+              return val.replace(/-/g, '');
+            }
+            const dt = new Date(val);
+            return isNaN(dt.getTime()) ? val : dt.toISOString().slice(0, 10).replace(/-/g, '');
+          };
+          const vA = toDateKey(objA.tglTerakhirDrop);
+          const vB = toDateKey(objB.tglTerakhirDrop);
           const cmp = vA.localeCompare(vB);
           if (cmp !== 0) return sortOrder === 'asc' ? cmp : -cmp;
         } else if (col === 'sisa') {
