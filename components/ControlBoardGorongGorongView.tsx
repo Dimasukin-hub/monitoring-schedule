@@ -420,6 +420,7 @@ export default function ControlBoardGorongGorongView() {
                       color: '#fff',
                       fontSize: '11px',
                     }}
+                    labelFormatter={(label) => `Tanggal: ${label}`}
                     formatter={(val: any, name: any) => {
                       if (name === 'dropPcs' || name === 'Drop') return [`${val} pcs`, 'Drop'];
                       if (name === 'pctKedatangan' || name === '% Kedatangan') return [`${val}%`, '% Kedatangan'];
@@ -434,7 +435,6 @@ export default function ControlBoardGorongGorongView() {
                       fill="#3b82f6"
                       radius={[6, 6, 0, 0]}
                       maxBarSize={45}
-                      label={isDenseKedatangan ? undefined : renderCustomBarLabel}
                     />
                   )}
                   {showPctKedatangan && (
@@ -446,7 +446,6 @@ export default function ControlBoardGorongGorongView() {
                       stroke="#10b981"
                       strokeWidth={2.5}
                       dot={isDenseKedatangan ? false : { fill: '#10b981', r: 4, strokeWidth: 2, stroke: '#ffffff' }}
-                      label={isDenseKedatangan ? undefined : renderCustomLineLabel}
                     />
                   )}
                 </ComposedChart>
@@ -547,6 +546,7 @@ export default function ControlBoardGorongGorongView() {
                       color: '#fff',
                       fontSize: '11px',
                     }}
+                    labelFormatter={(label) => `Tanggal: ${label}`}
                     formatter={(val: any, name: any) => {
                       if (name === 'pasangPcs' || name === 'Pasang Manual') return [`${val} pcs`, 'Pasang Manual'];
                       if (name === 'pctPemasangan' || name === '% Pemasangan') return [`${val}%`, '% Pemasangan'];
@@ -561,7 +561,6 @@ export default function ControlBoardGorongGorongView() {
                       fill="#f59e0b"
                       radius={[6, 6, 0, 0]}
                       maxBarSize={45}
-                      label={isDensePemasangan ? undefined : renderCustomBarLabel}
                     />
                   )}
                   {showPctPemasangan && (
@@ -573,7 +572,6 @@ export default function ControlBoardGorongGorongView() {
                       stroke="#8b5cf6"
                       strokeWidth={2.5}
                       dot={isDensePemasangan ? false : { fill: '#8b5cf6', r: 4, strokeWidth: 2, stroke: '#ffffff' }}
-                      label={isDensePemasangan ? undefined : renderCustomLineLabel}
                     />
                   )}
                 </ComposedChart>

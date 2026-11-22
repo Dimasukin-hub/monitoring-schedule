@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
       const day = String(d.getUTCDate()).padStart(2, '0');
       const month = String(d.getUTCMonth() + 1).padStart(2, '0');
       const year = d.getUTCFullYear();
-      return `${day}/${month}/${year}`;
+      return `${day}-${month}-${year}`;
     };
 
     const formatDateKey = (d: Date) => d.toISOString().slice(0, 10);
@@ -128,6 +128,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. Data Tabel Verifikasi Pasang Manual vs SAP (per Tanggal & Lokasi, mengikuti rentang bulan)
+    // Sesuai aturan: Baris tabel hanya menampilkan pasang manual yang masuk di form input
     const tableMap = new Map<string, {
       rawDate: string;
       tanggal: string;
@@ -145,7 +146,7 @@ export async function GET(request: NextRequest) {
     let totalAllPasangManual = 0;
     const pasangManualByDateMap = new Map<string, number>();
 
-    // Masukkan Pasang Manual
+    // Masukkan Pasang Manual (penggerak baris tabel verifikasi)
     for (const m of allManual) {
       if (!m.tanggalPasangManual || !inRange(m.tanggalPasangManual)) continue;
       const dObj = new Date(m.tanggalPasangManual);
@@ -181,7 +182,7 @@ export async function GET(request: NextRequest) {
       ent.d100Manual += (m.diameter100 || 0);
     }
 
-    // Masukkan Pasang SAP
+    // Masukkan Pasang SAP: Hanya mencocokkan jika pada Tanggal & Lokasi tersebut ada pasang manual
     let totalSapAll = 0;
     for (const s of allSap) {
       if (!s.tanggalRealisasi || !inRange(s.tanggalRealisasi)) continue;
@@ -192,31 +193,16 @@ export async function GET(request: NextRequest) {
       const qty = s.qty || 0;
       totalSapAll += qty;
 
-      if (!tableMap.has(key)) {
-        tableMap.set(key, {
-          rawDate,
-          tanggal: formatDateDDMM(dObj),
-          lokasi: lok,
-          d40Manual: 0,
-          d40Sap: 0,
-          d60Manual: 0,
-          d60Sap: 0,
-          d80Manual: 0,
-          d80Sap: 0,
-          d100Manual: 0,
-          d100Sap: 0,
-        });
+      if (tableMap.has(key)) {
+        const ent = tableMap.get(key)!;
+        if (s.diameter === 40) ent.d40Sap += qty;
+        else if (s.diameter === 60) ent.d60Sap += qty;
+        else if (s.diameter === 80) ent.d80Sap += qty;
+        else if (s.diameter === 100) ent.d100Sap += qty;
       }
-
-      const ent = tableMap.get(key)!;
-      if (s.diameter === 40) ent.d40Sap += qty;
-      else if (s.diameter === 60) ent.d60Sap += qty;
-      else if (s.diameter === 80) ent.d80Sap += qty;
-      else if (s.diameter === 100) ent.d100Sap += qty;
     }
 
     // Status Match: Hanya jika kedua isian data angka sama persis antara manual dan SAP
-    // Jika manual 0 atau kosong dan SAP ada isinya (> 0), statusnya tetap 'Check' (walaupun di tabel selnya tidak dihighlight)
     const tableVerification = Array.from(tableMap.values())
       .map((row) => {
         const isMatch =
@@ -232,7 +218,51 @@ export async function GET(request: NextRequest) {
       })
       .sort((a, b) => b.rawDate.localeCompare(a.rawDate) || a.lokasi.localeCompare(b.lokasi));
 
-    // Hitung Rasio Status Open yang sama persis dengan Card Menu Monitor Gorong-Gorong
+    // Sinkronisasi Rasio Card Status Open yang 100% identik dengan Card Menu Monitor Gorong-Gorong
+    const masterOrderMap = new Map<string, { d40: number; d60: number; d80: number; d100: number }>();
+    for (const o of allOrders) {
+      const l = (o.lokasi || '').trim().toUpperCase();
+      if (!masterOrderMap.has(l)) masterOrderMap.set(l, { d40: 0, d60: 0, d80: 0, d100: 0 });
+      const ent = masterOrderMap.get(l)!;
+      ent.d40 += o.diameter40 || 0;
+      ent.d60 += o.diameter60 || 0;
+      ent.d80 += o.diameter80 || 0;
+      ent.d100 += o.diameter100 || 0;
+    }
+
+    const masterDropMap = new Map<string, { d40: number; d60: number; d80: number; d100: number }>();
+    for (const d of allDrops) {
+      const l = (d.lokasi || '').trim().toUpperCase();
+      if (!masterDropMap.has(l)) masterDropMap.set(l, { d40: 0, d60: 0, d80: 0, d100: 0 });
+      const ent = masterDropMap.get(l)!;
+      ent.d40 += d.diameter40 || 0;
+      ent.d60 += d.diameter60 || 0;
+      ent.d80 += d.diameter80 || 0;
+      ent.d100 += d.diameter100 || 0;
+    }
+
+    const masterManualMap = new Map<string, { d40: number; d60: number; d80: number; d100: number }>();
+    for (const m of allManual) {
+      const l = (m.lokasi || '').trim().toUpperCase();
+      if (!masterManualMap.has(l)) masterManualMap.set(l, { d40: 0, d60: 0, d80: 0, d100: 0 });
+      const ent = masterManualMap.get(l)!;
+      ent.d40 += m.diameter40 || 0;
+      ent.d60 += m.diameter60 || 0;
+      ent.d80 += m.diameter80 || 0;
+      ent.d100 += m.diameter100 || 0;
+    }
+
+    const lokasiSapMap = new Map<string, { d40: number; d60: number; d80: number; d100: number }>();
+    for (const s of allSap) {
+      const l = (s.lokasi || '').trim().toUpperCase();
+      if (!lokasiSapMap.has(l)) lokasiSapMap.set(l, { d40: 0, d60: 0, d80: 0, d100: 0 });
+      const ent = lokasiSapMap.get(l)!;
+      if (s.diameter === 40) ent.d40 += s.qty || 0;
+      else if (s.diameter === 60) ent.d60 += s.qty || 0;
+      else if (s.diameter === 80) ent.d80 += s.qty || 0;
+      else if (s.diameter === 100) ent.d100 += s.qty || 0;
+    }
+
     let openOrderSum = 0;
     let openDropSum = 0;
     let openPasangSum = 0;
@@ -242,11 +272,41 @@ export async function GET(request: NextRequest) {
         const isPetakClosed = row.isClosedExcel === true || (row.statusAll || '').trim().toLowerCase() === 'close';
         if (isPetakClosed) continue;
 
+        const lok = (row.lokasi || '').trim().toUpperCase();
+        const ordM = masterOrderMap.get(lok) || { d40: 0, d60: 0, d80: 0, d100: 0 };
+        const drpM = masterDropMap.get(lok) || { d40: 0, d60: 0, d80: 0, d100: 0 };
+        const manM = masterManualMap.get(lok) || { d40: 0, d60: 0, d80: 0, d100: 0 };
+        const sapM = lokasiSapMap.get(lok) || { d40: 0, d60: 0, d80: 0, d100: 0 };
+
         const diaList = [
-          { ord: row.orderD40 || 0, drop: row.dropD40 || 0, pman: row.pasangManD40 || 0, psap: row.pasangSapD40 || 0, status: row.statusD40 },
-          { ord: row.orderD60 || 0, drop: row.dropD60 || 0, pman: row.pasangManD60 || 0, psap: row.pasangSapD60 || 0, status: row.statusD60 },
-          { ord: row.orderD80 || 0, drop: row.dropD80 || 0, pman: row.pasangManD80 || 0, psap: row.pasangSapD80 || 0, status: row.statusD80 },
-          { ord: row.orderD100 || 0, drop: row.dropD100 || 0, pman: row.pasangManD100 || 0, psap: row.pasangSapD100 || 0, status: row.statusD100 },
+          {
+            ord: masterOrderMap.has(lok) ? ordM.d40 : (row.orderD40 || 0),
+            drop: masterDropMap.has(lok) ? drpM.d40 : (row.dropD40 || 0),
+            pman: masterManualMap.has(lok) ? manM.d40 : (row.pasangManD40 || 0),
+            psap: lokasiSapMap.has(lok) ? sapM.d40 : (row.pasangSapD40 || 0),
+            status: row.statusD40,
+          },
+          {
+            ord: masterOrderMap.has(lok) ? ordM.d60 : (row.orderD60 || 0),
+            drop: masterDropMap.has(lok) ? drpM.d60 : (row.dropD60 || 0),
+            pman: masterManualMap.has(lok) ? manM.d60 : (row.pasangManD60 || 0),
+            psap: lokasiSapMap.has(lok) ? sapM.d60 : (row.pasangSapD60 || 0),
+            status: row.statusD60,
+          },
+          {
+            ord: masterOrderMap.has(lok) ? ordM.d80 : (row.orderD80 || 0),
+            drop: masterDropMap.has(lok) ? drpM.d80 : (row.dropD80 || 0),
+            pman: masterManualMap.has(lok) ? manM.d80 : (row.pasangManD80 || 0),
+            psap: lokasiSapMap.has(lok) ? sapM.d80 : (row.pasangSapD80 || 0),
+            status: row.statusD80,
+          },
+          {
+            ord: masterOrderMap.has(lok) ? ordM.d100 : (row.orderD100 || 0),
+            drop: masterDropMap.has(lok) ? drpM.d100 : (row.dropD100 || 0),
+            pman: masterManualMap.has(lok) ? manM.d100 : (row.pasangManD100 || 0),
+            psap: lokasiSapMap.has(lok) ? sapM.d100 : (row.pasangSapD100 || 0),
+            status: row.statusD100,
+          },
         ];
 
         for (const d of diaList) {
@@ -262,8 +322,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const cardPctKedatangan = openOrderSum > 0 ? parseFloat(((openDropSum / openOrderSum) * 100).toFixed(1)) : 68.0;
-    const cardPctPemasangan = openDropSum > 0 ? parseFloat(((openPasangSum / openDropSum) * 100).toFixed(1)) : 71.3;
+    const cardPctKedatangan = openOrderSum > 0 ? parseFloat(((openDropSum / openOrderSum) * 100).toFixed(1)) : 0;
+    const cardPctPemasangan = openDropSum > 0 ? parseFloat(((openPasangSum / openDropSum) * 100).toFixed(1)) : 0;
 
     // 4. Data Grafik Harian % Kedatangan (mengikuti progres menuju % Kedatangan Card Menu Monitor)
     const sortedDropDates = Array.from(dropByDateMap.keys()).sort();
@@ -275,7 +335,7 @@ export async function GET(request: NextRequest) {
       const label = `${dt.getUTCDate()}/${dt.getUTCMonth() + 1}`;
       const pct = totalAllDrop > 0
         ? parseFloat(((cumDrop / totalAllDrop) * cardPctKedatangan).toFixed(1))
-        : (totalOrderPcs > 0 ? parseFloat(((cumDrop / totalOrderPcs) * 100).toFixed(1)) : 0);
+        : 0;
 
       return {
         dateStr,
@@ -296,7 +356,7 @@ export async function GET(request: NextRequest) {
       const label = `${dt.getUTCDate()}/${dt.getUTCMonth() + 1}`;
       const pct = totalAllPasangManual > 0
         ? parseFloat(((cumPasangManual / totalAllPasangManual) * cardPctPemasangan).toFixed(1))
-        : (totalAllDrop > 0 ? parseFloat(((cumPasangManual / totalAllDrop) * 100).toFixed(1)) : 0);
+        : 0;
 
       return {
         dateStr,
