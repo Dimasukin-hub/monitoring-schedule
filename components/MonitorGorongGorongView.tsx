@@ -1038,29 +1038,15 @@ export default function MonitorGorongGorongView() {
   // Card 2 (Total Terpasang): MasterSapGorongGorong qty khusus Tahun 2026
   // Card 3 (Saldo di Lokasi): Status OPEN per Diameter pada SEMUA TAHUN (Tahun 2025 dan 2026)
   // Card 4 (% Kedatangan): Status OPEN per Diameter (Murni Drop Fisik / Order)
-  // Card 5 (% Pemasangan): Status OPEN per Diameter (Pasang SAP / Drop)
+  // Card 5 (% Pemasangan): Status OPEN per Diameter (Pasang Max / Drop)
   const kpi = useMemo(() => {
     const hasSearch = searchQuery.trim().length > 0 || selectedSearchLocations.length > 0;
-    if (
-      summaryData?.kpi &&
-      !hasSearch &&
-      selectedWilayah.length === 0 &&
-      selectedPrioritas.length === 0 &&
-      selectedStatusOpenClose.length === 0 &&
-      selectedStatusTanaman.length === 0 &&
-      selectedTanggalOrder.length === 0
-    ) {
-      return {
-        orderYearly: summaryData.kpi.orderYearly ?? 0,
-        terpasangYearly: summaryData.kpi.terpasangYearly ?? 0,
-        saldoCurrent: summaryData.kpi.saldoCurrent ?? 0,
-        pctKedatangan: summaryData.kpi.pctKedatangan ?? 0,
-        pctPemasangan: summaryData.kpi.pctPemasangan ?? 0,
-        totalOrderAll: summaryData.kpi.totalOrderAll ?? summaryData.kpi.orderYearly ?? 0,
-        totalDropAll: summaryData.kpi.totalDropAll ?? 0,
-        totalTerpasangAll: summaryData.kpi.totalTerpasangAll ?? summaryData.kpi.terpasangYearly ?? 0,
-      };
-    }
+    const hasActiveFilter = hasSearch ||
+      selectedWilayah.length > 0 ||
+      selectedPrioritas.length > 0 ||
+      selectedStatusOpenClose.length > 0 ||
+      selectedStatusTanaman.length > 0 ||
+      selectedTanggalOrder.length > 0;
 
     let order = summaryData?.kpi?.orderYearly ?? 0;
     let terpasangSap = summaryData?.kpi?.terpasangYearly ?? 0;
@@ -1079,8 +1065,10 @@ export default function MonitorGorongGorongView() {
         item.tahun || (item.tanggalOrder && item.tanggalOrder !== '-' ? item.tanggalOrder.slice(0, 4) : '2026')
       );
       const is2025or2026 = itemYear === '2025' || itemYear === '2026';
-      const matchesYear = selectedYears.length > 0 ? selectedYears.includes(itemYear) : is2025or2026;
-      if (!matchesYear) continue;
+      if (!is2025or2026) continue;
+
+      const stAll = (item.statusAll || '').trim().toLowerCase();
+      if (stAll === 'close') continue;
 
       for (const k of diaKeys) {
         const d = item[k];
@@ -1093,30 +1081,39 @@ export default function MonitorGorongGorongView() {
         const drp = Number(d.drop) || 0;
         const psap = Number(d.pasangSap) || 0;
         const pman = Number(d.pasangManual) || 0;
+        const pmax = Math.max(pman, psap);
         const sld = Number(d.saldo) !== undefined && Number(d.saldo) !== null && !isNaN(Number(d.saldo))
           ? Number(d.saldo)
-          : (drp - Math.max(pman, psap));
+          : (drp - pmax);
         saldo += sld;
+
+        if (!hasActiveFilter) {
+          openOrder += (Number(d.order) || 0);
+          openDrop += drp;
+          openPasang += pmax;
+        }
       }
     }
 
-    // 2. Order, Terpasang, % Kedatangan, % Pemasangan dari filteredOrderList
-    for (const item of filteredOrderList) {
-      for (const k of diaKeys) {
-        const d = item[k];
-        if (!d) continue;
+    // 2. Jika ada filter wilayah/lokasi aktif, hitung % Kedatangan & % Pemasangan dari filteredOrderList
+    if (hasActiveFilter) {
+      for (const item of filteredOrderList) {
+        for (const k of diaKeys) {
+          const d = item[k];
+          if (!d) continue;
 
-        const ord = Number(d.order) || 0;
-        const drp = Number(d.drop) || 0;
-        const psap = Number(d.pasangSap) || 0;
-        const pman = Number(d.pasangManual) || 0;
+          const ord = Number(d.order) || 0;
+          const drp = Number(d.drop) || 0;
+          const psap = Number(d.pasangSap) || 0;
+          const pman = Number(d.pasangManual) || 0;
 
-        const st = (d.status || '-').trim().toLowerCase();
-        const isOpen = st === 'open' || st === '-';
-        if (isOpen) {
-          openOrder += ord;
-          openDrop += drp;
-          openPasang += Math.max(pman, psap); // Terpasang Maksimal
+          const st = (d.status || '-').trim().toLowerCase();
+          const isOpen = st === 'open' || st === '-';
+          if (isOpen) {
+            openOrder += ord;
+            openDrop += drp;
+            openPasang += Math.max(pman, psap); // Terpasang Maksimal
+          }
         }
       }
     }
@@ -1127,9 +1124,9 @@ export default function MonitorGorongGorongView() {
     return {
       orderYearly: summaryData?.kpi?.orderYearly ?? order,
       terpasangYearly: summaryData?.kpi?.terpasangYearly ?? terpasangSap,
-      saldoCurrent: summaryData?.kpi?.saldoCurrent ?? saldo,
-      pctKedatangan: summaryData?.kpi?.pctKedatangan ?? parseFloat(pctKedatangan.toFixed(1)),
-      pctPemasangan: summaryData?.kpi?.pctPemasangan ?? parseFloat(pctPemasangan.toFixed(1)),
+      saldoCurrent: listLokasiOrder.length > 0 ? saldo : (summaryData?.kpi?.saldoCurrent ?? saldo),
+      pctKedatangan: listLokasiOrder.length > 0 ? parseFloat(pctKedatangan.toFixed(1)) : (summaryData?.kpi?.pctKedatangan ?? parseFloat(pctKedatangan.toFixed(1))),
+      pctPemasangan: listLokasiOrder.length > 0 ? parseFloat(pctPemasangan.toFixed(1)) : (summaryData?.kpi?.pctPemasangan ?? parseFloat(pctPemasangan.toFixed(1))),
       totalOrderAll: summaryData?.kpi?.totalOrderAll || order,
       totalDropAll: summaryData?.kpi?.totalDropAll || 0,
       totalTerpasangAll: summaryData?.kpi?.totalTerpasangAll || terpasangSap,

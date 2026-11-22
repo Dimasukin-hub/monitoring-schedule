@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       sapWhere.diameter = selectedDia;
     }
 
-    const [allTrx, allSap, masterStatusList, dbLokasiOrder, allMasterDataOrder, allMasterDataDrop] = await Promise.all([
+    const [allTrx, allSap, masterStatusList, dbLokasiOrder, allMasterDataOrder, allMasterDataDrop, allMasterDataManual, allMasterDataPindah] = await Promise.all([
       prisma.transaksiGorongGorong.findMany({
         where: trxWhere,
         orderBy: { tanggal: 'asc' },
@@ -85,11 +85,65 @@ export async function GET(request: NextRequest) {
       prisma.masterDataDropGorongGorong.findMany({
         orderBy: { tanggal: 'asc' },
       }),
+      prisma.masterDataPasangManual.findMany({
+        orderBy: { tanggalPasangManual: 'asc' },
+      }),
+      prisma.masterDataPindahGorongGorong.findMany({
+        orderBy: { tanggal: 'asc' },
+      }),
     ]);
 
     const wilMap = new Map<string, string>();
     for (const m of masterStatusList) {
       if (m.strucPlant) wilMap.set(m.lokasi.trim().toUpperCase(), m.strucPlant.trim().toUpperCase());
+    }
+
+    // Map Master Data Order
+    const masterOrderMap = new Map<string, { d40: number; d60: number; d80: number; d100: number }>();
+    for (const o of allMasterDataOrder) {
+      const k = (o.lokasi || '').trim().toUpperCase();
+      if (!masterOrderMap.has(k)) masterOrderMap.set(k, { d40: 0, d60: 0, d80: 0, d100: 0 });
+      const ent = masterOrderMap.get(k)!;
+      ent.d40 += o.diameter40 || 0;
+      ent.d60 += o.diameter60 || 0;
+      ent.d80 += o.diameter80 || 0;
+      ent.d100 += o.diameter100 || 0;
+    }
+
+    // Map Master Data Drop
+    const masterDropMap = new Map<string, { d40: number; d60: number; d80: number; d100: number }>();
+    for (const d of allMasterDataDrop) {
+      const k = (d.lokasi || '').trim().toUpperCase();
+      if (!masterDropMap.has(k)) masterDropMap.set(k, { d40: 0, d60: 0, d80: 0, d100: 0 });
+      const ent = masterDropMap.get(k)!;
+      ent.d40 += d.diameter40 || 0;
+      ent.d60 += d.diameter60 || 0;
+      ent.d80 += d.diameter80 || 0;
+      ent.d100 += d.diameter100 || 0;
+    }
+
+    // Map Master Data Pasang Manual
+    const masterManualMap = new Map<string, { d40: number; d60: number; d80: number; d100: number }>();
+    for (const m of allMasterDataManual) {
+      const k = (m.lokasi || '').trim().toUpperCase();
+      if (!masterManualMap.has(k)) masterManualMap.set(k, { d40: 0, d60: 0, d80: 0, d100: 0 });
+      const ent = masterManualMap.get(k)!;
+      ent.d40 += m.diameter40 || 0;
+      ent.d60 += m.diameter60 || 0;
+      ent.d80 += m.diameter80 || 0;
+      ent.d100 += m.diameter100 || 0;
+    }
+
+    // Map Master SAP per lokasi
+    const lokasiSapMap = new Map<string, { d40: number; d60: number; d80: number; d100: number }>();
+    for (const s of allSap) {
+      const k = (s.lokasi || '').trim().toUpperCase();
+      if (!lokasiSapMap.has(k)) lokasiSapMap.set(k, { d40: 0, d60: 0, d80: 0, d100: 0 });
+      const ent = lokasiSapMap.get(k)!;
+      if (s.diameter === 40) ent.d40 += s.qty;
+      else if (s.diameter === 60) ent.d60 += s.qty;
+      else if (s.diameter === 80) ent.d80 += s.qty;
+      else if (s.diameter === 100) ent.d100 += s.qty;
     }
 
     const snapshot: Record<string, any> = {};
@@ -454,38 +508,42 @@ export async function GET(request: NextRequest) {
       if (isPetakClosed) continue;
 
       const tData = trxByLok[lok] || { orders: [], drops: [], manuals: [] };
+      const ordM = masterOrderMap.get(lok) || { d40: 0, d60: 0, d80: 0, d100: 0 };
+      const drpM = masterDropMap.get(lok) || { d40: 0, d60: 0, d80: 0, d100: 0 };
+      const manM = masterManualMap.get(lok) || { d40: 0, d60: 0, d80: 0, d100: 0 };
+      const sapM = lokasiSapMap.get(lok) || { d40: 0, d60: 0, d80: 0, d100: 0 };
 
       const diaList = [
         {
           dia: 40,
-          ord: (row.orderD40 || 0) + getTrxSum(tData.orders, 40),
-          drop: (row.dropD40 || 0) + getTrxSum(tData.drops, 40),
-          pman: (row.pasangManD40 || 0) + getTrxSum(tData.manuals, 40),
-          psap: row.pasangSapD40 || 0,
+          ord: masterOrderMap.has(lok) ? ordM.d40 : ((row.orderD40 || 0) + getTrxSum(tData.orders, 40)),
+          drop: masterDropMap.has(lok) ? drpM.d40 : ((row.dropD40 || 0) + getTrxSum(tData.drops, 40)),
+          pman: masterManualMap.has(lok) ? manM.d40 : ((row.pasangManD40 || 0) + getTrxSum(tData.manuals, 40)),
+          psap: lokasiSapMap.has(lok) ? sapM.d40 : (row.pasangSapD40 || 0),
           status: row.statusD40,
         },
         {
           dia: 60,
-          ord: (row.orderD60 || 0) + getTrxSum(tData.orders, 60),
-          drop: (row.dropD60 || 0) + getTrxSum(tData.drops, 60),
-          pman: (row.pasangManD60 || 0) + getTrxSum(tData.manuals, 60),
-          psap: row.pasangSapD60 || 0,
+          ord: masterOrderMap.has(lok) ? ordM.d60 : ((row.orderD60 || 0) + getTrxSum(tData.orders, 60)),
+          drop: masterDropMap.has(lok) ? drpM.d60 : ((row.dropD60 || 0) + getTrxSum(tData.drops, 60)),
+          pman: masterManualMap.has(lok) ? manM.d60 : ((row.pasangManD60 || 0) + getTrxSum(tData.manuals, 60)),
+          psap: lokasiSapMap.has(lok) ? sapM.d60 : (row.pasangSapD60 || 0),
           status: row.statusD60,
         },
         {
           dia: 80,
-          ord: (row.orderD80 || 0) + getTrxSum(tData.orders, 80),
-          drop: (row.dropD80 || 0) + getTrxSum(tData.drops, 80),
-          pman: (row.pasangManD80 || 0) + getTrxSum(tData.manuals, 80),
-          psap: row.pasangSapD80 || 0,
+          ord: masterOrderMap.has(lok) ? ordM.d80 : ((row.orderD80 || 0) + getTrxSum(tData.orders, 80)),
+          drop: masterDropMap.has(lok) ? drpM.d80 : ((row.dropD80 || 0) + getTrxSum(tData.drops, 80)),
+          pman: masterManualMap.has(lok) ? manM.d80 : ((row.pasangManD80 || 0) + getTrxSum(tData.manuals, 80)),
+          psap: lokasiSapMap.has(lok) ? sapM.d80 : (row.pasangSapD80 || 0),
           status: row.statusD80,
         },
         {
           dia: 100,
-          ord: (row.orderD100 || 0) + getTrxSum(tData.orders, 100),
-          drop: (row.dropD100 || 0) + getTrxSum(tData.drops, 100),
-          pman: (row.pasangManD100 || 0) + getTrxSum(tData.manuals, 100),
-          psap: row.pasangSapD100 || 0,
+          ord: masterOrderMap.has(lok) ? ordM.d100 : ((row.orderD100 || 0) + getTrxSum(tData.orders, 100)),
+          drop: masterDropMap.has(lok) ? drpM.d100 : ((row.dropD100 || 0) + getTrxSum(tData.drops, 100)),
+          pman: masterManualMap.has(lok) ? manM.d100 : ((row.pasangManD100 || 0) + getTrxSum(tData.manuals, 100)),
+          psap: lokasiSapMap.has(lok) ? sapM.d100 : (row.pasangSapD100 || 0),
           status: row.statusD100,
         },
       ];
@@ -668,38 +726,42 @@ export async function GET(request: NextRequest) {
         if (isPetakClosed) continue;
 
         const tData = trxByLok[lok] || { orders: [], drops: [], manuals: [] };
+        const ordM = masterOrderMap.get(lok) || { d40: 0, d60: 0, d80: 0, d100: 0 };
+        const drpM = masterDropMap.get(lok) || { d40: 0, d60: 0, d80: 0, d100: 0 };
+        const manM = masterManualMap.get(lok) || { d40: 0, d60: 0, d80: 0, d100: 0 };
+        const sapM = lokasiSapMap.get(lok) || { d40: 0, d60: 0, d80: 0, d100: 0 };
 
         const diaList = [
           {
             dia: 40,
-            ord: (row.orderD40 || 0) + getTrxSum(tData.orders, 40),
-            drop: (row.dropD40 || 0) + getTrxSum(tData.drops, 40),
-            pman: (row.pasangManD40 || 0) + getTrxSum(tData.manuals, 40),
-            psap: row.pasangSapD40 || 0,
+            ord: masterOrderMap.has(lok) ? ordM.d40 : ((row.orderD40 || 0) + getTrxSum(tData.orders, 40)),
+            drop: masterDropMap.has(lok) ? drpM.d40 : ((row.dropD40 || 0) + getTrxSum(tData.drops, 40)),
+            pman: masterManualMap.has(lok) ? manM.d40 : ((row.pasangManD40 || 0) + getTrxSum(tData.manuals, 40)),
+            psap: lokasiSapMap.has(lok) ? sapM.d40 : (row.pasangSapD40 || 0),
             status: row.statusD40,
           },
           {
             dia: 60,
-            ord: (row.orderD60 || 0) + getTrxSum(tData.orders, 60),
-            drop: (row.dropD60 || 0) + getTrxSum(tData.drops, 60),
-            pman: (row.pasangManD60 || 0) + getTrxSum(tData.manuals, 60),
-            psap: row.pasangSapD60 || 0,
+            ord: masterOrderMap.has(lok) ? ordM.d60 : ((row.orderD60 || 0) + getTrxSum(tData.orders, 60)),
+            drop: masterDropMap.has(lok) ? drpM.d60 : ((row.dropD60 || 0) + getTrxSum(tData.drops, 60)),
+            pman: masterManualMap.has(lok) ? manM.d60 : ((row.pasangManD60 || 0) + getTrxSum(tData.manuals, 60)),
+            psap: lokasiSapMap.has(lok) ? sapM.d60 : (row.pasangSapD60 || 0),
             status: row.statusD60,
           },
           {
             dia: 80,
-            ord: (row.orderD80 || 0) + getTrxSum(tData.orders, 80),
-            drop: (row.dropD80 || 0) + getTrxSum(tData.drops, 80),
-            pman: (row.pasangManD80 || 0) + getTrxSum(tData.manuals, 80),
-            psap: row.pasangSapD80 || 0,
+            ord: masterOrderMap.has(lok) ? ordM.d80 : ((row.orderD80 || 0) + getTrxSum(tData.orders, 80)),
+            drop: masterDropMap.has(lok) ? drpM.d80 : ((row.dropD80 || 0) + getTrxSum(tData.drops, 80)),
+            pman: masterManualMap.has(lok) ? manM.d80 : ((row.pasangManD80 || 0) + getTrxSum(tData.manuals, 80)),
+            psap: lokasiSapMap.has(lok) ? sapM.d80 : (row.pasangSapD80 || 0),
             status: row.statusD80,
           },
           {
             dia: 100,
-            ord: (row.orderD100 || 0) + getTrxSum(tData.orders, 100),
-            drop: (row.dropD100 || 0) + getTrxSum(tData.drops, 100),
-            pman: (row.pasangManD100 || 0) + getTrxSum(tData.manuals, 100),
-            psap: row.pasangSapD100 || 0,
+            ord: masterOrderMap.has(lok) ? ordM.d100 : ((row.orderD100 || 0) + getTrxSum(tData.orders, 100)),
+            drop: masterDropMap.has(lok) ? drpM.d100 : ((row.dropD100 || 0) + getTrxSum(tData.drops, 100)),
+            pman: masterManualMap.has(lok) ? manM.d100 : ((row.pasangManD100 || 0) + getTrxSum(tData.manuals, 100)),
+            psap: lokasiSapMap.has(lok) ? sapM.d100 : (row.pasangSapD100 || 0),
             status: row.statusD100,
           },
         ];
