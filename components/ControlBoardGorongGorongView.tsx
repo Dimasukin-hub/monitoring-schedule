@@ -58,41 +58,65 @@ interface DailyPemasanganItem {
   pctPemasangan: number;
 }
 
-// Custom Label untuk Nilai Bar
+// Custom Label untuk Nilai Bar dengan outline kontras
 const renderCustomBarLabel = (props: any) => {
   const { x, y, width, value } = props;
-  if (!value || value === 0 || (width && width < 20)) return null;
+  if (!value || value === 0 || (width && width < 18)) return null;
   return (
-    <text
-      x={x + width / 2}
-      y={y - 6}
-      fill="#64748b"
-      textAnchor="middle"
-      fontSize={10}
-      fontWeight="bold"
-      className="select-none"
-    >
-      {value}
-    </text>
+    <g className="select-none pointer-events-none">
+      <text
+        x={x + width / 2}
+        y={y - 8}
+        fill="#cbd5e1"
+        stroke="#0b0f19"
+        strokeWidth={3}
+        strokeLinejoin="round"
+        paintOrder="stroke fill"
+        textAnchor="middle"
+        fontSize={10}
+        fontWeight="bold"
+      >
+        {value}
+      </text>
+    </g>
   );
 };
 
-// Custom Label untuk Persentase Line
+// Custom Label untuk Persentase Line dengan floating pill badge agar tidak bertabrakan dengan bar
 const renderCustomLineLabel = (props: any) => {
-  const { x, y, value } = props;
+  const { x, y, value, stroke } = props;
   if (value === undefined || value === null) return null;
+  const labelColor = stroke || '#10b981';
+  const text = `${value}%`;
+  const pillW = text.length * 6.8 + 8;
+  const pillH = 15;
+  const pillX = x - pillW / 2;
+  const pillY = y - 20;
+
   return (
-    <text
-      x={x}
-      y={y - 10}
-      fill="#10b981"
-      textAnchor="middle"
-      fontSize={10}
-      fontWeight="bold"
-      className="select-none"
-    >
-      {value}%
-    </text>
+    <g className="select-none pointer-events-none">
+      <rect
+        x={pillX}
+        y={pillY}
+        width={pillW}
+        height={pillH}
+        rx={4}
+        fill="#0f172a"
+        fillOpacity={0.94}
+        stroke={labelColor}
+        strokeWidth={1}
+      />
+      <text
+        x={x}
+        y={pillY + 11}
+        fill={labelColor}
+        textAnchor="middle"
+        fontSize={9.5}
+        fontWeight="bold"
+      >
+        {text}
+      </text>
+    </g>
   );
 };
 
@@ -430,7 +454,7 @@ export default function ControlBoardGorongGorongView() {
                   {showPctKedatangan && (
                     <Line
                       yAxisId="right"
-                      type="monotone"
+                      type="linear"
                       dataKey="pctKedatangan"
                       name="% Kedatangan"
                       stroke="#10b981"
@@ -557,7 +581,7 @@ export default function ControlBoardGorongGorongView() {
                   {showPctPemasangan && (
                     <Line
                       yAxisId="right"
-                      type="monotone"
+                      type="linear"
                       dataKey="pctPemasangan"
                       name="% Pemasangan"
                       stroke="#8b5cf6"

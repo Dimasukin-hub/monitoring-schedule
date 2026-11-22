@@ -526,6 +526,18 @@ export default function FormOrderGorongGorongView() {
 
     setIsSubmitting(true);
     try {
+      const mappedUserRole = isTKVerifikatorFE || isUserFE
+        ? 'VERIFIKATOR_FE'
+        : isMandorWilayah
+        ? 'MANDOR_WILAYAH'
+        : isKepalaWilayah
+        ? 'KEPALA_WILAYAH'
+        : user?.role
+        ? user.role.toUpperCase()
+        : isAdmin
+        ? 'ADMIN'
+        : 'USER';
+
       const payloadItems = filledSlots.map((s) => {
         if (isPindah) {
           const destLok = s.selectedLokasiPenerima || s.selectedLokasiPengirim;
@@ -547,7 +559,7 @@ export default function FormOrderGorongGorongView() {
             tanggal,
             keterangan,
             createdBy: user?.name || roleDisplayName || (isAdmin ? 'Admin FE' : 'User'),
-            userRole: user?.role ? user.role.toUpperCase() : (isAdmin ? 'ADMIN' : 'USER'),
+            userRole: mappedUserRole,
           };
         } else {
           return {
@@ -563,7 +575,7 @@ export default function FormOrderGorongGorongView() {
             tanggal,
             keterangan,
             createdBy: user?.name || roleDisplayName || (isAdmin ? 'Admin FE' : 'User'),
-            userRole: user?.role ? user.role.toUpperCase() : (isAdmin ? 'ADMIN' : 'USER'),
+            userRole: mappedUserRole,
           };
         }
       });
@@ -1845,7 +1857,7 @@ export default function FormOrderGorongGorongView() {
                       {item.qtyD100 || 0}
                     </td>
                     <td className={`px-3.5 py-2 text-[11px] text-slate-500 ${!canShowActionColumn ? 'border-b' : 'border-r border-b'} border-slate-200 dark:border-slate-800 text-center`}>
-                      {item.createdBy} ({item.userRole})
+                      {item.createdBy} ({item.userRole === 'USER_WILAYAH' || item.userRole === 'MANDOR_WILAYAH' ? 'MANDOR_WILAYAH' : item.userRole === 'USER_FE' || item.userRole === 'VERIFIKATOR_FE' ? 'VERIFIKATOR_FE' : item.userRole})
                     </td>
                     {canShowActionColumn && (
                       <td className="px-3 py-2 text-center border-b border-slate-200 dark:border-slate-800">
@@ -2332,7 +2344,9 @@ export default function FormOrderGorongGorongView() {
                   </label>
                   <div className="w-full px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between cursor-not-allowed select-none min-h-[38px]">
                     <span className="truncate">{editingTrx.createdBy || '-'}</span>
-                    <span className="text-[10px] font-normal text-slate-400 shrink-0 ml-1">({editingTrx.userRole || '-'})</span>
+                    <span className="text-[10px] font-normal text-slate-400 shrink-0 ml-1">
+                      ({editingTrx.userRole === 'USER_WILAYAH' || editingTrx.userRole === 'MANDOR_WILAYAH' ? 'MANDOR_WILAYAH' : editingTrx.userRole === 'USER_FE' || editingTrx.userRole === 'VERIFIKATOR_FE' ? 'VERIFIKATOR_FE' : editingTrx.userRole || '-'})
+                    </span>
                   </div>
                 </div>
               </div>

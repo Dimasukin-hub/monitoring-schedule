@@ -43,7 +43,7 @@ const ALL_ASSIGNABLE_ROLES: { role: UserRole; label: string; requireSuperAdmin?:
   { role: 'manajer_fm', label: 'Manajer FM' },
   { role: 'manajer_osd', label: 'Manajer OSD' },
   { role: 'kepala_wilayah', label: 'Kepala Wilayah' },
-  { role: 'user_fe', label: 'TK Verifikator FE' },
+  { role: 'user_fe', label: 'Verifikator FE' },
   { role: 'user_wilayah', label: 'Mandor Wilayah' },
   { role: 'user_planting', label: 'User Planting' },
 ];
@@ -233,7 +233,7 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
 
     try {
       setIsSubmittingAdd(true);
-      const isFieldRole = ['kepala_wilayah', 'user_wilayah', 'user'].includes(addForm.role);
+      const isFieldRole = ['kepala_wilayah', 'user_wilayah', 'user', 'user_fe'].includes(addForm.role);
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
@@ -275,7 +275,7 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
       showToast('error', 'Hanya Super Admin yang berhak mengubah akun Admin atau Super Admin.');
       return;
     }
-    const isFieldRole = ['kepala_wilayah', 'user_wilayah', 'user'].includes(target.role);
+    const isFieldRole = ['kepala_wilayah', 'user_wilayah', 'user', 'user_fe'].includes(target.role);
     const initialWil = target.wilayah || (isFieldRole ? detectWilayahFromUsernameOrName(target.username, target.name) : null) || '';
     setEditingUser(target);
     setEditForm({
@@ -313,7 +313,7 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
 
     try {
       setIsSubmittingEdit(true);
-      const isFieldRole = ['kepala_wilayah', 'user_wilayah', 'user'].includes(editForm.role);
+      const isFieldRole = ['kepala_wilayah', 'user_wilayah', 'user', 'user_fe'].includes(editForm.role);
       const res = await fetch(`/api/users/${editingUser.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
@@ -625,6 +625,18 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
           </div>
         </div>
 
+        {/* Verifikator FE */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-3.5 shadow-xs flex items-center justify-between">
+          <div className="space-y-0.5">
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Verifikator FE</p>
+            <p className="text-xl font-bold text-purple-600 dark:text-purple-400 tracking-tight">{users.filter(u => u.role === 'user_fe').length}</p>
+            <p className="text-[10px] text-slate-400">Khusus Drop</p>
+          </div>
+          <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200/40 dark:border-purple-800/40 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
+            <User className="w-4 h-4" />
+          </div>
+        </div>
+
         {/* User Planting (jika ada akun non-gorong-gorong) */}
         {!isGorongGorong && users.some(u => u.role === 'user_planting') && (
           <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-3.5 shadow-xs flex items-center justify-between">
@@ -809,7 +821,7 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
                       </td>
                       <td className="py-3 px-4 text-center">
                         {(() => {
-                          const isFieldRole = ['kepala_wilayah', 'user_wilayah', 'user'].includes(item.role);
+                          const isFieldRole = ['kepala_wilayah', 'user_wilayah', 'user', 'user_fe'].includes(item.role);
                           const effectiveWil = item.wilayah || (isFieldRole ? detectWilayahFromUsernameOrName(item.username, item.name) : null);
                           if (effectiveWil) {
                             return (
@@ -1007,8 +1019,8 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
                 </div>
               </div>
 
-              {/* Wilayah Tugas (Hanya untuk Kepala Wilayah & Mandor Wilayah) */}
-              {['kepala_wilayah', 'user_wilayah', 'user'].includes(addForm.role) && (
+              {/* Wilayah Tugas (Untuk Kepala Wilayah, Mandor Wilayah & Verifikator FE) */}
+              {['kepala_wilayah', 'user_wilayah', 'user', 'user_fe'].includes(addForm.role) && (
                 <div className="space-y-1.5 pt-1">
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                     Wilayah Tugas
@@ -1183,8 +1195,8 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
                 </div>
               </div>
 
-              {/* Wilayah Tugas (Hanya untuk Kepala Wilayah & Mandor Wilayah) */}
-              {['kepala_wilayah', 'user_wilayah', 'user'].includes(editForm.role) && (
+              {/* Wilayah Tugas (Untuk Kepala Wilayah, Mandor Wilayah & Verifikator FE) */}
+              {['kepala_wilayah', 'user_wilayah', 'user', 'user_fe'].includes(editForm.role) && (
                 <div className="space-y-1.5 pt-1">
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                     Wilayah Tugas

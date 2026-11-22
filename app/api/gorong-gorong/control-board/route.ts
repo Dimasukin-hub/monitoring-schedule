@@ -215,21 +215,15 @@ export async function GET(request: NextRequest) {
       else if (s.diameter === 100) ent.d100Sap += qty;
     }
 
-    // Helper match: jika manual 0 tapi sap > 0, tidak dianggap mismatch
-    const isDiaMatch = (man: number, sap: number) => {
-      if (man === sap) return true;
-      if (man === 0 && sap > 0) return true;
-      return false;
-    };
-
-    // Ubah ke array dan hitung status match/check
+    // Status Match: Hanya jika kedua isian data angka sama persis antara manual dan SAP
+    // Jika manual 0 atau kosong dan SAP ada isinya (> 0), statusnya tetap 'Check' (walaupun di tabel selnya tidak dihighlight)
     const tableVerification = Array.from(tableMap.values())
       .map((row) => {
         const isMatch =
-          isDiaMatch(row.d40Manual, row.d40Sap) &&
-          isDiaMatch(row.d60Manual, row.d60Sap) &&
-          isDiaMatch(row.d80Manual, row.d80Sap) &&
-          isDiaMatch(row.d100Manual, row.d100Sap);
+          row.d40Manual === row.d40Sap &&
+          row.d60Manual === row.d60Sap &&
+          row.d80Manual === row.d80Sap &&
+          row.d100Manual === row.d100Sap;
 
         return {
           ...row,

@@ -43,7 +43,7 @@ export function getRoleDisplayName(role: UserRole | string | null | undefined): 
     case 'kepala_wilayah':
       return 'Kepala Wilayah';
     case 'user_fe':
-      return 'TK Verifikator FE';
+      return 'Verifikator FE';
     case 'user_wilayah':
     case 'user':
       return 'Mandor Wilayah';

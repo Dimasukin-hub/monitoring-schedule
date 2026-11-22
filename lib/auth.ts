@@ -84,7 +84,7 @@ export const DEFAULT_USERS: Array<AuthUser & { password: string }> = [
   },
   {
     id: 6,
-    name: 'TK Verifikator FE',
+    name: 'Verifikator FE',
     email: 'fe',
     password: 'fe123',
     role: 'user_fe',

@@ -86,7 +86,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       success: true,
       data: users.map((u) => {
-        const isFieldRole = ['kepala_wilayah', 'user_wilayah', 'user'].includes(u.role);
+        const isFieldRole = ['kepala_wilayah', 'user_wilayah', 'user', 'user_fe'].includes(u.role);
         const effectiveWilayah = isFieldRole ? (u.wilayah || detectWilayah(u.email)) : null;
         return {
           id: u.id,
@@ -189,8 +189,8 @@ export async function POST(req: Request) {
       ? String(rawWilayah).trim().toUpperCase()
       : null;
 
-    // Hanya role kepala_wilayah dan user_wilayah / user yang memiliki wilayah tugas
-    if (!['kepala_wilayah', 'user_wilayah', 'user'].includes(role)) {
+    // Hanya role kepala_wilayah, user_wilayah, user, dan user_fe yang memiliki wilayah tugas
+    if (!['kepala_wilayah', 'user_wilayah', 'user', 'user_fe'].includes(role)) {
       cleanWilayah = null;
     } else if (!cleanWilayah) {
       // Auto deteksi dari username jika mengandung w01..w07

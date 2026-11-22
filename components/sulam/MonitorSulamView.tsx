@@ -98,6 +98,21 @@ export default function MonitorSulamView() {
   const [sebaranBibitChart, setSebaranBibitChart] = useState<any[]>([]);
   const [prosesList, setProsesList] = useState<string[]>([]);
 
+  // Legend Toggles untuk 4 Grafik (Tombol bersih tanpa badge, redup saat hidden tanpa coret silang)
+  const [showWilayahPctDrop, setShowWilayahPctDrop] = useState(true);
+  const [showWilayahPctSulam, setShowWilayahPctSulam] = useState(true);
+  const [showWilayahDrop, setShowWilayahDrop] = useState(true);
+  const [showWilayahOrder, setShowWilayahOrder] = useState(true);
+  const [showWilayahSulam, setShowWilayahSulam] = useState(true);
+
+  const [showForcingDrop, setShowForcingDrop] = useState(true);
+  const [showForcingSulam, setShowForcingSulam] = useState(true);
+
+  const [showOverallDrop, setShowOverallDrop] = useState(true);
+  const [showOverallSulam, setShowOverallSulam] = useState(true);
+
+  const [hiddenDonutItems, setHiddenDonutItems] = useState<Record<string, boolean>>({});
+
   // Filter Bar
   const [search, setSearch] = useState('');
   const [selectedWilayah, setSelectedWilayah] = useState<string[]>([]);
@@ -414,13 +429,77 @@ export default function MonitorSulamView() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Grafik 1: Monitor Sulam Per Wilayah (Bar: Order, Drop, Sulam | Line: %Drop, %Sulam) */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-2xs space-y-3">
-          <div className="space-y-0.5">
-            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-              Grafik Monitor Sulam Per Wilayah
-            </h4>
-            <p className="text-[11px] text-slate-500">
-              Batang: Order, Drop, Sulam (Rit) • Garis: %Drop & %Sulam
-            </p>
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
+            <div className="space-y-0.5">
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                Grafik Monitor Sulam Per Wilayah
+              </h4>
+              <p className="text-[11px] text-slate-500">
+                Batang: Order, Drop, Sulam (Rit) • Garis: %Drop & %Sulam
+              </p>
+            </div>
+            {/* Tombol Legenda di Atas (Dinaikkan posisinya - tanpa badge, redup saat disembunyikan tanpa coret) */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-1 xl:pt-0">
+              <button
+                type="button"
+                onClick={() => setShowWilayahPctDrop((prev) => !prev)}
+                className={`inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer transition-opacity duration-150 select-none ${
+                  showWilayahPctDrop ? 'opacity-100 text-slate-700 dark:text-slate-300' : 'opacity-35 hover:opacity-70 text-slate-400 dark:text-slate-500'
+                }`}
+                title="Klik untuk tampilkan/sembunyikan % Drop"
+              >
+                <span className="w-2.5 h-0.5 rounded-full bg-[#06b6d4]" />
+                <span>% Drop</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowWilayahPctSulam((prev) => !prev)}
+                className={`inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer transition-opacity duration-150 select-none ${
+                  showWilayahPctSulam ? 'opacity-100 text-slate-700 dark:text-slate-300' : 'opacity-35 hover:opacity-70 text-slate-400 dark:text-slate-500'
+                }`}
+                title="Klik untuk tampilkan/sembunyikan % Sulam"
+              >
+                <span className="w-2.5 h-0.5 rounded-full bg-[#8b5cf6]" />
+                <span>% Sulam</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowWilayahDrop((prev) => !prev)}
+                className={`inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer transition-opacity duration-150 select-none ${
+                  showWilayahDrop ? 'opacity-100 text-slate-700 dark:text-slate-300' : 'opacity-35 hover:opacity-70 text-slate-400 dark:text-slate-500'
+                }`}
+                title="Klik untuk tampilkan/sembunyikan Drop"
+              >
+                <span className="w-2.5 h-2.5 rounded-xs bg-[#f59e0b]" />
+                <span>Drop</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowWilayahOrder((prev) => !prev)}
+                className={`inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer transition-opacity duration-150 select-none ${
+                  showWilayahOrder ? 'opacity-100 text-slate-700 dark:text-slate-300' : 'opacity-35 hover:opacity-70 text-slate-400 dark:text-slate-500'
+                }`}
+                title="Klik untuk tampilkan/sembunyikan Order"
+              >
+                <span className="w-2.5 h-2.5 rounded-xs bg-[#3b82f6]" />
+                <span>Order</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowWilayahSulam((prev) => !prev)}
+                className={`inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer transition-opacity duration-150 select-none ${
+                  showWilayahSulam ? 'opacity-100 text-slate-700 dark:text-slate-300' : 'opacity-35 hover:opacity-70 text-slate-400 dark:text-slate-500'
+                }`}
+                title="Klik untuk tampilkan/sembunyikan Sulam"
+              >
+                <span className="w-2.5 h-2.5 rounded-xs bg-[#10b981]" />
+                <span>Sulam</span>
+              </button>
+            </div>
           </div>
           <div className="h-72 w-full pt-2">
             <ResponsiveContainer width="100%" height="100%">
@@ -438,12 +517,21 @@ export default function MonitorSulamView() {
                     fontSize: '11px',
                   }}
                 />
-                <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '11px', paddingBottom: '10px' }} />
-                <Bar yAxisId="left" dataKey="order" name="Order" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={25} />
-                <Bar yAxisId="left" dataKey="drop" name="Drop" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={25} />
-                <Bar yAxisId="left" dataKey="sulam" name="Sulam" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={25} />
-                <Line yAxisId="right" type="monotone" dataKey="pctDrop" name="% Drop" stroke="#06b6d4" strokeWidth={2} dot={{ r: 3 }} />
-                <Line yAxisId="right" type="monotone" dataKey="pctSulam" name="% Sulam" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} />
+                {showWilayahOrder && (
+                  <Bar yAxisId="left" dataKey="order" name="Order" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={25} />
+                )}
+                {showWilayahDrop && (
+                  <Bar yAxisId="left" dataKey="drop" name="Drop" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={25} />
+                )}
+                {showWilayahSulam && (
+                  <Bar yAxisId="left" dataKey="sulam" name="Sulam" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={25} />
+                )}
+                {showWilayahPctDrop && (
+                  <Line yAxisId="right" type="linear" dataKey="pctDrop" name="% Drop" stroke="#06b6d4" strokeWidth={2} dot={{ r: 3 }} />
+                )}
+                {showWilayahPctSulam && (
+                  <Line yAxisId="right" type="linear" dataKey="pctSulam" name="% Sulam" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} />
+                )}
               </ComposedChart>
             </ResponsiveContainer>
           </div>
@@ -451,13 +539,41 @@ export default function MonitorSulamView() {
 
         {/* Grafik 2: Batang Proses Sulam / Umur Forcing (Bar: %Drop | Line: %Sulam) */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-2xs space-y-3">
-          <div className="space-y-0.5">
-            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-              Grafik Batang Proses Sulam (Umur Forcing)
-            </h4>
-            <p className="text-[11px] text-slate-500">
-              Batang: %Drop • Garis: %Sulam berdasarkan tahapan umur forcing
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div className="space-y-0.5">
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                Grafik Batang Proses Sulam (Umur Forcing)
+              </h4>
+              <p className="text-[11px] text-slate-500">
+                Batang: %Drop • Garis: %Sulam berdasarkan tahapan umur forcing
+              </p>
+            </div>
+            {/* Tombol Legenda di Atas (Dinaikkan posisinya - tanpa badge, redup saat disembunyikan tanpa coret) */}
+            <div className="flex items-center gap-3 pt-1 sm:pt-0">
+              <button
+                type="button"
+                onClick={() => setShowForcingDrop((prev) => !prev)}
+                className={`inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer transition-opacity duration-150 select-none ${
+                  showForcingDrop ? 'opacity-100 text-slate-700 dark:text-slate-300' : 'opacity-35 hover:opacity-70 text-slate-400 dark:text-slate-500'
+                }`}
+                title="Klik untuk tampilkan/sembunyikan % Drop"
+              >
+                <span className="w-2.5 h-2.5 rounded-xs bg-[#0ea5e9]" />
+                <span>% Drop</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowForcingSulam((prev) => !prev)}
+                className={`inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer transition-opacity duration-150 select-none ${
+                  showForcingSulam ? 'opacity-100 text-slate-700 dark:text-slate-300' : 'opacity-35 hover:opacity-70 text-slate-400 dark:text-slate-500'
+                }`}
+                title="Klik untuk tampilkan/sembunyikan % Sulam"
+              >
+                <span className="w-2.5 h-0.5 rounded-full bg-[#10b981]" />
+                <span>% Sulam</span>
+              </button>
+            </div>
           </div>
           <div className="h-72 w-full pt-2">
             <ResponsiveContainer width="100%" height="100%">
@@ -475,9 +591,12 @@ export default function MonitorSulamView() {
                   }}
                   formatter={(val: any, name: any) => [`${val}%`, name]}
                 />
-                <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '11px', paddingBottom: '10px' }} />
-                <Bar dataKey="pctDrop" name="% Drop" fill="#0ea5e9" radius={[6, 6, 0, 0]} maxBarSize={40} label={renderCustomBarVal} />
-                <Line type="monotone" dataKey="pctSulam" name="% Sulam" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4, fill: '#10b981' }} label={renderCustomLineVal} />
+                {showForcingDrop && (
+                  <Bar dataKey="pctDrop" name="% Drop" fill="#0ea5e9" radius={[6, 6, 0, 0]} maxBarSize={40} label={renderCustomBarVal} />
+                )}
+                {showForcingSulam && (
+                  <Line type="linear" dataKey="pctSulam" name="% Sulam" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4, fill: '#10b981' }} label={renderCustomLineVal} />
+                )}
               </ComposedChart>
             </ResponsiveContainer>
           </div>
@@ -493,9 +612,16 @@ export default function MonitorSulamView() {
               Perbandingan keseluruhan rata-rata pencapaian %Drop dan %Sulam
             </p>
           </div>
-          <div className="h-72 w-full pt-2">
+          <div className="h-64 w-full pt-2">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={overallDropVsSulam} margin={{ top: 25, right: 30, bottom: 20, left: 10 }}>
+              <BarChart
+                data={overallDropVsSulam.filter((d) => {
+                  if (d.name === '% Drop') return showOverallDrop;
+                  if (d.name === '% Sulam') return showOverallSulam;
+                  return true;
+                })}
+                margin={{ top: 25, right: 30, bottom: 20, left: 10 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
                 <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b', fontWeight: 'bold' }} tickLine={false} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} unit="%" />
@@ -510,12 +636,44 @@ export default function MonitorSulamView() {
                   formatter={(val: any) => [`${val}%`, 'Persentase']}
                 />
                 <Bar dataKey="value" radius={[8, 8, 0, 0]} maxBarSize={70} label={renderCustomBarVal}>
-                  {overallDropVsSulam.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
+                  {overallDropVsSulam
+                    .filter((d) => {
+                      if (d.name === '% Drop') return showOverallDrop;
+                      if (d.name === '% Sulam') return showOverallSulam;
+                      return true;
+                    })
+                    .map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
+          </div>
+          {/* Tombol Legenda di Bawah (Posisinya tetap di bawah grafik - tanpa badge, redup saat disembunyikan tanpa coret) */}
+          <div className="flex items-center justify-center gap-5 pt-1">
+            <button
+              type="button"
+              onClick={() => setShowOverallDrop((prev) => !prev)}
+              className={`inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer transition-opacity duration-150 select-none ${
+                showOverallDrop ? 'opacity-100 text-slate-700 dark:text-slate-300' : 'opacity-35 hover:opacity-70 text-slate-400 dark:text-slate-500'
+              }`}
+              title="Klik untuk tampilkan/sembunyikan % Drop"
+            >
+              <span className="w-2.5 h-2.5 rounded-xs bg-[#0ea5e9]" />
+              <span>% Drop</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowOverallSulam((prev) => !prev)}
+              className={`inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer transition-opacity duration-150 select-none ${
+                showOverallSulam ? 'opacity-100 text-slate-700 dark:text-slate-300' : 'opacity-35 hover:opacity-70 text-slate-400 dark:text-slate-500'
+              }`}
+              title="Klik untuk tampilkan/sembunyikan % Sulam"
+            >
+              <span className="w-2.5 h-2.5 rounded-xs bg-[#10b981]" />
+              <span>% Sulam</span>
+            </button>
           </div>
         </div>
 
@@ -529,7 +687,7 @@ export default function MonitorSulamView() {
               Proporsi kebutuhan ritase bibit sulam berdasarkan jenis/kelas
             </p>
           </div>
-          <div className="h-72 w-full pt-2">
+          <div className="h-64 w-full pt-2">
             {sebaranBibitChart.length === 0 ? (
               <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
                 Tidak ada data bibit untuk ditampilkan.
@@ -547,25 +705,53 @@ export default function MonitorSulamView() {
                     }}
                     formatter={(val: any) => [`${val} Rit`, 'Kebutuhan']}
                   />
-                  <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                   <Pie
-                    data={sebaranBibitChart}
+                    data={sebaranBibitChart.filter((d) => !hiddenDonutItems[d.name])}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
-                    cy="45%"
+                    cy="50%"
                     innerRadius={50}
                     outerRadius={85}
                     paddingAngle={3}
                   >
-                    {sebaranBibitChart.map((entry, index) => (
-                      <Cell key={`donut-${index}`} fill={entry.color} />
-                    ))}
+                    {sebaranBibitChart
+                      .filter((d) => !hiddenDonutItems[d.name])
+                      .map((entry, index) => (
+                        <Cell key={`donut-${index}`} fill={entry.color} />
+                      ))}
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
             )}
           </div>
+          {/* Tombol Legenda di Bawah (Posisinya tetap di bawah grafik - tanpa badge, redup saat disembunyikan tanpa coret) */}
+          {sebaranBibitChart.length > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 pt-1">
+              {sebaranBibitChart.map((entry) => {
+                const isHidden = !!hiddenDonutItems[entry.name];
+                return (
+                  <button
+                    key={entry.name}
+                    type="button"
+                    onClick={() => {
+                      setHiddenDonutItems((prev) => ({
+                        ...prev,
+                        [entry.name]: !prev[entry.name],
+                      }));
+                    }}
+                    className={`inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer transition-opacity duration-150 select-none ${
+                      !isHidden ? 'opacity-100 text-slate-700 dark:text-slate-300' : 'opacity-35 hover:opacity-70 text-slate-400 dark:text-slate-500'
+                    }`}
+                    title={`Klik untuk tampilkan/sembunyikan ${entry.name}`}
+                  >
+                    <span className="w-2.5 h-2.5 rounded-xs" style={{ backgroundColor: entry.color }} />
+                    <span>{entry.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 

@@ -173,7 +173,7 @@ export async function PUT(
     }
 
     const targetRole = role || existingUser.role;
-    if (!['kepala_wilayah', 'user_wilayah', 'user'].includes(targetRole)) {
+    if (!['kepala_wilayah', 'user_wilayah', 'user', 'user_fe'].includes(targetRole)) {
       updateData.wilayah = null;
     } else if (wilayah !== undefined) {
       let cleanWilayah = wilayah && String(wilayah).trim().toUpperCase() !== 'ALL'

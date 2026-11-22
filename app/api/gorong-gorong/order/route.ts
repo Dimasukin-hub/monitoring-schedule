@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
       }
 
       const isPindah = cleanJenis === 'PINDAH_LOKASI' || (cleanJenis === 'DROP' && !!it.lokasiAsal);
-      if (it.userRole === 'USER_WILAYAH' && cleanJenis !== 'PASANG_MANUAL' && !isPindah) {
+      if (['USER_WILAYAH', 'MANDOR_WILAYAH'].includes(it.userRole) && cleanJenis !== 'PASANG_MANUAL' && !isPindah) {
         return NextResponse.json(
           {
             success: false,
@@ -205,11 +205,11 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (it.userRole === 'USER_FE' && cleanJenis !== 'DROP') {
+      if (['USER_FE', 'VERIFIKATOR_FE'].includes(it.userRole) && cleanJenis !== 'DROP') {
         return NextResponse.json(
           {
             success: false,
-            message: 'Akses Ditolak: User FE hanya berhak membuat transaksi DROP.',
+            message: 'Akses Ditolak: Verifikator FE hanya berhak membuat transaksi DROP.',
           },
           { status: 403 }
         );
@@ -287,7 +287,13 @@ export async function POST(request: NextRequest) {
         qtyD100: numD100,
         keterangan: it.keterangan ? String(it.keterangan).trim() : null,
         createdBy: String(it.createdBy || 'user').trim(),
-        userRole: String(it.userRole || 'USER_WILAYAH').trim(),
+        userRole: it.userRole === 'USER_WILAYAH' || it.userRole === 'MANDOR_WILAYAH'
+          ? 'MANDOR_WILAYAH'
+          : it.userRole === 'USER_FE' || it.userRole === 'VERIFIKATOR_FE'
+          ? 'VERIFIKATOR_FE'
+          : it.userRole === 'KEPALA_WILAYAH'
+          ? 'KEPALA_WILAYAH'
+          : String(it.userRole || 'USER').trim(),
       });
     }
 
