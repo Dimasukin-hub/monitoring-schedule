@@ -67,14 +67,24 @@ export async function GET(request: NextRequest) {
       // 4. Kelas Bibit
       const kelasBibit = mLoc.kelas || '-';
 
+      const formatToDDMMYYYY = (dt: Date | string | null | undefined): string => {
+        if (!dt || dt === '-') return '-';
+        const dObj = typeof dt === 'string' ? new Date(dt) : dt;
+        if (isNaN(dObj.getTime())) return String(dt);
+        const day = String(dObj.getUTCDate()).padStart(2, '0');
+        const month = String(dObj.getUTCMonth() + 1).padStart(2, '0');
+        const year = dObj.getUTCFullYear();
+        return `${day}-${month}-${year}`;
+      };
+
       // 5. Tanggal Rawat
-      const tglRawatStr = mLoc.tglRawat ? mLoc.tglRawat.toISOString().slice(0, 10) : '-';
+      const tglRawatStr = formatToDDMMYYYY(mLoc.tglRawat);
 
       // 6. Tanggal STD Forcing
-      const tglStdForcingStr = mLoc.forcingStd ? mLoc.forcingStd.toISOString().slice(0, 10) : '-';
+      const tglStdForcingStr = formatToDDMMYYYY(mLoc.forcingStd);
 
       // 7. Tanggal F Prod
-      const tglFProdStr = mLoc.forcingProd2026 ? mLoc.forcingProd2026.toISOString().slice(0, 10) : '-';
+      const tglFProdStr = formatToDDMMYYYY(mLoc.forcingProd2026);
 
       // 8. Tanggal F Max
       let tglFMaxDate: Date | null = null;
@@ -85,10 +95,10 @@ export async function GET(request: NextRequest) {
       } else if (mLoc.forcingProd2026) {
         tglFMaxDate = mLoc.forcingProd2026;
       }
-      const tglFMaxStr = tglFMaxDate ? tglFMaxDate.toISOString().slice(0, 10) : '-';
+      const tglFMaxStr = formatToDDMMYYYY(tglFMaxDate);
 
       // 9. Tanggal Order
-      const tglOrderStr = ord?.tanggalOrder ? new Date(ord.tanggalOrder).toISOString().slice(0, 10) : '-';
+      const tglOrderStr = formatToDDMMYYYY(ord?.tanggalOrder);
 
       // 10. Umur Forcing
       let umurForcing: number | string = '-';
@@ -119,7 +129,7 @@ export async function GET(request: NextRequest) {
         sulamPct = `${(((sulamReal + sulamManual) / pembagiSulam) * 100).toFixed(1)}%`;
       }
 
-      const sulamLastDateStr = relData.lastDate ? relData.lastDate.toISOString().slice(0, 10) : '-';
+      const sulamLastDateStr = formatToDDMMYYYY(relData.lastDate);
 
       // 14-17. Spek & Keterangan
       const spekBibit = ord?.spekBibit || '-';

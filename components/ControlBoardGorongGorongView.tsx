@@ -58,65 +58,51 @@ interface DailyPemasanganItem {
   pctPemasangan: number;
 }
 
-// Custom Label untuk Nilai Bar dengan outline kontras
+// Custom Label untuk Nilai Bar: tanpa badge, ketebalan sedang, kontras di mode terang & gelap
 const renderCustomBarLabel = (props: any) => {
   const { x, y, width, value } = props;
   if (!value || value === 0 || (width && width < 18)) return null;
   return (
-    <g className="select-none pointer-events-none">
-      <text
-        x={x + width / 2}
-        y={y - 8}
-        fill="#cbd5e1"
-        stroke="#0b0f19"
-        strokeWidth={3}
-        strokeLinejoin="round"
-        paintOrder="stroke fill"
-        textAnchor="middle"
-        fontSize={10}
-        fontWeight="bold"
-      >
-        {value}
-      </text>
-    </g>
+    <text
+      x={x + width / 2}
+      y={y - 6}
+      fill="#64748b"
+      stroke="#0f172a"
+      strokeWidth={2}
+      strokeLinejoin="round"
+      paintOrder="stroke fill"
+      textAnchor="middle"
+      fontSize={10}
+      fontWeight="600"
+      className="select-none pointer-events-none"
+    >
+      {value}
+    </text>
   );
 };
 
-// Custom Label untuk Persentase Line dengan floating pill badge agar tidak bertabrakan dengan bar
+// Custom Label untuk Persentase Line: tanpa badge, ketebalan sedang, kontras di mode terang & gelap
 const renderCustomLineLabel = (props: any) => {
   const { x, y, value, stroke } = props;
   if (value === undefined || value === null) return null;
   const labelColor = stroke || '#10b981';
-  const text = `${value}%`;
-  const pillW = text.length * 6.8 + 8;
-  const pillH = 15;
-  const pillX = x - pillW / 2;
-  const pillY = y - 20;
 
   return (
-    <g className="select-none pointer-events-none">
-      <rect
-        x={pillX}
-        y={pillY}
-        width={pillW}
-        height={pillH}
-        rx={4}
-        fill="#0f172a"
-        fillOpacity={0.94}
-        stroke={labelColor}
-        strokeWidth={1}
-      />
-      <text
-        x={x}
-        y={pillY + 11}
-        fill={labelColor}
-        textAnchor="middle"
-        fontSize={9.5}
-        fontWeight="bold"
-      >
-        {text}
-      </text>
-    </g>
+    <text
+      x={x}
+      y={y - 8}
+      fill={labelColor}
+      stroke="#0f172a"
+      strokeWidth={2}
+      strokeLinejoin="round"
+      paintOrder="stroke fill"
+      textAnchor="middle"
+      fontSize={10.5}
+      fontWeight="600"
+      className="select-none pointer-events-none"
+    >
+      {value}%
+    </text>
   );
 };
 

@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
       if (rec.tanggalPasangManual) {
         const d = new Date(rec.tanggalPasangManual);
         if (!isNaN(d.getTime())) {
-          tglStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+          tglStr = `${String(d.getUTCDate()).padStart(2, '0')}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${d.getUTCFullYear()}`;
         }
       }
 

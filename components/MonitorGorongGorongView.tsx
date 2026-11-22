@@ -863,8 +863,20 @@ export default function MonitorGorongGorongView() {
         const cmp = dStA.localeCompare(dStB);
         if (cmp !== 0) return sortOrder === 'asc' ? cmp : -cmp;
       } else if (sortBy === 'tanggalOrder') {
-        const tA = a.tanggalOrder === '-' ? (sortOrder === 'asc' ? '9999-99-99' : '0000-00-00') : a.tanggalOrder;
-        const tB = b.tanggalOrder === '-' ? (sortOrder === 'asc' ? '9999-99-99' : '0000-00-00') : b.tanggalOrder;
+        const toSortKey = (val: string | null | undefined): string => {
+          if (!val || val === '-') return sortOrder === 'asc' ? '99999999' : '00000000';
+          if (/^\d{2}-\d{2}-\d{4}$/.test(val)) {
+            const [d, m, y] = val.split('-');
+            return `${y}${m}${d}`;
+          }
+          if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+            return val.replace(/-/g, '');
+          }
+          const dt = new Date(val);
+          return isNaN(dt.getTime()) ? val : dt.toISOString().slice(0, 10).replace(/-/g, '');
+        };
+        const tA = toSortKey(a.tanggalOrder);
+        const tB = toSortKey(b.tanggalOrder);
         const cmp = tA.localeCompare(tB);
         if (cmp !== 0) return sortOrder === 'asc' ? cmp : -cmp;
       } else if (sortBy === 'lokasi') {

@@ -3,6 +3,23 @@ import { prisma } from '@/lib/prisma';
 import ExcelJS from 'exceljs';
 import { loadSnapshotFromFile, isExcludedGorongGorongLocation, isLocationWithoutWilayah } from '@/lib/lokasiOrderSnapshot';
 
+function formatToDDMMYYYY(dt: Date | string | null | undefined): string {
+  if (!dt || dt === '-') return '-';
+  if (typeof dt === 'string') {
+    if (/^\d{2}-\d{2}-\d{4}$/.test(dt)) return dt;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
+      const [y, m, d] = dt.split('-');
+      return `${d}-${m}-${y}`;
+    }
+  }
+  const dObj = new Date(dt);
+  if (isNaN(dObj.getTime())) return String(dt);
+  const day = String(dObj.getUTCDate()).padStart(2, '0');
+  const month = String(dObj.getUTCMonth() + 1).padStart(2, '0');
+  const year = dObj.getUTCFullYear();
+  return `${day}-${month}-${year}`;
+}
+
 // Helper Pemetaan Tahapan Pekerjaan Tanah PG1 dengan Nomor Urut Resmi (Tahap 1 s/d 20)
 function parseLandActivity(raw: any) {
   if (!raw || raw === '-' || raw === '0') return { stepOrder: 0, formatted: '-' };
@@ -389,7 +406,7 @@ export async function GET(request: NextRequest) {
           const d = new Date(snap.tanggalOrder);
           if (!isNaN(d.getTime())) minOrderDate = d;
         }
-        const tanggalOrderStr = minOrderDate ? minOrderDate.toISOString().slice(0, 10) : (snap?.tanggalOrder || '-');
+        const tanggalOrderStr = minOrderDate ? formatToDDMMYYYY(minOrderDate) : formatToDDMMYYYY(snap?.tanggalOrder);
         const rowYear = minOrderDate ? minOrderDate.getFullYear().toString() : '2026';
 
         const diameters = [40, 60, 80, 100];
@@ -473,7 +490,7 @@ export async function GET(request: NextRequest) {
           totalOrderSemua += ordQty;
           totalDropSemua += dropQty;
 
-          const tglDrop = lastDropDate ? lastDropDate.toISOString().slice(0, 10) : (dia === 40 ? (snap?.tglDropD40 || '-') : '-');
+          const tglDrop = lastDropDate ? formatToDDMMYYYY(lastDropDate) : (dia === 40 ? formatToDDMMYYYY(snap?.tglDropD40) : '-');
 
           diameterDetails[key] = {
             order: ordQty > 0 ? ordQty : (masterOrdQty > 0 ? masterOrdQty : (ordQty === 0 ? 0 : null)),
@@ -831,7 +848,7 @@ export async function GET(request: NextRequest) {
           area: ord.area || 'Timur',
           lokasi: ord.lokasi,
           wilayah: ord.wilayah || '-',
-          tanggal: ord.tanggal ? (ord.tanggal instanceof Date ? ord.tanggal.toISOString().slice(0, 10) : String(ord.tanggal).slice(0, 10)) : '-',
+          tanggal: formatToDDMMYYYY(ord.tanggal),
           diameter40: Number(ord.diameter40) || 0,
           diameter60: Number(ord.diameter60) || 0,
           diameter80: Number(ord.diameter80) || 0,
@@ -883,7 +900,7 @@ export async function GET(request: NextRequest) {
         const row = wsDataDrop.addRow({
           lokasi: drp.lokasi,
           wilayah: drp.wilayah || '-',
-          tanggal: drp.tanggal ? (drp.tanggal instanceof Date ? drp.tanggal.toISOString().slice(0, 10) : String(drp.tanggal).slice(0, 10)) : '-',
+          tanggal: formatToDDMMYYYY(drp.tanggal),
           diameter40: Number(drp.diameter40) || 0,
           diameter60: Number(drp.diameter60) || 0,
           diameter80: Number(drp.diameter80) || 0,

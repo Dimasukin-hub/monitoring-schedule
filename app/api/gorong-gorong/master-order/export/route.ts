@@ -107,7 +107,9 @@ export async function GET(request: NextRequest) {
     });
 
     records.forEach((row, idx) => {
-      const tglStr = row.tanggal ? row.tanggal.toISOString().slice(0, 10) : '-';
+      const tglStr = row.tanggal
+        ? `${String(row.tanggal.getUTCDate()).padStart(2, '0')}-${String(row.tanggal.getUTCMonth() + 1).padStart(2, '0')}-${row.tanggal.getUTCFullYear()}`
+        : '-';
       const r = worksheet.addRow({
         no: idx + 1,
         area: row.area || '-',

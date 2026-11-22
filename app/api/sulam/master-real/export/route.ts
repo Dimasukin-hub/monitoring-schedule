@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
       if (d.tanggal) {
         const dt = new Date(d.tanggal);
         if (!isNaN(dt.getTime())) {
-          tglStr = `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}`;
+          tglStr = `${String(dt.getUTCDate()).padStart(2, '0')}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${dt.getUTCFullYear()}`;
         }
       }
 

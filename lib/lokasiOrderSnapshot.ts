@@ -65,18 +65,31 @@ export function isLocationWithoutWilayah(lok: string | null | undefined): boolea
 
 function parseExcelDate(val: any): string | null {
   if (!val) return null;
-  if (val instanceof Date) return isNaN(val.getTime()) ? null : val.toISOString().slice(0, 10);
+  const toDDMMYYYY = (d: Date): string | null => {
+    if (isNaN(d.getTime())) return null;
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const year = d.getUTCFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
+  if (val instanceof Date) return toDDMMYYYY(val);
   const num = Number(val);
   if (!isNaN(num) && num > 20000 && num < 70000) {
     const utcDays = num - 25569;
     const d = new Date(Math.round(utcDays * 86400 * 1000));
-    return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+    return toDDMMYYYY(d);
   }
   if (typeof val === 'string') {
     const trimmed = val.trim();
     if (trimmed === '' || trimmed === '-') return null;
+    if (/^\d{2}-\d{2}-\d{4}$/.test(trimmed)) return trimmed;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      const [y, m, d] = trimmed.split('-');
+      return `${d}-${m}-${y}`;
+    }
     const d = new Date(trimmed);
-    return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+    return toDDMMYYYY(d);
   }
   return null;
 }

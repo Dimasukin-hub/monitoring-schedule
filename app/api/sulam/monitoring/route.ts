@@ -85,9 +85,19 @@ export async function GET(request: NextRequest) {
       const wil = mLoc.strucPlant || ord?.wilayah || 'AW01';
 
       // Format Tanggal
-      const tglRawatStr = mLoc.tglRawat ? mLoc.tglRawat.toISOString().slice(0, 10) : '-';
-      const tglStdForcingStr = mLoc.forcingStd ? mLoc.forcingStd.toISOString().slice(0, 10) : '-';
-      const tglFProdStr = mLoc.forcingProd2026 ? mLoc.forcingProd2026.toISOString().slice(0, 10) : '-';
+      const formatToDDMMYYYY = (dt: Date | string | null | undefined): string => {
+        if (!dt || dt === '-') return '-';
+        const dObj = typeof dt === 'string' ? new Date(dt) : dt;
+        if (isNaN(dObj.getTime())) return String(dt);
+        const day = String(dObj.getUTCDate()).padStart(2, '0');
+        const month = String(dObj.getUTCMonth() + 1).padStart(2, '0');
+        const year = dObj.getUTCFullYear();
+        return `${day}-${month}-${year}`;
+      };
+
+      const tglRawatStr = formatToDDMMYYYY(mLoc.tglRawat);
+      const tglStdForcingStr = formatToDDMMYYYY(mLoc.forcingStd);
+      const tglFProdStr = formatToDDMMYYYY(mLoc.forcingProd2026);
 
       // Tanggal F Max: MAX(forcingStd, forcingProd2026)
       let tglFMaxDate: Date | null = null;
@@ -98,10 +108,10 @@ export async function GET(request: NextRequest) {
       } else if (mLoc.forcingProd2026) {
         tglFMaxDate = mLoc.forcingProd2026;
       }
-      const tglFMaxStr = tglFMaxDate ? tglFMaxDate.toISOString().slice(0, 10) : '-';
+      const tglFMaxStr = formatToDDMMYYYY(tglFMaxDate);
 
       // Tanggal Order
-      const tglOrderStr = ord?.tanggalOrder ? new Date(ord.tanggalOrder).toISOString().slice(0, 10) : '-';
+      const tglOrderStr = formatToDDMMYYYY(ord?.tanggalOrder);
 
       // Umur Forcing: Math.round((today - tglFMax) / 30.4)
       let umurForcingNum: number | null = null;
@@ -136,7 +146,7 @@ export async function GET(request: NextRequest) {
         sulamPct = sulamPctNum;
       }
 
-      const sulamLastDateStr = relData.lastDate ? relData.lastDate.toISOString().slice(0, 10) : '-';
+      const sulamLastDateStr = formatToDDMMYYYY(relData.lastDate);
 
       const rawKp = ord?.keteranganProses?.trim();
       const canonicalKp = rawKp ? (prosesMap.get(rawKp.toLowerCase()) || rawKp) : '-';

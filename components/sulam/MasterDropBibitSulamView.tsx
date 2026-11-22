@@ -23,6 +23,16 @@ import { useAuth } from '@/components/AuthProvider';
 const WILAYAH_LIST = ['AW01', 'AW02', 'AW03', 'AW04', 'AW05', 'AW06', 'AW07'];
 const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
 
+const formatToDDMMYYYY = (dt: Date | string | null | undefined): string => {
+  if (!dt || dt === '-') return '-';
+  const d = typeof dt === 'string' ? new Date(dt) : dt;
+  if (isNaN(d.getTime())) return String(dt);
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const year = d.getUTCFullYear();
+  return `${day}-${month}-${year}`;
+};
+
 export default function MasterDropBibitSulamView() {
   const { canUploadMasterData } = useAuth();
   const [dataList, setDataList] = useState<any[]>([]);
@@ -500,7 +510,7 @@ export default function MasterDropBibitSulamView() {
                       {row.hasilBtg ? Number(row.hasilBtg).toLocaleString('id-ID') : 0}
                     </td>
                     <td className="py-2.5 px-3 text-center text-slate-600 dark:text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70">
-                      {row.tanggal ? new Date(row.tanggal).toISOString().slice(0, 10) : '-'}
+                      {formatToDDMMYYYY(row.tanggal)}
                     </td>
                     <td className="py-2.5 px-3 text-center font-bold text-emerald-700 dark:text-emerald-300 border-r border-slate-200/70 dark:border-slate-800/70">
                       {row.bibitOrdered || '-'}
@@ -515,7 +525,7 @@ export default function MasterDropBibitSulamView() {
                       {row.jenisUnit || 'CD'}
                     </td>
                     <td className="py-2.5 px-3 text-center text-slate-600 dark:text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70">
-                      {row.tanggalOrder ? new Date(row.tanggalOrder).toISOString().slice(0, 10) : '-'}
+                      {formatToDDMMYYYY(row.tanggalOrder)}
                     </td>
                     <td className="py-2.5 px-3 text-center">
                       <span className={`px-2.5 py-0.5 rounded-md font-extrabold text-xs ${

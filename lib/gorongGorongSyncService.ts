@@ -688,8 +688,15 @@ export async function syncLokasiOrderDatabase() {
 
       const luas = m?.luasNetto || 0;
       const ratioPerHa = (luas > 0 && orderD40 > 0) ? Math.round(orderD40 / luas) : null;
-      const tglDropD40Str = lastDrop40Date ? lastDrop40Date.toISOString().slice(0, 10) : null;
-      const tglOrderStr = ord.minDate ? ord.minDate.toISOString().slice(0, 10) : (trx.orders[0]?.tanggal ? new Date(trx.orders[0].tanggal).toISOString().slice(0, 10) : '-');
+      const formatToDDMMYYYY = (d: Date | null | undefined): string | null => {
+        if (!d) return null;
+        const day = String(d.getUTCDate()).padStart(2, '0');
+        const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const year = d.getUTCFullYear();
+        return `${day}-${month}-${year}`;
+      };
+      const tglDropD40Str = lastDrop40Date ? formatToDDMMYYYY(lastDrop40Date) : null;
+      const tglOrderStr = ord.minDate ? (formatToDDMMYYYY(ord.minDate) || '-') : (trx.orders[0]?.tanggal ? (formatToDDMMYYYY(new Date(trx.orders[0].tanggal)) || '-') : '-');
 
       // Evaluasi Prioritas Otomatis
       let prioritas = '';

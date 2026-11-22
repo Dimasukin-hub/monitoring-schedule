@@ -24,6 +24,16 @@ import { useAuth } from '@/components/AuthProvider';
 const WILAYAH_LIST = ['AW01', 'AW02', 'AW03', 'AW04', 'AW05', 'AW06', 'AW07'];
 const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
 
+const formatToDDMMYYYY = (dt: Date | string | null | undefined): string => {
+  if (!dt || dt === '-') return '-';
+  const d = typeof dt === 'string' ? new Date(dt) : dt;
+  if (isNaN(d.getTime())) return String(dt);
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const year = d.getUTCFullYear();
+  return `${day}-${month}-${year}`;
+};
+
 export default function MasterOrderSulamView() {
   const { canUploadMasterData } = useAuth();
   const [dataList, setDataList] = useState<any[]>([]);
@@ -501,7 +511,7 @@ export default function MasterOrderSulamView() {
                       {row.wilayah || '-'}
                     </td>
                     <td className="py-2.5 px-3 text-center text-slate-600 dark:text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70">
-                      {row.tanggalOrder ? new Date(row.tanggalOrder).toISOString().slice(0, 10) : '-'}
+                      {formatToDDMMYYYY(row.tanggalOrder)}
                     </td>
                     <td className="py-2.5 px-3 text-center font-bold text-slate-800 dark:text-slate-200 border-r border-slate-200/70 dark:border-slate-800/70">
                       {row.jumlah !== undefined && row.jumlah !== null ? Number(row.jumlah).toLocaleString('id-ID') : 0}

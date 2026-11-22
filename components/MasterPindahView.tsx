@@ -116,8 +116,13 @@ export default function MasterPindahView() {
   }, [page, selectedWilayah, debouncedSearch, pageSize, pindahMonthRange]);
 
   const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toISOString().slice(0, 10);
+    if (!dateStr || dateStr === '-') return '-';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return String(dateStr);
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const year = d.getUTCFullYear();
+    return `${day}-${month}-${year}`;
   };
 
   const handleExportExcel = async () => {

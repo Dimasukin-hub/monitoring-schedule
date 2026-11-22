@@ -382,7 +382,23 @@ export async function POST(request: NextRequest) {
     // 2. Sinkronisasi pembaruan kuantiti dan transisi prioritas otomatis ke tabel LokasiOrderGorongGorong
     for (const d of validatedData) {
       try {
-        const tglStr = d.tanggal ? (typeof d.tanggal === 'string' ? d.tanggal : d.tanggal.toISOString().slice(0, 10)) : '-';
+        const formatToDDMMYYYY = (dt: Date | string | null | undefined): string => {
+          if (!dt || dt === '-') return '-';
+          if (typeof dt === 'string') {
+            if (/^\d{2}-\d{2}-\d{4}$/.test(dt)) return dt;
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
+              const [y, m, d] = dt.split('-');
+              return `${d}-${m}-${y}`;
+            }
+          }
+          const dObj = new Date(dt);
+          if (isNaN(dObj.getTime())) return String(dt);
+          const day = String(dObj.getUTCDate()).padStart(2, '0');
+          const month = String(dObj.getUTCMonth() + 1).padStart(2, '0');
+          const year = dObj.getUTCFullYear();
+          return `${day}-${month}-${year}`;
+        };
+        const tglStr = d.tanggal ? formatToDDMMYYYY(d.tanggal) : '-';
 
         // 1. Jika transaksi DROP memiliki Lokasi Asal (Pindah Lokasi antar petak):
         // Lokasi Asal (Pengirim) berkurang Drop-nya dan Pindah Lokasi bernilai minus (-)

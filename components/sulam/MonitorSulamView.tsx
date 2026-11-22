@@ -40,26 +40,30 @@ import {
 
 const WILAYAH_LIST = ['AW01', 'AW02', 'AW03', 'AW04', 'AW05', 'AW06', 'AW07'];
 
-// Custom Label untuk Nilai Bar
+// Custom Label untuk Nilai Bar: tanpa badge, ketebalan sedang (600), kontras di mode terang & gelap
 const renderCustomBarVal = (props: any) => {
   const { x, y, width, value } = props;
   if (!value || value === 0) return null;
   return (
     <text
       x={x + width / 2}
-      y={y - 5}
-      fill="#64748b"
+      y={y - 6}
+      fill="#0ea5e9"
+      stroke="#0f172a"
+      strokeWidth={2}
+      strokeLinejoin="round"
+      paintOrder="stroke fill"
       textAnchor="middle"
-      fontSize={10}
-      fontWeight="bold"
-      className="select-none"
+      fontSize={10.5}
+      fontWeight="600"
+      className="select-none pointer-events-none"
     >
       {value}
     </text>
   );
 };
 
-// Custom Label untuk Persentase Line
+// Custom Label untuk Persentase Line: tanpa badge, ketebalan sedang (600), kontras di mode terang & gelap
 const renderCustomLineVal = (props: any) => {
   const { x, y, value } = props;
   if (value === undefined || value === null) return null;
@@ -68,10 +72,14 @@ const renderCustomLineVal = (props: any) => {
       x={x}
       y={y - 8}
       fill="#10b981"
+      stroke="#0f172a"
+      strokeWidth={2}
+      strokeLinejoin="round"
+      paintOrder="stroke fill"
       textAnchor="middle"
-      fontSize={10}
-      fontWeight="bold"
-      className="select-none"
+      fontSize={10.5}
+      fontWeight="600"
+      className="select-none pointer-events-none"
     >
       {value}%
     </text>
@@ -383,12 +391,12 @@ export default function MonitorSulamView() {
                     {item.sulam}
                   </td>
                   <td className="py-2 px-3 border-r border-slate-200/70 dark:border-slate-800/70 font-sans">
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-cyan-50 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">
+                    <span className="font-semibold text-cyan-600 dark:text-cyan-400">
                       {item.pctDrop}%
                     </span>
                   </td>
                   <td className="py-2 px-3 font-sans">
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                       {item.pctSulam}%
                     </span>
                   </td>
@@ -623,7 +631,7 @@ export default function MonitorSulamView() {
                 margin={{ top: 25, right: 30, bottom: 20, left: 10 }}
               >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
-                <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b', fontWeight: 'bold' }} tickLine={false} />
+                <XAxis dataKey="name" tick={false} tickLine={false} axisLine={{ stroke: '#64748b', opacity: 0.3 }} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} unit="%" />
                 <Tooltip
                   contentStyle={{

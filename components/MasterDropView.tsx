@@ -116,8 +116,13 @@ export default function MasterDropView() {
   }, [page, selectedWilayah, debouncedSearch, dropMonthRange]);
 
   const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toISOString().slice(0, 10);
+    if (!dateStr || dateStr === '-') return '-';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return String(dateStr);
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const year = d.getUTCFullYear();
+    return `${day}-${month}-${year}`;
   };
 
   const handleExportExcel = async () => {
@@ -508,17 +513,33 @@ export default function MasterDropView() {
                     <td className="py-2.5 px-3 text-center font-mono text-slate-600 dark:text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70">
                       {formatDate(row.tanggal)}
                     </td>
-                    <td className="py-2.5 px-3 text-center font-mono font-bold bg-emerald-50/30 dark:bg-emerald-950/10 border-r border-slate-200/70 dark:border-slate-800/70">
-                      {row.diameter40 ?? 0}
+                    <td className="py-2.5 px-3 text-center font-mono border-r border-slate-200/70 dark:border-slate-800/70">
+                      {(row.diameter40 || 0) > 0 ? (
+                        <span className="text-slate-900 dark:text-slate-100 font-bold">{row.diameter40}</span>
+                      ) : (
+                        <span className="text-slate-300 dark:text-slate-600 font-normal">0</span>
+                      )}
                     </td>
-                    <td className="py-2.5 px-3 text-center font-mono font-bold bg-emerald-50/30 dark:bg-emerald-950/10 border-r border-slate-200/70 dark:border-slate-800/70">
-                      {row.diameter60 ?? 0}
+                    <td className="py-2.5 px-3 text-center font-mono border-r border-slate-200/70 dark:border-slate-800/70">
+                      {(row.diameter60 || 0) > 0 ? (
+                        <span className="text-slate-900 dark:text-slate-100 font-bold">{row.diameter60}</span>
+                      ) : (
+                        <span className="text-slate-300 dark:text-slate-600 font-normal">0</span>
+                      )}
                     </td>
-                    <td className="py-2.5 px-3 text-center font-mono font-bold bg-emerald-50/30 dark:bg-emerald-950/10 border-r border-slate-200/70 dark:border-slate-800/70">
-                      {row.diameter80 ?? 0}
+                    <td className="py-2.5 px-3 text-center font-mono border-r border-slate-200/70 dark:border-slate-800/70">
+                      {(row.diameter80 || 0) > 0 ? (
+                        <span className="text-slate-900 dark:text-slate-100 font-bold">{row.diameter80}</span>
+                      ) : (
+                        <span className="text-slate-300 dark:text-slate-600 font-normal">0</span>
+                      )}
                     </td>
-                    <td className="py-2.5 px-3 text-center font-mono font-bold bg-emerald-50/30 dark:bg-emerald-950/10">
-                      {row.diameter100 ?? 0}
+                    <td className="py-2.5 px-3 text-center font-mono">
+                      {(row.diameter100 || 0) > 0 ? (
+                        <span className="text-slate-900 dark:text-slate-100 font-bold">{row.diameter100}</span>
+                      ) : (
+                        <span className="text-slate-300 dark:text-slate-600 font-normal">0</span>
+                      )}
                     </td>
                   </tr>
                 ))

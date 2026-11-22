@@ -400,7 +400,24 @@ export async function GET(request: NextRequest) {
         const d = new Date(snap.tanggalOrder);
         if (!isNaN(d.getTime())) minOrderDate = d;
       }
-      const tanggalOrderStr = minOrderDate ? minOrderDate.toISOString().slice(0, 10) : (snap?.tanggalOrder || '-');
+      const formatToDDMMYYYY = (dt: Date | string | null | undefined): string => {
+        if (!dt || dt === '-') return '-';
+        if (typeof dt === 'string') {
+          if (/^\d{2}-\d{2}-\d{4}$/.test(dt)) return dt;
+          if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
+            const [y, m, d] = dt.split('-');
+            return `${d}-${m}-${y}`;
+          }
+        }
+        const dObj = new Date(dt);
+        if (isNaN(dObj.getTime())) return String(dt);
+        const day = String(dObj.getUTCDate()).padStart(2, '0');
+        const month = String(dObj.getUTCMonth() + 1).padStart(2, '0');
+        const year = dObj.getUTCFullYear();
+        return `${day}-${month}-${year}`;
+      };
+
+      const tanggalOrderStr = minOrderDate ? formatToDDMMYYYY(minOrderDate) : formatToDDMMYYYY(snap?.tanggalOrder);
 
       // Ekstraksi tahun untuk filter tahun
       let rowYear = minOrderDate ? minOrderDate.getFullYear().toString() : '2026';
@@ -503,8 +520,8 @@ export async function GET(request: NextRequest) {
         totalOrderSemua += ordQty;
         totalDropSemua += dropQty;
 
-        const tglDrop = lastDropDate ? lastDropDate.toISOString().slice(0, 10) : (dia === 40 ? (snap?.tglDropD40 || '-') : '-');
-        const tglPasang = lastPasangDate ? lastPasangDate.toISOString().slice(0, 10) : '-';
+        const tglDrop = lastDropDate ? formatToDDMMYYYY(lastDropDate) : (dia === 40 ? formatToDDMMYYYY(snap?.tglDropD40) : '-');
+        const tglPasang = lastPasangDate ? formatToDDMMYYYY(lastPasangDate) : '-';
 
         diameterDetails[key] = {
           order: ordQty > 0 ? ordQty : (masterOrdQty > 0 ? masterOrdQty : (ordQty === 0 ? 0 : null)),
