@@ -149,7 +149,16 @@ export async function GET(request: NextRequest) {
     };
 
     records.forEach((r, idx) => {
-      const tglStr = r.tanggalRealisasi ? new Date(r.tanggalRealisasi).toISOString().slice(0, 10) : '-';
+      let tglStr = '-';
+      if (r.tanggalRealisasi) {
+        const dt = new Date(r.tanggalRealisasi);
+        if (!isNaN(dt.getTime())) {
+          const day = String(dt.getUTCDate()).padStart(2, '0');
+          const month = String(dt.getUTCMonth() + 1).padStart(2, '0');
+          const year = dt.getUTCFullYear();
+          tglStr = `${day}-${month}-${year}`;
+        }
+      }
       const row = ws.addRow({
         no: idx + 1,
         wilayah: r.wilayahSap || '-',
