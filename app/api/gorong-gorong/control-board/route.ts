@@ -74,8 +74,8 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    // Ambil data dari tabel terkait
-    const [allSap, allManual, allDrops, allOrders, dbLokasiOrder] = await Promise.all([
+    // Ambil data dari tabel terkait (termasuk transaksiGorongGorong dari Form Input)
+    const [allSap, allManual, allDrops, allOrders, dbLokasiOrder, allFormTrx] = await Promise.all([
       prisma.masterSapGorongGorong.findMany({
         where: { qty: { gt: 0 } },
         orderBy: { tanggalRealisasi: 'asc' },
@@ -93,6 +93,9 @@ export async function GET(request: NextRequest) {
         orderBy: { tanggal: 'asc' },
       }),
       prisma.lokasiOrderGorongGorong.findMany({}),
+      prisma.transaksiGorongGorong.findMany({
+        orderBy: { tanggal: 'asc' },
+      }),
     ]);
 
     // 1. Hitung Total Order (mengikuti filter rentang bulan jika aktif)
@@ -103,7 +106,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 2. Hitung Total Drop (mengikuti filter rentang bulan jika aktif)
+    // 2. Data Grafik Harian Drop (MURNI transaksi Form Input pada rentang bulan yang dipilih)
     let totalAllDrop = 0;
     const dropByDateMap = new Map<string, number>();
 
@@ -116,19 +119,48 @@ export async function GET(request: NextRequest) {
 
     const formatDateKey = (d: Date) => d.toISOString().slice(0, 10);
 
+    // Kumpulkan Drop yang murni dari Form Input (transaksiGorongGorong jenis DROP atau master drop dengan transaksiId)
+    const recordedDropTrxIds = new Set<number>();
+    const formDropList: Array<{ tanggal: Date; d40: number; d60: number; d80: number; d100: number }> = [];
+
+    for (const t of allFormTrx) {
+      if (t.jenisTransaksi !== 'DROP' || !t.tanggal || !inRange(t.tanggal)) continue;
+      const tot = (t.qtyD40 || 0) + (t.qtyD60 || 0) + (t.qtyD80 || 0) + (t.qtyD100 || 0);
+      if (tot <= 0) continue;
+      formDropList.push({
+        tanggal: new Date(t.tanggal),
+        d40: t.qtyD40 || 0,
+        d60: t.qtyD60 || 0,
+        d80: t.qtyD80 || 0,
+        d100: t.qtyD100 || 0,
+      });
+      recordedDropTrxIds.add(t.id);
+    }
+
+    // Dukung juga jika ada drop form input yang tercatat di masterDataDropGorongGorong dengan transaksiId
     for (const d of allDrops) {
+      if (!d.transaksiId || recordedDropTrxIds.has(d.transaksiId)) continue;
       if (!d.tanggal || !inRange(d.tanggal)) continue;
-      const dObj = new Date(d.tanggal);
       const tot = (d.diameter40 || 0) + (d.diameter60 || 0) + (d.diameter80 || 0) + (d.diameter100 || 0);
       if (tot <= 0) continue;
-      totalAllDrop += tot;
+      formDropList.push({
+        tanggal: new Date(d.tanggal),
+        d40: d.diameter40 || 0,
+        d60: d.diameter60 || 0,
+        d80: d.diameter80 || 0,
+        d100: d.diameter100 || 0,
+      });
+    }
 
-      const k = formatDateKey(dObj);
+    for (const it of formDropList) {
+      const tot = it.d40 + it.d60 + it.d80 + it.d100;
+      totalAllDrop += tot;
+      const k = formatDateKey(it.tanggal);
       dropByDateMap.set(k, (dropByDateMap.get(k) || 0) + tot);
     }
 
-    // 3. Data Tabel Verifikasi Pasang Manual vs SAP (per Tanggal & Lokasi, mengikuti rentang bulan)
-    // Sesuai aturan: Baris tabel hanya menampilkan pasang manual yang masuk di form input
+    // 3. Data Tabel Verifikasi Pasang Manual vs SAP & Grafik Pasang Manual
+    // Sesuai aturan: Baris tabel & grafik harian murni menampilkan transaksi pasang manual dari Form Input
     const tableMap = new Map<string, {
       rawDate: string;
       tanggal: string;
@@ -146,15 +178,48 @@ export async function GET(request: NextRequest) {
     let totalAllPasangManual = 0;
     const pasangManualByDateMap = new Map<string, number>();
 
-    // Masukkan Pasang Manual (penggerak baris tabel verifikasi)
+    const recordedManualTrxIds = new Set<number>();
+    const formManualList: Array<{ tanggal: Date; lokasi: string; d40: number; d60: number; d80: number; d100: number }> = [];
+
+    // 1. Dari transaksiGorongGorong (Form Input jenis PASANG_MANUAL)
+    for (const t of allFormTrx) {
+      if (t.jenisTransaksi !== 'PASANG_MANUAL' || !t.tanggal || !inRange(t.tanggal)) continue;
+      const tot = (t.qtyD40 || 0) + (t.qtyD60 || 0) + (t.qtyD80 || 0) + (t.qtyD100 || 0);
+      if (tot <= 0) continue;
+      formManualList.push({
+        tanggal: new Date(t.tanggal),
+        lokasi: (t.lokasi || '').trim().toUpperCase(),
+        d40: t.qtyD40 || 0,
+        d60: t.qtyD60 || 0,
+        d80: t.qtyD80 || 0,
+        d100: t.qtyD100 || 0,
+      });
+      recordedManualTrxIds.add(t.id);
+    }
+
+    // 2. Dari masterDataPasangManual (mendukung data form input atau masterDataPasangManual yang ada)
     for (const m of allManual) {
+      if (m.transaksiId && recordedManualTrxIds.has(m.transaksiId)) continue;
       if (!m.tanggalPasangManual || !inRange(m.tanggalPasangManual)) continue;
-      const dObj = new Date(m.tanggalPasangManual);
       const tot = (m.diameter40 || 0) + (m.diameter60 || 0) + (m.diameter80 || 0) + (m.diameter100 || 0);
+      if (tot <= 0) continue;
+      if (allFormTrx.some((t) => t.jenisTransaksi === 'PASANG_MANUAL') && !m.transaksiId) continue;
+      formManualList.push({
+        tanggal: new Date(m.tanggalPasangManual),
+        lokasi: (m.lokasi || '').trim().toUpperCase(),
+        d40: m.diameter40 || 0,
+        d60: m.diameter60 || 0,
+        d80: m.diameter80 || 0,
+        d100: m.diameter100 || 0,
+      });
+    }
+
+    for (const it of formManualList) {
+      const tot = it.d40 + it.d60 + it.d80 + it.d100;
       totalAllPasangManual += tot;
 
-      const rawDate = formatDateKey(dObj);
-      const lok = m.lokasi.trim().toUpperCase();
+      const rawDate = formatDateKey(it.tanggal);
+      const lok = it.lokasi;
       const key = `${rawDate}_${lok}`;
 
       pasangManualByDateMap.set(rawDate, (pasangManualByDateMap.get(rawDate) || 0) + tot);
@@ -162,7 +227,7 @@ export async function GET(request: NextRequest) {
       if (!tableMap.has(key)) {
         tableMap.set(key, {
           rawDate,
-          tanggal: formatDateDDMM(dObj),
+          tanggal: formatDateDDMM(it.tanggal),
           lokasi: lok,
           d40Manual: 0,
           d40Sap: 0,
@@ -176,10 +241,10 @@ export async function GET(request: NextRequest) {
       }
 
       const ent = tableMap.get(key)!;
-      ent.d40Manual += (m.diameter40 || 0);
-      ent.d60Manual += (m.diameter60 || 0);
-      ent.d80Manual += (m.diameter80 || 0);
-      ent.d100Manual += (m.diameter100 || 0);
+      ent.d40Manual += it.d40;
+      ent.d60Manual += it.d60;
+      ent.d80Manual += it.d80;
+      ent.d100Manual += it.d100;
     }
 
     // Masukkan Pasang SAP: Hanya mencocokkan jika pada Tanggal & Lokasi tersebut ada pasang manual
