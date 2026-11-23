@@ -311,22 +311,9 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
             </div>
           </Link>
 
-          {/* Card 3: Portal Sulam */}
-          <Link
-            href={
-              user && isSuperAdmin
-                ? '/sulam/monitor-sulam'
-                : '/login?role=super_admin&callbackUrl=/sulam/monitor-sulam'
-            }
-            prefetch={false}
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                sessionStorage.setItem('ggf_active_portal', '/sulam/monitor-sulam');
-              }
-              if (user && isSuperAdmin) {
-                onSelectPortal?.('sulam');
-              }
-            }}
+          {/* Card 3: Portal Sulam (Standalone Microservice Port 3001) */}
+          <a
+            href={typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:3001' : '/sulam'}
             className="group relative flex flex-col justify-between p-4 sm:p-6 md:p-7 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900 border-2 border-slate-200/90 dark:border-slate-800 hover:border-teal-600 dark:hover:border-teal-500 shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer overflow-hidden text-left"
           >
             {/* Top accent badge */}
@@ -337,17 +324,10 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
                 <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-teal-500/15 text-teal-600 dark:text-teal-400 flex items-center justify-center border border-teal-500/30 group-hover:scale-110 group-hover:bg-teal-600 group-hover:text-white transition-all duration-300 shadow-xs shrink-0">
                   <Sprout className="w-5 h-5 sm:w-7 sm:h-7" />
                 </div>
-                {user && isSuperAdmin ? (
-                  <span className="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-teal-100 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-800 flex items-center gap-1.5 shadow-2xs">
-                    <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                    Akses Super Admin Aktif
-                  </span>
-                ) : (
-                  <span className="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 flex items-center gap-1.5 shadow-2xs">
-                    <Lock className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 text-amber-600 dark:text-amber-400" />
-                    Khusus Super Admin
-                  </span>
-                )}
+                <span className="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-teal-100 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-800 flex items-center gap-1.5 shadow-2xs">
+                  <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  Independent Portal (3001)
+                </span>
               </div>
 
               <h3 className="text-lg sm:text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
@@ -356,13 +336,6 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1.5 leading-relaxed break-words">
                 Sistem pengajuan order bibit sulam, alur approval berjenjang, pelacakan drop bibit, serta monitoring realisasi tanam sulam PG1.
               </p>
-
-              {!(user && isSuperAdmin) && (
-                <div className="mt-3 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-start gap-2 text-[11px] sm:text-xs text-amber-800 dark:text-amber-300 leading-snug">
-                  <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                  <span>Akses khusus Super Administrator. Klik untuk masuk menggunakan akun Super Admin.</span>
-                </div>
-              )}
 
               {/* Feature Points */}
               <div className="mt-4 sm:mt-6 space-y-2 sm:space-y-2.5 pt-4 sm:pt-5 border-t border-slate-100 dark:border-slate-800/80">
@@ -386,24 +359,13 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
             </div>
 
             {/* Action CTA */}
-            {user && isSuperAdmin ? (
-              <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 flex items-center justify-between text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-1 transition-transform duration-200">
-                <span className="text-xs sm:text-sm font-extrabold">Buka Portal Sulam</span>
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-teal-500/10 group-hover:bg-teal-600 group-hover:text-white flex items-center justify-center transition-colors">
-                  <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </div>
+            <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 flex items-center justify-between text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-1 transition-transform duration-200">
+              <span className="text-xs sm:text-sm font-extrabold">Buka Portal Sulam</span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-teal-500/10 group-hover:bg-teal-600 group-hover:text-white flex items-center justify-center transition-colors">
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-            ) : (
-              <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 flex items-center justify-between text-xs font-bold text-amber-700 dark:text-amber-400 group-hover:translate-x-1 transition-transform duration-200">
-                <span className="text-xs sm:text-sm font-extrabold flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600" /> Login Super Admin &amp; Masuk
-                </span>
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-500/10 group-hover:bg-amber-600 group-hover:text-white flex items-center justify-center transition-colors">
-                  <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </div>
-              </div>
-            )}
-          </Link>
+            </div>
+          </a>
         </div>
 
         {/* Footer info */}
