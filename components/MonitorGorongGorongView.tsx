@@ -321,6 +321,9 @@ export default function MonitorGorongGorongView() {
       if (selectedYears.length > 0) {
         params.set('tahun', selectedYears.join(','));
         params.set('year', selectedYears.join(','));
+      } else {
+        params.set('tahun', 'ALL');
+        params.set('year', 'ALL');
       }
       if (selectedPrioritas.length > 0) params.set('prioritas', selectedPrioritas.join(','));
       if (selectedDiameterFilter && selectedDiameterFilter !== 'ALL') params.set('diameter', String(selectedDiameterFilter));
@@ -1512,8 +1515,19 @@ export default function MonitorGorongGorongView() {
             ))}
           </div>
 
-          {/* Tombol Filter Tahun (2025, 2026) */}
+          {/* Tombol Filter Tahun (Semua Tahun, 2025, 2026) */}
           <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0">
+            <button
+              type="button"
+              onClick={() => setSelectedYears([])}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                selectedYears.length === 0
+                  ? 'bg-[#00873D] text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Semua Tahun
+            </button>
             {['2025', '2026'].map((yr) => (
               <button
                 key={yr}
@@ -1626,7 +1640,7 @@ export default function MonitorGorongGorongView() {
             </div>
             <p className="text-[10.5px] text-emerald-600 dark:text-emerald-400 font-medium mt-1 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />{' '}
-              {selectedYears.length === 1 ? `Transaksi Tahun ${selectedYears[0]}` : 'Transaksi Tahun 2026'}
+              {selectedYears.length === 1 ? `Transaksi Tahun ${selectedYears[0]}` : 'Transaksi Semua Tahun'}
             </p>
           </div>
         </div>
@@ -1648,7 +1662,7 @@ export default function MonitorGorongGorongView() {
             </div>
             <p className="text-[10.5px] text-blue-600 dark:text-blue-400 font-medium mt-1 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />{' '}
-              {selectedYears.length === 1 ? `Realisasi Tahun ${selectedYears[0]}` : 'Realisasi Tahun 2026'}
+              {selectedYears.length === 1 ? `Realisasi Tahun ${selectedYears[0]}` : 'Realisasi Semua Tahun'}
             </p>
           </div>
         </div>
@@ -1724,14 +1738,14 @@ export default function MonitorGorongGorongView() {
               Distribusi Lokasi FC Proses Pasang
             </h4>
             <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-2xs shrink-0">
-              {selectedDiameterFilter === 'ALL' ? 'Semua Ø' : `Ø${selectedDiameterFilter}`} • {selectedYears[0] || '2026'}
+              {selectedDiameterFilter === 'ALL' ? 'Semua Ø' : `Ø${selectedDiameterFilter}`} • {selectedYears.length === 1 ? selectedYears[0] : 'Semua Tahun'}
             </span>
           </div>
 
           <div className="flex flex-col items-center justify-center flex-1 py-1">
             {donutFcOpenData.chartData.length === 0 ? (
               <div className="text-center py-10 text-slate-400 text-xs font-semibold">
-                Tidak ada lahan FC berstatus Open untuk Ø{selectedDiameterFilter} ({selectedYears[0] || '2026'}).
+                Tidak ada lahan FC berstatus Open untuk Ø{selectedDiameterFilter} ({selectedYears.length === 1 ? selectedYears[0] : 'Semua Tahun'}).
               </div>
             ) : (
               <div className="w-full flex flex-col items-center justify-center py-2">

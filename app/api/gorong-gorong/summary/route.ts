@@ -28,10 +28,13 @@ export async function GET(request: NextRequest) {
     const wilayah = searchParams.get('wilayah');
     const diameterParam = searchParams.get('diameter');
     const yearParam = searchParams.get('year') || searchParams.get('tahun');
-    const targetYears = yearParam
+    const isAllYears = yearParam === 'ALL';
+    const targetYears = isAllYears
+      ? []
+      : yearParam
       ? yearParam.split(',').map((y) => parseInt(y.trim(), 10)).filter((y) => !isNaN(y))
       : [2026];
-    const isYearMatching = (yr: number) => targetYears.includes(yr);
+    const isYearMatching = (yr: number) => isAllYears || targetYears.includes(yr);
     const targetYear = targetYears[0] || 2026;
 
     const statusParam = searchParams.get('status');
@@ -217,7 +220,7 @@ export async function GET(request: NextRequest) {
       const wil = isLocationWithoutWilayah(cleanLok) ? '' : (snap.wilayah ? snap.wilayah.trim().toUpperCase() : (wilMap.get(cleanLok) || ''));
       const snapDt = parseDateSafe(snap.tanggalOrder);
       const snapYear = snapDt ? snapDt.getFullYear() : 2026;
-      const is2026 = snapYear === 2026;
+      const isMatchingYear = isYearMatching(snapYear);
 
       const pairs: [number, number, number][] = [
         [40, snap.orderD40 || 0, snap.dropD40 || 0],
@@ -230,9 +233,9 @@ export async function GET(request: NextRequest) {
         if (selectedDia && dia !== selectedDia) continue;
         const e = getLokDia(cleanLok, dia, wil);
         e.orderAll += ord;
-        if (is2026) e.orderYearly += ord;
+        if (isMatchingYear) e.orderYearly += ord;
         e.dropAll += drp;
-        if (is2026) e.dropYearly += drp;
+        if (isMatchingYear) e.dropYearly += drp;
       }
     }
 
@@ -241,7 +244,7 @@ export async function GET(request: NextRequest) {
       const lok = trx.lokasi.trim().toUpperCase();
       if (isExcludedGorongGorongLocation(lok)) continue;
       const trxYear = new Date(trx.tanggal).getFullYear();
-      const is2026 = trxYear === 2026;
+      const isMatchingYear = isYearMatching(trxYear);
       const wil = isLocationWithoutWilayah(lok) ? '' : (trx.wilayah ? trx.wilayah.trim().toUpperCase() : (wilMap.get(lok) || ''));
 
       const qMap: Record<number, number> = {
@@ -258,13 +261,13 @@ export async function GET(request: NextRequest) {
 
         if (trx.jenisTransaksi === 'ORDER') {
           e.orderAll += q;
-          if (is2026) e.orderYearly += q;
+          if (isMatchingYear) e.orderYearly += q;
         } else if (trx.jenisTransaksi === 'DROP') {
           e.dropAll += q;
-          if (is2026) e.dropYearly += q;
+          if (isMatchingYear) e.dropYearly += q;
         } else if (trx.jenisTransaksi === 'PASANG_MANUAL') {
           e.manualAll += q;
-          if (is2026) e.manualYearly += q;
+          if (isMatchingYear) e.manualYearly += q;
         }
       }
     }
@@ -274,14 +277,14 @@ export async function GET(request: NextRequest) {
       const lok = s.lokasi.trim().toUpperCase();
       if (isExcludedGorongGorongLocation(lok)) continue;
       const sapYear = new Date(s.tanggalRealisasi).getFullYear();
-      const is2026 = sapYear === 2026;
+      const isMatchingYear = isYearMatching(sapYear);
       const dia = s.diameter;
       if (selectedDia && dia !== selectedDia) continue;
       const wil = isLocationWithoutWilayah(lok) ? '' : (wilMap.get(lok) || (s.wilayahSap?.startsWith('AW') ? s.wilayahSap.trim().toUpperCase() : '') || (s.penanggungJawab ? 'AW0' + s.penanggungJawab.replace(/\D/g, '') : ''));
 
       const e = getLokDia(lok, dia, wil);
       e.sapAll += s.qty;
-      if (is2026) e.sapYearly += s.qty;
+      if (isMatchingYear) e.sapYearly += s.qty;
     }
 
     // Kumpulkan lokasi-lokasi resmi yang masuk ke Tabel List Lokasi Order (261 petak resmi + transaksi order/drop/manual)
