@@ -55,12 +55,12 @@ function LoginContent() {
       const isSulamTarget = finalTarget.startsWith('/sulam');
       const isLabitaTarget = finalTarget.startsWith('/labita');
 
-      if (isLabitaTarget && !isSuperAdmin) {
+      if ((isLabitaTarget || isSulamTarget) && !isSuperAdmin) {
         setErrorMsg('Akses ditolak. Modul ini khusus untuk Super Administrator.');
         return;
       }
 
-      // Mandor Wilayah dan User Planting: arahkan sesuai portal dashboard asal
+      // Mandor Wilayah dan User Planting: arahkan ke form order gorong-gorong
       const isWilayahOrPlanting =
         isUserPlanting ||
         isUserWilayah ||
@@ -70,11 +70,7 @@ function LoginContent() {
         user.role === 'user';
 
       if (isWilayahOrPlanting) {
-        if (isSulamTarget) {
-          router.push('/sulam/form-order-sulam');
-        } else {
-          router.push('/gorong-gorong/form-input/order-gorong-gorong');
-        }
+        router.push('/gorong-gorong/form-input/order-gorong-gorong');
         return;
       }
 
@@ -114,13 +110,15 @@ function LoginContent() {
           storedRole === 'user_wilayah' ||
           storedRole === 'user';
         const isSulamTarget = Boolean(dest && dest.startsWith('/sulam'));
+        const isLabitaTarget = Boolean(dest && dest.startsWith('/labita'));
+
+        if ((isLabitaTarget || isSulamTarget) && storedRole !== 'super_admin') {
+          setErrorMsg('Akses ditolak. Modul ini khusus untuk Super Administrator.');
+          return;
+        }
 
         if (isWilayahOrPlanting) {
-          if (isSulamTarget) {
-            dest = '/sulam/form-order-sulam';
-          } else {
-            dest = '/gorong-gorong/form-input/order-gorong-gorong';
-          }
+          dest = '/gorong-gorong/form-input/order-gorong-gorong';
         } else if (!dest || dest === '/') {
           dest = '/gorong-gorong/monitor-gorong-gorong';
         }
