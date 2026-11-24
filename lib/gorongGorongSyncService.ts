@@ -378,6 +378,7 @@ export async function syncLokasiOrderDatabase() {
       masterDrops,
       masterPindahs,
       masterPasangManuals,
+      existingLokasiOrders,
     ] = await Promise.all([
       prisma.masterStatusLokasi.findMany({}),
       prisma.masterWaterlogging.findMany({}),
@@ -403,10 +404,14 @@ export async function syncLokasiOrderDatabase() {
       prisma.masterDataDropGorongGorong.findMany({ orderBy: { tanggal: 'asc' } }),
       prisma.masterDataPindahGorongGorong.findMany({ orderBy: { tanggal: 'asc' } }),
       prisma.masterDataPasangManual.findMany({ orderBy: { tanggalPasangManual: 'asc' } }).catch(() => []),
+      prisma.lokasiOrderGorongGorong.findMany({}),
     ]);
 
     const masterLokMap = new Map<string, any>();
     for (const m of statusLokasiList) masterLokMap.set(m.lokasi.trim().toUpperCase(), m);
+
+    const existingLokMap = new Map<string, any>();
+    for (const el of (existingLokasiOrders || [])) existingLokMap.set(el.lokasi.trim().toUpperCase(), el);
 
     const dsmMap = new Map<string, any>();
     for (const w of waterloggingList) dsmMap.set(w.lokasi.trim().toUpperCase(), w);
@@ -664,8 +669,13 @@ export async function syncLokasiOrderDatabase() {
       const totMan80 = Math.max(trxMan80, pm.d80);
       const totMan100 = Math.max(trxMan100, pm.d100);
 
-      // Status per Diameter
-      const calcDiaStatus = (ordQ: number, drpQ: number, manQ: number, sapQ: number) => {
+      const existing = existingLokMap.get(lok);
+
+      // Status per Diameter: Utamakan status Close / Cek yang tersimpan jika ada
+      const calcDiaStatus = (ordQ: number, drpQ: number, manQ: number, sapQ: number, existingStatus?: string | null) => {
+        if (existingStatus && (existingStatus.trim() === 'Close' || existingStatus.trim() === 'Cek')) {
+          return existingStatus.trim();
+        }
         const totPasang = Math.max(manQ, sapQ);
         const saldo = drpQ - totPasang;
         if (ordQ > 0 || drpQ > 0 || totPasang > 0) {
@@ -675,16 +685,16 @@ export async function syncLokasiOrderDatabase() {
         return '-';
       };
 
-      const statusD40 = calcDiaStatus(orderD40, dropD40, totMan40, pasangSapD40);
-      const statusD60 = calcDiaStatus(orderD60, dropD60, totMan60, pasangSapD60);
-      const statusD80 = calcDiaStatus(orderD80, dropD80, totMan80, pasangSapD80);
-      const statusD100 = calcDiaStatus(orderD100, dropD100, totMan100, pasangSapD100);
+      const statusD40 = calcDiaStatus(orderD40, dropD40, totMan40, pasangSapD40, existing?.statusD40);
+      const statusD60 = calcDiaStatus(orderD60, dropD60, totMan60, pasangSapD60, existing?.statusD60);
+      const statusD80 = calcDiaStatus(orderD80, dropD80, totMan80, pasangSapD80, existing?.statusD80);
+      const statusD100 = calcDiaStatus(orderD100, dropD100, totMan100, pasangSapD100, existing?.statusD100);
 
       // Status All mengikuti status per diameter
       const diaStatuses = [statusD40, statusD60, statusD80, statusD100];
       const hasAnyOpen = diaStatuses.some((st) => st === 'Open');
       const hasAnyClose = diaStatuses.some((st) => st === 'Close');
-      const statusAll = hasAnyOpen ? 'Open' : (hasAnyClose ? 'Close' : '-');
+      const statusAll = hasAnyOpen ? 'Open' : (hasAnyClose ? 'Close' : (existing?.statusAll || '-'));
 
       const luas = m?.luasNetto || 0;
       const ratioPerHa = (luas > 0 && orderD40 > 0) ? Math.round(orderD40 / luas) : null;
