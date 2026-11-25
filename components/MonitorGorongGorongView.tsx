@@ -984,6 +984,7 @@ export default function MonitorGorongGorongView() {
       }
 
       // Default Locked Multi-Tier Sort Hierarchy Sesuai Aturan Sistem:
+      // 0. Status Open di atas, Status Close di urutan paling bawah antrian
       // 1. Prioritas urutan dari 1 (1, 2, 3, 4, 5, -, '')
       // 2. Akt. BK dari urutan angka paling besar (descending)
       // 3. Umur Bulan urutan angka paling besar (descending)
@@ -991,6 +992,10 @@ export default function MonitorGorongGorongView() {
       // 5. DSM BK urutan Z-A (descending)
       // 6. DSM ST urutan Z-A (descending)
       // 7. Lokasi A-Z (ascending)
+      const isCloseA = (a.statusAll || '').trim().toLowerCase() === 'close';
+      const isCloseB = (b.statusAll || '').trim().toLowerCase() === 'close';
+      if (isCloseA !== isCloseB) return isCloseA ? 1 : -1;
+
       const pA = prioOrder[a.prioritas] ?? 99;
       const pB = prioOrder[b.prioritas] ?? 99;
       if (pA !== pB) return pA - pB;
@@ -3282,7 +3287,7 @@ export default function MonitorGorongGorongView() {
                       <td className={`sticky left-0 z-20 w-[45px] min-w-[45px] max-w-[45px] text-center font-mono text-[11px] text-slate-500 border-r border-b border-slate-200 dark:border-slate-800 px-1 py-2 ${
                         idx % 2 === 1 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-900'
                       } group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors`}>
-                        {item.fixedRank ?? idx + 1}
+                        {item.fixedRank !== undefined && item.fixedRank !== null ? item.fixedRank : (item.statusAll === 'Close' ? '-' : idx + 1)}
                       </td>
                       <td className={`sticky left-[45px] z-20 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.10)] lg:shadow-none w-[85px] min-w-[85px] max-w-[85px] text-center font-bold border-r border-b border-slate-200 dark:border-slate-800 px-1 py-1.5 ${
                         idx % 2 === 1 ? 'bg-slate-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-900'

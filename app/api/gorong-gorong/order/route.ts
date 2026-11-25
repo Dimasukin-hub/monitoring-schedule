@@ -507,9 +507,12 @@ export async function POST(request: NextRequest) {
             const pctDrop = totOrd > 0 ? (totDrp / totOrd) * 100 : (totDrp > 0 ? 100 : 0);
 
             // Transisi prioritas operasional baru:
+            // Jika petak sudah Close -> prioritas wajib '-'
             // P1 -> P4 jika drop > 50% (jika drop <= 50% tetap P1)
             // P2 -> P3 jika sudah drop
-            if (existingLokasiOrder.prioritas === '1' || existingLokasiOrder.prioritas === '4') {
+            if ((existingLokasiOrder.statusAll || '').trim().toLowerCase() === 'close') {
+              updateData.prioritas = '-';
+            } else if (existingLokasiOrder.prioritas === '1' || existingLokasiOrder.prioritas === '4') {
               updateData.prioritas = pctDrop > 50 ? '4' : '1';
             } else if (existingLokasiOrder.prioritas === '2') {
               updateData.prioritas = '3';

@@ -541,7 +541,7 @@ export async function GET(request: NextRequest) {
             prioritas = '5';
           }
         } else {
-          prioritas = '';
+          prioritas = '-';
         }
 
         listLokasiOrder.push({
@@ -572,8 +572,12 @@ export async function GET(request: NextRequest) {
         return m ? parseInt(m[1], 10) : -1;
       };
 
-      // Locked Multi-tier Sort
+      // Locked Multi-tier Sort (Utamakan status Open di atas, status Close di bawah)
       listLokasiOrder.sort((a, b) => {
+        const isCloseA = (a.statusAll || '').trim().toLowerCase() === 'close';
+        const isCloseB = (b.statusAll || '').trim().toLowerCase() === 'close';
+        if (isCloseA !== isCloseB) return isCloseA ? 1 : -1;
+
         const prioOrder: Record<string, number> = { '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '-': 6, '': 7 };
         const pA = prioOrder[a.prioritas] ?? 99;
         const pB = prioOrder[b.prioritas] ?? 99;
@@ -599,9 +603,11 @@ export async function GET(request: NextRequest) {
         return a.lokasi.localeCompare(b.lokasi);
       });
 
-      // Beri fixedRank permanen
-      listLokasiOrder.forEach((item, idx) => {
-        item.fixedRank = idx + 1;
+      // Beri fixedRank permanen (Open dapat nomor antrian urut 1, 2, 3..., Close dapat '-')
+      let currentOpenRank = 1;
+      listLokasiOrder.forEach((item) => {
+        const isClose = (item.statusAll || '').trim().toLowerCase() === 'close';
+        item.fixedRank = isClose ? '-' : currentOpenRank++;
       });
 
       // Filter
@@ -724,7 +730,7 @@ export async function GET(request: NextRequest) {
 
       filtered.forEach((item, idx) => {
         const rowData = {
-          no: item.fixedRank || (idx + 1),
+          no: item.fixedRank !== undefined && item.fixedRank !== null ? item.fixedRank : (item.statusAll === 'Close' ? '-' : (idx + 1)),
           lokasi: item.lokasi,
           wilayah: item.wilayah || '-',
           luas: item.luas ? parseFloat(item.luas.toFixed(2)) : 0,

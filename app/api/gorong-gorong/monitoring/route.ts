@@ -566,14 +566,14 @@ export async function GET(request: NextRequest) {
       const isSchedule1 = aktBk.includes('24.Sls Tanam') || aktBk.toLowerCase().includes('selesai tanam') || aktBk.includes('23.Proses Tanam');
       const isSchedule2 = aktBk.includes('22.Jalan & Saluran') || aktBk.includes('22.JALAN & SAL') || aktBk.includes('Jln&Sal') || aktBk.includes('Exmini') || aktBk.includes('SS1') || aktBk.includes('Subsoiler') || aktBk.includes('Ridger');
 
-      if (prioritas === '1' || prioritas === '4' || ((isFC || isSchedule1) && statusAll !== 'Close')) {
+      if (statusAll === 'Close') {
+        prioritas = '-';
+      } else if (prioritas === '1' || prioritas === '4' || (isFC || isSchedule1)) {
         prioritas = isDropAbove50 ? '4' : '1';
-      } else if (prioritas === '2' || prioritas === '3' || (isSchedule2 && statusAll !== 'Close')) {
+      } else if (prioritas === '2' || prioritas === '3' || isSchedule2) {
         prioritas = hasDropAny ? '3' : '2';
-      } else if (!prioritas || prioritas === '') {
-        if (statusAll === 'Close') {
-          prioritas = '';
-        } else if (d40Order === null || d40Order === undefined || d40Order === 0) {
+      } else if (!prioritas || prioritas === '' || prioritas === '-') {
+        if (d40Order === null || d40Order === undefined || d40Order === 0) {
           prioritas = '-';
         } else {
           prioritas = '5';
@@ -612,6 +612,7 @@ export async function GET(request: NextRequest) {
     };
 
     // Locked Multi-tier Sort pada List Lokasi Order:
+    // 0. Status Open di atas, Status Close di urutan paling bawah
     // 1. Prioritas urutan dari 1 (1, 2, 3, 4, 5, -, '')
     // 2. Akt. BK dari urutan angka paling besar (descending)
     // 3. Umur Bulan urutan angka paling besar (descending)
@@ -620,6 +621,11 @@ export async function GET(request: NextRequest) {
     // 6. DSM ST urutan Z-A (descending)
     // 7. Tie-breaker Lokasi (ascending)
     listLokasiOrder.sort((a, b) => {
+      // 0. Utamakan Open di atas antrian, Close di bawah
+      const isCloseA = (a.statusAll || '').trim().toLowerCase() === 'close';
+      const isCloseB = (b.statusAll || '').trim().toLowerCase() === 'close';
+      if (isCloseA !== isCloseB) return isCloseA ? 1 : -1;
+
       const prioOrder: Record<string, number> = { '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '-': 6, '': 7 };
       const pA = prioOrder[a.prioritas] ?? 99;
       const pB = prioOrder[b.prioritas] ?? 99;
@@ -652,8 +658,11 @@ export async function GET(request: NextRequest) {
     });
 
     // Beri fixedRank permanen berdasarkan urutan master list lengkap yang sudah disortir
-    listLokasiOrder.forEach((item, idx) => {
-      item.fixedRank = idx + 1;
+    // Lokasi Open dapat nomor antrian (1, 2, 3, ...), sedangkan lokasi Close nomornya '-' agar tidak masuk antrian
+    let currentOpenRank = 1;
+    listLokasiOrder.forEach((item) => {
+      const isClose = (item.statusAll || '').trim().toLowerCase() === 'close';
+      item.fixedRank = isClose ? '-' : currentOpenRank++;
     });
 
     // 4. Susun Tabel List Lokasi Belum Order (Prioritas dari Database LokasiBelumOrderGorongGorong)

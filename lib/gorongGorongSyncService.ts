@@ -732,7 +732,7 @@ export async function syncLokasiOrderDatabase() {
           prioritas = '5';
         }
       } else {
-        prioritas = '';
+        prioritas = '-';
       }
 
       // Cek apakah petak ini sudah di-Close secara administratif (tidak boleh di-override oleh auto-sync)
@@ -778,10 +778,10 @@ export async function syncLokasiOrderDatabase() {
         pasangSapD100,
       };
 
-      // Data status: jika petak sudah Close secara admin → pertahankan status lama, jangan di-override
+      // Data status: jika petak sudah Close secara admin → pertahankan status lama, prioritas wajib '-'
       const statusData = isAdminClosed
         ? {
-            prioritas: existing?.prioritas ?? '',
+            prioritas: '-',
             statusAll: existing?.statusAll ?? 'Close',
             isClosedExcel: existing?.isClosedExcel ?? true,
             statusD40: existing?.statusD40 ?? statusD40,
