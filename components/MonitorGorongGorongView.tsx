@@ -2266,9 +2266,9 @@ export default function MonitorGorongGorongView() {
       </div>
 
       {/* 4. TAB PEMILIH TABEL DATA & FILTER KONTROL */}
-      <div className="flex flex-col gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+      <div className="relative z-30 flex flex-col gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
         {/* Baris 1: Tab Switcher (50%-50% di Mobile) & Multi-Search Box (Full-width di Mobile) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 w-full">
+        <div className={`relative flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 w-full ${isSearchDropdownOpen ? 'z-40' : 'z-10'}`}>
           {/* Tab Button 1 & 2: Grid 2 Kolom Sejajar 50%-50% di Mobile */}
           <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center shrink-0">
             {/* Tab Button 1: List Lokasi Order */}
@@ -2305,7 +2305,7 @@ export default function MonitorGorongGorongView() {
           </div>
 
           {/* Multi-Search Box Cepat dengan Tags Lokasi & Tombol Silang Lingkaran */}
-          <div className="relative w-full sm:w-80 multisearch-container">
+          <div className={`relative w-full sm:w-80 multisearch-container ${isSearchDropdownOpen ? 'z-50' : 'z-10'}`}>
             <div
               onClick={() => {
                 setIsSearchDropdownOpen(true);
@@ -2418,9 +2418,9 @@ export default function MonitorGorongGorongView() {
         </div>
 
         {/* Baris 2: Kotak-kotak Filter Rapi Sejajar Simetris (Grid 2 Kolom di Mobile, Flex Wrap di Desktop) */}
-        <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:flex-wrap sm:items-center">
+        <div className="relative z-20 grid grid-cols-2 gap-2 w-full sm:flex sm:flex-wrap sm:items-center">
           {/* 1. Filter Status All (Hanya fokus pada statusAll: Open atau Close) */}
-          <div className="relative w-full sm:w-auto status-openclose-filter-container">
+          <div className={`relative w-full sm:w-auto status-openclose-filter-container ${isStatusOpenCloseDropdownOpen ? 'z-50' : 'z-10'}`}>
             <button
               type="button"
               onClick={() => {
@@ -2492,7 +2492,7 @@ export default function MonitorGorongGorongView() {
           </div>
 
           {/* 2. Filter Status Diameter (Open, Cek, Close) */}
-          <div className="relative w-full sm:w-auto status-diameter-filter-container">
+          <div className={`relative w-full sm:w-auto status-diameter-filter-container ${isStatusDiameterDropdownOpen ? 'z-50' : 'z-10'}`}>
             <button
               type="button"
               onClick={() => {
@@ -2561,7 +2561,7 @@ export default function MonitorGorongGorongView() {
           </div>
 
           {/* 3. Filter Status Tanaman (NSBK, NSFC, FC, ST, dll) */}
-          <div className="relative w-full sm:w-auto status-tanaman-filter-container">
+          <div className={`relative w-full sm:w-auto status-tanaman-filter-container ${isStatusTanamanDropdownOpen ? 'z-50' : 'z-10'}`}>
             <button
               type="button"
               onClick={() => {
@@ -2633,7 +2633,7 @@ export default function MonitorGorongGorongView() {
           </div>
 
           {/* 4. Filter Tanggal Order: Month Range Picker */}
-          <div className="relative w-full sm:w-auto monthpicker-container">
+          <div className={`relative w-full sm:w-auto monthpicker-container ${isMonthPickerOpen ? 'z-50' : 'z-10'}`}>
             <button
               type="button"
               onClick={() => {
@@ -2755,7 +2755,7 @@ export default function MonitorGorongGorongView() {
           </div>
 
           {/* 5. Filter Prioritas */}
-          <div className="relative w-full sm:w-auto prioritas-filter-container">
+          <div className={`relative w-full sm:w-auto prioritas-filter-container ${isPrioritasDropdownOpen ? 'z-50' : 'z-10'}`}>
             <button
               type="button"
               onClick={() => {
@@ -2827,7 +2827,7 @@ export default function MonitorGorongGorongView() {
           </div>
 
           {/* 6. Filter Akt. BK */}
-          <div className="relative w-full sm:w-auto aktbk-filter-container">
+          <div className={`relative w-full sm:w-auto aktbk-filter-container ${isAktBkDropdownOpen ? 'z-50' : 'z-10'}`}>
             <button
               type="button"
               onClick={() => {
@@ -2895,7 +2895,7 @@ export default function MonitorGorongGorongView() {
           </div>
 
           {/* 7. Filter DSM BK */}
-          <div className="relative w-full sm:w-auto dsmbk-filter-container">
+          <div className={`relative w-full sm:w-auto dsmbk-filter-container ${isDsmBkDropdownOpen ? 'z-50' : 'z-10'}`}>
             <button
               type="button"
               onClick={() => {
@@ -2963,7 +2963,7 @@ export default function MonitorGorongGorongView() {
           </div>
 
           {/* 8. Filter DSM ST */}
-          <div className="relative w-full sm:w-auto dsmst-filter-container">
+          <div className={`relative w-full sm:w-auto dsmst-filter-container ${isDsmStDropdownOpen ? 'z-50' : 'z-10'}`}>
             <button
               type="button"
               onClick={() => {
