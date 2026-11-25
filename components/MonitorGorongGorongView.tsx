@@ -1186,8 +1186,20 @@ export default function MonitorGorongGorongView() {
       const wil = String(item.wilayah || '').trim().toUpperCase();
       // Hanya petak dengan wilayah resmi AW01 s/d AW07 yang dihitung ke ringkasan wilayah
       if (!map.has(wil)) continue;
-      const entry = map.get(wil)!;
+
       const isFilterClose = selectedStatusOpenClose.includes('Close') && !selectedStatusOpenClose.includes('Open');
+      const stAll = (item.statusAll || '').trim().toLowerCase();
+      const isPetakClosed = item.isClosedExcel === true || stAll === 'close';
+
+      // Kunci ketat: jika tampilan normal/Open -> abaikan petak yang sudah Close
+      // Jika user sengaja memfilter status Close -> hanya hitung petak yang Close
+      if (isFilterClose) {
+        if (!isPetakClosed) continue;
+      } else {
+        if (isPetakClosed) continue;
+      }
+
+      const entry = map.get(wil)!;
       for (const k of diaKeys) {
         const d = item[k];
         if (!d) continue;
