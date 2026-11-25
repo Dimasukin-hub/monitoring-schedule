@@ -735,7 +735,13 @@ export async function syncLokasiOrderDatabase() {
         prioritas = '';
       }
 
-      const rowData = {
+      // Cek apakah petak ini sudah di-Close secara administratif (tidak boleh di-override oleh auto-sync)
+      const isAdminClosed =
+        existing?.isClosedExcel === true ||
+        (existing?.statusAll ?? '').trim().toLowerCase() === 'close';
+
+      // Data kuantitas selalu diperbarui (order, drop, pasang, dll.)
+      const quantityData = {
         wilayah: m?.strucPlant || 'AW01',
         luas: luas,
         statusTanaman: m?.status || '-',
@@ -744,9 +750,6 @@ export async function syncLokasiOrderDatabase() {
         aktBk: landAktStr,
         dsmBk: wl?.dsmbkPlot || '-',
         dsmSt: wl?.dsmPlot || '-',
-        prioritas,
-        statusAll,
-        isClosedExcel: statusAll === 'Close',
         ratioPerHa,
 
         orderD40,
@@ -755,29 +758,48 @@ export async function syncLokasiOrderDatabase() {
         pindahD40,
         pasangManD40: totMan40,
         pasangSapD40,
-        statusD40,
 
         orderD60,
         dropD60,
         pindahD60,
         pasangManD60: totMan60,
         pasangSapD60,
-        statusD60,
 
         orderD80,
         dropD80,
         pindahD80,
         pasangManD80: totMan80,
         pasangSapD80,
-        statusD80,
 
         orderD100,
         dropD100,
         pindahD100,
         pasangManD100: totMan100,
         pasangSapD100,
-        statusD100,
       };
+
+      // Data status: jika petak sudah Close secara admin → pertahankan status lama, jangan di-override
+      const statusData = isAdminClosed
+        ? {
+            prioritas: existing?.prioritas ?? '',
+            statusAll: existing?.statusAll ?? 'Close',
+            isClosedExcel: existing?.isClosedExcel ?? true,
+            statusD40: existing?.statusD40 ?? statusD40,
+            statusD60: existing?.statusD60 ?? statusD60,
+            statusD80: existing?.statusD80 ?? statusD80,
+            statusD100: existing?.statusD100 ?? statusD100,
+          }
+        : {
+            prioritas,
+            statusAll,
+            isClosedExcel: statusAll === 'Close',
+            statusD40,
+            statusD60,
+            statusD80,
+            statusD100,
+          };
+
+      const rowData = { ...quantityData, ...statusData };
 
       upsertPromises.push(
         prisma.lokasiOrderGorongGorong.upsert({

@@ -5,9 +5,8 @@ echo "============================================="
 echo "  🚀 Updating Field Establishment Dashboard"
 echo "============================================="
 
-# 1. Bersihkan perubahan file cache lokal otomatis & tarik pembaruan dari repository
+# 1. Tarik pembaruan dari repository (snapshot data VPS TIDAK di-reset)
 echo "📥 [1/4] Mengambil kode terbaru dari Git..."
-git checkout -- data/lokasi-order-snapshot.json 2>/dev/null || true
 git pull origin main
 
 # 2. Sinkronisasi Skema Database & Prisma Client
