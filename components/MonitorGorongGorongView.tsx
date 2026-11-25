@@ -2266,9 +2266,9 @@ export default function MonitorGorongGorongView() {
       </div>
 
       {/* 4. TAB PEMILIH TABEL DATA & FILTER KONTROL */}
-      <div className="relative z-30 flex flex-col gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+      <div className="relative z-40 flex flex-col gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
         {/* Baris 1: Tab Switcher (50%-50% di Mobile) & Multi-Search Box (Full-width di Mobile) */}
-        <div className={`relative flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 w-full ${isSearchDropdownOpen ? 'z-40' : 'z-10'}`}>
+        <div className={`relative flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 w-full ${isSearchDropdownOpen ? 'z-50' : 'z-20'}`}>
           {/* Tab Button 1 & 2: Grid 2 Kolom Sejajar 50%-50% di Mobile */}
           <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center shrink-0">
             {/* Tab Button 1: List Lokasi Order */}
@@ -2418,7 +2418,7 @@ export default function MonitorGorongGorongView() {
         </div>
 
         {/* Baris 2: Kotak-kotak Filter Rapi Sejajar Simetris (Grid 2 Kolom di Mobile, Flex Wrap di Desktop) */}
-        <div className="relative z-20 grid grid-cols-2 gap-2 w-full sm:flex sm:flex-wrap sm:items-center">
+        <div className="relative z-30 grid grid-cols-2 gap-2 w-full sm:flex sm:flex-wrap sm:items-center">
           {/* 1. Filter Status All (Hanya fokus pada statusAll: Open atau Close) */}
           <div className={`relative w-full sm:w-auto status-openclose-filter-container ${isStatusOpenCloseDropdownOpen ? 'z-50' : 'z-10'}`}>
             <button
@@ -3035,7 +3035,7 @@ export default function MonitorGorongGorongView() {
       {/* 5. KONTEN TABEL */}
       {activeTableTab === 'order' ? (
         /* TABEL 1: LIST LOKASI ORDER LENGKAP DENGAN 4 DIAMETER */
-        <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-hidden w-full max-w-full">
+        <div className="relative z-10 isolate rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-hidden w-full max-w-full">
           <div className="overflow-auto max-h-[68vh] sm:max-h-[640px] scrollbar-thin border border-slate-200 dark:border-slate-800 w-full max-w-full">
             <table className="w-full text-center border-separate border-spacing-0 text-[11px] whitespace-nowrap">
               {/* Header 2 Tingkat */}
@@ -3636,7 +3636,7 @@ export default function MonitorGorongGorongView() {
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-hidden">
+          <div className="relative z-10 isolate rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-hidden">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-amber-500/5 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-500" />
