@@ -377,6 +377,8 @@ export const SULAM_ROUTES = {
 
   // Menu 2: Form Order Sulam
   formOrder: '/sulam/form-order-sulam',
+  formDrop: '/sulam/form-drop-sulam',
+  formReal: '/sulam/form-realisasi-sulam',
 
   // Menu 3: Master Data
   masterStatusLokasi: '/sulam/master-data/master-status-lokasi',
@@ -396,6 +398,10 @@ export function getSulamRoute(activeTab: string, subTab?: string): string {
     case 'form_order_sulam':
     case 'form_input':
       return SULAM_ROUTES.formOrder;
+    case 'form_drop_sulam':
+      return SULAM_ROUTES.formDrop;
+    case 'form_realisasi_sulam':
+      return SULAM_ROUTES.formReal;
     case 'master_data':
     case 'master_data_sulam':
       if (subTab === 'master_order') return SULAM_ROUTES.masterOrder;
@@ -435,6 +441,24 @@ export function parseSulamPathname(pathname: string) {
   if (clean === '/sulam/form-order-sulam' || clean === '/sulam/form-input') {
     return {
       activeTab: 'form_order_sulam',
+      masterDataSubTab: 'master_status_lokasi',
+      redirectTo: null,
+    };
+  }
+
+  // 2.1 Form Drop
+  if (clean === '/sulam/form-drop-sulam' || clean === '/sulam/form-drop') {
+    return {
+      activeTab: 'form_drop_sulam',
+      masterDataSubTab: 'master_status_lokasi',
+      redirectTo: null,
+    };
+  }
+
+  // 2.2 Form Realisasi
+  if (clean === '/sulam/form-realisasi-sulam' || clean === '/sulam/form-realisasi') {
+    return {
+      activeTab: 'form_realisasi_sulam',
       masterDataSubTab: 'master_status_lokasi',
       redirectTo: null,
     };

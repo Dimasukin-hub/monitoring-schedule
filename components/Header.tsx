@@ -31,6 +31,8 @@ export const GORONG_GORONG_MAIN_MENU_ITEMS: MainMenuItem[] = [
 export const SULAM_MAIN_MENU_ITEMS: MainMenuItem[] = [
   { id: 'monitor_sulam', label: 'Monitoring Sulam' },
   { id: 'form_order_sulam', label: 'Form Order Sulam' },
+  { id: 'form_drop_sulam', label: 'Form Drop Sulam' },
+  { id: 'form_realisasi_sulam', label: 'Form Realisasi Sulam' },
   { id: 'master_data', label: 'Master Data' },
   { id: 'user_management', label: 'Manajemen User' },
 ];
@@ -207,6 +209,24 @@ export const MENU_THEMES: Record<string, MenuThemeConfig> = {
     subActiveText: 'text-teal-700 dark:text-teal-300',
     subActiveLine: 'bg-teal-600 dark:bg-teal-400',
     subHoverText: 'hover:text-teal-600 dark:hover:text-teal-300',
+  },
+  form_drop_sulam: {
+    activeText: 'text-amber-700 dark:text-amber-300',
+    activeLine: 'bg-amber-600 dark:bg-amber-400',
+    hoverText: 'hover:text-amber-600 dark:hover:text-amber-300',
+    hoverLine: 'bg-amber-500/40',
+    subActiveText: 'text-amber-700 dark:text-amber-300',
+    subActiveLine: 'bg-amber-600 dark:bg-amber-400',
+    subHoverText: 'hover:text-amber-600 dark:hover:text-amber-300',
+  },
+  form_realisasi_sulam: {
+    activeText: 'text-cyan-700 dark:text-cyan-300',
+    activeLine: 'bg-cyan-600 dark:bg-cyan-400',
+    hoverText: 'hover:text-cyan-600 dark:hover:text-cyan-300',
+    hoverLine: 'bg-cyan-500/40',
+    subActiveText: 'text-cyan-700 dark:text-cyan-300',
+    subActiveLine: 'bg-cyan-600 dark:bg-cyan-400',
+    subHoverText: 'hover:text-cyan-600 dark:hover:text-cyan-300',
   },
 };
 
