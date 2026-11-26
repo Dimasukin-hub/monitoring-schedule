@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
 
     // 2. Data Grafik Harian Drop (MURNI transaksi Form Input pada rentang bulan yang dipilih)
     let totalAllDrop = 0;
-    const dropByDateMap = new Map<string, number>();
+    const dropByDateMap = new Map<string, { d40: number; d60: number; d80: number; d100: number; all: number }>();
 
     const formatDateDDMM = (d: Date) => {
       const day = String(d.getUTCDate()).padStart(2, '0');
@@ -156,7 +156,15 @@ export async function GET(request: NextRequest) {
       const tot = it.d40 + it.d60 + it.d80 + it.d100;
       totalAllDrop += tot;
       const k = formatDateKey(it.tanggal);
-      dropByDateMap.set(k, (dropByDateMap.get(k) || 0) + tot);
+      if (!dropByDateMap.has(k)) {
+        dropByDateMap.set(k, { d40: 0, d60: 0, d80: 0, d100: 0, all: 0 });
+      }
+      const entry = dropByDateMap.get(k)!;
+      entry.d40 += it.d40;
+      entry.d60 += it.d60;
+      entry.d80 += it.d80;
+      entry.d100 += it.d100;
+      entry.all += tot;
     }
 
     // 3. Data Tabel Verifikasi Pasang Manual vs SAP & Grafik Pasang Manual
@@ -176,7 +184,7 @@ export async function GET(request: NextRequest) {
     }>();
 
     let totalAllPasangManual = 0;
-    const pasangManualByDateMap = new Map<string, number>();
+    const pasangManualByDateMap = new Map<string, { d40: number; d60: number; d80: number; d100: number; all: number }>();
 
     const recordedManualTrxIds = new Set<number>();
     const formManualList: Array<{ tanggal: Date; lokasi: string; d40: number; d60: number; d80: number; d100: number }> = [];
@@ -222,7 +230,15 @@ export async function GET(request: NextRequest) {
       const lok = it.lokasi;
       const key = `${rawDate}_${lok}`;
 
-      pasangManualByDateMap.set(rawDate, (pasangManualByDateMap.get(rawDate) || 0) + tot);
+      if (!pasangManualByDateMap.has(rawDate)) {
+        pasangManualByDateMap.set(rawDate, { d40: 0, d60: 0, d80: 0, d100: 0, all: 0 });
+      }
+      const pEntry = pasangManualByDateMap.get(rawDate)!;
+      pEntry.d40 += it.d40;
+      pEntry.d60 += it.d60;
+      pEntry.d80 += it.d80;
+      pEntry.d100 += it.d100;
+      pEntry.all += tot;
 
       if (!tableMap.has(key)) {
         tableMap.set(key, {
@@ -332,6 +348,13 @@ export async function GET(request: NextRequest) {
     let openDropSum = 0;
     let openPasangSum = 0;
 
+    const openStats = {
+      '40': { order: 0, drop: 0, pasang: 0 },
+      '60': { order: 0, drop: 0, pasang: 0 },
+      '80': { order: 0, drop: 0, pasang: 0 },
+      '100': { order: 0, drop: 0, pasang: 0 },
+    };
+
     if (dbLokasiOrder && dbLokasiOrder.length > 0) {
       for (const row of dbLokasiOrder) {
         const isPetakClosed = row.isClosedExcel === true || (row.statusAll || '').trim().toLowerCase() === 'close';
@@ -345,6 +368,7 @@ export async function GET(request: NextRequest) {
 
         const diaList = [
           {
+            dia: '40' as const,
             ord: masterOrderMap.has(lok) ? ordM.d40 : (row.orderD40 || 0),
             drop: masterDropMap.has(lok) ? drpM.d40 : (row.dropD40 || 0),
             pman: masterManualMap.has(lok) ? manM.d40 : (row.pasangManD40 || 0),
@@ -352,6 +376,7 @@ export async function GET(request: NextRequest) {
             status: row.statusD40,
           },
           {
+            dia: '60' as const,
             ord: masterOrderMap.has(lok) ? ordM.d60 : (row.orderD60 || 0),
             drop: masterDropMap.has(lok) ? drpM.d60 : (row.dropD60 || 0),
             pman: masterManualMap.has(lok) ? manM.d60 : (row.pasangManD60 || 0),
@@ -359,6 +384,7 @@ export async function GET(request: NextRequest) {
             status: row.statusD60,
           },
           {
+            dia: '80' as const,
             ord: masterOrderMap.has(lok) ? ordM.d80 : (row.orderD80 || 0),
             drop: masterDropMap.has(lok) ? drpM.d80 : (row.dropD80 || 0),
             pman: masterManualMap.has(lok) ? manM.d80 : (row.pasangManD80 || 0),
@@ -366,6 +392,7 @@ export async function GET(request: NextRequest) {
             status: row.statusD80,
           },
           {
+            dia: '100' as const,
             ord: masterOrderMap.has(lok) ? ordM.d100 : (row.orderD100 || 0),
             drop: masterDropMap.has(lok) ? drpM.d100 : (row.dropD100 || 0),
             pman: masterManualMap.has(lok) ? manM.d100 : (row.pasangManD100 || 0),
@@ -382,53 +409,74 @@ export async function GET(request: NextRequest) {
             openOrderSum += d.ord;
             openDropSum += d.drop;
             openPasangSum += bestPasang;
+
+            openStats[d.dia].order += d.ord;
+            openStats[d.dia].drop += d.drop;
+            openStats[d.dia].pasang += bestPasang;
           }
         }
       }
     }
 
-    const cardPctKedatangan = openOrderSum > 0 ? parseFloat(((openDropSum / openOrderSum) * 100).toFixed(1)) : 0;
-    const cardPctPemasangan = openDropSum > 0 ? parseFloat(((openPasangSum / openDropSum) * 100).toFixed(1)) : 0;
+    // Rumus sesuai arahan pengguna:
+    // %Kedatangan = Total Order (Status Open) dibagi Total Drop Fisik (Status Open) * 100%
+    // %Pemasangan = Total Drop Fisik (Status Open) dibagi Total Pasang Maksimal (Status Open) * 100%
+    const calcTargetValues = (ord: number, drp: number, psg: number) => ({
+      pctKedatangan: drp > 0 ? parseFloat(((ord / drp) * 100).toFixed(1)) : 0,
+      pctPemasangan: psg > 0 ? parseFloat(((drp / psg) * 100).toFixed(1)) : 0,
+      orderOpen: ord,
+      dropOpen: drp,
+      pasangOpen: psg,
+    });
 
-    // 4. Data Grafik Harian % Kedatangan (mengikuti progres menuju % Kedatangan Card Menu Monitor)
+    const targets = {
+      '40': calcTargetValues(openStats['40'].order, openStats['40'].drop, openStats['40'].pasang),
+      '60': calcTargetValues(openStats['60'].order, openStats['60'].drop, openStats['60'].pasang),
+      '80': calcTargetValues(openStats['80'].order, openStats['80'].drop, openStats['80'].pasang),
+      '100': calcTargetValues(openStats['100'].order, openStats['100'].drop, openStats['100'].pasang),
+      'ALL': calcTargetValues(openOrderSum, openDropSum, openPasangSum),
+    };
+
+    const cardPctKedatangan = targets.ALL.pctKedatangan;
+    const cardPctPemasangan = targets.ALL.pctPemasangan;
+
+    // 4. Data Grafik Harian % Kedatangan
     const sortedDropDates = Array.from(dropByDateMap.keys()).sort();
-    let cumDrop = 0;
     const dailyKedatangan = sortedDropDates.map((dateStr) => {
-      const dropQty = dropByDateMap.get(dateStr) || 0;
-      cumDrop += dropQty;
+      const it = dropByDateMap.get(dateStr) || { d40: 0, d60: 0, d80: 0, d100: 0, all: 0 };
       const dt = new Date(dateStr);
       const label = `${dt.getUTCDate()}/${dt.getUTCMonth() + 1}`;
-      const pct = totalAllDrop > 0
-        ? parseFloat(((cumDrop / totalAllDrop) * cardPctKedatangan).toFixed(1))
-        : 0;
 
       return {
         dateStr,
         label,
-        dropPcs: dropQty,
-        cumDropPcs: cumDrop,
-        pctKedatangan: pct,
+        d40: it.d40,
+        d60: it.d60,
+        d80: it.d80,
+        d100: it.d100,
+        all: it.all,
+        // Backward-compatibility:
+        dropPcs: it.all,
       };
     });
 
-    // 5. Data Grafik Harian % Pemasangan (mengikuti progres menuju % Pemasangan Card Menu Monitor)
+    // 5. Data Grafik Harian % Pemasangan
     const sortedPasangDates = Array.from(pasangManualByDateMap.keys()).sort();
-    let cumPasangManual = 0;
     const dailyPemasangan = sortedPasangDates.map((dateStr) => {
-      const pasangQty = pasangManualByDateMap.get(dateStr) || 0;
-      cumPasangManual += pasangQty;
+      const it = pasangManualByDateMap.get(dateStr) || { d40: 0, d60: 0, d80: 0, d100: 0, all: 0 };
       const dt = new Date(dateStr);
       const label = `${dt.getUTCDate()}/${dt.getUTCMonth() + 1}`;
-      const pct = totalAllPasangManual > 0
-        ? parseFloat(((cumPasangManual / totalAllPasangManual) * cardPctPemasangan).toFixed(1))
-        : 0;
 
       return {
         dateStr,
         label,
-        pasangPcs: pasangQty,
-        cumPasangPcs: cumPasangManual,
-        pctPemasangan: pct,
+        d40: it.d40,
+        d60: it.d60,
+        d80: it.d80,
+        d100: it.d100,
+        all: it.all,
+        // Backward-compatibility:
+        pasangPcs: it.all,
       };
     });
 
@@ -446,6 +494,7 @@ export async function GET(request: NextRequest) {
       success: true,
       isFilterActive,
       summary,
+      targets,
       tableVerification,
       dailyKedatangan,
       dailyPemasangan,

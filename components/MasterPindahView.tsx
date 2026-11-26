@@ -17,7 +17,9 @@ import {
   AlertCircle,
   X,
   ArrowRightLeft,
+  Trash2,
 } from 'lucide-react';
+import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
 
 const WILAYAH_LIST = ['AW01', 'AW02', 'AW03', 'AW04', 'AW05', 'AW06', 'AW07'];
 const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -37,6 +39,32 @@ export default function MasterPindahView() {
   const [pindahMonthRange, setPindahMonthRange] = useState<{ startMonth: number; endMonth: number; year: number } | null>(null);
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState<boolean>(false);
   const [pickerYear, setPickerYear] = useState<number>(2026);
+
+  // Delete State
+  const [itemToDelete, setItemToDelete] = useState<{ id: number; label: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+    try {
+      setIsDeleting(true);
+      const res = await fetch(`/api/gorong-gorong/master-pindah?id=${itemToDelete.id}`, {
+        method: 'DELETE',
+      });
+      const json = await res.json();
+      if (json.success) {
+        setDataList((prev) => prev.filter((it) => it.id !== itemToDelete.id));
+        setTotalCount((prev) => Math.max(0, prev - 1));
+        setItemToDelete(null);
+      } else {
+        alert(json.message || 'Gagal menghapus data');
+      }
+    } catch (e: any) {
+      alert(e.message || 'Terjadi kesalahan sistem');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Export & Upload Modal States
   const [isExporting, setIsExporting] = useState<boolean>(false);
@@ -515,8 +543,18 @@ export default function MasterPindahView() {
                       key={row.id || idx}
                       className="hover:bg-purple-50/20 dark:hover:bg-purple-950/10 transition-colors border-b border-slate-100 dark:border-slate-800"
                     >
-                      <td className="py-2.5 px-3 text-center text-slate-400 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
-                        {no}
+                      <td className="group/cell relative py-2.5 px-3 text-center text-slate-400 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
+                        <span className="group-hover/cell:invisible">
+                          {no}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setItemToDelete({ id: row.id, label: `${row.lokasiPengirim} -> ${row.lokasiPenerima}` })}
+                          title={`Hapus baris data`}
+                          className="absolute inset-0 m-auto w-6 h-6 flex items-center justify-center rounded-md text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer invisible group-hover/cell:visible transition-all"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </td>
                       <td className="py-2.5 px-3 text-center font-bold text-rose-600 dark:text-rose-400 border-r border-slate-200/70 dark:border-slate-800/70">
                         {row.lokasiPengirim}
@@ -753,6 +791,15 @@ export default function MasterPindahView() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={Boolean(itemToDelete)}
+        itemLabel={itemToDelete?.label}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }

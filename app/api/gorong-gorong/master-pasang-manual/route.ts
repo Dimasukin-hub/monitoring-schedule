@@ -88,3 +88,37 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  try {
+    let id: number | null = null;
+    const { searchParams } = new URL(request.url);
+    const queryId = searchParams.get('id');
+    if (queryId) {
+      id = parseInt(queryId, 10);
+    } else {
+      try {
+        const body = await request.json();
+        if (body && body.id) id = parseInt(body.id, 10);
+      } catch (e) {}
+    }
+
+    if (!id || isNaN(id)) {
+      return NextResponse.json({ success: false, message: 'ID data tidak valid' }, { status: 400 });
+    }
+
+    const existing = await prisma.masterDataPasangManual.findUnique({ where: { id } });
+    if (existing?.transaksiId) {
+      await prisma.transaksiGorongGorong.delete({ where: { id: existing.transaksiId } }).catch(() => {});
+    }
+
+    await prisma.masterDataPasangManual.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true, message: 'Data master pasang manual berhasil dihapus permanen' });
+  } catch (error: any) {
+    console.error('Error deleting master data pasang manual:', error);
+    return NextResponse.json({ success: false, message: error.message || 'Gagal menghapus data' }, { status: 500 });
+  }
+}
+

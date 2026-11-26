@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   TrendingUp,
   CheckCircle2,
@@ -45,17 +45,37 @@ interface TableRow {
 interface DailyKedatanganItem {
   dateStr: string;
   label: string;
-  dropPcs: number;
-  cumDropPcs: number;
-  pctKedatangan: number;
+  d40?: number;
+  d60?: number;
+  d80?: number;
+  d100?: number;
+  all?: number;
+  dropPcs?: number;
+  cumDropPcs?: number;
+  pctKedatangan?: number;
 }
 
 interface DailyPemasanganItem {
   dateStr: string;
   label: string;
-  pasangPcs: number;
-  cumPasangPcs: number;
-  pctPemasangan: number;
+  d40?: number;
+  d60?: number;
+  d80?: number;
+  d100?: number;
+  all?: number;
+  pasangPcs?: number;
+  cumPasangPcs?: number;
+  pctPemasangan?: number;
+}
+
+interface TargetsMap {
+  [key: string]: {
+    pctKedatangan: number;
+    pctPemasangan: number;
+    orderOpen: number;
+    dropOpen: number;
+    pasangOpen: number;
+  };
 }
 
 // Custom Label untuk Nilai Bar: tanpa badge, ketebalan sedang, kontras di mode terang & gelap
@@ -114,6 +134,16 @@ export default function ControlBoardGorongGorongView() {
   const [dailyKedatangan, setDailyKedatangan] = useState<DailyKedatanganItem[]>([]);
   const [dailyPemasangan, setDailyPemasangan] = useState<DailyPemasanganItem[]>([]);
 
+  // Filter Diameter untuk Grafik (Default: '40' sesuai arahan)
+  const [selectedDiameter, setSelectedDiameter] = useState<'40' | '60' | '80' | '100' | 'ALL'>('40');
+  const [targets, setTargets] = useState<TargetsMap>({
+    '40': { pctKedatangan: 0, pctPemasangan: 0, orderOpen: 0, dropOpen: 0, pasangOpen: 0 },
+    '60': { pctKedatangan: 0, pctPemasangan: 0, orderOpen: 0, dropOpen: 0, pasangOpen: 0 },
+    '80': { pctKedatangan: 0, pctPemasangan: 0, orderOpen: 0, dropOpen: 0, pasangOpen: 0 },
+    '100': { pctKedatangan: 0, pctPemasangan: 0, orderOpen: 0, dropOpen: 0, pasangOpen: 0 },
+    'ALL': { pctKedatangan: 0, pctPemasangan: 0, orderOpen: 0, dropOpen: 0, pasangOpen: 0 },
+  });
+
   // Legend Toggle States (Redup bila non-aktif, tanpa coret garis)
   const [showDrop, setShowDrop] = useState<boolean>(true);
   const [showPctKedatangan, setShowPctKedatangan] = useState<boolean>(true);
@@ -159,6 +189,7 @@ export default function ControlBoardGorongGorongView() {
         setTableData(json.tableVerification || []);
         setDailyKedatangan(json.dailyKedatangan || []);
         setDailyPemasangan(json.dailyPemasangan || []);
+        if (json.targets) setTargets(json.targets);
       }
     } catch (err) {
       console.error('Failed to fetch control board data:', err);
@@ -180,6 +211,44 @@ export default function ControlBoardGorongGorongView() {
     window.addEventListener('gorong_gorong_updated', handleSync);
     return () => window.removeEventListener('gorong_gorong_updated', handleSync);
   }, [selectedMonth, selectedYear]);
+
+  // Data Grafik Dinamis berdasarkan Diameter yang Dipilih (Opsi A, Default Ø40)
+  const currentTargetKedatangan = targets[selectedDiameter]?.pctKedatangan ?? 0;
+  const currentTargetPemasangan = targets[selectedDiameter]?.pctPemasangan ?? 0;
+
+  const chartKedatanganData = useMemo(() => {
+    return dailyKedatangan.map((it: any) => {
+      let qty = 0;
+      if (selectedDiameter === '40') qty = it.d40 ?? 0;
+      else if (selectedDiameter === '60') qty = it.d60 ?? 0;
+      else if (selectedDiameter === '80') qty = it.d80 ?? 0;
+      else if (selectedDiameter === '100') qty = it.d100 ?? 0;
+      else qty = it.all ?? it.dropPcs ?? 0;
+
+      return {
+        ...it,
+        dropPcs: qty,
+        pctKedatangan: currentTargetKedatangan,
+      };
+    });
+  }, [dailyKedatangan, selectedDiameter, currentTargetKedatangan]);
+
+  const chartPemasanganData = useMemo(() => {
+    return dailyPemasangan.map((it: any) => {
+      let qty = 0;
+      if (selectedDiameter === '40') qty = it.d40 ?? 0;
+      else if (selectedDiameter === '60') qty = it.d60 ?? 0;
+      else if (selectedDiameter === '80') qty = it.d80 ?? 0;
+      else if (selectedDiameter === '100') qty = it.d100 ?? 0;
+      else qty = it.all ?? it.pasangPcs ?? 0;
+
+      return {
+        ...it,
+        pasangPcs: qty,
+        pctPemasangan: currentTargetPemasangan,
+      };
+    });
+  }, [dailyPemasangan, selectedDiameter, currentTargetPemasangan]);
 
   // Filter table data
   const filteredTableData = tableData.filter((row) => {
@@ -326,7 +395,35 @@ export default function ControlBoardGorongGorongView() {
         </div>
       </div>
 
-      {/* 2. GRAFIK % KEDATANGAN DAN % PEMASANGAN HARIAN (DIPINDAHKAN KE ATAS) */}
+      {/* 2. PILIHAN DIAMETER GRAFIK (OPSI A: Default Ø40) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            Filter Diameter Grafik:
+          </span>
+          <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+            ({selectedDiameter === 'ALL' ? 'Semua Diameter' : `Diameter ${selectedDiameter}`})
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+          {(['40', '60', '80', '100', 'ALL'] as const).map((dia) => (
+            <button
+              key={dia}
+              type="button"
+              onClick={() => setSelectedDiameter(dia)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                selectedDiameter === dia
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              {dia === 'ALL' ? 'Semua Ø' : `Ø${dia}`}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 3. GRAFIK % KEDATANGAN DAN % PEMASANGAN HARIAN (DIPINDAHKAN KE ATAS) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Grafik 1: % Kedatangan Harian */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-2xs space-y-4">
@@ -337,13 +434,13 @@ export default function ControlBoardGorongGorongView() {
                   <TrendingUp className="w-4 h-4" />
                 </span>
                 <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                  Grafik % Kedatangan Harian
+                  Grafik % Kedatangan Harian {selectedDiameter === 'ALL' ? '(Semua Ø)' : `(Ø${selectedDiameter})`}
                 </h3>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 {selectedMonth !== null
-                  ? `Batang: Drop • Garis: % Kedatangan (${MONTH_NAMES_SHORT[selectedMonth]} ${selectedYear})`
-                  : 'Batang: Drop • Garis: % Kedatangan'}
+                  ? `Batang: Drop Form Input • Garis Datar: Acuan % Kedatangan (${currentTargetKedatangan}%)`
+                  : `Batang: Drop Form Input • Garis Datar: Acuan % Kedatangan (${currentTargetKedatangan}%)`}
               </p>
             </div>
 
@@ -374,20 +471,20 @@ export default function ControlBoardGorongGorongView() {
                 title="Klik untuk tampilkan/sembunyikan data % Kedatangan"
               >
                 <span className={`w-2.5 h-0.5 rounded-full ${showPctKedatangan ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                <span>% Kedatangan</span>
+                <span>% Kedatangan ({currentTargetKedatangan}%)</span>
               </button>
             </div>
           </div>
 
           <div className="h-72 w-full pt-2">
-            {dailyKedatangan.length === 0 ? (
+            {chartKedatanganData.length === 0 ? (
               <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
                 Belum ada transaksi drop harian untuk ditampilkan.
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
-                  data={dailyKedatangan}
+                  data={chartKedatanganData}
                   margin={{ top: 20, right: 20, bottom: 20, left: 10 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
@@ -406,7 +503,7 @@ export default function ControlBoardGorongGorongView() {
                   <YAxis
                     yAxisId="right"
                     orientation="right"
-                    domain={[0, 100]}
+                    domain={[0, (dataMax: number) => Math.max(100, Math.ceil((currentTargetKedatangan || 100) / 10) * 10)]}
                     tick={{ fontSize: 11, fill: '#10b981' }}
                     tickLine={false}
                     axisLine={false}
@@ -445,7 +542,8 @@ export default function ControlBoardGorongGorongView() {
                       name="% Kedatangan"
                       stroke="#10b981"
                       strokeWidth={2.5}
-                      dot={isDenseKedatangan ? false : { fill: '#10b981', r: 4, strokeWidth: 2, stroke: '#ffffff' }}
+                      strokeDasharray="4 4"
+                      dot={false}
                     />
                   )}
                 </ComposedChart>
@@ -463,13 +561,13 @@ export default function ControlBoardGorongGorongView() {
                   <Activity className="w-4 h-4" />
                 </span>
                 <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                  Grafik % Pemasangan Harian
+                  Grafik % Pemasangan Harian {selectedDiameter === 'ALL' ? '(Semua Ø)' : `(Ø${selectedDiameter})`}
                 </h3>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 {selectedMonth !== null
-                  ? `Batang: Pasang Manual • Garis: % Pemasangan (${MONTH_NAMES_SHORT[selectedMonth]} ${selectedYear})`
-                  : 'Batang: Pasang Manual • Garis: % Pemasangan'}
+                  ? `Batang: Pasang Manual Form Input • Garis Datar: Acuan % Pemasangan (${currentTargetPemasangan}%)`
+                  : `Batang: Pasang Manual Form Input • Garis Datar: Acuan % Pemasangan (${currentTargetPemasangan}%)`}
               </p>
             </div>
 
@@ -500,20 +598,20 @@ export default function ControlBoardGorongGorongView() {
                 title="Klik untuk tampilkan/sembunyikan data % Pemasangan"
               >
                 <span className={`w-2.5 h-0.5 rounded-full ${showPctPemasangan ? 'bg-purple-500' : 'bg-slate-400'}`} />
-                <span>% Pemasangan</span>
+                <span>% Pemasangan ({currentTargetPemasangan}%)</span>
               </button>
             </div>
           </div>
 
           <div className="h-72 w-full pt-2">
-            {dailyPemasangan.length === 0 ? (
+            {chartPemasanganData.length === 0 ? (
               <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
                 Belum ada transaksi pasang manual harian untuk ditampilkan.
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
-                  data={dailyPemasangan}
+                  data={chartPemasanganData}
                   margin={{ top: 20, right: 20, bottom: 20, left: 10 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
@@ -532,7 +630,7 @@ export default function ControlBoardGorongGorongView() {
                   <YAxis
                     yAxisId="right"
                     orientation="right"
-                    domain={[0, 100]}
+                    domain={[0, (dataMax: number) => Math.max(100, Math.ceil((currentTargetPemasangan || 100) / 10) * 10)]}
                     tick={{ fontSize: 11, fill: '#8b5cf6' }}
                     tickLine={false}
                     axisLine={false}
@@ -571,7 +669,8 @@ export default function ControlBoardGorongGorongView() {
                       name="% Pemasangan"
                       stroke="#8b5cf6"
                       strokeWidth={2.5}
-                      dot={isDensePemasangan ? false : { fill: '#8b5cf6', r: 4, strokeWidth: 2, stroke: '#ffffff' }}
+                      strokeDasharray="4 4"
+                      dot={false}
                     />
                   )}
                 </ComposedChart>

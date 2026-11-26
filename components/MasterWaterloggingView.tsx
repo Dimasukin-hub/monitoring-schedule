@@ -16,7 +16,9 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
+  Trash2,
 } from 'lucide-react';
+import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
 
 const WATERLOGGING_WILAYAH_LIST = Array.from({ length: 25 }, (_, i) => `AW${String(i + 1).padStart(2, '0')}`);
 
@@ -35,6 +37,32 @@ export default function MasterWaterloggingView() {
   const [selectedWilayah, setSelectedWilayah] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(cachedWaterloggingList.length === 0);
+
+  // Delete State
+  const [itemToDelete, setItemToDelete] = useState<{ id: number; label: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+    try {
+      setIsDeleting(true);
+      const res = await fetch(`/api/gorong-gorong/master-waterlogging?id=${itemToDelete.id}`, {
+        method: 'DELETE',
+      });
+      const json = await res.json();
+      if (json.success) {
+        setDataList((prev) => prev.filter((it) => it.id !== itemToDelete.id));
+        setTotalCount((prev) => Math.max(0, prev - 1));
+        setItemToDelete(null);
+      } else {
+        alert(json.message || 'Gagal menghapus data');
+      }
+    } catch (e: any) {
+      alert(e.message || 'Terjadi kesalahan sistem');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Custom Dropdown Open State
   const [isWilayahDropdownOpen, setIsWilayahDropdownOpen] = useState<boolean>(false);
@@ -375,8 +403,18 @@ export default function MasterWaterloggingView() {
                     key={row.id || idx}
                     className="hover:bg-cyan-50/30 dark:hover:bg-cyan-950/20 transition-colors border-b border-slate-100 dark:border-slate-800"
                   >
-                    <td className="py-2.5 px-3 text-center text-slate-400 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
-                      {(page - 1) * pageSize + idx + 1}
+                    <td className="group/cell relative py-2.5 px-3 text-center text-slate-400 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
+                      <span className="group-hover/cell:invisible">
+                        {(page - 1) * pageSize + idx + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setItemToDelete({ id: row.id, label: row.lokasi || `#${row.id}` })}
+                        title={`Hapus baris data ${row.lokasi}`}
+                        className="absolute inset-0 m-auto w-6 h-6 flex items-center justify-center rounded-md text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer invisible group-hover/cell:visible transition-all"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </td>
                     <td className="py-2.5 px-3 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200/70 dark:border-slate-800/70">
                       {row.pg || 'PG1'}
@@ -654,6 +692,15 @@ export default function MasterWaterloggingView() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={Boolean(itemToDelete)}
+        itemLabel={itemToDelete?.label}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }

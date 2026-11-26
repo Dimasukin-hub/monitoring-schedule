@@ -15,7 +15,9 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
+  Trash2,
 } from 'lucide-react';
+import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
 
 const ALL_STATUS_LIST = [
   'FC', 'BK', 'ST', 'SM', 'SC', 'BB', 'CL', 'BM', 'NY', 'Y1', 'Y2', 'Y3'
@@ -47,6 +49,32 @@ export default function MasterStatusLokasiView({
   const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(cachedMasterLokasiList.length === 0);
+
+  // Delete State
+  const [itemToDelete, setItemToDelete] = useState<{ id: number; label: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+    try {
+      setIsDeleting(true);
+      const res = await fetch(`/api/gorong-gorong/master-lokasi?id=${itemToDelete.id}`, {
+        method: 'DELETE',
+      });
+      const json = await res.json();
+      if (json.success) {
+        setDataList((prev) => prev.filter((it) => it.id !== itemToDelete.id));
+        setTotalCount((prev) => Math.max(0, prev - 1));
+        setItemToDelete(null);
+      } else {
+        alert(json.message || 'Gagal menghapus data');
+      }
+    } catch (e: any) {
+      alert(e.message || 'Terjadi kesalahan sistem');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Custom Dropdown Open States
   const [isWilayahDropdownOpen, setIsWilayahDropdownOpen] = useState<boolean>(false);
@@ -477,8 +505,18 @@ export default function MasterStatusLokasiView({
                       idx % 2 === 1 ? 'bg-slate-50/40 dark:bg-slate-900/40' : ''
                     }`}
                   >
-                    <td className="px-3 py-2 text-center font-mono text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70">
-                      {(page - 1) * pageSize + idx + 1}
+                    <td className="group/cell relative px-3 py-2 text-center font-mono text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70">
+                      <span className="group-hover/cell:invisible">
+                        {(page - 1) * pageSize + idx + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setItemToDelete({ id: item.id, label: item.lokasi || `#${item.id}` })}
+                        title={`Hapus baris data ${item.lokasi}`}
+                        className="absolute inset-0 m-auto w-6 h-6 flex items-center justify-center rounded-md text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer invisible group-hover/cell:visible transition-all"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </td>
                     <td className="px-3 py-2 font-bold text-[#00873D] border-r border-slate-200/70 dark:border-slate-800/70">
                       {item.lokasi}
@@ -741,6 +779,15 @@ export default function MasterStatusLokasiView({
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={Boolean(itemToDelete)}
+        itemLabel={itemToDelete?.label}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }
