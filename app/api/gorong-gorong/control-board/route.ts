@@ -419,11 +419,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Rumus sesuai arahan pengguna:
-    // %Kedatangan = Total Order (Status Open) dibagi Total Drop Fisik (Status Open) * 100%
-    // %Pemasangan = Total Drop Fisik (Status Open) dibagi Total Pasang Maksimal (Status Open) * 100%
+    // %Kedatangan = Total Drop Fisik (Status Open) dibagi Total Order (Status Open) * 100%
+    // %Pemasangan = Total Pasang Maksimal (Status Open) dibagi Total Drop Fisik (Status Open) * 100%
     const calcTargetValues = (ord: number, drp: number, psg: number) => ({
-      pctKedatangan: drp > 0 ? parseFloat(((ord / drp) * 100).toFixed(1)) : 0,
-      pctPemasangan: psg > 0 ? parseFloat(((drp / psg) * 100).toFixed(1)) : 0,
+      pctKedatangan: ord > 0 ? parseFloat(((drp / ord) * 100).toFixed(1)) : 0,
+      pctPemasangan: drp > 0 ? parseFloat(((psg / drp) * 100).toFixed(1)) : 0,
       orderOpen: ord,
       dropOpen: drp,
       pasangOpen: psg,
