@@ -349,7 +349,7 @@ const htmlContent = `<!DOCTYPE html>
     Puji dan syukur kami panjatkan kepada Tuhan Yang Maha Esa atas selesainya penyusunan Dokumen Buku Panduan Pengguna (<em>Manual Book</em>) Sistem Monitoring dan Kontrol Operasional Gorong-Gorong Plantation Group 1 (PG1). Sistem ini dikembangkan sebagai wujud komitmen manajemen PT Great Giant Pineapple dalam mewujudkan transformasi digital operasional perkebunan yang modern, presisi, transparan, dan akuntabel.
   </p>
   <p>
-    Gorong-gorong merupakan infrastruktur vital dalam manajemen tata kelola air (<em>water management</em>) dan sistem drainase perkebunan nanas. Keberhasilan penyaluran, pemasangan yang tepat waktu, serta pemantauan material gorong-gorong pada setiap petak sangat menentukan pencegahan genangan air (<em>waterlogging</em>) yang dapat mengancam kesehatan tanaman dan produktivitas hasil panen. Melalui sistem terintegrasi ini, seluruh pemangku kepentingan—mulai dari Mandor Wilayah di garis depan operasional, Verifikator Field Engineering (FE), Kepala Wilayah, hingga jajaran Manajemen Puncak—diberikan akses real-time terhadap data kebutuhan, pengiriman material, realisasi pemasangan fisik, serta rekonsiliasi data inventori di sistem ERP SAP.
+    Gorong-gorong merupakan infrastruktur vital dalam manajemen tata kelola air (<em>water management</em>) dan sistem drainase perkebunan nanas. Keberhasilan penyaluran, pemasangan yang tepat waktu, serta pemantauan material gorong-gorong pada setiap lokasi sangat menentukan pencegahan genangan air (<em>waterlogging</em>) yang dapat mengancam kesehatan tanaman dan produktivitas hasil panen. Melalui sistem terintegrasi ini, seluruh pemangku kepentingan—mulai dari Mandor Wilayah di garis depan operasional, Verifikator Field Engineering (FE), Kepala Wilayah, hingga jajaran Manajemen Puncak—diberikan akses real-time terhadap data kebutuhan, pengiriman material, realisasi pemasangan fisik, serta rekonsiliasi data inventori di sistem ERP SAP.
   </p>
   <p>
     Buku panduan ini disusun secara runtut dan mendalam guna menjadi rujukan resmi bagi seluruh pengguna sistem. Diharapkan seluruh pengguna dapat memahami fungsi setiap fitur, tata cara penginputan formulir, interpretasi indikator kinerja (KPI), serta tata kelola data master secara disiplin demi tercapainya keunggulan operasional perkebunan secara berkesinambungan.
@@ -369,9 +369,9 @@ const htmlContent = `<!DOCTYPE html>
       <div class="toc-sub"><span>2.2 Card Ringkasan Progres Pemenuhan Per Wilayah (Status Open)</span><span class="toc-dots"></span><span>Hal. 6</span></div>
       <div class="toc-sub"><span>2.3 Visualisasi Grafik Tren Bulanan &amp; Grafik Kinerja Wilayah</span><span class="toc-dots"></span><span>Hal. 7</span></div>
       <div class="toc-sub"><span>2.4 Widget Pemantauan Realisasi Harian (Today's Movement)</span><span class="toc-dots"></span><span>Hal. 8</span></div>
-      <div class="toc-sub"><span>2.5 Panel Filter Dinamis Terpadu &amp; Fitur Quick Search Petak</span><span class="toc-dots"></span><span>Hal. 8</span></div>
+      <div class="toc-sub"><span>2.5 Panel Filter Dinamis Terpadu &amp; Fitur Quick Search Lokasi</span><span class="toc-dots"></span><span>Hal. 8</span></div>
       <div class="toc-sub"><span>2.6 Analisis Komprehensif Tabel Utama List Lokasi Order (54 Kolom)</span><span class="toc-dots"></span><span>Hal. 9</span></div>
-      <div class="toc-sub"><span>2.7 Analisis Tabel Lokasi Belum Order &amp; Kriteria Petak Muncul</span><span class="toc-dots"></span><span>Hal. 12</span></div>
+      <div class="toc-sub"><span>2.7 Analisis Tabel Lokasi Belum Order &amp; Kriteria Lokasi Muncul</span><span class="toc-dots"></span><span>Hal. 12</span></div>
       <div class="toc-sub"><span>2.8 Fitur Ekspor Data Laporan (Excel &amp; PDF Resmi)</span><span class="toc-dots"></span><span>Hal. 13</span></div>
 
       <div class="toc-item" style="margin-top: 8px;"><span class="toc-title">BAB III. CONTROL BOARD GORONG-GORONG (REKONSILIASI SAP)</span><span class="toc-dots"></span><span>Hal. 14</span></div>
@@ -385,7 +385,7 @@ const htmlContent = `<!DOCTYPE html>
       <div class="toc-sub"><span>4.2 Formulir Pengajuan Order Gorong-Gorong Baru</span><span class="toc-dots"></span><span>Hal. 19</span></div>
       <div class="toc-sub"><span>4.3 Formulir Pencatatan Kedatangan Material (Form Drop)</span><span class="toc-dots"></span><span>Hal. 20</span></div>
       <div class="toc-sub"><span>4.4 Formulir Pencatatan Pemasangan Fisik (Form Pasang Manual)</span><span class="toc-dots"></span><span>Hal. 21</span></div>
-      <div class="toc-sub"><span>4.5 Formulir Pemindahan Material Antar Petak (Form Pindah Lokasi)</span><span class="toc-dots"></span><span>Hal. 22</span></div>
+      <div class="toc-sub"><span>4.5 Formulir Pemindahan Material Antar Lokasi (Form Pindah Lokasi)</span><span class="toc-dots"></span><span>Hal. 22</span></div>
       <div class="toc-sub"><span>4.6 Tabel Histori Transaksi Form &amp; Manajemen Koreksi Data</span><span class="toc-dots"></span><span>Hal. 23</span></div>
 
       <div class="toc-item" style="margin-top: 8px;"><span class="toc-title">BAB V. MODUL MASTER DATA TERPADU</span><span class="toc-dots"></span><span>Hal. 24</span></div>
@@ -419,10 +419,10 @@ const htmlContent = `<!DOCTYPE html>
     Kondisi agroklimat di area operasional perkebunan Plantation Group 1 (PG1) memiliki dinamika curah hujan musiman yang tinggi. Salah satu ancaman terbesar terhadap pertumbuhan tanaman nanas adalah fenomena genangan air (<em>waterlogging</em>) pada zona perakaran. Tanaman nanas yang terendam air lebih dari 24 hingga 48 jam akan mengalami penurunan pasokan oksigen tanah secara drastis (anoksia), pembusukan akar, peningkatan kerentanan terhadap jamur patogen <em>Phytophthora nicotianae</em>, hingga penurunan drastis pada bobot buah dan kualitas kemanisan (Brix).
   </p>
   <p>
-    Gorong-gorong beton dengan spesifikasi diameter 40 cm, 60 cm, 80 cm, dan 100 cm berfungsi sebagai saluran pembuang utama (<em>cross-drain</em>) yang melintasi jalan kebun dan tanggul pembatas petak, memastikan aliran air dari saluran tersier dapat dialirkan secara lancar menuju saluran sekunder dan primer tanpa menggenangi lahan produktif. Sebelum sistem digital ini diimplementasikan, pemantauan pengadaan, pengiriman, dan pemasangan gorong-gorong dilakukan secara konvensional melalui formulir manual berbasis kertas dan spreadsheet yang terdesentralisasi di masing-masing wilayah (AW01 sampai AW07).
+    Gorong-gorong beton dengan spesifikasi diameter 40 cm, 60 cm, 80 cm, dan 100 cm berfungsi sebagai saluran pembuang utama (<em>cross-drain</em>) yang melintasi jalan kebun dan tanggul pembatas lokasi, memastikan aliran air dari saluran tersier dapat dialirkan secara lancar menuju saluran sekunder dan primer tanpa menggenangi lahan produktif. Sebelum sistem digital ini diimplementasikan, pemantauan pengadaan, pengiriman, dan pemasangan gorong-gorong dilakukan secara konvensional melalui formulir manual berbasis kertas dan spreadsheet yang terdesentralisasi di masing-masing wilayah (AW01 sampai AW07).
   </p>
   <p>
-    Metode konvensional tersebut menimbulkan berbagai kelemahan operasional yang signifikan, antara lain keterlambatan pendistribusian material gorong-gorong, hilangnya visibilitas atas saldo kebutuhan petak di lapangan, terjadinya deviasi pencatatan antara fisik yang terpasang dengan pemakaian material di sistem Enterprise Resource Planning (ERP SAP), serta kesulitan dalam melakukan audit dan peramalan kebutuhan infrastruktur. Oleh karena itu, Sistem Monitoring Gorong-Gorong PG1 dihadirkan sebagai platform tunggal (<em>single source of truth</em>) yang mengintegrasikan seluruh tahapan manajemen gorong-gorong secara menyeluruh.
+    Metode konvensional tersebut menimbulkan berbagai kelemahan operasional yang signifikan, antara lain keterlambatan pendistribusian material gorong-gorong, hilangnya visibilitas atas saldo kebutuhan lokasi di lapangan, terjadinya deviasi pencatatan antara fisik yang terpasang dengan pemakaian material di sistem Enterprise Resource Planning (ERP SAP), serta kesulitan dalam melakukan audit dan peramalan kebutuhan infrastruktur. Oleh karena itu, Sistem Monitoring Gorong-Gorong PG1 dihadirkan sebagai platform tunggal (<em>single source of truth</em>) yang mengintegrasikan seluruh tahapan manajemen gorong-gorong secara menyeluruh.
   </p>
 
   <h2>1.2 Siklus Hidup Alur Kerja Gorong-Gorong</h2>
@@ -442,21 +442,21 @@ const htmlContent = `<!DOCTYPE html>
     <tbody>
       <tr>
         <td style="text-align: center; font-weight: bold;">1</td>
-        <td><strong>Pengajuan Order (Kebutuhan Petak)</strong></td>
+        <td><strong>Pengajuan Order (Kebutuhan Lokasi)</strong></td>
         <td>Mandor Wilayah / Supervisor AW01–AW07</td>
-        <td>Mandor mengidentifikasi petak yang membutuhkan gorong-gorong lalu menginput pengajuan order pada menu <em>Form Input</em> dengan menentukan jumlah unit per diameter (Dia 40, 60, 80, 100). Sistem mencatat transaksi baru pada tabel <span class="code-inline">MasterDataOrder</span> dan memperbarui saldo kebutuhan di tabel <span class="code-inline">LokasiOrderGorongGorong</span>.</td>
+        <td>Mandor mengidentifikasi lokasi yang membutuhkan gorong-gorong lalu menginput pengajuan order pada menu <em>Form Input</em> dengan menentukan jumlah unit per diameter (Dia 40, 60, 80, 100). Sistem mencatat transaksi baru pada tabel <span class="code-inline">MasterDataOrder</span> dan memperbarui saldo kebutuhan di tabel <span class="code-inline">LokasiOrderGorongGorong</span>.</td>
       </tr>
       <tr>
         <td style="text-align: center; font-weight: bold;">2</td>
         <td><strong>Dropping Material (Kedatangan Lapangan)</strong></td>
         <td>Logistik / Pengemudi Armada / Mandor Penerima</td>
-        <td>Armada mengangkut gorong-gorong dari pabrik pencetakan (<em>precast yard</em>) menuju petak kebun. Mandor mencatat kedatangan unit fisik melalui <em>Form Drop</em>. Sistem mencatat transaksi di tabel <span class="code-inline">MasterDataDrop</span>, meningkatkan realisasi kedatangan, dan menghitung persentase kedatangan (<span class="code-inline">%Kedatangan</span>).</td>
+        <td>Armada mengangkut gorong-gorong dari pabrik pencetakan (<em>precast yard</em>) menuju lokasi kebun. Mandor mencatat kedatangan unit fisik melalui <em>Form Drop</em>. Sistem mencatat transaksi di tabel <span class="code-inline">MasterDataDrop</span>, meningkatkan realisasi kedatangan, dan menghitung persentase kedatangan (<span class="code-inline">%Kedatangan</span>).</td>
       </tr>
       <tr>
         <td style="text-align: center; font-weight: bold;">3</td>
         <td><strong>Pemasangan Fisik (Instalasi Lapangan)</strong></td>
         <td>Mandor Wilayah / Tenaga Kerja Lapangan</td>
-        <td>Gorong-gorong ditanam pada parit jalan atau crossing petak menggunakan alat berat atau tenaga manual. Mandor mencatat realisasi unit terpasang melalui <em>Form Pasang Manual</em>. Sistem mencatat di tabel <span class="code-inline">MasterDataPasangManual</span>, memperbarui kolom realisasi pasang, serta menghitung saldo sisa yang belum terpasang.</td>
+        <td>Gorong-gorong ditanam pada parit jalan atau crossing lokasi menggunakan alat berat atau tenaga manual. Mandor mencatat realisasi unit terpasang melalui <em>Form Pasang Manual</em>. Sistem mencatat di tabel <span class="code-inline">MasterDataPasangManual</span>, memperbarui kolom realisasi pasang, serta menghitung saldo sisa yang belum terpasang.</td>
       </tr>
       <tr>
         <td style="text-align: center; font-weight: bold;">4</td>
@@ -503,8 +503,8 @@ const htmlContent = `<!DOCTYPE html>
       <tr>
         <td><strong>Mandor Wilayah (User Wilayah)</strong></td>
         <td>Terkunci Khusus pada 1 Wilayah (misal: AW01 saja)</td>
-        <td>Form Input (Order, Drop, Pasang Manual, Pindah Lokasi khusus petak di wilayah tugasnya).</td>
-        <td>Pelaporan transaksi lapangan harian, pengajuan order gorong-gorong, konfirmasi kedatangan unit di petak, dan pencatatan hasil kerja harian.</td>
+        <td>Form Input (Order, Drop, Pasang Manual, Pindah Lokasi khusus lokasi di wilayah tugasnya).</td>
+        <td>Pelaporan transaksi lapangan harian, pengajuan order gorong-gorong, konfirmasi kedatangan unit di lokasi, dan pencatatan hasil kerja harian.</td>
       </tr>
       <tr>
         <td><strong>TK Verifikator FE</strong></td>
@@ -540,21 +540,21 @@ const htmlContent = `<!DOCTYPE html>
   <div class="feature-card">
     <div class="feature-title">1. Total Lokasi Order &amp; Total Belum Order</div>
     <p class="no-indent">
-      Menampilkan jumlah petak lokasi kebun yang telah memiliki dokumen pengajuan order aktif dalam sistem, berdampingan dengan jumlah petak yang teridentifikasi memiliki kerentanan genangan air atau kebutuhan teknis drainase namun belum memiliki pengajuan order resmi (<em>Belum Order</em>).
+      Menampilkan jumlah lokasi kebun yang telah memiliki dokumen pengajuan order aktif dalam sistem, berdampingan dengan jumlah lokasi yang teridentifikasi memiliki kerentanan genangan air atau kebutuhan teknis drainase namun belum memiliki pengajuan order resmi (<em>Belum Order</em>).
     </p>
   </div>
 
   <div class="feature-card">
     <div class="feature-title">2. Total Kebutuhan Unit (Dia 40, 60, 80, 100 cm)</div>
     <p class="no-indent">
-      Mengakumulasikan seluruh kuantitas unit gorong-gorong yang diminta dari formulir pengajuan order di seluruh petak terpilih. Metrik ini dipecah ke dalam empat diameter teknis standar: Diameter 40 cm (aliran debit kecil/tersier), Diameter 60 cm (saluran sedang), Diameter 80 cm (saluran utama petak), dan Diameter 100 cm (saluran pembuang primer/gorong-gorong induk jalan utama).
+      Mengakumulasikan seluruh kuantitas unit gorong-gorong yang diminta dari formulir pengajuan order di seluruh lokasi terpilih. Metrik ini dipecah ke dalam empat diameter teknis standar: Diameter 40 cm (aliran debit kecil/tersier), Diameter 60 cm (saluran sedang), Diameter 80 cm (saluran utama lokasi), dan Diameter 100 cm (saluran pembuang primer/gorong-gorong induk jalan utama).
     </p>
   </div>
 
   <div class="feature-card">
     <div class="feature-title">3. Total Realisasi Kedatangan (Dropping) &amp; Persentase Kedatangan (%Kedatangan)</div>
     <p class="no-indent">
-      Menghitung akumulasi fisik gorong-gorong yang telah berhasil dikirimkan dan tiba di petak kebun berdasarkan rekam data Form Drop. Persentase Kedatangan dihitung dengan rumus:
+      Menghitung akumulasi fisik gorong-gorong yang telah berhasil dikirimkan dan tiba di lokasi kebun berdasarkan rekam data Form Drop. Persentase Kedatangan dihitung dengan rumus:
       <br>
       <span class="code-inline" style="display: block; margin: 4px 0; text-align: center; font-weight: bold;">
         %Kedatangan = (Total Realisasi Dropping / Total Permintaan Kebutuhan) × 100%
@@ -580,15 +580,15 @@ const htmlContent = `<!DOCTYPE html>
     Tepat di bawah deretan KPI utama, terdapat panel <strong>Ringkasan Per Wilayah</strong> yang menampilkan kartu individual untuk masing-masing wilayah kerja: AW01, AW02, AW03, AW04, AW05, AW06, dan AW07. Setiap kartu wilayah merangkum:
   </p>
   <ul>
-    <li><strong>Jumlah Petak Aktif:</strong> Total petak lokasi di wilayah tersebut yang memiliki status operasional <em>Open</em>.</li>
-    <li><strong>%Kedatangan Wilayah:</strong> Rasio total dropping terhadap kebutuhan khusus untuk petak berstatus <em>Open</em> di wilayah tersebut.</li>
-    <li><strong>%Terpasang Wilayah:</strong> Rasio total unit terpasang terhadap kebutuhan khusus untuk petak berstatus <em>Open</em> di wilayah tersebut.</li>
+    <li><strong>Jumlah Lokasi Aktif:</strong> Total lokasi di wilayah tersebut yang memiliki status operasional <em>Open</em>.</li>
+    <li><strong>%Kedatangan Wilayah:</strong> Rasio total dropping terhadap kebutuhan khusus untuk lokasi berstatus <em>Open</em> di wilayah tersebut.</li>
+    <li><strong>%Terpasang Wilayah:</strong> Rasio total unit terpasang terhadap kebutuhan khusus untuk lokasi berstatus <em>Open</em> di wilayah tersebut.</li>
     <li><strong>Badge Status Kinerja:</strong> Label warna otomatis yang menunjukkan tingkat kesehatan progres operasional wilayah (<em>On Track</em>, <em>Moderate</em>, atau <em>Delayed</em>).</li>
   </ul>
 
   <div class="alert-box">
     <div class="alert-title">Catatan Khusus Desain Logika Perhitungan (Pembaruan Sistem):</div>
-    Persentase kedatangan dan persentase terpasang pada Card Ringkasan Per Wilayah telah diselaraskan secara matematis hanya menghitung petak-petak yang berstatus <strong>Open</strong> (aktif berjalan). Petak yang telah berstatus <em>Close</em> (selesai masa tanam atau ditutup secara administratif) tidak lagi membebani persentase berjalan. Nilai persentase ini identik dan selaras 100% dengan visualisasi pada Grafik Batang Pemenuhan per Wilayah.
+    Persentase kedatangan dan persentase terpasang pada Card Ringkasan Per Wilayah telah diselaraskan secara matematis hanya menghitung lokasi-lokasi yang berstatus <strong>Open</strong> (aktif berjalan). Lokasi yang telah berstatus <em>Close</em> (selesai masa tanam atau ditutup secara administratif) tidak lagi membebani persentase berjalan. Nilai persentase ini identik dan selaras 100% dengan visualisasi pada Grafik Batang Pemenuhan per Wilayah.
   </div>
 
   <h2>2.3 Visualisasi Grafik Tren Bulanan &amp; Grafik Kinerja Wilayah</h2>
@@ -606,27 +606,27 @@ const htmlContent = `<!DOCTYPE html>
 
   <h2>2.4 Widget Pemantauan Realisasi Harian (Today's Movement)</h2>
   <p>
-    Widget ini berfungsi sebagai monitor harian (<em>daily log ticker</em>) yang mencatat pergerakan transaksi dropping dan pemasangan yang terjadi pada hari kerja berjalan. Informasi yang disajikan meliputi nomor petak yang menerima drop gorong-gorong hari ini, volume per diameter, identitas mandor pelaksana, serta sisa antrean pemasangan yang harus diselesaikan keesokan harinya.
+    Widget ini berfungsi sebagai monitor harian (<em>daily log ticker</em>) yang mencatat pergerakan transaksi dropping dan pemasangan yang terjadi pada hari kerja berjalan. Informasi yang disajikan meliputi nomor lokasi yang menerima drop gorong-gorong hari ini, volume per diameter, identitas mandor pelaksana, serta sisa antrean pemasangan yang harus diselesaikan keesokan harinya.
   </p>
 
   <h2>2.5 Panel Filter Dinamis Terpadu &amp; Fitur Quick Search</h2>
   <p>
-    Untuk memudahkan navigasi ribuan data petak kebun di seluruh PG1, disediakan panel penyaring (<em>Filter Bar</em>) dengan parameter:
+    Untuk memudahkan navigasi ribuan data lokasi kebun di seluruh PG1, disediakan panel penyaring (<em>Filter Bar</em>) dengan parameter:
   </p>
   <ul>
     <li><strong>Filter Tahun:</strong> Memilih tahun anggaran atau tahun tanam operasional (misal: 2024, 2025, 2026).</li>
     <li><strong>Filter Bulan:</strong> Mempersempit pantauan pada bulan tertentu atau memilih opsi <em>Semua Bulan</em>.</li>
     <li><strong>Filter Wilayah:</strong> Menyaring data spesifik untuk satu wilayah kerja (AW01 sampai AW07) atau menampilkan agregat seluruh wilayah PG1.</li>
-    <li><strong>Filter Status Lokasi:</strong> Memfilter petak berdasarkan status operasional: <em>Semua</em>, <em>Open</em> (masih dalam siklus tanam/aktif), atau <em>Close</em> (petak selesai).</li>
-    <li><strong>Filter Status Dropping:</strong> Menyaring petak dengan status <em>Belum Drop</em>, <em>Sebagian (On Progress)</em>, atau <em>Selesai Drop (Complete)</em>.</li>
-    <li><strong>Filter Status Pasang:</strong> Menyaring petak dengan status <em>Belum Pasang</em>, <em>Sebagian Terpasang</em>, atau <em>Tuntas Terpasang</em>.</li>
-    <li><strong>Kotak Pencarian Cepat (Quick Search):</strong> Memungkinkan pencarian instan berdasarkan kode petak lokasi (misal: <span class="code-inline">101A</span>, <span class="code-inline">204B</span>) dengan respon instan tanpa perlu memuat ulang seluruh halaman.</li>
+    <li><strong>Filter Status Lokasi:</strong> Memfilter lokasi berdasarkan status operasional: <em>Semua</em>, <em>Open</em> (masih dalam siklus tanam/aktif), atau <em>Close</em> (lokasi selesai).</li>
+    <li><strong>Filter Status Dropping:</strong> Menyaring lokasi dengan status <em>Belum Drop</em>, <em>Sebagian (On Progress)</em>, atau <em>Selesai Drop (Complete)</em>.</li>
+    <li><strong>Filter Status Pasang:</strong> Menyaring lokasi dengan status <em>Belum Pasang</em>, <em>Sebagian Terpasang</em>, atau <em>Tuntas Terpasang</em>.</li>
+    <li><strong>Kotak Pencarian Cepat (Quick Search):</strong> Memungkinkan pencarian instan berdasarkan kode lokasi (misal: <span class="code-inline">101A</span>, <span class="code-inline">204B</span>) dengan respon instan tanpa perlu memuat ulang seluruh halaman.</li>
     <li><strong>Tombol Reset Filter:</strong> Mengembalikan seluruh pengaturan filter ke kondisi default (Tahun berjalan, Semua Wilayah, Status Open).</li>
   </ul>
 
   <h2>2.6 Analisis Komprehensif Tabel Utama List Lokasi Order (54 Kolom Lengkap)</h2>
   <p>
-    Tabel utama <strong>List Lokasi Order Gorong-Gorong</strong> merupakan jantung operasional sistem yang merangkum 54 kolom atribut data komprehensif untuk setiap petak kebun. Struktur kolom disusun ke dalam beberapa blok data logis:
+    Tabel utama <strong>List Lokasi Order Gorong-Gorong</strong> merupakan jantung operasional sistem yang merangkum 54 kolom atribut data komprehensif untuk setiap lokasi kebun. Struktur kolom disusun ke dalam beberapa blok data logis:
   </p>
 
   <table>
@@ -641,12 +641,12 @@ const htmlContent = `<!DOCTYPE html>
       <tr>
         <td><strong>1. Identitas Lokasi</strong></td>
         <td>No, Lokasi, Wilayah, Afdeling, Luas (Ha), Status Lahan, Varietas Tanaman.</td>
-        <td>Mengidentifikasi identitas geografis petak kebun bersumber dari Master Status Lokasi. Nama lokasi dapat diklik untuk membuka <em>Drawer Rincian Lokasi</em>.</td>
+        <td>Mengidentifikasi identitas geografis lokasi kebun bersumber dari Master Status Lokasi. Nama lokasi dapat diklik untuk membuka <em>Drawer Rincian Lokasi</em>.</td>
       </tr>
       <tr>
         <td><strong>2. Parameter Agronomi</strong></td>
         <td>Tgl Tanam Terakhir, Umur Tanaman (Bulan), Rencana Forcing, Rencana Panen, Kategori Waterlogging.</td>
-        <td>Menampilkan fase pertumbuhan tanaman saat ini. Kategori Waterlogging (High/Medium/Low) menandakan urgensi penanganan drainase di petak terkait.</td>
+        <td>Menampilkan fase pertumbuhan tanaman saat ini. Kategori Waterlogging (High/Medium/Low) menandakan urgensi penanganan drainase di lokasi terkait.</td>
       </tr>
       <tr>
         <td><strong>3. Permintaan Kebutuhan</strong></td>
@@ -656,7 +656,7 @@ const htmlContent = `<!DOCTYPE html>
       <tr>
         <td><strong>4. Realisasi Kedatangan (Drop)</strong></td>
         <td>Drop Dia 40, Drop Dia 60, Drop Dia 80, Drop Dia 100, Total Realisasi Kedatangan, Tgl Terakhir Drop.</td>
-        <td>Akumulasi fisik gorong-gorong yang telah tiba di petak dari seluruh rekam transaksi Form Drop. Tanggal Terakhir Drop mencatat waktu dropping paling mutakhir.</td>
+        <td>Akumulasi fisik gorong-gorong yang telah tiba di lokasi dari seluruh rekam transaksi Form Drop. Tanggal Terakhir Drop mencatat waktu dropping paling mutakhir.</td>
       </tr>
       <tr>
         <td><strong>5. Realisasi Pemasangan (Pasang)</strong></td>
@@ -673,29 +673,29 @@ const htmlContent = `<!DOCTYPE html>
       </tr>
       <tr>
         <td><strong>7. Analisis Deviasi &amp; Progres</strong></td>
-        <td>Deviasi Kedatangan, Deviasi Pemasangan, %Kedatangan, %Terpasang, Status Akhir Petak.</td>
+        <td>Deviasi Kedatangan, Deviasi Pemasangan, %Kedatangan, %Terpasang, Status Akhir Lokasi.</td>
         <td>
           <span class="code-inline">Deviasi Drop = Total Drop - Total Permintaan</span><br>
           <span class="code-inline">Deviasi Pasang = Total Pasang - Total Permintaan</span><br>
-          Nilai negatif menunjukkan kekurangan pasokan/pasang; nilai 0 menunjukkan pemenuhan tepat; nilai positif menandakan kelebihan stok di petak.
+          Nilai negatif menunjukkan kekurangan pasokan/pasang; nilai 0 menunjukkan pemenuhan tepat; nilai positif menandakan kelebihan stok di lokasi.
         </td>
       </tr>
       <tr>
         <td><strong>8. Aksi Operasional</strong></td>
         <td>Tombol Drop Cepat, Pasang Cepat, Pindah Lokasi, dan Riwayat Transaksi.</td>
-        <td>Memberikan jalan pintas bagi pengguna berwenang untuk melakukan pencatatan transaksi langsung dari baris tabel petak yang bersangkutan.</td>
+        <td>Memberikan jalan pintas bagi pengguna berwenang untuk melakukan pencatatan transaksi langsung dari baris tabel lokasi yang bersangkutan.</td>
       </tr>
     </tbody>
   </table>
 
   <h2>2.7 Analisis Tabel Lokasi Belum Order</h2>
   <p>
-    Tabel <strong>Lokasi Belum Order</strong> menampilkan daftar petak kebun yang menurut analisis teknis lapangan memerlukan instalasi saluran drainase gorong-gorong, namun hingga saat ini belum memiliki pengajuan order resmi di sistem. Kriteria petak yang muncul pada tabel ini adalah:
+    Tabel <strong>Lokasi Belum Order</strong> menampilkan daftar lokasi kebun yang menurut analisis teknis lapangan memerlukan instalasi saluran drainase gorong-gorong, namun hingga saat ini belum memiliki pengajuan order resmi di sistem. Kriteria lokasi yang muncul pada tabel ini adalah:
   </p>
   <ol>
-    <li>Petak memiliki riwayat kerentanan pada tabel <em>Master Waterlogging</em> (klasifikasi risiko High atau Medium).</li>
-    <li>Petak sedang berada pada fase persiapan tanam (<em>land preparation</em>) atau berumur tanaman muda (&lt; 3 bulan setelah tanam) yang belum terpasang gorong-gorong permanen.</li>
-    <li>Petak belum tercatat pada basis data pengajuan order berjalan di tahun bersangkutan.</li>
+    <li>Lokasi memiliki riwayat kerentanan pada tabel <em>Master Waterlogging</em> (klasifikasi risiko High atau Medium).</li>
+    <li>Lokasi sedang berada pada fase persiapan tanam (<em>land preparation</em>) atau berumur tanaman muda (&lt; 3 bulan setelah tanam) yang belum terpasang gorong-gorong permanen.</li>
+    <li>Lokasi belum tercatat pada basis data pengajuan order berjalan di tahun bersangkutan.</li>
   </ol>
   <p>
     Melalui tabel ini, Supervisor dan Kepala Wilayah dapat segera memerintahkan Mandor untuk melakukan survei lapangan dan mengajukan order kebutuhan gorong-gorong sebelum genangan air merusak tanaman di musim penghujan.
@@ -710,7 +710,7 @@ const htmlContent = `<!DOCTYPE html>
       <strong>Ekspor ke Excel (.xlsx):</strong> Menghasilkan berkas spreadsheet lengkap dengan format sel yang telah dikonfigurasi rapi, formula otomatis, judul kolom profesional, dan menyertakan seluruh 54 kolom data sesuai filter aktif yang sedang diterapkan oleh pengguna.
     </li>
     <li>
-      <strong>Ekspor ke PDF Resmi (.pdf):</strong> Menghasilkan berkas cetak siap pakai (<em>print-ready</em>) yang memuat kop surat resmi perusahaan, ringkasan KPI, grafik pemenuhan wilayah, serta tabel rekapitulasi data petak yang dilengkapi dengan tanda tangan persetujuan pejabat berwenang.
+      <strong>Ekspor ke PDF Resmi (.pdf):</strong> Menghasilkan berkas cetak siap pakai (<em>print-ready</em>) yang memuat kop surat resmi perusahaan, ringkasan KPI, grafik pemenuhan wilayah, serta tabel rekapitulasi data lokasi yang dilengkapi dengan tanda tangan persetujuan pejabat berwenang.
     </li>
   </ul>
 
@@ -725,7 +725,7 @@ const htmlContent = `<!DOCTYPE html>
 
   <h2>3.1 Konsep Rekonsiliasi Realisasi Fisik Lapangan vs SAP ERP</h2>
   <p>
-    Dalam tata kelola aset dan biaya operasional perkebunan berskala industri, keselarasan antara barang fisik yang terpasang di lapangan dengan pencatatan pembukuan material pada sistem Enterprise Resource Planning (ERP SAP) merupakan kewajiban audit yang mutlak. Ketidaksesuaian antara kedua sumber data tersebut dapat mengakibatkan selisih saldo inventori persediaan (<em>inventory discrepancy</em>), ketidakakuratan pembebanan biaya pemeliharaan petak (<em>cost center allocation</em>), serta risiko penyalahgunaan aset material.
+    Dalam tata kelola aset dan biaya operasional perkebunan berskala industri, keselarasan antara barang fisik yang terpasang di lapangan dengan pencatatan pembukuan material pada sistem Enterprise Resource Planning (ERP SAP) merupakan kewajiban audit yang mutlak. Ketidaksesuaian antara kedua sumber data tersebut dapat mengakibatkan selisih saldo inventori persediaan (<em>inventory discrepancy</em>), ketidakakuratan pembebanan biaya pemeliharaan lokasi (<em>cost center allocation</em>), serta risiko penyalahgunaan aset material.
   </p>
   <p>
     Modul <strong>Control Board Gorong-Gorong</strong> dirancang khusus sebagai alat audit dan verifikasi harian (<em>cross-verification engine</em>) yang secara otomatis membandingkan data pemasangan fisik yang dicatat oleh Mandor di lapangan dengan data pengeluaran material (<em>Goods Issue</em>) yang tercatat pada sistem SAP perusahaan.
@@ -739,12 +739,12 @@ const htmlContent = `<!DOCTYPE html>
     <li><strong>Total Unit Terpasang Fisik Lapangan:</strong> Akumulasi unit gorong-gorong yang dilaporkan terpasang oleh tim operasional kebun pada bulan terpilih.</li>
     <li><strong>Total Unit Pengeluaran SAP ERP:</strong> Akumulasi unit gorong-gorong yang telah terbit dokumen pemakaian materialnya di SAP pada bulan terpilih.</li>
     <li><strong>Total Selisih (Deviasi):</strong> Selisih mutlak antara angka fisik lapangan dikurangi angka pencatatan SAP. Nilai deviasi 0 (nol) menunjukkan kondisi ideal (<em>perfect reconciliation</em>).</li>
-    <li><strong>Rasio Keselarasan (%Match Ratio):</strong> Persentase jumlah transaksi petak yang telah berstatus selaras sempurna (Match) terhadap total populasi petak yang dievaluasi.</li>
+    <li><strong>Rasio Keselarasan (%Match Ratio):</strong> Persentase jumlah transaksi lokasi yang telah berstatus selaras sempurna (Match) terhadap total populasi lokasi yang dievaluasi.</li>
   </ul>
 
   <h2>3.3 Tabel Verifikasi 3-Tier Merged (Status Match vs Check)</h2>
   <p>
-    Tabel verifikasi pada Control Board mengadopsi struktur tampilan berlapis tiga tingkat (<em>3-Tier Merged Table</em>) yang mengelompokkan data berdasarkan Tanggal Transaksi, Wilayah Operasional, Kode Petak Lokasi, dan Rincian Diameter Gorong-Gorong. Setiap baris data verifikasi memiliki status hasil audit otomatis:
+    Tabel verifikasi pada Control Board mengadopsi struktur tampilan berlapis tiga tingkat (<em>3-Tier Merged Table</em>) yang mengelompokkan data berdasarkan Tanggal Transaksi, Wilayah Operasional, kode lokasi, dan Rincian Diameter Gorong-Gorong. Setiap baris data verifikasi memiliki status hasil audit otomatis:
   </p>
 
   <table>
@@ -760,7 +760,7 @@ const htmlContent = `<!DOCTYPE html>
       <tr>
         <td><strong style="color: #064e3b;">MATCH</strong></td>
         <td>Badge Hijau Segar (<span class="code-inline">bg-emerald-100 text-emerald-800</span>)</td>
-        <td>Kuantitas fisik gorong-gorong yang terpasang di petak sama persis (identik 100%) dengan jumlah unit pengeluaran material di SAP untuk diameter yang bersangkutan.</td>
+        <td>Kuantitas fisik gorong-gorong yang terpasang di lokasi sama persis (identik 100%) dengan jumlah unit pengeluaran material di SAP untuk diameter yang bersangkutan.</td>
         <td>Transaksi terverifikasi tuntas. Data dikunci dan siap dilaporkan ke dalam laporan bulanan manajemen agrikultur.</td>
       </tr>
       <tr>
@@ -778,10 +778,10 @@ const htmlContent = `<!DOCTYPE html>
   </p>
   <ol>
     <li>
-      <strong>Kondisi Fisik Lebih Besar dari SAP (Fisik &gt; SAP):</strong> Menandakan material gorong-gorong telah dipasang oleh mandor di lapangan, namun dokumen pengeluaran material (reservasi barang di SAP) belum diterbitkan oleh bagian administrasi gudang. Tindak lanjut: Staf administrasi segera memproses dokumen <em>Goods Issue</em> di SAP sesuai nomor petak terkait.
+      <strong>Kondisi Fisik Lebih Besar dari SAP (Fisik &gt; SAP):</strong> Menandakan material gorong-gorong telah dipasang oleh mandor di lapangan, namun dokumen pengeluaran material (reservasi barang di SAP) belum diterbitkan oleh bagian administrasi gudang. Tindak lanjut: Staf administrasi segera memproses dokumen <em>Goods Issue</em> di SAP sesuai nomor lokasi terkait.
     </li>
     <li>
-      <strong>Kondisi SAP Lebih Besar dari Fisik (SAP &gt; Fisik):</strong> Menandakan material telah dikeluarkan dari gudang secara sistem, namun belum selesai dipasang di petak oleh tenaga kerja, atau terjadi kesalahan penginputan nomor petak saat reservasi di SAP. Tindak lanjut: Verifikator FE melakukan cek fisik ke petak untuk memastikan apakah gorong-gorong masih menumpuk di tepi jalan kebun (belum tertanam) atau dialihkan ke petak lain tanpa pelaporan.
+      <strong>Kondisi SAP Lebih Besar dari Fisik (SAP &gt; Fisik):</strong> Menandakan material telah dikeluarkan dari gudang secara sistem, namun belum selesai dipasang di lokasi oleh tenaga kerja, atau terjadi kesalahan penginputan nomor lokasi saat reservasi di SAP. Tindak lanjut: Verifikator FE melakukan cek fisik ke lokasi untuk memastikan apakah gorong-gorong masih menumpuk di tepi jalan kebun (belum tertanam) atau dialihkan ke lokasi lain tanpa pelaporan.
     </li>
     <li>
       <strong>Koreksi Data:</strong> Setelah akar permasalahan teridentifikasi, pembaruan data dapat dilakukan melalui unggahan revisi SAP atau pembaruan formulir transaksi di portal.
@@ -799,53 +799,53 @@ const htmlContent = `<!DOCTYPE html>
 
   <h2>4.1 Antarmuka Form Input Multi-Lokasi &amp; Validasi Wilayah</h2>
   <p>
-    Menu <strong>Form Input</strong> merupakan pintu gerbang pencatatan transaksi harian yang digunakan oleh para Mandor Wilayah di perkebunan. Untuk memaksimalkan efisiensi kerja pengguna di lapangan, sistem dirancang dengan konsep <em>Multi-Lokasi Slot</em> (default 3 slot pengisian sekaligus), sehingga mandor dapat melaporkan transaksi untuk beberapa petak kebun yang dikerjakan pada hari yang sama hanya dalam satu kali proses penyimpanan data.
+    Menu <strong>Form Input</strong> merupakan pintu gerbang pencatatan transaksi harian yang digunakan oleh para Mandor Wilayah di perkebunan. Untuk memaksimalkan efisiensi kerja pengguna di lapangan, sistem dirancang dengan konsep <em>Multi-Lokasi Slot</em> (default 3 slot pengisian sekaligus), sehingga mandor dapat melaporkan transaksi untuk beberapa lokasi kebun yang dikerjakan pada hari yang sama hanya dalam satu kali proses penyimpanan data.
   </p>
   <p>
-    Sistem menerapkan proteksi wilayah kerja otomatis: bagi akun dengan peran <em>Mandor Wilayah</em>, kotak pemilihan lokasi hanya menampilkan daftar petak yang berada di bawah wilayah penugasannya (<span class="code-inline">assignedWilayah</span>), dan kotak input wilayah akan terkunci secara otomatis. Hal ini mencegah terjadinya kesalahan input petak milik wilayah lain.
+    Sistem menerapkan proteksi wilayah kerja otomatis: bagi akun dengan peran <em>Mandor Wilayah</em>, kotak pemilihan lokasi hanya menampilkan daftar lokasi yang berada di bawah wilayah penugasannya (<span class="code-inline">assignedWilayah</span>), dan kotak input wilayah akan terkunci secara otomatis. Hal ini mencegah terjadinya kesalahan input lokasi milik wilayah lain.
   </p>
 
   <h2>4.2 Formulir Pengajuan Order Gorong-Gorong Baru</h2>
   <p>
-    Digunakan saat mandor merencanakan kebutuhan pemasangan gorong-gorong baru pada petak kebun. Langkah-langkah penginputan:
+    Digunakan saat mandor merencanakan kebutuhan pemasangan gorong-gorong baru pada lokasi kebun. Langkah-langkah penginputan:
   </p>
   <ol>
     <li>Buka tab <strong>Form Input</strong> pada navigasi utama, lalu pilih jenis transaksi: <strong>Order</strong>.</li>
     <li>Pilih <strong>Tanggal Pengajuan Order</strong> menggunakan pop-up kalender interaktif.</li>
-    <li>Pada <strong>Slot Lokasi 1</strong>, pilih kode petak lokasi kebun dari menu tarik-turun (<em>dropdown</em>). Sistem secara otomatis mengisi nama wilayah yang sesuai.</li>
+    <li>Pada <strong>Slot Lokasi 1</strong>, pilih kode lokasi kebun dari menu tarik-turun (<em>dropdown</em>). Sistem secara otomatis mengisi nama wilayah yang sesuai.</li>
     <li>Masukkan kuantitas unit yang dibutuhkan pada masing-masing kotak diameter teknis: <strong>Dia 40</strong>, <strong>Dia 60</strong>, <strong>Dia 80</strong>, dan/atau <strong>Dia 100</strong>. Jika suatu diameter tidak dibutuhkan, biarkan bernilai 0 (nol).</li>
-    <li>Jika terdapat petak lain yang ingin diajukan bersamaan, isi pada <strong>Slot Lokasi 2</strong> dan <strong>Slot Lokasi 3</strong>, atau klik tombol <em>Tambah Baris Lokasi</em>.</li>
-    <li>Tuliskan catatan teknis pada kolom <strong>Keterangan</strong> (misal: "Kebutuhan perbaikan saluran crossing jalan utama petak").</li>
-    <li>Klik tombol <strong>Simpan Transaksi Order</strong>. Sistem akan menyimpan baris transaksi baru pada tabel <span class="code-inline">MasterDataOrder</span> dan memperbarui saldo kebutuhan petak di tabel <span class="code-inline">LokasiOrderGorongGorong</span> secara instan tanpa menimpa data yang telah ada sebelumnya.</li>
+    <li>Jika terdapat lokasi lain yang ingin diajukan bersamaan, isi pada <strong>Slot Lokasi 2</strong> dan <strong>Slot Lokasi 3</strong>, atau klik tombol <em>Tambah Baris Lokasi</em>.</li>
+    <li>Tuliskan catatan teknis pada kolom <strong>Keterangan</strong> (misal: "Kebutuhan perbaikan saluran crossing jalan utama lokasi").</li>
+    <li>Klik tombol <strong>Simpan Transaksi Order</strong>. Sistem akan menyimpan baris transaksi baru pada tabel <span class="code-inline">MasterDataOrder</span> dan memperbarui saldo kebutuhan lokasi di tabel <span class="code-inline">LokasiOrderGorongGorong</span> secara instan tanpa menimpa data yang telah ada sebelumnya.</li>
   </ol>
 
   <h2>4.3 Formulir Pencatatan Kedatangan Material (Form Drop)</h2>
   <p>
-    Digunakan saat material gorong-gorong beton tiba di lokasi petak kebun yang diangkut oleh armada truk atau traktor:
+    Digunakan saat material gorong-gorong beton tiba di lokasi lokasi kebun yang diangkut oleh armada truk atau traktor:
   </p>
   <ol>
     <li>Pilih jenis transaksi: <strong>Drop</strong> pada Form Input.</li>
-    <li>Tentukan tanggal kedatangan material dan pilih kode petak lokasi yang menerima penurunan gorong-gorong.</li>
+    <li>Tentukan tanggal kedatangan material dan pilih kode lokasi yang menerima penurunan gorong-gorong.</li>
     <li>Ketikkan jumlah unit fisik yang berhasil diturunkan pada masing-masing kotak diameter (Dia 40, 60, 80, 100).</li>
-    <li>Sistem secara otomatis melakukan validasi: jika jumlah drop melebihi sisa kebutuhan order petak, sistem akan memunculkan notifikasi peringatan (<em>warning confirmation</em>) untuk memastikan tidak ada kesalahan input nomor petak.</li>
-    <li>Klik tombol <strong>Simpan Transaksi Drop</strong>. Sistem mencatat rekam baru di <span class="code-inline">MasterDataDrop</span>, meningkatkan akumulasi drop di petak terkait, dan menghitung ulang saldo kebutuhan yang belum tiba.</li>
+    <li>Sistem secara otomatis melakukan validasi: jika jumlah drop melebihi sisa kebutuhan order lokasi, sistem akan memunculkan notifikasi peringatan (<em>warning confirmation</em>) untuk memastikan tidak ada kesalahan input nomor lokasi.</li>
+    <li>Klik tombol <strong>Simpan Transaksi Drop</strong>. Sistem mencatat rekam baru di <span class="code-inline">MasterDataDrop</span>, meningkatkan akumulasi drop di lokasi terkait, dan menghitung ulang saldo kebutuhan yang belum tiba.</li>
   </ol>
 
   <h2>4.4 Formulir Pencatatan Pemasangan Fisik (Form Pasang Manual)</h2>
   <p>
-    Digunakan saat gorong-gorong yang telah berada di petak selesai ditanam dan dipasang pada saluran drainase:
+    Digunakan saat gorong-gorong yang telah berada di lokasi selesai ditanam dan dipasang pada saluran drainase:
   </p>
   <ol>
     <li>Pilih jenis transaksi: <strong>Pasang Manual</strong> pada Form Input.</li>
     <li>Tentukan tanggal pelaksanaan pemasangan fisik di lapangan.</li>
-    <li>Pilih kode petak lokasi kebun tempat gorong-gorong dipasang.</li>
+    <li>Pilih kode lokasi kebun tempat gorong-gorong dipasang.</li>
     <li>Masukkan kuantitas unit yang telah tuntas terpasang berdasarkan masing-masing diameter teknis.</li>
     <li>Klik tombol <strong>Simpan Transaksi Pasang</strong>. Sistem akan mencatat transaksi di tabel <span class="code-inline">MasterDataPasangManual</span>, menambahkan nilai pada kolom realisasi pasang di tabel utama monitoring, serta mengurangi saldo unit yang belum terpasang.</li>
   </ol>
 
-  <h2>4.5 Formulir Pemindahan Material Antar Petak (Form Pindah Lokasi)</h2>
+  <h2>4.5 Formulir Pemindahan Material Antar Lokasi (Form Pindah Lokasi)</h2>
   <p>
-    Dalam dinamika operasional perkebunan, seringkali terjadi kondisi darurat di mana suatu petak kelebihan stok material dropping, sementara petak lain yang berdekatan mengalami kekurangan gorong-gorong dan harus segera ditangani. Fitur <strong>Form Pindah Lokasi</strong> hadir untuk mencatat relokasi material antar petak:
+    Dalam dinamika operasional perkebunan, seringkali terjadi kondisi darurat di mana suatu lokasi kelebihan stok material dropping, sementara lokasi lain yang berdekatan mengalami kekurangan gorong-gorong dan harus segera ditangani. Fitur <strong>Form Pindah Lokasi</strong> hadir untuk mencatat relokasi material antar lokasi:
   </p>
   <ul>
     <li>
@@ -855,8 +855,8 @@ const htmlContent = `<!DOCTYPE html>
       <strong>Mekanisme Buku Besar Real-Time:</strong> Saat disimpan, sistem secara otomatis:
       <ol>
         <li>Mencatat baris mutasi resmi pada tabel <span class="code-inline">MasterDataPindahLokasi</span>.</li>
-        <li>Mengurangi angka saldo/dropping pada petak pengirim sebesar jumlah unit yang dipindahkan.</li>
-        <li>Menambah angka dropping pada petak penerima sebesar jumlah unit yang sama.</li>
+        <li>Mengurangi angka saldo/dropping pada lokasi pengirim sebesar jumlah unit yang dipindahkan.</li>
+        <li>Menambah angka dropping pada lokasi penerima sebesar jumlah unit yang sama.</li>
       </ol>
     </li>
     <li>Dengan demikian, integritas total saldo fisik gorong-gorong di seluruh perkebunan tetap seimbang dan terlacak secara akurat (<em>audit trail</em>).</li>
@@ -878,14 +878,14 @@ const htmlContent = `<!DOCTYPE html>
 
   <h2>5.1 Master Status Lokasi &amp; Prosedur Upload Excel Massal</h2>
   <p>
-    Sub-menu <strong>Master Status Lokasi</strong> memuat basis data induk seluruh petak lahan yang ada di wilayah kerja PG1. Setiap baris data memuat atribut profil komprehensif, antara lain: Kode Lokasi, Wilayah Kerja, Afdeling, Luas Netto (Hektar), Status Siklus Lahan, Varietas Tanaman Nanas, Tanggal Tanam Terakhir, Umur Tanaman Berjalan, Estimasi Tanggal Forcing (Induksi Pembungaan), dan Estimasi Tanggal Panen.
+    Sub-menu <strong>Master Status Lokasi</strong> memuat basis data induk seluruh lokasi lahan yang ada di wilayah kerja PG1. Setiap baris data memuat atribut profil komprehensif, antara lain: Kode Lokasi, Wilayah Kerja, Afdeling, Luas Netto (Hektar), Status Siklus Lahan, Varietas Tanaman Nanas, Tanggal Tanam Terakhir, Umur Tanaman Berjalan, Estimasi Tanggal Forcing (Induksi Pembungaan), dan Estimasi Tanggal Panen.
   </p>
   <div class="feature-card">
     <div class="feature-title">Tata Cara Pengunggahan Data Massal (Upload Excel Master Status Lokasi):</div>
     <ol>
       <li>Buka menu <strong>Master Data</strong> &gt; pilih sub-menu <strong>Master Status Lokasi</strong>.</li>
       <li>Klik tombol <strong>Download Template Excel</strong> pada pojok kanan atas tabel untuk mengunduh template spreadsheet standar sistem.</li>
-      <li>Buka berkas template dan isi data petak sesuai struktur kolom yang telah ditentukan. Pastikan format tanggal ditulis dengan format baku <span class="code-inline">YYYY-MM-DD</span> atau <span class="code-inline">DD/MM/YYYY</span>.</li>
+      <li>Buka berkas template dan isi data lokasi sesuai struktur kolom yang telah ditentukan. Pastikan format tanggal ditulis dengan format baku <span class="code-inline">YYYY-MM-DD</span> atau <span class="code-inline">DD/MM/YYYY</span>.</li>
       <li>Simpan berkas Excel, kemudian kembali ke aplikasi dan klik tombol <strong>Upload Data Excel</strong>.</li>
       <li>Pilih berkas yang telah disiapkan, lalu sistem akan memvalidasi kelayakan format. Jika validasi sukses, sistem melakukan proses sinkronisasi massal (<em>bulk upsert</em>) ke basis data PostgreSQL dalam hitungan detik.</li>
     </ol>
@@ -893,12 +893,12 @@ const htmlContent = `<!DOCTYPE html>
 
   <h2>5.2 Master Waterlogging (Peta Risiko &amp; Rekomendasi FE)</h2>
   <p>
-    Sub-menu <strong>Master Waterlogging</strong> menyimpan peta kerentanan genangan air pada setiap petak perkebunan hasil survei topografi tim Field Engineering (FE). Data ini mengklasifikasikan tingkat kerentanan ke dalam tiga tingkatan: <em>High Risk</em>, <em>Medium Risk</em>, dan <em>Low Risk</em>, dilengkapi dengan rekomendasi teknis mengenai jumlah titik saluran crossing dan spesifikasi diameter gorong-gorong yang wajib dipasang. Data pada tabel ini menjadi landasan munculnya rekomendasi pada tabel <em>Lokasi Belum Order</em>.
+    Sub-menu <strong>Master Waterlogging</strong> menyimpan peta kerentanan genangan air pada setiap lokasi perkebunan hasil survei topografi tim Field Engineering (FE). Data ini mengklasifikasikan tingkat kerentanan ke dalam tiga tingkatan: <em>High Risk</em>, <em>Medium Risk</em>, dan <em>Low Risk</em>, dilengkapi dengan rekomendasi teknis mengenai jumlah titik saluran crossing dan spesifikasi diameter gorong-gorong yang wajib dipasang. Data pada tabel ini menjadi landasan munculnya rekomendasi pada tabel <em>Lokasi Belum Order</em>.
   </p>
 
   <h2>5.3 Master Upload Data Realisasi SAP ERP</h2>
   <p>
-    Sub-menu ini diperuntukkan bagi tim Verifikator FE dan Administrator untuk mengunggah berkas rekapitulasi pengeluaran material gorong-gorong dari sistem ERP SAP (laporan mutasi material kode akun gorong-gorong beton). Berkas yang diunggah diproses oleh sistem untuk membaca Nomor Reservasi, Tanggal Posting, Nomor Petak Tujuan, dan Kuantitas per Diameter. Data yang terunggah secara otomatis langsung terhubung ke modul <strong>Control Board</strong> untuk pencocokan harian.
+    Sub-menu ini diperuntukkan bagi tim Verifikator FE dan Administrator untuk mengunggah berkas rekapitulasi pengeluaran material gorong-gorong dari sistem ERP SAP (laporan mutasi material kode akun gorong-gorong beton). Berkas yang diunggah diproses oleh sistem untuk membaca Nomor Reservasi, Tanggal Posting, nomor lokasi Tujuan, dan Kuantitas per Diameter. Data yang terunggah secara otomatis langsung terhubung ke modul <strong>Control Board</strong> untuk pencocokan harian.
   </p>
 
   <h2>5.4 Master Histori Order, Drop, Pasang Manual, &amp; Pindah Lokasi</h2>
@@ -907,9 +907,9 @@ const htmlContent = `<!DOCTYPE html>
   </p>
   <ul>
     <li><strong>Master Data Order:</strong> Menyimpan kronologi seluruh pengajuan kebutuhan material, mencakup waktu input, nama mandor pemohon, dan spesifikasi pesanan.</li>
-    <li><strong>Master Data Drop:</strong> Menyimpan seluruh histori penurunan material di petak, menjadi rujukan bukti fisik apabila terjadi klaim kekurangan kiriman dari vendor.</li>
+    <li><strong>Master Data Drop:</strong> Menyimpan seluruh histori penurunan material di lokasi, menjadi rujukan bukti fisik apabila terjadi klaim kekurangan kiriman dari vendor.</li>
     <li><strong>Master Data Pasang Manual:</strong> Menyimpan histori penyelesaian pekerjaan fisik pemasangan di lapangan.</li>
-    <li><strong>Master Data Pindah Lokasi:</strong> Menyimpan seluruh berkas mutasi pemindahan material antar petak, mencakup lokasi asal, lokasi tujuan, dan alasan mutasi.</li>
+    <li><strong>Master Data Pindah Lokasi:</strong> Menyimpan seluruh berkas mutasi pemindahan material antar lokasi, mencakup lokasi asal, lokasi tujuan, dan alasan mutasi.</li>
   </ul>
 
   <!-- ==================== BAB VI ==================== -->
@@ -969,16 +969,16 @@ const htmlContent = `<!DOCTYPE html>
 
   <h2>7.2 Penanganan Kendala Sinkronisasi &amp; Validasi Data</h2>
   <div class="feature-card">
-    <div class="feature-title">Tanya: Mengapa kode petak lokasi kebun saya tidak muncul pada kotak dropdown pilihan lokasi di Form Input?</div>
+    <div class="feature-title">Tanya: Mengapa kode lokasi kebun saya tidak muncul pada kotak dropdown pilihan lokasi di Form Input?</div>
     <p class="no-indent">
-      <strong>Jawaban:</strong> Pastikan dua hal berikut: (1) Periksa apakah petak tersebut sudah terdaftar di basis data <em>Master Status Lokasi</em> dengan status operasional <em>Open</em>; jika belum ada, minta Administrator untuk mengunggah pembaruan status petak. (2) Pastikan petak tersebut memang berada di bawah wilayah penugasan akun Anda (misal: mandor AW01 tidak akan menemukan petak milik wilayah AW02).
+      <strong>Jawaban:</strong> Pastikan dua hal berikut: (1) Periksa apakah lokasi tersebut sudah terdaftar di basis data <em>Master Status Lokasi</em> dengan status operasional <em>Open</em>; jika belum ada, minta Administrator untuk mengunggah pembaruan status lokasi. (2) Pastikan lokasi tersebut memang berada di bawah wilayah penugasan akun Anda (misal: mandor AW01 tidak akan menemukan lokasi milik wilayah AW02).
     </p>
   </div>
 
   <div class="feature-card">
     <div class="feature-title">Tanya: Bagaimana cara mengatasi status "CHECK" yang muncul pada Control Board?</div>
     <p class="no-indent">
-      <strong>Jawaban:</strong> Periksa rincian angka fisik terpasang vs angka SAP pada baris petak terkait. Hubungi mandor yang bersangkutan untuk memastikan apakah fisik gorong-gorong benar-benar telah dipasang di petak tersebut. Jika fisik sudah terpasang namun SAP masih kosong, koordinasikan dengan petugas administrasi gudang untuk menerbitkan dokumen <em>Goods Issue</em> di SAP. Setelah berkas revisi SAP diunggah ulang ke portal, status akan otomatis berubah menjadi <strong>MATCH</strong>.
+      <strong>Jawaban:</strong> Periksa rincian angka fisik terpasang vs angka SAP pada baris lokasi terkait. Hubungi mandor yang bersangkutan untuk memastikan apakah fisik gorong-gorong benar-benar telah dipasang di lokasi tersebut. Jika fisik sudah terpasang namun SAP masih kosong, koordinasikan dengan petugas administrasi gudang untuk menerbitkan dokumen <em>Goods Issue</em> di SAP. Setelah berkas revisi SAP diunggah ulang ke portal, status akan otomatis berubah menjadi <strong>MATCH</strong>.
     </p>
   </div>
 
