@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { syncLokasiOrderDatabase } from '@/lib/gorongGorongSyncService';
+import { syncLokasiOrderDatabase, deductMasterDropAsal, restoreMasterDropAsal } from '@/lib/gorongGorongSyncService';
 
 // GET: Ambil riwayat transaksi terkini ATAU daftar lokasi yang memiliki saldo (mode=saldo_pengirim)
 export async function GET(request: NextRequest) {
@@ -344,6 +344,14 @@ export async function POST(request: NextRequest) {
                 keterangan: (d as any).keterangan || null,
               },
             });
+
+            // Kurangi Drop di lokasi asal pada MasterDataDropGorongGorong
+            await deductMasterDropAsal(d.lokasiAsal, {
+              d40: d.qtyD40 || 0,
+              d60: d.qtyD60 || 0,
+              d80: d.qtyD80 || 0,
+              d100: d.qtyD100 || 0,
+            });
           }
 
           // Tambah drop di tujuan sebagai baris baru di MasterDataDropGorongGorong
@@ -673,21 +681,16 @@ export async function revertTransactionImpact(existing: any) {
           });
         }
 
-        const asalDrop = await prisma.masterDataDropGorongGorong.findFirst({
-          where: { lokasi: existing.lokasiAsal },
-          orderBy: { tanggal: 'desc' },
-        });
-        if (asalDrop) {
-          await prisma.masterDataDropGorongGorong.update({
-            where: { id: asalDrop.id },
-            data: {
-              diameter40: (asalDrop.diameter40 || 0) + (existing.qtyD40 || 0),
-              diameter60: (asalDrop.diameter60 || 0) + (existing.qtyD60 || 0),
-              diameter80: (asalDrop.diameter80 || 0) + (existing.qtyD80 || 0),
-              diameter100: (asalDrop.diameter100 || 0) + (existing.qtyD100 || 0),
-            },
-          });
-        }
+        await restoreMasterDropAsal(
+          existing.lokasiAsal,
+          {
+            d40: existing.qtyD40 || 0,
+            d60: existing.qtyD60 || 0,
+            d80: existing.qtyD80 || 0,
+            d100: existing.qtyD100 || 0,
+          },
+          existing.tanggal
+        );
       }
 
       // 2. Revert Lokasi Tujuan: hapus baris yang dibuat oleh transaksi form input
@@ -954,31 +957,12 @@ async function applyTransactionImpact(d: {
           },
         });
 
-        const existingDropAsal = await prisma.masterDataDropGorongGorong.findFirst({
-          where: { lokasi: d.lokasiAsal },
-          orderBy: { tanggal: 'desc' },
+        await deductMasterDropAsal(d.lokasiAsal, {
+          d40: d.qtyD40 || 0,
+          d60: d.qtyD60 || 0,
+          d80: d.qtyD80 || 0,
+          d100: d.qtyD100 || 0,
         });
-        if (existingDropAsal) {
-          const rem40 = Math.max(0, (existingDropAsal.diameter40 || 0) - (d.qtyD40 || 0));
-          const rem60 = Math.max(0, (existingDropAsal.diameter60 || 0) - (d.qtyD60 || 0));
-          const rem80 = Math.max(0, (existingDropAsal.diameter80 || 0) - (d.qtyD80 || 0));
-          const rem100 = Math.max(0, (existingDropAsal.diameter100 || 0) - (d.qtyD100 || 0));
-          if (rem40 === 0 && rem60 === 0 && rem80 === 0 && rem100 === 0) {
-            await prisma.masterDataDropGorongGorong.delete({
-              where: { id: existingDropAsal.id },
-            });
-          } else {
-            await prisma.masterDataDropGorongGorong.update({
-              where: { id: existingDropAsal.id },
-              data: {
-                diameter40: rem40,
-                diameter60: rem60,
-                diameter80: rem80,
-                diameter100: rem100,
-              },
-            });
-          }
-        }
       }
 
       await prisma.masterDataDropGorongGorong.create({

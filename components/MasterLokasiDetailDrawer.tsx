@@ -275,7 +275,7 @@ export default function MasterLokasiDetailDrawer({
                     </div>
                   </div>
 
-                  {/* Tabel Riwayat Transaksi Gorong-Gorong (Drop & Pasang Manual) */}
+                  {/* Tabel Riwayat Transaksi Gorong-Gorong (Drop, Pasang Manual, & Pasang SAP) */}
                   <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-x-auto shadow-2xs">
                     <table className="w-full text-center border-collapse text-xs whitespace-nowrap">
                       <thead className="bg-slate-100/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 font-bold border-b border-slate-200 dark:border-slate-700">
@@ -315,12 +315,13 @@ export default function MasterLokasiDetailDrawer({
                         {historyList.length === 0 ? (
                           <tr>
                             <td colSpan={8} className="py-8 text-center text-slate-400 font-sans italic text-xs">
-                              Belum ada riwayat transaksi Drop atau Pasang Manual pada lokasi ini.
+                              Belum ada riwayat transaksi Drop, Pasang Manual, atau Pasang SAP pada lokasi ini.
                             </td>
                           </tr>
                         ) : (
                           historyList.map((item, index) => {
                             const isDrop = item.jenisTransaksi === 'DROP';
+                            const isSap = item.jenisTransaksi === 'PASANG_SAP';
                             return (
                               <tr key={item.id || index} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                 <td className="px-3 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center text-slate-400 font-sans text-[11px]">
@@ -334,10 +335,12 @@ export default function MasterLokasiDetailDrawer({
                                     className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border shadow-2xs ${
                                       isDrop
                                         ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                                        : isSap
+                                        ? 'bg-violet-50 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800'
                                         : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                                     }`}
                                   >
-                                    {isDrop ? 'Drop' : 'Pasang Manual'}
+                                    {isDrop ? 'Drop' : isSap ? 'Pasang SAP' : 'Pasang Manual'}
                                   </span>
                                 </td>
                                 <td className="px-2.5 py-2 border-r border-slate-200/70 dark:border-slate-800/70 text-center font-bold text-emerald-600 dark:text-emerald-400">

@@ -832,3 +832,113 @@ export async function syncLokasiOrderDatabase() {
     return { success: false, error: error.message };
   }
 }
+
+/**
+ * Helper: Kurangi qty Drop pada MasterDataDropGorongGorong untuk lokasi asal saat pindah lokasi.
+ * Memotong berurutan dari baris terbaru hingga seluruh qty pindah terpenuhi (menghapus baris jika seluruh diameter jadi 0).
+ */
+export async function deductMasterDropAsal(
+  lokasiAsal: string,
+  qty: { d40: number; d60: number; d80: number; d100: number }
+) {
+  const cleanAsal = lokasiAsal.trim().toUpperCase();
+  if (!cleanAsal) return;
+
+  let rem40 = Math.max(0, qty.d40 || 0);
+  let rem60 = Math.max(0, qty.d60 || 0);
+  let rem80 = Math.max(0, qty.d80 || 0);
+  let rem100 = Math.max(0, qty.d100 || 0);
+
+  if (rem40 === 0 && rem60 === 0 && rem80 === 0 && rem100 === 0) return;
+
+  const asalRows = await prisma.masterDataDropGorongGorong.findMany({
+    where: { lokasi: { equals: cleanAsal, mode: 'insensitive' } },
+    orderBy: [{ tanggal: 'desc' }, { id: 'desc' }],
+  });
+
+  for (const row of asalRows) {
+    if (rem40 === 0 && rem60 === 0 && rem80 === 0 && rem100 === 0) break;
+
+    const take40 = Math.min(row.diameter40 || 0, rem40);
+    const take60 = Math.min(row.diameter60 || 0, rem60);
+    const take80 = Math.min(row.diameter80 || 0, rem80);
+    const take100 = Math.min(row.diameter100 || 0, rem100);
+
+    if (take40 === 0 && take60 === 0 && take80 === 0 && take100 === 0) continue;
+
+    rem40 -= take40;
+    rem60 -= take60;
+    rem80 -= take80;
+    rem100 -= take100;
+
+    const new40 = (row.diameter40 || 0) - take40;
+    const new60 = (row.diameter60 || 0) - take60;
+    const new80 = (row.diameter80 || 0) - take80;
+    const new100 = (row.diameter100 || 0) - take100;
+
+    if (new40 === 0 && new60 === 0 && new80 === 0 && new100 === 0) {
+      await prisma.masterDataDropGorongGorong.delete({ where: { id: row.id } });
+    } else {
+      await prisma.masterDataDropGorongGorong.update({
+        where: { id: row.id },
+        data: {
+          diameter40: new40,
+          diameter60: new60,
+          diameter80: new80,
+          diameter100: new100,
+        },
+      });
+    }
+  }
+}
+
+/**
+ * Helper: Kembalikan qty Drop pada MasterDataDropGorongGorong untuk lokasi asal saat transaksi pindah dibatalkan/dihapus.
+ */
+export async function restoreMasterDropAsal(
+  lokasiAsal: string,
+  qty: { d40: number; d60: number; d80: number; d100: number },
+  tanggal?: Date | null
+) {
+  const cleanAsal = lokasiAsal.trim().toUpperCase();
+  if (!cleanAsal) return;
+
+  const add40 = Math.max(0, qty.d40 || 0);
+  const add60 = Math.max(0, qty.d60 || 0);
+  const add80 = Math.max(0, qty.d80 || 0);
+  const add100 = Math.max(0, qty.d100 || 0);
+
+  if (add40 === 0 && add60 === 0 && add80 === 0 && add100 === 0) return;
+
+  const asalDrop = await prisma.masterDataDropGorongGorong.findFirst({
+    where: { lokasi: { equals: cleanAsal, mode: 'insensitive' } },
+    orderBy: [{ tanggal: 'desc' }, { id: 'desc' }],
+  });
+
+  if (asalDrop) {
+    await prisma.masterDataDropGorongGorong.update({
+      where: { id: asalDrop.id },
+      data: {
+        diameter40: (asalDrop.diameter40 || 0) + add40,
+        diameter60: (asalDrop.diameter60 || 0) + add60,
+        diameter80: (asalDrop.diameter80 || 0) + add80,
+        diameter100: (asalDrop.diameter100 || 0) + add100,
+      },
+    });
+  } else {
+    const mAsal = await prisma.masterStatusLokasi.findUnique({
+      where: { lokasi: cleanAsal },
+    });
+    await prisma.masterDataDropGorongGorong.create({
+      data: {
+        lokasi: cleanAsal,
+        wilayah: mAsal?.strucPlant || 'AW01',
+        tanggal: tanggal || new Date(),
+        diameter40: add40,
+        diameter60: add60,
+        diameter80: add80,
+        diameter100: add100,
+      },
+    });
+  }
+}

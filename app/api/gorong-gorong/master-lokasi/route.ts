@@ -29,6 +29,17 @@ export async function GET(request: NextRequest) {
         orderBy: { tanggalPasangManual: 'desc' },
       });
 
+      // Ambil riwayat realisasi Pasang SAP per line harian untuk lokasi ini
+      const sapRecords = await prisma.masterSapGorongGorong.findMany({
+        where: {
+          OR: [
+            { lokasi: { equals: singleLokasi, mode: 'insensitive' } },
+            { referensiLokasi: { equals: singleLokasi, mode: 'insensitive' } },
+          ],
+        },
+        orderBy: { tanggalRealisasi: 'desc' },
+      });
+
       const history = [
         ...trxList.map((t) => ({
           id: `trx-${t.id}`,
@@ -60,6 +71,18 @@ export async function GET(request: NextRequest) {
           qtyD100: p.diameter100 || 0,
           penginput: 'Master Upload / SAP',
         })),
+        ...sapRecords
+          .filter((s) => (s.qty || 0) > 0)
+          .map((s) => ({
+            id: `sap-${s.id}`,
+            tanggal: s.tanggalRealisasi ? s.tanggalRealisasi.toISOString() : null,
+            jenisTransaksi: 'PASANG_SAP',
+            qtyD40: s.diameter === 40 ? s.qty || 0 : 0,
+            qtyD60: s.diameter === 60 ? s.qty || 0 : 0,
+            qtyD80: s.diameter === 80 ? s.qty || 0 : 0,
+            qtyD100: s.diameter === 100 ? s.qty || 0 : 0,
+            penginput: s.pasDocument ? `SAP (${s.pasDocument})` : 'Upload Realisasi SAP',
+          })),
       ].sort((a, b) => {
         const timeA = a.tanggal ? new Date(a.tanggal).getTime() : 0;
         const timeB = b.tanggal ? new Date(b.tanggal).getTime() : 0;

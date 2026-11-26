@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { restoreMasterDropAsal, syncLokasiOrderDatabase } from '@/lib/gorongGorongSyncService';
 
 export const dynamic = 'force-dynamic';
 
@@ -117,11 +118,34 @@ export async function DELETE(request: NextRequest) {
 
     const existing = await prisma.masterDataPindahGorongGorong.findUnique({ where: { id } });
     if (existing?.transaksiId) {
-      await prisma.transaksiGorongGorong.delete({ where: { id: existing.transaksiId } }).catch(() => {});
+      // Hapus baris drop di tujuan yang dibuat oleh transaksi form input ini
+      await prisma.masterDataDropGorongGorong.deleteMany({
+        where: { transaksiId: existing.transaksiId },
+      });
+
+      // Kembalikan qty drop ke lokasi pengirim
+      if (existing.lokasiPengirim) {
+        await restoreMasterDropAsal(
+          existing.lokasiPengirim,
+          {
+            d40: existing.diameter40 || 0,
+            d60: existing.diameter60 || 0,
+            d80: existing.diameter80 || 0,
+            d100: existing.diameter100 || 0,
+          },
+          existing.tanggal
+        );
+      }
+
+      await prisma.transaksiGorongGorong.deleteMany({ where: { id: existing.transaksiId } });
     }
 
-    await prisma.masterDataPindahGorongGorong.delete({
+    await prisma.masterDataPindahGorongGorong.deleteMany({
       where: { id },
+    });
+
+    await syncLokasiOrderDatabase().catch((err) => {
+      console.warn('Warning syncing database after deleting master pindah:', err);
     });
 
     return NextResponse.json({ success: true, message: 'Data master pindah lokasi berhasil dihapus permanen' });
