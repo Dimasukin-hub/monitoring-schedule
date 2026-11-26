@@ -14,32 +14,10 @@ import {
   Database,
   Download,
   Calendar,
+  Trash2,
 } from 'lucide-react';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
-import MasterEditModal, { MasterActionButtons, EditFieldConfig, toDateInputValue } from '@/components/MasterEditModal';
 import { useAuth } from '@/components/AuthProvider';
-
-const SAP_EDIT_FIELDS: EditFieldConfig[] = [
-  { key: 'wilayahSap', label: 'Wilayah SAP', type: 'text', uppercase: true },
-  { key: 'lokasi', label: 'Lokasi', type: 'text', required: true, uppercase: true },
-  { key: 'plantCostCenter', label: 'Plant Cost Center', type: 'text', uppercase: true },
-  { key: 'statusTanaman', label: 'Status Tanaman', type: 'text' },
-  { key: 'spkId', label: 'SPK ID', type: 'text' },
-  { key: 'pasDocument', label: 'PAS Document', type: 'text' },
-  { key: 'tanggalRealisasi', label: 'Tanggal Realisasi', type: 'date', required: true },
-  { key: 'referensiLokasi', label: 'Referensi Lokasi', type: 'text', uppercase: true },
-  { key: 'deskripsiKegiatan', label: 'Deskripsi Kegiatan', type: 'text', colSpan: 2 },
-  { key: 'deskripsiBahan', label: 'Deskripsi Bahan / Alat', type: 'text', colSpan: 2 },
-  { key: 'jenisData', label: 'Jenis Data', type: 'text' },
-  { key: 'kodeBahan', label: 'Kode Bahan / Alat', type: 'text' },
-  { key: 'qty', label: 'Resource Bahan / Alat (Qty)', type: 'number', required: true },
-  { key: 'hasilEfektif', label: 'Hasil Efektif', type: 'number', step: 'any' },
-  { key: 'totalBiaya', label: 'Total Realisasi Biaya', type: 'number', step: 'any' },
-  { key: 'penanggungJawab', label: 'Penanggung Jawab', type: 'text' },
-  { key: 'waktuPelaksanaan', label: 'Time', type: 'number', step: 'any' },
-  { key: 'air', label: 'Air', type: 'number', step: 'any' },
-  { key: 'jumlahAir', label: 'Jumlah Air', type: 'number', step: 'any' },
-];
 
 const MONTHS_LIST = [
   { val: '01', label: 'Januari' },
@@ -78,34 +56,6 @@ export default function MasterSapUploadView() {
   // Custom Dropdown Open State
   const [isDiameterDropdownOpen, setIsDiameterDropdownOpen] = useState<boolean>(false);
   const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState<boolean>(false);
-
-  // Edit State
-  const [editingItem, setEditingItem] = useState<any | null>(null);
-  const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
-
-  const handleSaveEdit = async (values: Record<string, any>): Promise<string | null> => {
-    if (!editingItem) return 'Data tidak ditemukan';
-    try {
-      setIsSavingEdit(true);
-      const res = await fetch('/api/gorong-gorong/sap-upload', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editingItem.id, ...values }),
-      });
-      const json = await res.json();
-      if (json.success && json.data) {
-        setDataList((prev) => prev.map((it) => (it.id === editingItem.id ? json.data : it)));
-        setEditingItem(null);
-        window.dispatchEvent(new Event('gorong_gorong_updated'));
-        return null;
-      }
-      return json.message || 'Gagal memperbarui data';
-    } catch (e: any) {
-      return e.message || 'Terjadi kesalahan sistem';
-    } finally {
-      setIsSavingEdit(false);
-    }
-  };
 
   // Delete State
   const [itemToDelete, setItemToDelete] = useState<{ id: number; label: string } | null>(null);
@@ -764,19 +714,18 @@ export default function MasterSapUploadView() {
                     </td>
                     {isAdmin && (
                       <td className="py-2.5 px-3 text-center">
-                        <MasterActionButtons
-                          onEdit={() =>
-                            setEditingItem({
-                              ...row,
-                              tanggalRealisasi: toDateInputValue(row.tanggalRealisasi),
-                            })
-                          }
-                          onDelete={() =>
-                            setItemToDelete({ id: row.id, label: `${row.lokasi || row.plantCostCenter || 'SAP Record'}` })
-                          }
-                          editTitle={`Edit data SAP ${row.lokasi || row.plantCostCenter}`}
-                          deleteTitle={`Hapus data SAP ${row.lokasi || row.plantCostCenter}`}
-                        />
+                        <div className="flex items-center justify-center">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setItemToDelete({ id: row.id, label: `${row.lokasi || row.plantCostCenter || 'SAP Record'}` })
+                            }
+                            title={`Hapus data SAP ${row.lokasi || row.plantCostCenter}`}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -812,18 +761,6 @@ export default function MasterSapUploadView() {
           </div>
         </div>
       </div>
-
-      {/* Edit Modal */}
-      <MasterEditModal
-        isOpen={Boolean(editingItem)}
-        title="Edit Data Realisasi SAP"
-        subtitle={editingItem?.lokasi ? `Lokasi: ${editingItem.lokasi} (${editingItem.pasDocument || '-'})` : undefined}
-        fields={SAP_EDIT_FIELDS}
-        initialValues={editingItem}
-        onClose={() => setEditingItem(null)}
-        onSave={handleSaveEdit}
-        isSaving={isSavingEdit}
-      />
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal

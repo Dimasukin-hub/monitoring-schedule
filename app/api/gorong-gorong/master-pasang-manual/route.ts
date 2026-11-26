@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { reconcileAllGorongGorongMasterData, syncLokasiOrderDatabase } from '@/lib/gorongGorongSyncService';
-import {
-  verifyAdminSession,
-  parseRecordId,
-  parseOptionalDate,
-  toInt,
-  toTrimmedOrNull,
-} from '@/lib/masterDataApiHelper';
+import { verifyAdminSession, parseRecordId } from '@/lib/masterDataApiHelper';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,78 +86,6 @@ export async function GET(request: NextRequest) {
       { success: false, message: 'Gagal memuat master data pasang manual', error: error.message },
       { status: 500 }
     );
-  }
-}
-
-export async function PUT(request: NextRequest) {
-  const auth = verifyAdminSession(request);
-  if (!auth.authorized) return auth.response!;
-
-  try {
-    const body = await request.json();
-    const id = parseRecordId(request, body);
-    if (!id) {
-      return NextResponse.json({ success: false, message: 'ID data tidak valid' }, { status: 400 });
-    }
-
-    const lokasi = toTrimmedOrNull(body.lokasi, true);
-    if (!lokasi) {
-      return NextResponse.json({ success: false, message: 'Lokasi wajib diisi' }, { status: 400 });
-    }
-
-    const existing = await prisma.masterDataPasangManual.findUnique({ where: { id } });
-    if (!existing) {
-      return NextResponse.json({ success: false, message: 'Data pasang manual tidak ditemukan' }, { status: 404 });
-    }
-
-    const d40 = toInt(body.diameter40, 0);
-    const d60 = toInt(body.diameter60, 0);
-    const d80 = toInt(body.diameter80, 0);
-    const d100 = toInt(body.diameter100, 0);
-    const wilayah = toTrimmedOrNull(body.wilayah, true);
-    const tanggalPasangManual = parseOptionalDate(body.tanggalPasangManual) || existing.tanggalPasangManual;
-
-    const updated = await prisma.masterDataPasangManual.update({
-      where: { id },
-      data: {
-        lokasi,
-        wilayah,
-        tanggalPasangManual,
-        diameter40: d40,
-        diameter60: d60,
-        diameter80: d80,
-        diameter100: d100,
-      },
-    });
-
-    if (existing.transaksiId) {
-      await prisma.transaksiGorongGorong
-        .update({
-          where: { id: existing.transaksiId },
-          data: {
-            lokasi,
-            lokasiTujuan: lokasi,
-            wilayah,
-            tanggal: tanggalPasangManual,
-            qtyD40: d40,
-            qtyD60: d60,
-            qtyD80: d80,
-            qtyD100: d100,
-          },
-        })
-        .catch(() => {});
-    }
-
-    await syncLokasiOrderDatabase().catch(() => {});
-
-    return NextResponse.json({
-      success: true,
-      message: `Data master pasang manual ${updated.lokasi} berhasil diperbarui`,
-      data: updated,
-    });
-  } catch (error: any) {
-    console.error('Error updating master data pasang manual:', error);
-    return NextResponse.json({ success: false, message: error.message || 'Gagal memperbarui data' }, { status: 500 });
   }
 }
 

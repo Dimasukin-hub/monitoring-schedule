@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { deductMasterDropAsal, restoreMasterDropAsal, syncLokasiOrderDatabase } from '@/lib/gorongGorongSyncService';
-import {
-  verifyAdminSession,
-  parseRecordId,
-  parseOptionalDate,
-  toInt,
-  toTrimmedOrNull,
-} from '@/lib/masterDataApiHelper';
+import { restoreMasterDropAsal, syncLokasiOrderDatabase } from '@/lib/gorongGorongSyncService';
+import { verifyAdminSession, parseRecordId } from '@/lib/masterDataApiHelper';
 
 export const dynamic = 'force-dynamic';
 
@@ -102,122 +96,6 @@ export async function GET(request: NextRequest) {
       { success: false, message: 'Gagal memuat master data pindah lokasi', error: error.message },
       { status: 500 }
     );
-  }
-}
-
-export async function PUT(request: NextRequest) {
-  const auth = verifyAdminSession(request);
-  if (!auth.authorized) return auth.response!;
-
-  try {
-    const body = await request.json();
-    const id = parseRecordId(request, body);
-    if (!id) {
-      return NextResponse.json({ success: false, message: 'ID data tidak valid' }, { status: 400 });
-    }
-
-    const existing = await prisma.masterDataPindahGorongGorong.findUnique({ where: { id } });
-    if (!existing) {
-      return NextResponse.json({ success: false, message: 'Data pindah lokasi tidak ditemukan' }, { status: 404 });
-    }
-
-    const lokasiPengirim = toTrimmedOrNull(body.lokasiPengirim, true);
-    const lokasiPenerima = toTrimmedOrNull(body.lokasiPenerima, true);
-    if (!lokasiPengirim || !lokasiPenerima) {
-      return NextResponse.json(
-        { success: false, message: 'Lokasi pengirim dan lokasi penerima wajib diisi' },
-        { status: 400 }
-      );
-    }
-
-    const wilayahPengirim = toTrimmedOrNull(body.wilayahPengirim, true);
-    const wilayahPenerima = toTrimmedOrNull(body.wilayahPenerima, true);
-    const tanggal = parseOptionalDate(body.tanggal) || existing.tanggal;
-    const d40 = toInt(body.diameter40, 0);
-    const d60 = toInt(body.diameter60, 0);
-    const d80 = toInt(body.diameter80, 0);
-    const d100 = toInt(body.diameter100, 0);
-    const keterangan = toTrimmedOrNull(body.keterangan);
-
-    // Jika terhubung ke transaksi Form Input, sinkronkan revert/apply pada Drop & Transaksi
-    if (existing.transaksiId) {
-      if (existing.lokasiPengirim) {
-        await restoreMasterDropAsal(
-          existing.lokasiPengirim,
-          {
-            d40: existing.diameter40 || 0,
-            d60: existing.diameter60 || 0,
-            d80: existing.diameter80 || 0,
-            d100: existing.diameter100 || 0,
-          },
-          existing.tanggal
-        );
-      }
-
-      await deductMasterDropAsal(lokasiPengirim, { d40, d60, d80, d100 });
-
-      await prisma.masterDataDropGorongGorong
-        .updateMany({
-          where: { transaksiId: existing.transaksiId },
-          data: {
-            lokasi: lokasiPenerima,
-            wilayah: wilayahPenerima,
-            tanggal,
-            diameter40: d40,
-            diameter60: d60,
-            diameter80: d80,
-            diameter100: d100,
-          },
-        })
-        .catch(() => {});
-
-      await prisma.transaksiGorongGorong
-        .update({
-          where: { id: existing.transaksiId },
-          data: {
-            lokasi: lokasiPenerima,
-            lokasiAsal: lokasiPengirim,
-            lokasiTujuan: lokasiPenerima,
-            wilayah: wilayahPenerima,
-            tanggal,
-            qtyD40: d40,
-            qtyD60: d60,
-            qtyD80: d80,
-            qtyD100: d100,
-            keterangan,
-          },
-        })
-        .catch(() => {});
-    }
-
-    const updated = await prisma.masterDataPindahGorongGorong.update({
-      where: { id },
-      data: {
-        lokasiPengirim,
-        wilayahPengirim,
-        lokasiPenerima,
-        wilayahPenerima,
-        tanggal,
-        diameter40: d40,
-        diameter60: d60,
-        diameter80: d80,
-        diameter100: d100,
-        keterangan,
-      },
-    });
-
-    await syncLokasiOrderDatabase().catch((err) => {
-      console.warn('Warning syncing database after updating master pindah:', err);
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: `Data pindah lokasi ${updated.lokasiPengirim} → ${updated.lokasiPenerima} berhasil diperbarui`,
-      data: updated,
-    });
-  } catch (error: any) {
-    console.error('Error updating master data pindah lokasi:', error);
-    return NextResponse.json({ success: false, message: error.message || 'Gagal memperbarui data' }, { status: 500 });
   }
 }
 

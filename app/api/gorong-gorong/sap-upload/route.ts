@@ -2,14 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import * as XLSX from 'xlsx';
 import { syncLokasiOrderDatabase } from '@/lib/gorongGorongSyncService';
-import {
-  verifyAdminSession,
-  parseRecordId,
-  parseOptionalDate,
-  toInt,
-  toFloatOrNull,
-  toTrimmedOrNull,
-} from '@/lib/masterDataApiHelper';
+import { verifyAdminSession, parseRecordId } from '@/lib/masterDataApiHelper';
 
 function parseExcelDate(val: any): Date | null {
   if (!val) return null;
@@ -514,72 +507,6 @@ export async function POST(request: NextRequest) {
       { success: false, message: 'Gagal memproses file upload SAP', error: error.message },
       { status: 500 }
     );
-  }
-}
-
-export async function PUT(request: NextRequest) {
-  const auth = verifyAdminSession(request);
-  if (!auth.authorized) return auth.response!;
-
-  try {
-    const body = await request.json();
-    const id = parseRecordId(request, body);
-    if (!id) {
-      return NextResponse.json({ success: false, message: 'ID data tidak valid' }, { status: 400 });
-    }
-
-    const existing = await prisma.masterSapGorongGorong.findUnique({ where: { id } });
-    if (!existing) {
-      return NextResponse.json({ success: false, message: 'Data SAP tidak ditemukan' }, { status: 404 });
-    }
-
-    const deskripsiBahan = toTrimmedOrNull(body.deskripsiBahan) || existing.deskripsiBahan;
-    let detectedDia = existing.diameter;
-    if (body.diameter !== undefined && [40, 60, 80, 100].includes(Number(body.diameter))) {
-      detectedDia = Number(body.diameter);
-    } else if (deskripsiBahan) {
-      if (deskripsiBahan.includes('100')) detectedDia = 100;
-      else if (deskripsiBahan.includes('80')) detectedDia = 80;
-      else if (deskripsiBahan.includes('60')) detectedDia = 60;
-      else if (deskripsiBahan.includes('40')) detectedDia = 40;
-    }
-
-    const updated = await prisma.masterSapGorongGorong.update({
-      where: { id },
-      data: {
-        wilayahSap: toTrimmedOrNull(body.wilayahSap, true),
-        lokasi: toTrimmedOrNull(body.lokasi, true) || existing.lokasi,
-        plantCostCenter: toTrimmedOrNull(body.plantCostCenter, true),
-        statusTanaman: toTrimmedOrNull(body.statusTanaman),
-        spkId: toTrimmedOrNull(body.spkId),
-        pasDocument: toTrimmedOrNull(body.pasDocument),
-        tanggalRealisasi: parseOptionalDate(body.tanggalRealisasi) || existing.tanggalRealisasi,
-        deskripsiKegiatan: toTrimmedOrNull(body.deskripsiKegiatan),
-        deskripsiBahan,
-        jenisData: toTrimmedOrNull(body.jenisData),
-        kodeBahan: toTrimmedOrNull(body.kodeBahan),
-        qty: toInt(body.qty, existing.qty),
-        hasilEfektif: toFloatOrNull(body.hasilEfektif),
-        totalBiaya: toFloatOrNull(body.totalBiaya),
-        penanggungJawab: toTrimmedOrNull(body.penanggungJawab),
-        waktuPelaksanaan: toFloatOrNull(body.waktuPelaksanaan),
-        air: toFloatOrNull(body.air) ?? 0,
-        jumlahAir: toFloatOrNull(body.jumlahAir) ?? 0,
-        referensiLokasi: toTrimmedOrNull(body.referensiLokasi, true),
-        diameter: detectedDia,
-      },
-    });
-
-    await syncLokasiOrderDatabase().catch(() => {});
-
-    return NextResponse.json({
-      success: true,
-      message: `Data realisasi SAP ${updated.lokasi} berhasil diperbarui`,
-      data: updated,
-    });
-  } catch (error: any) {
-    console.error('Error updating master SAP record:', error);
-    return NextResponse.json({ success: false, message: error.message || 'Gagal memperbarui data' }, { status: 500 });
   }
 }
 

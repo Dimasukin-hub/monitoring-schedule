@@ -16,25 +16,9 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
+  Trash2,
 } from 'lucide-react';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
-import MasterEditModal, { MasterActionButtons, EditFieldConfig } from '@/components/MasterEditModal';
-
-const WATERLOGGING_EDIT_FIELDS: EditFieldConfig[] = [
-  { key: 'pg', label: 'PG', type: 'text', uppercase: true },
-  { key: 'wilayah', label: 'Wilayah', type: 'text', uppercase: true },
-  { key: 'lokasi', label: 'Lokasi', type: 'text', required: true, uppercase: true },
-  { key: 'luasHa', label: 'Luas (Ha)', type: 'number', step: 'any' },
-  { key: 'komoditas', label: 'Komoditas', type: 'text', colSpan: 2 },
-  { key: 'bulanDsmBk', label: 'Bulan DSM BK', type: 'text' },
-  { key: 'tahunDsmBk', label: 'Tahun DSM BK', type: 'number' },
-  { key: 'dsmbkPlot', label: 'DSM BK Plot', type: 'text' },
-  { key: 'dryBk', label: 'Dry BK', type: 'text' },
-  { key: 'bulanDsmSt', label: 'Bulan DSM ST', type: 'text' },
-  { key: 'tahunDsmSt', label: 'Tahun DSM ST', type: 'number' },
-  { key: 'dsmPlot', label: 'DSM ST Plot', type: 'text' },
-  { key: 'drySt', label: 'Dry ST', type: 'text' },
-];
 
 const WATERLOGGING_WILAYAH_LIST = Array.from({ length: 25 }, (_, i) => `AW${String(i + 1).padStart(2, '0')}`);
 
@@ -53,34 +37,6 @@ export default function MasterWaterloggingView() {
   const [selectedWilayah, setSelectedWilayah] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(cachedWaterloggingList.length === 0);
-
-  // Edit State
-  const [editingItem, setEditingItem] = useState<any | null>(null);
-  const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
-
-  const handleSaveEdit = async (values: Record<string, any>): Promise<string | null> => {
-    if (!editingItem) return 'Data tidak ditemukan';
-    try {
-      setIsSavingEdit(true);
-      const res = await fetch('/api/gorong-gorong/master-waterlogging', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editingItem.id, ...values }),
-      });
-      const json = await res.json();
-      if (json.success && json.data) {
-        setDataList((prev) => prev.map((it) => (it.id === editingItem.id ? json.data : it)));
-        setEditingItem(null);
-        window.dispatchEvent(new Event('gorong_gorong_updated'));
-        return null;
-      }
-      return json.message || 'Gagal memperbarui data';
-    } catch (e: any) {
-      return e.message || 'Terjadi kesalahan sistem';
-    } finally {
-      setIsSavingEdit(false);
-    }
-  };
 
   // Delete State
   const [itemToDelete, setItemToDelete] = useState<{ id: number; label: string } | null>(null);
@@ -507,12 +463,16 @@ export default function MasterWaterloggingView() {
                     </td>
                     {isAdmin && (
                       <td className="py-2.5 px-3 text-center">
-                        <MasterActionButtons
-                          onEdit={() => setEditingItem({ ...row })}
-                          onDelete={() => setItemToDelete({ id: row.id, label: row.lokasi || `#${row.id}` })}
-                          editTitle={`Edit master waterlogging ${row.lokasi}`}
-                          deleteTitle={`Hapus master waterlogging ${row.lokasi}`}
-                        />
+                        <div className="flex items-center justify-center">
+                          <button
+                            type="button"
+                            onClick={() => setItemToDelete({ id: row.id, label: row.lokasi || `#${row.id}` })}
+                            title={`Hapus master waterlogging ${row.lokasi}`}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -740,18 +700,6 @@ export default function MasterWaterloggingView() {
           </div>
         </div>
       )}
-
-      {/* Edit Modal */}
-      <MasterEditModal
-        isOpen={Boolean(editingItem)}
-        title="Edit Master Waterlogging"
-        subtitle={editingItem?.lokasi ? `Lokasi: ${editingItem.lokasi}` : undefined}
-        fields={WATERLOGGING_EDIT_FIELDS}
-        initialValues={editingItem}
-        onClose={() => setEditingItem(null)}
-        onSave={handleSaveEdit}
-        isSaving={isSavingEdit}
-      />
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal

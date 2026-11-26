@@ -12,17 +12,10 @@ import {
   FileSpreadsheet,
   CheckCircle2,
   Wrench,
+  Trash2,
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
-import MasterEditModal, { MasterActionButtons, EditFieldConfig, toDateInputValue } from '@/components/MasterEditModal';
-
-const PASANG_MANUAL_EDIT_FIELDS: EditFieldConfig[] = [
-  { key: 'lokasi', label: 'Lokasi', type: 'text', required: true, uppercase: true },
-  { key: 'wilayah', label: 'Wilayah', type: 'text', uppercase: true },
-  { key: 'tanggalPasangManual', label: 'Tanggal Pasang Manual', type: 'date', required: true, colSpan: 2 },
-  { key: 'diameters', label: 'Jumlah Pasang Manual per Diameter (Pcs)', type: 'diameters' },
-];
 
 const WILAYAH_LIST = ['AW01', 'AW02', 'AW03', 'AW04', 'AW05', 'AW06', 'AW07'];
 const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -42,34 +35,6 @@ export default function MasterDataPasangManualView() {
   const [pasangMonthRange, setPasangMonthRange] = useState<{ startMonth: number; endMonth: number; year: number } | null>(null);
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState<boolean>(false);
   const [pickerYear, setPickerYear] = useState<number>(2026);
-
-  // Edit State
-  const [editingItem, setEditingItem] = useState<any | null>(null);
-  const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
-
-  const handleSaveEdit = async (values: Record<string, any>): Promise<string | null> => {
-    if (!editingItem) return 'Data tidak ditemukan';
-    try {
-      setIsSavingEdit(true);
-      const res = await fetch('/api/gorong-gorong/master-pasang-manual', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editingItem.id, ...values }),
-      });
-      const json = await res.json();
-      if (json.success && json.data) {
-        setDataList((prev) => prev.map((it) => (it.id === editingItem.id ? json.data : it)));
-        setEditingItem(null);
-        window.dispatchEvent(new Event('gorong_gorong_updated'));
-        return null;
-      }
-      return json.message || 'Gagal memperbarui data';
-    } catch (e: any) {
-      return e.message || 'Terjadi kesalahan sistem';
-    } finally {
-      setIsSavingEdit(false);
-    }
-  };
 
   // Delete State
   const [itemToDelete, setItemToDelete] = useState<{ id: number; label: string } | null>(null);
@@ -548,17 +513,16 @@ export default function MasterDataPasangManualView() {
                     </td>
                     {isAdmin && (
                       <td className="py-2.5 px-3 text-center">
-                        <MasterActionButtons
-                          onEdit={() =>
-                            setEditingItem({
-                              ...row,
-                              tanggalPasangManual: toDateInputValue(row.tanggalPasangManual),
-                            })
-                          }
-                          onDelete={() => setItemToDelete({ id: row.id, label: row.lokasi || `#${row.id}` })}
-                          editTitle={`Edit master pasang manual ${row.lokasi}`}
-                          deleteTitle={`Hapus master pasang manual ${row.lokasi}`}
-                        />
+                        <div className="flex items-center justify-center">
+                          <button
+                            type="button"
+                            onClick={() => setItemToDelete({ id: row.id, label: row.lokasi || `#${row.id}` })}
+                            title={`Hapus master pasang manual ${row.lokasi}`}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -594,18 +558,6 @@ export default function MasterDataPasangManualView() {
           </div>
         </div>
       </div>
-
-      {/* Edit Modal */}
-      <MasterEditModal
-        isOpen={Boolean(editingItem)}
-        title="Edit Master Data Pasang Manual"
-        subtitle={editingItem?.lokasi ? `Lokasi: ${editingItem.lokasi}` : undefined}
-        fields={PASANG_MANUAL_EDIT_FIELDS}
-        initialValues={editingItem}
-        onClose={() => setEditingItem(null)}
-        onSave={handleSaveEdit}
-        isSaving={isSavingEdit}
-      />
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
