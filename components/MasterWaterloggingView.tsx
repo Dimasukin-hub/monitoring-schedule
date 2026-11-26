@@ -16,9 +16,25 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
-  Trash2,
 } from 'lucide-react';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
+import MasterEditModal, { MasterActionButtons, EditFieldConfig } from '@/components/MasterEditModal';
+
+const WATERLOGGING_EDIT_FIELDS: EditFieldConfig[] = [
+  { key: 'pg', label: 'PG', type: 'text', uppercase: true },
+  { key: 'wilayah', label: 'Wilayah', type: 'text', uppercase: true },
+  { key: 'lokasi', label: 'Lokasi', type: 'text', required: true, uppercase: true },
+  { key: 'luasHa', label: 'Luas (Ha)', type: 'number', step: 'any' },
+  { key: 'komoditas', label: 'Komoditas', type: 'text', colSpan: 2 },
+  { key: 'bulanDsmBk', label: 'Bulan DSM BK', type: 'text' },
+  { key: 'tahunDsmBk', label: 'Tahun DSM BK', type: 'number' },
+  { key: 'dsmbkPlot', label: 'DSM BK Plot', type: 'text' },
+  { key: 'dryBk', label: 'Dry BK', type: 'text' },
+  { key: 'bulanDsmSt', label: 'Bulan DSM ST', type: 'text' },
+  { key: 'tahunDsmSt', label: 'Tahun DSM ST', type: 'number' },
+  { key: 'dsmPlot', label: 'DSM ST Plot', type: 'text' },
+  { key: 'drySt', label: 'Dry ST', type: 'text' },
+];
 
 const WATERLOGGING_WILAYAH_LIST = Array.from({ length: 25 }, (_, i) => `AW${String(i + 1).padStart(2, '0')}`);
 
@@ -27,7 +43,7 @@ let cachedTotalCount = 0;
 let cachedTotalPages = 1;
 
 export default function MasterWaterloggingView() {
-  const { canUploadMasterData } = useAuth();
+  const { canUploadMasterData, isAdmin } = useAuth();
   const [dataList, setDataList] = useState<any[]>(cachedWaterloggingList);
   const [totalCount, setTotalCount] = useState<number>(cachedTotalCount);
   const [page, setPage] = useState<number>(1);
@@ -37,6 +53,34 @@ export default function MasterWaterloggingView() {
   const [selectedWilayah, setSelectedWilayah] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(cachedWaterloggingList.length === 0);
+
+  // Edit State
+  const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
+
+  const handleSaveEdit = async (values: Record<string, any>): Promise<string | null> => {
+    if (!editingItem) return 'Data tidak ditemukan';
+    try {
+      setIsSavingEdit(true);
+      const res = await fetch('/api/gorong-gorong/master-waterlogging', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingItem.id, ...values }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setDataList((prev) => prev.map((it) => (it.id === editingItem.id ? json.data : it)));
+        setEditingItem(null);
+        window.dispatchEvent(new Event('gorong_gorong_updated'));
+        return null;
+      }
+      return json.message || 'Gagal memperbarui data';
+    } catch (e: any) {
+      return e.message || 'Terjadi kesalahan sistem';
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   // Delete State
   const [itemToDelete, setItemToDelete] = useState<{ id: number; label: string } | null>(null);
@@ -54,6 +98,7 @@ export default function MasterWaterloggingView() {
         setDataList((prev) => prev.filter((it) => it.id !== itemToDelete.id));
         setTotalCount((prev) => Math.max(0, prev - 1));
         setItemToDelete(null);
+        window.dispatchEvent(new Event('gorong_gorong_updated'));
       } else {
         alert(json.message || 'Gagal menghapus data');
       }
@@ -380,20 +425,23 @@ export default function MasterWaterloggingView() {
                 <th className="py-3 px-3 text-center bg-sky-100 dark:bg-sky-950/70 border-r border-slate-200/80 dark:border-slate-700/80">Bulan DSM ST</th>
                 <th className="py-3 px-3 text-center bg-sky-100 dark:bg-sky-950/70 border-r border-slate-200/80 dark:border-slate-700/80">Tahun DSM ST</th>
                 <th className="py-3 px-3 text-center font-bold bg-sky-100 dark:bg-sky-950/70 text-sky-800 dark:text-sky-300 border-r border-slate-200/80 dark:border-slate-700/80">DSM ST Plot</th>
-                <th className="py-3 px-3 text-center bg-sky-100 dark:bg-sky-950/70">Dry ST</th>
+                <th className={`py-3 px-3 text-center bg-sky-100 dark:bg-sky-950/70 ${isAdmin ? 'border-r border-slate-200/80 dark:border-slate-700/80' : ''}`}>Dry ST</th>
+                {isAdmin && (
+                  <th className="py-3 px-3 text-center bg-slate-100 dark:bg-slate-800">Aksi</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={14} className="py-12 text-center text-slate-400">
+                  <td colSpan={isAdmin ? 15 : 14} className="py-12 text-center text-slate-400">
                     <RefreshCw className="w-6 h-6 animate-spin mx-auto text-cyan-500 mb-2" />
                     Memuat data master waterlogging...
                   </td>
                 </tr>
               ) : dataList.length === 0 ? (
                 <tr>
-                  <td colSpan={14} className="py-12 text-center text-slate-400">
+                  <td colSpan={isAdmin ? 15 : 14} className="py-12 text-center text-slate-400">
                     Tidak ada data waterlogging yang sesuai dengan pencarian atau filter.
                   </td>
                 </tr>
@@ -403,18 +451,8 @@ export default function MasterWaterloggingView() {
                     key={row.id || idx}
                     className="hover:bg-cyan-50/30 dark:hover:bg-cyan-950/20 transition-colors border-b border-slate-100 dark:border-slate-800"
                   >
-                    <td className="group/cell relative py-2.5 px-3 text-center text-slate-400 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
-                      <span className="group-hover/cell:invisible">
-                        {(page - 1) * pageSize + idx + 1}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setItemToDelete({ id: row.id, label: row.lokasi || `#${row.id}` })}
-                        title={`Hapus baris data ${row.lokasi}`}
-                        className="absolute inset-0 m-auto w-6 h-6 flex items-center justify-center rounded-md text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer invisible group-hover/cell:visible transition-all"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                    <td className="py-2.5 px-3 text-center text-slate-400 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
+                      {(page - 1) * pageSize + idx + 1}
                     </td>
                     <td className="py-2.5 px-3 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200/70 dark:border-slate-800/70">
                       {row.pg || 'PG1'}
@@ -464,9 +502,19 @@ export default function MasterWaterloggingView() {
                         '-'
                       )}
                     </td>
-                    <td className="py-2.5 px-3 text-center bg-sky-50/30 dark:bg-sky-950/10 text-slate-600 dark:text-slate-400">
+                    <td className={`py-2.5 px-3 text-center bg-sky-50/30 dark:bg-sky-950/10 text-slate-600 dark:text-slate-400 ${isAdmin ? 'border-r border-slate-200/70 dark:border-slate-800/70' : ''}`}>
                       {row.drySt || '-'}
                     </td>
+                    {isAdmin && (
+                      <td className="py-2.5 px-3 text-center">
+                        <MasterActionButtons
+                          onEdit={() => setEditingItem({ ...row })}
+                          onDelete={() => setItemToDelete({ id: row.id, label: row.lokasi || `#${row.id}` })}
+                          editTitle={`Edit master waterlogging ${row.lokasi}`}
+                          deleteTitle={`Hapus master waterlogging ${row.lokasi}`}
+                        />
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -692,6 +740,18 @@ export default function MasterWaterloggingView() {
           </div>
         </div>
       )}
+
+      {/* Edit Modal */}
+      <MasterEditModal
+        isOpen={Boolean(editingItem)}
+        title="Edit Master Waterlogging"
+        subtitle={editingItem?.lokasi ? `Lokasi: ${editingItem.lokasi}` : undefined}
+        fields={WATERLOGGING_EDIT_FIELDS}
+        initialValues={editingItem}
+        onClose={() => setEditingItem(null)}
+        onSave={handleSaveEdit}
+        isSaving={isSavingEdit}
+      />
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal

@@ -14,10 +14,32 @@ import {
   Database,
   Download,
   Calendar,
-  Trash2,
 } from 'lucide-react';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
+import MasterEditModal, { MasterActionButtons, EditFieldConfig, toDateInputValue } from '@/components/MasterEditModal';
 import { useAuth } from '@/components/AuthProvider';
+
+const SAP_EDIT_FIELDS: EditFieldConfig[] = [
+  { key: 'wilayahSap', label: 'Wilayah SAP', type: 'text', uppercase: true },
+  { key: 'lokasi', label: 'Lokasi', type: 'text', required: true, uppercase: true },
+  { key: 'plantCostCenter', label: 'Plant Cost Center', type: 'text', uppercase: true },
+  { key: 'statusTanaman', label: 'Status Tanaman', type: 'text' },
+  { key: 'spkId', label: 'SPK ID', type: 'text' },
+  { key: 'pasDocument', label: 'PAS Document', type: 'text' },
+  { key: 'tanggalRealisasi', label: 'Tanggal Realisasi', type: 'date', required: true },
+  { key: 'referensiLokasi', label: 'Referensi Lokasi', type: 'text', uppercase: true },
+  { key: 'deskripsiKegiatan', label: 'Deskripsi Kegiatan', type: 'text', colSpan: 2 },
+  { key: 'deskripsiBahan', label: 'Deskripsi Bahan / Alat', type: 'text', colSpan: 2 },
+  { key: 'jenisData', label: 'Jenis Data', type: 'text' },
+  { key: 'kodeBahan', label: 'Kode Bahan / Alat', type: 'text' },
+  { key: 'qty', label: 'Resource Bahan / Alat (Qty)', type: 'number', required: true },
+  { key: 'hasilEfektif', label: 'Hasil Efektif', type: 'number', step: 'any' },
+  { key: 'totalBiaya', label: 'Total Realisasi Biaya', type: 'number', step: 'any' },
+  { key: 'penanggungJawab', label: 'Penanggung Jawab', type: 'text' },
+  { key: 'waktuPelaksanaan', label: 'Time', type: 'number', step: 'any' },
+  { key: 'air', label: 'Air', type: 'number', step: 'any' },
+  { key: 'jumlahAir', label: 'Jumlah Air', type: 'number', step: 'any' },
+];
 
 const MONTHS_LIST = [
   { val: '01', label: 'Januari' },
@@ -39,7 +61,7 @@ let cachedTotalCount = 0;
 let cachedTotalPages = 1;
 
 export default function MasterSapUploadView() {
-  const { user, canUploadMasterData } = useAuth();
+  const { user, canUploadMasterData, isAdmin } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [dataList, setDataList] = useState<any[]>(cachedSapList);
@@ -57,6 +79,34 @@ export default function MasterSapUploadView() {
   const [isDiameterDropdownOpen, setIsDiameterDropdownOpen] = useState<boolean>(false);
   const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState<boolean>(false);
 
+  // Edit State
+  const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
+
+  const handleSaveEdit = async (values: Record<string, any>): Promise<string | null> => {
+    if (!editingItem) return 'Data tidak ditemukan';
+    try {
+      setIsSavingEdit(true);
+      const res = await fetch('/api/gorong-gorong/sap-upload', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingItem.id, ...values }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setDataList((prev) => prev.map((it) => (it.id === editingItem.id ? json.data : it)));
+        setEditingItem(null);
+        window.dispatchEvent(new Event('gorong_gorong_updated'));
+        return null;
+      }
+      return json.message || 'Gagal memperbarui data';
+    } catch (e: any) {
+      return e.message || 'Terjadi kesalahan sistem';
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   // Delete State
   const [itemToDelete, setItemToDelete] = useState<{ id: number; label: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
@@ -73,6 +123,7 @@ export default function MasterSapUploadView() {
         setDataList((prev) => prev.filter((it) => it.id !== itemToDelete.id));
         setTotalCount((prev) => Math.max(0, prev - 1));
         setItemToDelete(null);
+        window.dispatchEvent(new Event('gorong_gorong_updated'));
       } else {
         alert(json.message || 'Gagal menghapus data');
       }
@@ -628,20 +679,23 @@ export default function MasterSapUploadView() {
                 <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Time</th>
                 <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Air</th>
                 <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800">Jumlah Air</th>
-                <th className="py-3 px-3 text-center bg-slate-100 dark:bg-slate-800">Referensi Lokasi</th>
+                <th className={`py-3 px-3 text-center bg-slate-100 dark:bg-slate-800 ${isAdmin ? 'border-r border-slate-200/80 dark:border-slate-700/80' : ''}`}>Referensi Lokasi</th>
+                {isAdmin && (
+                  <th className="py-3 px-3 text-center bg-slate-100 dark:bg-slate-800">Aksi</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={19} className="py-12 text-center text-slate-400">
+                  <td colSpan={isAdmin ? 20 : 19} className="py-12 text-center text-slate-400">
                     <RefreshCw className="w-6 h-6 animate-spin mx-auto text-violet-500 mb-2" />
                     Memuat data realisasi SAP...
                   </td>
                 </tr>
               ) : dataList.length === 0 ? (
                 <tr>
-                  <td colSpan={19} className="py-12 text-center text-slate-400">
+                  <td colSpan={isAdmin ? 20 : 19} className="py-12 text-center text-slate-400">
                     Tidak ada data SAP yang sesuai dengan filter atau pencarian.
                   </td>
                 </tr>
@@ -651,18 +705,8 @@ export default function MasterSapUploadView() {
                     key={row.id || idx}
                     className="hover:bg-violet-50/30 dark:hover:bg-violet-950/20 transition-colors border-b border-slate-100 dark:border-slate-800"
                   >
-                    <td className="group/cell relative py-2.5 px-3 text-center text-slate-400 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
-                      <span className="group-hover/cell:invisible">
-                        {(page - 1) * pageSize + idx + 1}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setItemToDelete({ id: row.id, label: `${row.lokasi || row.plantCostCenter || 'SAP Record'}` })}
-                        title={`Hapus baris data`}
-                        className="absolute inset-0 m-auto w-6 h-6 flex items-center justify-center rounded-md text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer invisible group-hover/cell:visible transition-all"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                    <td className="py-2.5 px-3 text-center text-slate-400 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
+                      {(page - 1) * pageSize + idx + 1}
                     </td>
                     <td className="py-2.5 px-3 text-center text-slate-700 dark:text-slate-300 font-semibold border-r border-slate-200/70 dark:border-slate-800/70">
                       {row.wilayahSap || '-'}
@@ -715,9 +759,26 @@ export default function MasterSapUploadView() {
                     <td className="py-2.5 px-3 text-center font-mono text-slate-500 border-r border-slate-200/70 dark:border-slate-800/70">
                       {row.jumlahAir != null ? row.jumlahAir : '-'}
                     </td>
-                    <td className="py-2.5 px-3 text-center font-mono text-slate-500">
+                    <td className={`py-2.5 px-3 text-center font-mono text-slate-500 ${isAdmin ? 'border-r border-slate-200/70 dark:border-slate-800/70' : ''}`}>
                       {row.referensiLokasi || row.lokasi || '-'}
                     </td>
+                    {isAdmin && (
+                      <td className="py-2.5 px-3 text-center">
+                        <MasterActionButtons
+                          onEdit={() =>
+                            setEditingItem({
+                              ...row,
+                              tanggalRealisasi: toDateInputValue(row.tanggalRealisasi),
+                            })
+                          }
+                          onDelete={() =>
+                            setItemToDelete({ id: row.id, label: `${row.lokasi || row.plantCostCenter || 'SAP Record'}` })
+                          }
+                          editTitle={`Edit data SAP ${row.lokasi || row.plantCostCenter}`}
+                          deleteTitle={`Hapus data SAP ${row.lokasi || row.plantCostCenter}`}
+                        />
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -751,6 +812,18 @@ export default function MasterSapUploadView() {
           </div>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      <MasterEditModal
+        isOpen={Boolean(editingItem)}
+        title="Edit Data Realisasi SAP"
+        subtitle={editingItem?.lokasi ? `Lokasi: ${editingItem.lokasi} (${editingItem.pasDocument || '-'})` : undefined}
+        fields={SAP_EDIT_FIELDS}
+        initialValues={editingItem}
+        onClose={() => setEditingItem(null)}
+        onSave={handleSaveEdit}
+        isSaving={isSavingEdit}
+      />
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal

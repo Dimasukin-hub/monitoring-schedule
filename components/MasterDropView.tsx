@@ -17,15 +17,22 @@ import {
   AlertCircle,
   X,
   Truck,
-  Trash2,
 } from 'lucide-react';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
+import MasterEditModal, { MasterActionButtons, EditFieldConfig, toDateInputValue } from '@/components/MasterEditModal';
+
+const DROP_EDIT_FIELDS: EditFieldConfig[] = [
+  { key: 'lokasi', label: 'Lokasi', type: 'text', required: true, uppercase: true },
+  { key: 'wilayah', label: 'Wilayah', type: 'text', uppercase: true },
+  { key: 'tanggal', label: 'Tanggal Drop', type: 'date', required: true, colSpan: 2 },
+  { key: 'diameters', label: 'Jumlah Drop per Diameter (Pcs)', type: 'diameters' },
+];
 
 const WILAYAH_LIST = ['AW01', 'AW02', 'AW03', 'AW04', 'AW05', 'AW06', 'AW07'];
 const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
 
 export default function MasterDropView() {
-  const { canUploadMasterData } = useAuth();
+  const { canUploadMasterData, isAdmin } = useAuth();
   const [dataList, setDataList] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [page, setPage] = useState<number>(1);
@@ -39,6 +46,34 @@ export default function MasterDropView() {
   const [dropMonthRange, setDropMonthRange] = useState<{ startMonth: number; endMonth: number; year: number } | null>(null);
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState<boolean>(false);
   const [pickerYear, setPickerYear] = useState<number>(2026);
+
+  // Edit State
+  const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
+
+  const handleSaveEdit = async (values: Record<string, any>): Promise<string | null> => {
+    if (!editingItem) return 'Data tidak ditemukan';
+    try {
+      setIsSavingEdit(true);
+      const res = await fetch('/api/gorong-gorong/master-drop', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingItem.id, ...values }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setDataList((prev) => prev.map((it) => (it.id === editingItem.id ? json.data : it)));
+        setEditingItem(null);
+        window.dispatchEvent(new Event('gorong_gorong_updated'));
+        return null;
+      }
+      return json.message || 'Gagal memperbarui data';
+    } catch (e: any) {
+      return e.message || 'Terjadi kesalahan sistem';
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   // Delete State
   const [itemToDelete, setItemToDelete] = useState<{ id: number; label: string } | null>(null);
@@ -56,6 +91,7 @@ export default function MasterDropView() {
         setDataList((prev) => prev.filter((it) => it.id !== itemToDelete.id));
         setTotalCount((prev) => Math.max(0, prev - 1));
         setItemToDelete(null);
+        window.dispatchEvent(new Event('gorong_gorong_updated'));
       } else {
         alert(json.message || 'Gagal menghapus data');
       }
@@ -506,20 +542,23 @@ export default function MasterDropView() {
                 <th className="py-3 px-3 text-center bg-emerald-50/70 dark:bg-emerald-950/30 border-r border-slate-200/80 dark:border-slate-700/80">Ø40</th>
                 <th className="py-3 px-3 text-center bg-emerald-50/70 dark:bg-emerald-950/30 border-r border-slate-200/80 dark:border-slate-700/80">Ø60</th>
                 <th className="py-3 px-3 text-center bg-emerald-50/70 dark:bg-emerald-950/30 border-r border-slate-200/80 dark:border-slate-700/80">Ø80</th>
-                <th className="py-3 px-3 text-center bg-emerald-50/70 dark:bg-emerald-950/30">Ø100</th>
+                <th className={`py-3 px-3 text-center bg-emerald-50/70 dark:bg-emerald-950/30 ${isAdmin ? 'border-r border-slate-200/80 dark:border-slate-700/80' : ''}`}>Ø100</th>
+                {isAdmin && (
+                  <th className="py-3 px-3 text-center">Aksi</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                  <td colSpan={isAdmin ? 9 : 8} className="py-12 text-center text-slate-400">
                     <RefreshCw className="w-6 h-6 animate-spin mx-auto text-emerald-500 mb-2" />
                     Memuat master data drop...
                   </td>
                 </tr>
               ) : dataList.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                  <td colSpan={isAdmin ? 9 : 8} className="py-12 text-center text-slate-400">
                     Tidak ada data drop yang sesuai dengan pencarian atau filter.
                   </td>
                 </tr>
@@ -529,18 +568,8 @@ export default function MasterDropView() {
                     key={row.id || idx}
                     className="hover:bg-emerald-50/20 dark:hover:bg-emerald-950/10 transition-colors border-b border-slate-100 dark:border-slate-800"
                   >
-                    <td className="group/cell relative py-2.5 px-3 text-center text-slate-400 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
-                      <span className="group-hover/cell:invisible">
-                        {(page - 1) * pageSize + idx + 1}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setItemToDelete({ id: row.id, label: row.lokasi || `#${row.id}` })}
-                        title={`Hapus baris data ${row.lokasi}`}
-                        className="absolute inset-0 m-auto w-6 h-6 flex items-center justify-center rounded-md text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer invisible group-hover/cell:visible transition-all"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                    <td className="py-2.5 px-3 text-center text-slate-400 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
+                      {(page - 1) * pageSize + idx + 1}
                     </td>
                     <td className="py-2.5 px-3 text-center font-bold text-emerald-700 dark:text-emerald-400 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
                       {row.lokasi}
@@ -572,13 +601,28 @@ export default function MasterDropView() {
                         <span className="text-slate-300 dark:text-slate-600 font-normal">0</span>
                       )}
                     </td>
-                    <td className="py-2.5 px-3 text-center font-mono">
+                    <td className={`py-2.5 px-3 text-center font-mono ${isAdmin ? 'border-r border-slate-200/70 dark:border-slate-800/70' : ''}`}>
                       {(row.diameter100 || 0) > 0 ? (
                         <span className="text-slate-900 dark:text-slate-100 font-bold">{row.diameter100}</span>
                       ) : (
                         <span className="text-slate-300 dark:text-slate-600 font-normal">0</span>
                       )}
                     </td>
+                    {isAdmin && (
+                      <td className="py-2.5 px-3 text-center">
+                        <MasterActionButtons
+                          onEdit={() =>
+                            setEditingItem({
+                              ...row,
+                              tanggal: toDateInputValue(row.tanggal),
+                            })
+                          }
+                          onDelete={() => setItemToDelete({ id: row.id, label: row.lokasi || `#${row.id}` })}
+                          editTitle={`Edit master drop ${row.lokasi}`}
+                          deleteTitle={`Hapus master drop ${row.lokasi}`}
+                        />
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -800,6 +844,18 @@ export default function MasterDropView() {
           </div>
         </div>
       )}
+
+      {/* Edit Modal */}
+      <MasterEditModal
+        isOpen={Boolean(editingItem)}
+        title="Edit Master Data Drop"
+        subtitle={editingItem?.lokasi ? `Lokasi: ${editingItem.lokasi}` : undefined}
+        fields={DROP_EDIT_FIELDS}
+        initialValues={editingItem}
+        onClose={() => setEditingItem(null)}
+        onSave={handleSaveEdit}
+        isSaving={isSavingEdit}
+      />
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal

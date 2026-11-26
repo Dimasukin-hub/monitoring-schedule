@@ -15,9 +15,35 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
-  Trash2,
 } from 'lucide-react';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
+import MasterEditModal, { MasterActionButtons, EditFieldConfig, toDateInputValue } from '@/components/MasterEditModal';
+
+const STATUS_LOKASI_EDIT_FIELDS: EditFieldConfig[] = [
+  { key: 'lokasi', label: 'Lokasi', type: 'text', required: true, uppercase: true },
+  { key: 'strucPlant', label: 'Struc Plant (Wilayah)', type: 'text', uppercase: true },
+  { key: 'statusLengkap', label: 'Status Lengkap', type: 'text' },
+  { key: 'status', label: 'Status', type: 'text', uppercase: true },
+  { key: 'luasBruto', label: 'Luas Bruto', type: 'number', step: 'any' },
+  { key: 'luasAktif', label: 'Luas Aktif', type: 'number', step: 'any' },
+  { key: 'luasNetto', label: 'Luas Netto', type: 'number', step: 'any' },
+  { key: 'bibit', label: 'Bibit', type: 'text' },
+  { key: 'kelas', label: 'Kelas', type: 'text' },
+  { key: 'jenis', label: 'Jenis', type: 'text' },
+  { key: 'tglRawat', label: 'Tanggal Rawat', type: 'date' },
+  { key: 'hari', label: 'Hari', type: 'number' },
+  { key: 'bulan', label: 'Bulan', type: 'number' },
+  { key: 'umurRawat', label: 'Umur Rawat', type: 'number' },
+  { key: 'umurBulan', label: 'Umur Bulan', type: 'number' },
+  { key: 'forcingStd', label: 'Forcing STD', type: 'date' },
+  { key: 'forcingProd2026', label: 'Forcing Prod 26', type: 'date' },
+  { key: 'forcing2027', label: 'Forcing 2027', type: 'date' },
+  { key: 'ketForcing2027', label: 'Ket 2027', type: 'text' },
+  { key: 'fixForcing', label: 'Fix Forcing', type: 'date' },
+  { key: 'forcingGabungan', label: 'Forcing Gabungan', type: 'date' },
+  { key: 'umurFStd', label: 'Umur F Std', type: 'number' },
+  { key: 'umurFProd', label: 'Umur F Prod', type: 'number' },
+];
 
 const ALL_STATUS_LIST = [
   'FC', 'BK', 'ST', 'SM', 'SC', 'BB', 'CL', 'BM', 'NY', 'Y1', 'Y2', 'Y3'
@@ -38,7 +64,7 @@ export default function MasterStatusLokasiView({
   hideUploadAndTemplate = false,
   portal,
 }: MasterStatusLokasiViewProps = {}) {
-  const { canUploadMasterData } = useAuth();
+  const { canUploadMasterData, isAdmin } = useAuth();
   const [dataList, setDataList] = useState<any[]>(cachedMasterLokasiList);
   const [totalCount, setTotalCount] = useState<number>(cachedTotalCount);
   const [page, setPage] = useState<number>(1);
@@ -49,6 +75,34 @@ export default function MasterStatusLokasiView({
   const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(cachedMasterLokasiList.length === 0);
+
+  // Edit State
+  const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
+
+  const handleSaveEdit = async (values: Record<string, any>): Promise<string | null> => {
+    if (!editingItem) return 'Data tidak ditemukan';
+    try {
+      setIsSavingEdit(true);
+      const res = await fetch('/api/gorong-gorong/master-lokasi', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingItem.id, ...values }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setDataList((prev) => prev.map((it) => (it.id === editingItem.id ? json.data : it)));
+        setEditingItem(null);
+        window.dispatchEvent(new Event('gorong_gorong_updated'));
+        return null;
+      }
+      return json.message || 'Gagal memperbarui data';
+    } catch (e: any) {
+      return e.message || 'Terjadi kesalahan sistem';
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   // Delete State
   const [itemToDelete, setItemToDelete] = useState<{ id: number; label: string } | null>(null);
@@ -66,6 +120,7 @@ export default function MasterStatusLokasiView({
         setDataList((prev) => prev.filter((it) => it.id !== itemToDelete.id));
         setTotalCount((prev) => Math.max(0, prev - 1));
         setItemToDelete(null);
+        window.dispatchEvent(new Event('gorong_gorong_updated'));
       } else {
         alert(json.message || 'Gagal menghapus data');
       }
@@ -480,20 +535,23 @@ export default function MasterStatusLokasiView({
                 <th className="px-2.5 py-2.5 text-center border-r border-slate-200/80 dark:border-slate-700/80">Fix Forcing</th>
                 <th className="px-2.5 py-2.5 text-center border-r border-slate-200/80 dark:border-slate-700/80">Forcing Gabungan</th>
                 <th className="px-2 py-2.5 text-center border-r border-slate-200/80 dark:border-slate-700/80">Umur F Std</th>
-                <th className="px-2 py-2.5 text-center">Umur F Prod</th>
+                <th className={`px-2 py-2.5 text-center ${isAdmin ? 'border-r border-slate-200/80 dark:border-slate-700/80' : ''}`}>Umur F Prod</th>
+                {isAdmin && (
+                  <th className="px-3 py-2.5 text-center">Aksi</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
               {isLoading ? (
                 <tr>
-                  <td colSpan={24} className="px-4 py-12 text-center text-slate-400">
+                  <td colSpan={isAdmin ? 25 : 24} className="px-4 py-12 text-center text-slate-400">
                     <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-[#00873D]" />
                     <span>Memuat master status lokasi...</span>
                   </td>
                 </tr>
               ) : dataList.length === 0 ? (
                 <tr>
-                  <td colSpan={24} className="px-4 py-12 text-center text-slate-400">
+                  <td colSpan={isAdmin ? 25 : 24} className="px-4 py-12 text-center text-slate-400">
                     Tidak ada data master yang cocok.
                   </td>
                 </tr>
@@ -505,18 +563,8 @@ export default function MasterStatusLokasiView({
                       idx % 2 === 1 ? 'bg-slate-50/40 dark:bg-slate-900/40' : ''
                     }`}
                   >
-                    <td className="group/cell relative px-3 py-2 text-center font-mono text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70">
-                      <span className="group-hover/cell:invisible">
-                        {(page - 1) * pageSize + idx + 1}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setItemToDelete({ id: item.id, label: item.lokasi || `#${item.id}` })}
-                        title={`Hapus baris data ${item.lokasi}`}
-                        className="absolute inset-0 m-auto w-6 h-6 flex items-center justify-center rounded-md text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer invisible group-hover/cell:visible transition-all"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                    <td className="px-3 py-2 text-center font-mono text-slate-400 border-r border-slate-200/70 dark:border-slate-800/70">
+                      {(page - 1) * pageSize + idx + 1}
                     </td>
                     <td className="px-3 py-2 font-bold text-[#00873D] border-r border-slate-200/70 dark:border-slate-800/70">
                       {item.lokasi}
@@ -554,7 +602,27 @@ export default function MasterStatusLokasiView({
                     <td className="px-2.5 py-2 font-mono text-[11px] border-r border-slate-200/70 dark:border-slate-800/70">{formatDate(item.fixForcing)}</td>
                     <td className="px-2.5 py-2 font-mono text-[11px] border-r border-slate-200/70 dark:border-slate-800/70">{formatDate(item.forcingGabungan)}</td>
                     <td className="px-2 py-2 font-mono border-r border-slate-200/70 dark:border-slate-800/70">{item.umurFStd ?? '-'}</td>
-                    <td className="px-2 py-2 font-mono">{item.umurFProd ?? '-'}</td>
+                    <td className={`px-2 py-2 font-mono ${isAdmin ? 'border-r border-slate-200/70 dark:border-slate-800/70' : ''}`}>{item.umurFProd ?? '-'}</td>
+                    {isAdmin && (
+                      <td className="px-3 py-2 text-center">
+                        <MasterActionButtons
+                          onEdit={() =>
+                            setEditingItem({
+                              ...item,
+                              tglRawat: toDateInputValue(item.tglRawat),
+                              forcingStd: toDateInputValue(item.forcingStd),
+                              forcingProd2026: toDateInputValue(item.forcingProd2026),
+                              forcing2027: toDateInputValue(item.forcing2027),
+                              fixForcing: toDateInputValue(item.fixForcing),
+                              forcingGabungan: toDateInputValue(item.forcingGabungan),
+                            })
+                          }
+                          onDelete={() => setItemToDelete({ id: item.id, label: item.lokasi || `#${item.id}` })}
+                          editTitle={`Edit master status lokasi ${item.lokasi}`}
+                          deleteTitle={`Hapus master status lokasi ${item.lokasi}`}
+                        />
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -779,6 +847,18 @@ export default function MasterStatusLokasiView({
           </div>
         </div>
       )}
+
+      {/* Edit Modal */}
+      <MasterEditModal
+        isOpen={Boolean(editingItem)}
+        title="Edit Master Status Lokasi"
+        subtitle={editingItem?.lokasi ? `Lokasi: ${editingItem.lokasi}` : undefined}
+        fields={STATUS_LOKASI_EDIT_FIELDS}
+        initialValues={editingItem}
+        onClose={() => setEditingItem(null)}
+        onSave={handleSaveEdit}
+        isSaving={isSavingEdit}
+      />
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal

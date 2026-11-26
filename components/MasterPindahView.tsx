@@ -17,15 +17,25 @@ import {
   AlertCircle,
   X,
   ArrowRightLeft,
-  Trash2,
 } from 'lucide-react';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
+import MasterEditModal, { MasterActionButtons, EditFieldConfig, toDateInputValue } from '@/components/MasterEditModal';
+
+const PINDAH_EDIT_FIELDS: EditFieldConfig[] = [
+  { key: 'lokasiPengirim', label: 'Lokasi Pengirim', type: 'text', required: true, uppercase: true },
+  { key: 'wilayahPengirim', label: 'Wilayah Pengirim', type: 'text', uppercase: true },
+  { key: 'lokasiPenerima', label: 'Lokasi Penerima', type: 'text', required: true, uppercase: true },
+  { key: 'wilayahPenerima', label: 'Wilayah Penerima', type: 'text', uppercase: true },
+  { key: 'tanggal', label: 'Tanggal Pindah', type: 'date', required: true, colSpan: 2 },
+  { key: 'diameters', label: 'Jumlah Pindah per Diameter (Pcs)', type: 'diameters' },
+  { key: 'keterangan', label: 'Keterangan', type: 'textarea', colSpan: 2 },
+];
 
 const WILAYAH_LIST = ['AW01', 'AW02', 'AW03', 'AW04', 'AW05', 'AW06', 'AW07'];
 const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
 
 export default function MasterPindahView() {
-  const { canUploadMasterData } = useAuth();
+  const { canUploadMasterData, isAdmin } = useAuth();
   const [dataList, setDataList] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [page, setPage] = useState<number>(1);
@@ -39,6 +49,34 @@ export default function MasterPindahView() {
   const [pindahMonthRange, setPindahMonthRange] = useState<{ startMonth: number; endMonth: number; year: number } | null>(null);
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState<boolean>(false);
   const [pickerYear, setPickerYear] = useState<number>(2026);
+
+  // Edit State
+  const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
+
+  const handleSaveEdit = async (values: Record<string, any>): Promise<string | null> => {
+    if (!editingItem) return 'Data tidak ditemukan';
+    try {
+      setIsSavingEdit(true);
+      const res = await fetch('/api/gorong-gorong/master-pindah', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingItem.id, ...values }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setDataList((prev) => prev.map((it) => (it.id === editingItem.id ? json.data : it)));
+        setEditingItem(null);
+        window.dispatchEvent(new Event('gorong_gorong_updated'));
+        return null;
+      }
+      return json.message || 'Gagal memperbarui data';
+    } catch (e: any) {
+      return e.message || 'Terjadi kesalahan sistem';
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   // Delete State
   const [itemToDelete, setItemToDelete] = useState<{ id: number; label: string } | null>(null);
@@ -56,6 +94,7 @@ export default function MasterPindahView() {
         setDataList((prev) => prev.filter((it) => it.id !== itemToDelete.id));
         setTotalCount((prev) => Math.max(0, prev - 1));
         setItemToDelete(null);
+        window.dispatchEvent(new Event('gorong_gorong_updated'));
       } else {
         alert(json.message || 'Gagal menghapus data');
       }
@@ -517,20 +556,23 @@ export default function MasterPindahView() {
                 <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80">Ø60</th>
                 <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80">Ø80</th>
                 <th className="py-3 px-3 text-center border-r border-slate-200/80 dark:border-slate-700/80">Ø100</th>
-                <th className="py-3 px-3 text-center">Keterangan</th>
+                <th className={`py-3 px-3 text-center ${isAdmin ? 'border-r border-slate-200/80 dark:border-slate-700/80' : ''}`}>Keterangan</th>
+                {isAdmin && (
+                  <th className="py-3 px-3 text-center">Aksi</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
               {isLoading ? (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center text-slate-400">
+                  <td colSpan={isAdmin ? 12 : 11} className="py-12 text-center text-slate-400">
                     <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-purple-600" />
                     Memuat data master pindah lokasi...
                   </td>
                 </tr>
               ) : dataList.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center text-slate-400">
+                  <td colSpan={isAdmin ? 12 : 11} className="py-12 text-center text-slate-400">
                     <ArrowRightLeft className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
                     Belum ada data perpindahan lokasi gorong-gorong.
                   </td>
@@ -543,18 +585,8 @@ export default function MasterPindahView() {
                       key={row.id || idx}
                       className="hover:bg-purple-50/20 dark:hover:bg-purple-950/10 transition-colors border-b border-slate-100 dark:border-slate-800"
                     >
-                      <td className="group/cell relative py-2.5 px-3 text-center text-slate-400 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
-                        <span className="group-hover/cell:invisible">
-                          {no}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setItemToDelete({ id: row.id, label: `${row.lokasiPengirim} -> ${row.lokasiPenerima}` })}
-                          title={`Hapus baris data`}
-                          className="absolute inset-0 m-auto w-6 h-6 flex items-center justify-center rounded-md text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer invisible group-hover/cell:visible transition-all"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                      <td className="py-2.5 px-3 text-center text-slate-400 font-mono border-r border-slate-200/70 dark:border-slate-800/70">
+                        {no}
                       </td>
                       <td className="py-2.5 px-3 text-center font-bold text-rose-600 dark:text-rose-400 border-r border-slate-200/70 dark:border-slate-800/70">
                         {row.lokasiPengirim}
@@ -599,9 +631,24 @@ export default function MasterPindahView() {
                           <span className="text-slate-300 dark:text-slate-600 font-normal">0</span>
                         )}
                       </td>
-                      <td className="py-2.5 px-3 text-center text-slate-500 dark:text-slate-400 truncate max-w-xs">
+                      <td className={`py-2.5 px-3 text-center text-slate-500 dark:text-slate-400 truncate max-w-xs ${isAdmin ? 'border-r border-slate-200/70 dark:border-slate-800/70' : ''}`}>
                         {row.keterangan || '-'}
                       </td>
+                      {isAdmin && (
+                        <td className="py-2.5 px-3 text-center">
+                          <MasterActionButtons
+                            onEdit={() =>
+                              setEditingItem({
+                                ...row,
+                                tanggal: toDateInputValue(row.tanggal),
+                              })
+                            }
+                            onDelete={() => setItemToDelete({ id: row.id, label: `${row.lokasiPengirim} -> ${row.lokasiPenerima}` })}
+                            editTitle={`Edit pindah lokasi ${row.lokasiPengirim} -> ${row.lokasiPenerima}`}
+                            deleteTitle={`Hapus pindah lokasi ${row.lokasiPengirim} -> ${row.lokasiPenerima}`}
+                          />
+                        </td>
+                      )}
                     </tr>
                   );
                 })
@@ -791,6 +838,18 @@ export default function MasterPindahView() {
           </div>
         </div>
       )}
+
+      {/* Edit Modal */}
+      <MasterEditModal
+        isOpen={Boolean(editingItem)}
+        title="Edit Master Data Pindah Lokasi"
+        subtitle={editingItem ? `${editingItem.lokasiPengirim} → ${editingItem.lokasiPenerima}` : undefined}
+        fields={PINDAH_EDIT_FIELDS}
+        initialValues={editingItem}
+        onClose={() => setEditingItem(null)}
+        onSave={handleSaveEdit}
+        isSaving={isSavingEdit}
+      />
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
