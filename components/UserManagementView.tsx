@@ -20,8 +20,21 @@ import {
   XCircle,
   Loader2,
   UserCheck,
+  ChevronDown,
+  Check,
+  RotateCcw,
 } from 'lucide-react';
 import { useAuth, getRoleDisplayName, UserRole } from '@/components/AuthProvider';
+import {
+  AllowedMenusMap,
+  PORTAL_MENUS,
+  PortalKey,
+  normalizePortalKey,
+  getDefaultMenusForRole,
+  getEffectiveMenusForPortal,
+  hasCustomMenuOverride,
+  arraysHaveSameMembers,
+} from '@/lib/menuAccess';
 
 export interface UserItem {
   id: number;
@@ -31,6 +44,7 @@ export interface UserItem {
   role: UserRole;
   wilayah?: string | null;
   avatar?: string | null;
+  allowedMenus?: AllowedMenusMap | null;
   createdAt: string;
   updatedAt?: string;
 }
@@ -78,7 +92,10 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
     return true;
   });
 
-  const { user: currentUser, isSuperAdmin } = useAuth();
+  const { user: currentUser, isSuperAdmin, setUserDirectly } = useAuth();
+  const currentPortalKey: PortalKey = portal ? normalizePortalKey(portal) : normalizePortalKey(pathname);
+  const currentPortalLabel = currentPortalKey === 'labita' ? 'Labita' : currentPortalKey === 'sulam' ? 'Sulam' : 'Gorong-Gorong';
+  const portalMenuOptions = PORTAL_MENUS[currentPortalKey];
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -125,13 +142,18 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
     role: UserRole;
     wilayah: string;
     newPassword: string;
+    selectedMenus: string[];
+    menuResetToDefault: boolean;
   }>({
     name: '',
     username: '',
     role: 'user_wilayah',
     wilayah: '',
     newPassword: '',
+    selectedMenus: [],
+    menuResetToDefault: false,
   });
+  const [isMenuDropdownOpen, setIsMenuDropdownOpen] = useState<boolean>(false);
   const [showEditPassword, setShowEditPassword] = useState<boolean>(false);
   const [isSubmittingEdit, setIsSubmittingEdit] = useState<boolean>(false);
   const [editError, setEditError] = useState<string | null>(null);
@@ -183,6 +205,18 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
   useEffect(() => {
     fetchUsers();
   }, [currentUser]);
+
+  useEffect(() => {
+    if (!isMenuDropdownOpen) return;
+    const handleOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.menu-access-dropdown-container')) {
+        setIsMenuDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [isMenuDropdownOpen]);
 
   // Filtered users list (User Planting disembunyikan jika di portal Gorong-Gorong)
   const filteredUsers = users.filter((u) => {
@@ -277,6 +311,7 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
     }
     const isFieldRole = ['kepala_wilayah', 'user_wilayah', 'user', 'user_fe'].includes(target.role);
     const initialWil = target.wilayah || (isFieldRole ? detectWilayahFromUsernameOrName(target.username, target.name) : null) || '';
+    const initialMenus = getEffectiveMenusForPortal(target, currentPortalKey);
     setEditingUser(target);
     setEditForm({
       name: target.name,
@@ -284,7 +319,10 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
       role: target.role,
       wilayah: isFieldRole ? initialWil : '',
       newPassword: '',
+      selectedMenus: initialMenus,
+      menuResetToDefault: false,
     });
+    setIsMenuDropdownOpen(false);
     setEditError(null);
     setShowEditPassword(false);
     setShowCurrentPasswordInModal(false);
@@ -314,6 +352,18 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
     try {
       setIsSubmittingEdit(true);
       const isFieldRole = ['kepala_wilayah', 'user_wilayah', 'user', 'user_fe'].includes(editForm.role);
+      const roleDefaults = getDefaultMenusForRole(editForm.role, currentPortalKey);
+      const hadOverride = hasCustomMenuOverride(editingUser, currentPortalKey);
+
+      let menuAccessUpdate: { portal: PortalKey; menus: string[] | null } | undefined;
+      if (isSuperAdmin) {
+        if (editForm.menuResetToDefault) {
+          menuAccessUpdate = { portal: currentPortalKey, menus: null };
+        } else if (hadOverride || !arraysHaveSameMembers(editForm.selectedMenus, roleDefaults)) {
+          menuAccessUpdate = { portal: currentPortalKey, menus: editForm.selectedMenus };
+        }
+      }
+
       const res = await fetch(`/api/users/${editingUser.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
@@ -323,13 +373,25 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
           role: editForm.role,
           wilayah: isFieldRole ? (editForm.wilayah || null) : null,
           password: editForm.newPassword ? editForm.newPassword.trim() : undefined,
+          menuAccessUpdate,
         }),
       });
       const data = await res.json();
 
       if (data.success) {
+        if (data.user && currentUser && editingUser.id === currentUser.id) {
+          setUserDirectly({
+            ...currentUser,
+            name: data.user.name,
+            email: data.user.username,
+            role: data.user.role,
+            wilayah: data.user.wilayah ?? null,
+            allowedMenus: data.user.allowedMenus ?? null,
+          });
+        }
         showToast('success', data.message || 'Data pengguna berhasil diperbarui!');
         setEditingUser(null);
+        setIsMenuDropdownOpen(false);
         fetchUsers(true);
       } else {
         setEditError(data.message || 'Gagal memperbarui pengguna.');
@@ -894,7 +956,7 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
       {/* ================= MODAL: TAMBAH USER BARU ================= */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-150">
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/40">
               <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-sm">
@@ -1066,7 +1128,7 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
       {/* ================= MODAL: EDIT USER / RESET PASSWORD ================= */}
       {editingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-150">
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/40">
               <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-sm">
@@ -1180,7 +1242,22 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
                       <button
                         key={r.role}
                         type="button"
-                        onClick={() => setEditForm({ ...editForm, role: r.role })}
+                        onClick={() => {
+                          const nextRole = r.role;
+                          const wasDefaultUnchanged =
+                            !hasCustomMenuOverride(editingUser, currentPortalKey) &&
+                            arraysHaveSameMembers(
+                              editForm.selectedMenus,
+                              getDefaultMenusForRole(editForm.role, currentPortalKey)
+                            );
+                          setEditForm({
+                            ...editForm,
+                            role: nextRole,
+                            selectedMenus: wasDefaultUnchanged
+                              ? getDefaultMenusForRole(nextRole, currentPortalKey)
+                              : editForm.selectedMenus,
+                          });
+                        }}
                         className={`py-2 px-2.5 rounded-xl border text-[11px] font-semibold flex items-center justify-start gap-2 cursor-pointer transition-all text-left ${
                           isSelected
                             ? 'border-indigo-500 bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-500/40 font-bold'
@@ -1212,6 +1289,158 @@ export default function UserManagementView({ portal }: { portal?: string } = {})
                       </option>
                     ))}
                   </select>
+                </div>
+              )}
+
+              {/* Akses Menu Dashboard (Khusus Super Admin - Dropdown Multiselect Centang) */}
+              {isSuperAdmin && (
+                <div className="space-y-1.5 pt-1 relative menu-access-dropdown-container">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Akses Menu ({currentPortalLabel})
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      {(hasCustomMenuOverride(editingUser, currentPortalKey) ||
+                        !arraysHaveSameMembers(
+                          editForm.selectedMenus,
+                          getDefaultMenusForRole(editForm.role, currentPortalKey)
+                        )) &&
+                        !editForm.menuResetToDefault && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditForm({
+                                ...editForm,
+                                selectedMenus: getDefaultMenusForRole(editForm.role, currentPortalKey),
+                                menuResetToDefault: true,
+                              })
+                            }
+                            className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                            title="Kembalikan ke menu bawaan role"
+                          >
+                            <RotateCcw className="w-2.5 h-2.5" />
+                            <span>Reset Default</span>
+                          </button>
+                        )}
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          !editForm.menuResetToDefault &&
+                          (hasCustomMenuOverride(editingUser, currentPortalKey) ||
+                            !arraysHaveSameMembers(
+                              editForm.selectedMenus,
+                              getDefaultMenusForRole(editForm.role, currentPortalKey)
+                            ))
+                            ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                        }`}
+                      >
+                        {!editForm.menuResetToDefault &&
+                        (hasCustomMenuOverride(editingUser, currentPortalKey) ||
+                          !arraysHaveSameMembers(
+                            editForm.selectedMenus,
+                            getDefaultMenusForRole(editForm.role, currentPortalKey)
+                          ))
+                          ? 'Custom'
+                          : 'Default Role'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsMenuDropdownOpen((prev) => !prev)}
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 flex items-center justify-between gap-2 cursor-pointer text-left"
+                  >
+                    <span className="truncate font-medium">
+                      {editForm.selectedMenus.length === 0
+                        ? 'Tidak ada menu dipilih (0)'
+                        : portalMenuOptions
+                            .filter((m) => editForm.selectedMenus.includes(m.id))
+                            .map((m) => m.label)
+                            .join(', ')}
+                    </span>
+                    <ChevronDown
+                      className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-150 ${
+                        isMenuDropdownOpen ? 'rotate-180 text-indigo-600' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {isMenuDropdownOpen && (
+                    <div className="mt-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg overflow-hidden">
+                      <div className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800/70 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] font-semibold">
+                        <span className="text-slate-500 dark:text-slate-400">
+                          {editForm.selectedMenus.length} dari {portalMenuOptions.length} dipilih
+                        </span>
+                        <div className="flex items-center gap-2.5">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditForm({
+                                ...editForm,
+                                selectedMenus: portalMenuOptions.map((m) => m.id),
+                                menuResetToDefault: false,
+                              })
+                            }
+                            className="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                          >
+                            Pilih Semua
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditForm({
+                                ...editForm,
+                                selectedMenus: [],
+                                menuResetToDefault: false,
+                              })
+                            }
+                            className="text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
+                          >
+                            Kosongkan
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/70">
+                        {portalMenuOptions.map((menu) => {
+                          const checked = editForm.selectedMenus.includes(menu.id);
+                          return (
+                            <button
+                              key={menu.id}
+                              type="button"
+                              onClick={() => {
+                                const next = checked
+                                  ? editForm.selectedMenus.filter((id) => id !== menu.id)
+                                  : [...editForm.selectedMenus, menu.id];
+                                setEditForm({
+                                  ...editForm,
+                                  selectedMenus: next,
+                                  menuResetToDefault: false,
+                                });
+                              }}
+                              className={`w-full px-3 py-2 text-left text-xs flex items-center gap-2.5 transition-colors cursor-pointer ${
+                                checked
+                                  ? 'bg-indigo-50/70 dark:bg-indigo-950/30 text-indigo-800 dark:text-indigo-200 font-semibold'
+                                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                              }`}
+                            >
+                              <span
+                                className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
+                                  checked
+                                    ? 'bg-indigo-600 border-indigo-600 text-white'
+                                    : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600'
+                                }`}
+                              >
+                                {checked && <Check className="w-3 h-3 stroke-[3]" />}
+                              </span>
+                              <span className="truncate">{menu.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

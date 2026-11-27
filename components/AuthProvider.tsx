@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { AllowedMenusMap, hasMenuAccess } from '@/lib/menuAccess';
 
 export type UserRole =
   | 'super_admin'
@@ -24,6 +25,7 @@ export interface AuthUser {
   role: UserRole;
   wilayah?: string | null;
   avatar?: string | null;
+  allowedMenus?: AllowedMenusMap | null;
 }
 
 export function getRoleDisplayName(role: UserRole | string | null | undefined): string {
@@ -211,19 +213,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isUserPlanting = role === 'user_planting';
   const isUser = !isAdmin && !isManagement && !isKepalaWilayah;
 
-  const canAccessMonitor = isSuperAdmin || isAdmin || isManagement || isKepalaWilayah;
-  // Hak akses menu Control Board: Khusus 6 role (Super Admin, Admin FE, Kabag FE, Manajer FE, Manajer FM, Manajer OSD)
-  const canAccessControlBoard = Boolean(
-    user && (
-      role === 'super_admin' ||
-      role === 'admin' ||
-      role === 'kepala_bagian_fe' ||
-      role === 'manajer_fe' ||
-      role === 'manajer_fm' ||
-      role === 'manajer_osd'
-    )
-  );
-  const canAccessMasterData = isSuperAdmin || isAdmin || isManagement || isKepalaWilayah;
+  const canAccessMonitor = hasMenuAccess(user, 'gorong_gorong', 'monitor_gorong_gorong');
+  // Hak akses menu Control Board: mengikuti default 6 role atau kustomisasi Super Admin
+  const canAccessControlBoard = hasMenuAccess(user, 'gorong_gorong', 'control_board');
+  const canAccessMasterData = hasMenuAccess(user, 'gorong_gorong', 'master_data');
   const canEditOpenCloseStatus = isSuperAdmin || isAdmin;
   const canUploadMasterData = isSuperAdmin || isAdmin;
   const isFormInputViewOnly = isManagement;

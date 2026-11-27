@@ -232,15 +232,16 @@ model StokLahanMaster {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  role      String   @default("user") // "admin" | "user"
-  wilayah   String?  // Wilayah tugas (misal: "AW01", "AW02", ..., "AW07", atau "ALL")
-  avatar    String?  @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  password     String
+  role         String   @default("user") // "admin" | "user"
+  wilayah      String?  // Wilayah tugas (misal: "AW01", "AW02", ..., "AW07", atau "ALL")
+  avatar       String?  @db.Text
+  allowedMenus Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 // ==========================================

@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAuth } from '@/components/AuthProvider';
+import { getDefaultPortalRoute, hasPortalAccess } from '@/lib/menuAccess';
 
 interface PortalLandingViewProps {
   onSelectPortal?: (portal: 'labita' | 'gorong_gorong' | 'sulam') => void;
@@ -32,7 +33,28 @@ interface PortalLandingViewProps {
 
 export default function PortalLandingView({ onSelectPortal }: PortalLandingViewProps) {
   const { theme, toggleTheme } = useTheme();
-  const { user, isAdmin, isSuperAdmin, logout } = useAuth();
+  const { user, isAdmin, isSuperAdmin, isUserWilayah, isUserPlanting, logout } = useAuth();
+  const canAccessLabita = Boolean(user && hasPortalAccess(user, 'labita'));
+  const labitaHref = canAccessLabita
+    ? (getDefaultPortalRoute(user, 'labita') || '/labita/executive-summary/pengolahan-lahan')
+    : '/login?callbackUrl=/labita/executive-summary/pengolahan-lahan';
+
+  const canAccessGorong = Boolean(user && hasPortalAccess(user, 'gorong_gorong'));
+  const gorongHref = user
+    ? (canAccessGorong
+        ? (getDefaultPortalRoute(user, 'gorong_gorong') || '/gorong-gorong/form-input/order-gorong-gorong')
+        : '/gorong-gorong')
+    : '/login?callbackUrl=/gorong-gorong';
+
+  const canAccessSulam = Boolean(user && hasPortalAccess(user, 'sulam'));
+  const sulamTargetPath = canAccessSulam
+    ? (getDefaultPortalRoute(user, 'sulam') || '/sulam/form-order-sulam')
+    : '/sulam/form-order-sulam';
+  const sulamPortalHref = canAccessSulam
+    ? (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+        ? `http://localhost:3001${sulamTargetPath}`
+        : sulamTargetPath)
+    : '/login?callbackUrl=/sulam';
 
   return (
     <div
@@ -141,17 +163,13 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-6 w-full max-w-6xl">
           {/* Card 1: Portal Labita */}
           <Link
-            href={
-              user && isSuperAdmin
-                ? '/labita/executive-summary/pengolahan-lahan'
-                : '/login?role=super_admin&callbackUrl=/labita/executive-summary/pengolahan-lahan'
-            }
+            href={labitaHref}
             prefetch={false}
             onClick={() => {
               if (typeof window !== 'undefined') {
-                sessionStorage.setItem('ggf_active_portal', '/labita/executive-summary/pengolahan-lahan');
+                sessionStorage.setItem('ggf_active_portal', canAccessLabita ? labitaHref : '/labita/executive-summary/pengolahan-lahan');
               }
-              if (user && isSuperAdmin) {
+              if (canAccessLabita) {
                 onSelectPortal?.('labita');
               }
             }}
@@ -165,15 +183,14 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
                 <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-emerald-500/15 text-[#00873D] dark:text-emerald-400 border border-emerald-500/30 group-hover:bg-[#00873D] group-hover:text-white flex items-center justify-center transition-all duration-300 shadow-xs group-hover:scale-110 shrink-0">
                   <Tractor className="w-5 h-5 sm:w-7 sm:h-7" />
                 </div>
-                {user && isSuperAdmin ? (
+                {canAccessLabita ? (
                   <span className="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1.5 shadow-2xs">
                     <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                    Akses Super Admin Aktif
+                    Akses Portal Labita Aktif
                   </span>
                 ) : (
-                  <span className="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 flex items-center gap-1.5 shadow-2xs">
-                    <Lock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-600 dark:text-amber-400" />
-                    Khusus Super Admin
+                  <span className="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                    Land &amp; Planting
                   </span>
                 )}
               </div>
@@ -185,10 +202,10 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
                 Pemantauan jadwal dan rencana olah tanah, stok bero, mutu olah tanah (DSM), serta pelacakan realisasi penanaman nanas PG1.
               </p>
 
-              {!(user && isSuperAdmin) && (
+              {user && !canAccessLabita && (
                 <div className="mt-3 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-start gap-2 text-[11px] sm:text-xs text-amber-800 dark:text-amber-300 leading-snug">
                   <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                  <span>Akses khusus Super Administrator. Klik untuk masuk menggunakan akun Super Admin.</span>
+                  <span>Akses Portal Labita untuk Super Admin atau akun dengan akses menu dari Super Admin.</span>
                 </div>
               )}
 
@@ -214,43 +231,23 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
             </div>
 
             {/* Action CTA */}
-            {user && isSuperAdmin ? (
-              <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 flex items-center justify-between text-xs font-bold text-[#00873D] dark:text-emerald-400 group-hover:translate-x-1 transition-transform duration-200">
-                <span className="text-xs sm:text-sm font-extrabold">Buka Portal Labita</span>
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-500/10 group-hover:bg-[#00873D] group-hover:text-white flex items-center justify-center transition-colors">
-                  <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </div>
+            <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 flex items-center justify-between text-xs font-bold text-[#00873D] dark:text-emerald-400 group-hover:translate-x-1 transition-transform duration-200">
+              <span className="text-xs sm:text-sm font-extrabold">
+                {canAccessLabita ? 'Buka Portal Labita' : 'Login & Buka Portal Labita'}
+              </span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-500/10 group-hover:bg-[#00873D] group-hover:text-white flex items-center justify-center transition-colors">
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-            ) : (
-              <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 flex items-center justify-between text-xs font-bold text-amber-700 dark:text-amber-400 group-hover:translate-x-1 transition-transform duration-200">
-                <span className="text-xs sm:text-sm font-extrabold flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600" /> Login Super Admin &amp; Masuk
-                </span>
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-500/10 group-hover:bg-amber-600 group-hover:text-white flex items-center justify-center transition-colors">
-                  <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </div>
-              </div>
-            )}
+            </div>
           </Link>
 
           {/* Card 2: Portal Monitor Gorong-Gorong */}
           <Link
-            href={
-              user
-                ? isAdmin
-                  ? '/gorong-gorong/monitor-gorong-gorong'
-                  : '/gorong-gorong/form-input/order-gorong-gorong'
-                : '/login?callbackUrl=/gorong-gorong'
-            }
+            href={gorongHref}
             prefetch={false}
             onClick={() => {
-              const target = user
-                ? isAdmin
-                  ? '/gorong-gorong/monitor-gorong-gorong'
-                  : '/gorong-gorong/form-input/order-gorong-gorong'
-                : '/gorong-gorong';
               if (typeof window !== 'undefined') {
-                sessionStorage.setItem('ggf_active_portal', target);
+                sessionStorage.setItem('ggf_active_portal', user ? gorongHref : '/gorong-gorong');
               }
               if (user) {
                 onSelectPortal?.('gorong_gorong');
@@ -308,20 +305,20 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
             </div>
           </Link>
 
-          {/* Card 3: Portal Sulam (Khusus Super Admin) */}
+          {/* Card 3: Portal Sulam */}
           <Link
-            href={
-              user && isSuperAdmin
-                ? (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:3001' : '/sulam')
-                : '/login?role=super_admin&callbackUrl=/sulam'
-            }
+            href={sulamPortalHref}
             prefetch={false}
-            onClick={() => {
+            onClick={(e) => {
               if (typeof window !== 'undefined') {
                 sessionStorage.setItem('ggf_active_portal', '/sulam');
               }
-              if (user && isSuperAdmin) {
+              if (canAccessSulam) {
                 onSelectPortal?.('sulam');
+                if (typeof window !== 'undefined') {
+                  e.preventDefault();
+                  window.location.href = sulamPortalHref;
+                }
               }
             }}
             className="group relative flex flex-col justify-between p-4 sm:p-6 md:p-7 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900 border-2 border-slate-200/90 dark:border-slate-800 hover:border-teal-600 dark:hover:border-teal-500 shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer overflow-hidden text-left"
@@ -334,15 +331,14 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
                 <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-teal-500/15 text-teal-600 dark:text-teal-400 flex items-center justify-center border border-teal-500/30 group-hover:scale-110 group-hover:bg-teal-600 group-hover:text-white transition-all duration-300 shadow-xs shrink-0">
                   <Sprout className="w-5 h-5 sm:w-7 sm:h-7" />
                 </div>
-                {user && isSuperAdmin ? (
+                {canAccessSulam ? (
                   <span className="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-teal-100 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-800 flex items-center gap-1.5 shadow-2xs">
                     <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                    Akses Super Admin Aktif
+                    {isSuperAdmin ? 'Akses Super Admin Aktif' : isUserPlanting ? 'Akses User Planting Aktif' : 'Akses User Wilayah Aktif'}
                   </span>
                 ) : (
-                  <span className="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 flex items-center gap-1.5 shadow-2xs">
-                    <Lock className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 text-amber-600 dark:text-amber-400" />
-                    Khusus Super Admin
+                  <span className="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-teal-100 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-800">
+                    Replanting &amp; Nursery
                   </span>
                 )}
               </div>
@@ -354,10 +350,10 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
                 Sistem pengajuan order bibit sulam, alur approval berjenjang, pelacakan drop bibit, serta monitoring realisasi tanam sulam PG1.
               </p>
 
-              {!(user && isSuperAdmin) && (
+              {user && !canAccessSulam && (
                 <div className="mt-3 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-start gap-2 text-[11px] sm:text-xs text-amber-800 dark:text-amber-300 leading-snug">
                   <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                  <span>Akses khusus Super Administrator. Klik untuk masuk menggunakan akun Super Admin.</span>
+                  <span>Akses Portal Sulam diperuntukkan bagi Super Admin, User Wilayah, dan User Planting.</span>
                 </div>
               )}
 
@@ -383,23 +379,14 @@ export default function PortalLandingView({ onSelectPortal }: PortalLandingViewP
             </div>
 
             {/* Action CTA */}
-            {user && isSuperAdmin ? (
-              <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 flex items-center justify-between text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-1 transition-transform duration-200">
-                <span className="text-xs sm:text-sm font-extrabold">Buka Portal Sulam</span>
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-teal-500/10 group-hover:bg-teal-600 group-hover:text-white flex items-center justify-center transition-colors">
-                  <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </div>
+            <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 flex items-center justify-between text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-1 transition-transform duration-200">
+              <span className="text-xs sm:text-sm font-extrabold">
+                {canAccessSulam ? 'Buka Portal Sulam' : 'Login & Buka Portal Sulam'}
+              </span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-teal-500/10 group-hover:bg-teal-600 group-hover:text-white flex items-center justify-center transition-colors">
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-            ) : (
-              <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 flex items-center justify-between text-xs font-bold text-amber-700 dark:text-amber-400 group-hover:translate-x-1 transition-transform duration-200">
-                <span className="text-xs sm:text-sm font-extrabold flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600" /> Login Super Admin &amp; Masuk
-                </span>
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-500/10 group-hover:bg-amber-600 group-hover:text-white flex items-center justify-center transition-colors">
-                  <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </div>
-              </div>
-            )}
+            </div>
           </Link>
         </div>
 

@@ -1,4 +1,5 @@
 import { prisma } from './prisma';
+import { AllowedMenusMap, sanitizeAllowedMenus } from './menuAccess';
 
 export type UserRole =
   | 'super_admin'
@@ -21,6 +22,7 @@ export interface AuthUser {
   role: UserRole;
   wilayah?: string | null;
   avatar?: string | null;
+  allowedMenus?: AllowedMenusMap | null;
 }
 
 // Akun Default (Fallback & Quick Login)
@@ -293,6 +295,7 @@ export async function findUserByEmail(identifier: string) {
         role: user.role as any,
         wilayah: (user as any).wilayah || null,
         avatar: (user as any).avatar || null,
+        allowedMenus: sanitizeAllowedMenus((user as any).allowedMenus),
       };
     }
   } catch (error) {

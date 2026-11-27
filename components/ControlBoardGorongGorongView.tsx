@@ -228,7 +228,8 @@ export default function ControlBoardGorongGorongView() {
       return {
         ...it,
         dropPcs: qty,
-        pctKedatangan: currentTargetKedatangan,
+        pctKedatangan: it.pctByDia?.[selectedDiameter] ?? currentTargetKedatangan,
+        deltaPctKedatangan: it.deltaPctByDia?.[selectedDiameter] ?? 0,
       };
     });
   }, [dailyKedatangan, selectedDiameter, currentTargetKedatangan]);
@@ -245,7 +246,8 @@ export default function ControlBoardGorongGorongView() {
       return {
         ...it,
         pasangPcs: qty,
-        pctPemasangan: currentTargetPemasangan,
+        pctPemasangan: it.pctByDia?.[selectedDiameter] ?? currentTargetPemasangan,
+        deltaPctPemasangan: it.deltaPctByDia?.[selectedDiameter] ?? 0,
       };
     });
   }, [dailyPemasangan, selectedDiameter, currentTargetPemasangan]);
@@ -438,9 +440,7 @@ export default function ControlBoardGorongGorongView() {
                 </h3>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                {selectedMonth !== null
-                  ? `Batang: Drop Form Input • Garis Datar: Acuan % Kedatangan (${currentTargetKedatangan}%)`
-                  : `Batang: Drop Form Input • Garis Datar: Acuan % Kedatangan (${currentTargetKedatangan}%)`}
+                Batang: Drop Form Input • Garis: Progres % Kedatangan Harian (Saat ini: {currentTargetKedatangan}%)
               </p>
             </div>
 
@@ -518,9 +518,12 @@ export default function ControlBoardGorongGorongView() {
                       fontSize: '11px',
                     }}
                     labelFormatter={(label) => `Tanggal: ${label}`}
-                    formatter={(val: any, name: any) => {
+                    formatter={(val: any, name: any, item: any) => {
                       if (name === 'dropPcs' || name === 'Drop') return [`${val} pcs`, 'Drop'];
-                      if (name === 'pctKedatangan' || name === '% Kedatangan') return [`${val}%`, '% Kedatangan'];
+                      if (name === 'pctKedatangan' || name === '% Kedatangan') {
+                        const dPct = item?.payload?.deltaPctKedatangan ?? 0;
+                        return [`${val}% (${dPct >= 0 ? '+' : ''}${dPct}% hari ini)`, '% Kedatangan'];
+                      }
                       return [val, name];
                     }}
                   />
@@ -537,13 +540,14 @@ export default function ControlBoardGorongGorongView() {
                   {showPctKedatangan && (
                     <Line
                       yAxisId="right"
-                      type="linear"
+                      type="monotone"
                       dataKey="pctKedatangan"
                       name="% Kedatangan"
                       stroke="#10b981"
                       strokeWidth={2.5}
-                      strokeDasharray="4 4"
-                      dot={false}
+                      dot={{ r: isDenseKedatangan ? 2 : 3.5, fill: '#10b981', strokeWidth: 1.5, stroke: '#fff' }}
+                      activeDot={{ r: 5 }}
+                      label={!isDenseKedatangan ? renderCustomLineLabel : false}
                     />
                   )}
                 </ComposedChart>
@@ -565,9 +569,7 @@ export default function ControlBoardGorongGorongView() {
                 </h3>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                {selectedMonth !== null
-                  ? `Batang: Pasang Manual Form Input • Garis Datar: Acuan % Pemasangan (${currentTargetPemasangan}%)`
-                  : `Batang: Pasang Manual Form Input • Garis Datar: Acuan % Pemasangan (${currentTargetPemasangan}%)`}
+                Batang: Pasang Manual Form Input • Garis: Progres % Pemasangan Harian (Saat ini: {currentTargetPemasangan}%)
               </p>
             </div>
 
@@ -645,9 +647,12 @@ export default function ControlBoardGorongGorongView() {
                       fontSize: '11px',
                     }}
                     labelFormatter={(label) => `Tanggal: ${label}`}
-                    formatter={(val: any, name: any) => {
+                    formatter={(val: any, name: any, item: any) => {
                       if (name === 'pasangPcs' || name === 'Pasang Manual') return [`${val} pcs`, 'Pasang Manual'];
-                      if (name === 'pctPemasangan' || name === '% Pemasangan') return [`${val}%`, '% Pemasangan'];
+                      if (name === 'pctPemasangan' || name === '% Pemasangan') {
+                        const dPct = item?.payload?.deltaPctPemasangan ?? 0;
+                        return [`${val}% (${dPct >= 0 ? '+' : ''}${dPct}% hari ini)`, '% Pemasangan'];
+                      }
                       return [val, name];
                     }}
                   />
@@ -664,13 +669,14 @@ export default function ControlBoardGorongGorongView() {
                   {showPctPemasangan && (
                     <Line
                       yAxisId="right"
-                      type="linear"
+                      type="monotone"
                       dataKey="pctPemasangan"
                       name="% Pemasangan"
                       stroke="#8b5cf6"
                       strokeWidth={2.5}
-                      strokeDasharray="4 4"
-                      dot={false}
+                      dot={{ r: isDensePemasangan ? 2 : 3.5, fill: '#8b5cf6', strokeWidth: 1.5, stroke: '#fff' }}
+                      activeDot={{ r: 5 }}
+                      label={!isDensePemasangan ? renderCustomLineLabel : false}
                     />
                   )}
                 </ComposedChart>

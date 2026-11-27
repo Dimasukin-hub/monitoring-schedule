@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { hasMenuAccess, normalizePortalKey, sanitizeAllowedMenus } from '@/lib/menuAccess';
 
 // Helper untuk memeriksa sesi admin dari header atau cookie
 function getAdminSession(req: Request) {
@@ -16,12 +18,19 @@ function getAdminSession(req: Request) {
       };
     }
 
-    // 2. Periksa cookie ggf_session
+    // 2. Periksa cookie ggf_session (termasuk user yang diberi akses kustom Manajemen User)
     const cookieHeader = req.headers.get('cookie') || '';
     const match = cookieHeader.match(/ggf_session=([^;]+)/);
     if (match) {
       const session = JSON.parse(decodeURIComponent(match[1]));
-      if (session && (session.role === 'admin' || session.role === 'super_admin')) {
+      if (
+        session &&
+        (session.role === 'admin' ||
+          session.role === 'super_admin' ||
+          hasMenuAccess(session, 'gorong_gorong', 'user_management') ||
+          hasMenuAccess(session, 'labita', 'user_management') ||
+          hasMenuAccess(session, 'sulam', 'user_management'))
+      ) {
         return session;
       }
     }
@@ -61,7 +70,7 @@ export async function PUT(
     }
 
     const body = await req.json();
-    const { name, role, password, username, wilayah } = body;
+    const { name, role, password, username, wilayah, menuAccessUpdate } = body;
 
     const existingUser = await prisma.user.findUnique({
       where: { id: userId },
@@ -190,6 +199,29 @@ export async function PUT(
       updateData.wilayah = cleanWilayah;
     }
 
+    // Pengaturan akses menu per portal (Khusus Super Admin)
+    if (menuAccessUpdate !== undefined) {
+      if (admin.role !== 'super_admin') {
+        return NextResponse.json(
+          { success: false, message: 'Akses ditolak. Hanya Super Admin yang berhak mengatur akses menu pengguna.' },
+          { status: 403 }
+        );
+      }
+
+      const portalKey = normalizePortalKey(menuAccessUpdate?.portal);
+      const currentAllowed = sanitizeAllowedMenus(existingUser.allowedMenus) || {};
+
+      if (menuAccessUpdate?.menus === null) {
+        delete currentAllowed[portalKey];
+      } else if (Array.isArray(menuAccessUpdate?.menus)) {
+        const sanitized = sanitizeAllowedMenus({ [portalKey]: menuAccessUpdate.menus });
+        currentAllowed[portalKey] = sanitized?.[portalKey] || [];
+      }
+
+      const nextAllowed = Object.keys(currentAllowed).length > 0 ? currentAllowed : null;
+      updateData.allowedMenus = nextAllowed === null ? Prisma.DbNull : nextAllowed;
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: updateData,
@@ -204,6 +236,7 @@ export async function PUT(
         username: updatedUser.email,
         role: updatedUser.role,
         wilayah: updatedUser.wilayah,
+        allowedMenus: sanitizeAllowedMenus(updatedUser.allowedMenus),
         updatedAt: updatedUser.updatedAt,
       },
     });

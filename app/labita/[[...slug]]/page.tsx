@@ -34,6 +34,7 @@ import InputRealTanamPetikView from '@/components/InputRealTanamPetikView';
 import UserManagementView from '@/components/UserManagementView';
 import { useAuth } from '@/components/AuthProvider';
 import { usePortalAccess } from '@/lib/portalAccess';
+import { getDefaultPortalRoute, hasMenuAccess, hasPortalAccess } from '@/lib/menuAccess';
 import {
   parseLabitaPathname,
   getLabitaRoute,
@@ -41,21 +42,30 @@ import {
 } from '@/lib/portalRoutes';
 
 export default function LabitaDashboardPage() {
-  const { user, isAdmin, isSuperAdmin, isLoading: authLoading } = useAuth();
+  const { user, isAdmin, isLoading: authLoading } = useAuth();
   const { canAccessLabita } = usePortalAccess();
   const pathname = usePathname();
   const router = useRouter();
+  const canEnterLabita = Boolean(user && hasPortalAccess(user, 'labita'));
+  const canExecSummary = hasMenuAccess(user, 'labita', 'executive_summary');
+  const canPengolahan = hasMenuAccess(user, 'labita', 'pengolahan_lahan_bibit_tanam');
+  const canPlanting = hasMenuAccess(user, 'labita', 'planting');
+  const canUserMgmt = hasMenuAccess(user, 'labita', 'user_management');
 
-  // Guard login: jika pengguna belum login sebagai Super Administrator, arahkan langsung ke login super admin
+  // Guard login: sesuai role atau kustomisasi akses menu Labita oleh Super Admin
   useEffect(() => {
-    if (!authLoading && (!user || !isSuperAdmin)) {
-      router.replace(
-        `/login?role=super_admin&callbackUrl=${encodeURIComponent(
-          pathname || '/labita/executive-summary/pengolahan-lahan'
-        )}`
-      );
+    if (!authLoading) {
+      if (!user) {
+        router.replace(
+          `/login?callbackUrl=${encodeURIComponent(
+            pathname || '/labita/executive-summary/pengolahan-lahan'
+          )}`
+        );
+      } else if (!canEnterLabita) {
+        router.replace('/login?error=unauthorized');
+      }
     }
-  }, [authLoading, user, isSuperAdmin, pathname, router]);
+  }, [authLoading, user, canEnterLabita, pathname, router]);
 
   // Inisialisasi awal berdasarkan URL
   const initial = parseLabitaPathname(pathname || '/labita');
@@ -93,6 +103,18 @@ export default function LabitaDashboardPage() {
     if (!pathname) return;
     const parsed = parseLabitaPathname(pathname);
 
+    if (!authLoading && user && canEnterLabita) {
+      if (pathname === '/labita' || !hasMenuAccess(user, 'labita', parsed.activeTab)) {
+        const fallback = getDefaultPortalRoute(user, 'labita');
+        if (fallback && fallback !== pathname) {
+          const fallbackParsed = parseLabitaPathname(fallback);
+          setActiveTab(fallbackParsed.activeTab);
+          router.replace(fallback);
+          return;
+        }
+      }
+    }
+
     if (parsed.redirectTo && parsed.redirectTo !== pathname) {
       router.replace(parsed.redirectTo);
       return;
@@ -106,7 +128,7 @@ export default function LabitaDashboardPage() {
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('ggf_active_portal', pathname);
     }
-  }, [pathname, router]);
+  }, [pathname, router, authLoading, user, canEnterLabita]);
 
   // Guard tab manajemen user & update tanam khusus Admin
   useEffect(() => {
@@ -270,14 +292,14 @@ export default function LabitaDashboardPage() {
     }
   };
 
-  // Tampilan loading / pemeriksaan hak akses sebelum diarahkan ke login super admin
-  if (authLoading || !user || !isSuperAdmin) {
+  // Tampilan loading / pemeriksaan hak akses Portal Labita
+  if (authLoading || !user || !canEnterLabita) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
           <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-            Memeriksa hak akses Super Administrator...
+            Memeriksa hak akses Portal Labita...
           </span>
         </div>
       </div>
@@ -320,10 +342,12 @@ export default function LabitaDashboardPage() {
         totalLands={summaryData?.totalLands || 0}
       />
 
-      {/* Main Full-Width Content Area - Margin Dipepetkan Rapi ke Sisi Layar */}
+      {/* Main Full-Width Content Area - Margin Dipepetkan Rapi ke Sisi Layar (Offset Mini Sidebar di Desktop) */}
+      <div className="flex-1 md:pl-16 flex flex-col w-full min-w-0">
       <main className="flex-1 p-2 sm:p-4 md:p-5 space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
         {/* 1. MENU: EXECUTIVE SUMMARY (Dengan 2 Sub-Menu: Pengolahan Lahan & Tanam) */}
-        <div className={activeTab === 'executive_summary' ? 'space-y-8 animate-in fade-in duration-150' : 'hidden'}>
+        {canExecSummary && (
+          <div className={activeTab === 'executive_summary' ? 'space-y-8 animate-in fade-in duration-150' : 'hidden'}>
           {/* 1.1 SUB MENU: PENGOLAHAN LAHAN */}
           <div className={executiveSubTab === 'pengolahan_lahan' ? 'space-y-8' : 'hidden'}>
             {/* Kartu Stok Pengolahan */}
@@ -397,8 +421,10 @@ export default function LabitaDashboardPage() {
             </div>
           </div>
         </div>
+        )}
 
         {/* 2. MENU: PENGOLAHAN LAHAN (Dengan 2 Sub-Menu: List Stok Lahan & Data Lahan) */}
+        {canPengolahan && (
         <div className={activeTab === 'pengolahan_lahan_bibit_tanam' ? 'space-y-8 animate-in fade-in duration-150' : 'hidden'}>
           {/* 2.1 SUB MENU: LIST STOK LAHAN */}
           <div className={pengolahanSubTab === 'list_stok_lahan' ? 'space-y-8' : 'hidden'}>
@@ -423,8 +449,10 @@ export default function LabitaDashboardPage() {
             />
           </div>
         </div>
+        )}
 
         {/* 3. MENU: PLANTING (Dengan 4 Sub-Menu: Real Tanam Nanas, Input Tanam & Petik, Proses Selesai Tanam, Update) */}
+        {canPlanting && (
         <div className={activeTab === 'planting' ? 'space-y-8 animate-in fade-in duration-150' : 'hidden'}>
           {/* 3.1 SUB MENU: REAL TANAM NANAS */}
           <div className={plantingSubTab === 'real_tanam_nanas' ? 'space-y-8' : 'hidden'}>
@@ -451,14 +479,16 @@ export default function LabitaDashboardPage() {
             </div>
           )}
         </div>
+        )}
 
-        {/* 4. MENU: MANAJEMEN USER (Khusus Admin) */}
-        {isAdmin && (
+        {/* 4. MENU: MANAJEMEN USER */}
+        {canUserMgmt && (
           <div className={activeTab === 'user_management' ? 'space-y-8 animate-in fade-in duration-150' : 'hidden'}>
-            <UserManagementView />
+            <UserManagementView portal="labita" />
           </div>
         )}
       </main>
+      </div>
 
       {/* Modal Detail Petak Lahan */}
       {selectedLandId && (

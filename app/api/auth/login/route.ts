@@ -31,6 +31,7 @@ export async function POST(req: Request) {
       role: user.role,
       wilayah: (user as any).wilayah || null,
       avatar: (user as any).avatar || null,
+      allowedMenus: (user as any).allowedMenus || null,
     };
 
     const response = NextResponse.json({

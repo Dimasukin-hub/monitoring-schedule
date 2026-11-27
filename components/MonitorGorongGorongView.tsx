@@ -213,6 +213,51 @@ export default function MonitorGorongGorongView() {
 
   const [summaryData, setSummaryData] = useState<any>(cachedSummaryData);
   const [monitoringData, setMonitoringData] = useState<any>(cachedMonitoringData);
+
+  // Refs & Sync untuk Freeze Panes Header Tabel saat Scrollbar Luar Halaman Digeser
+  const orderTableRef = useRef<HTMLTableElement>(null);
+  const orderTheadRef = useRef<HTMLTableSectionElement>(null);
+  const belumTableRef = useRef<HTMLTableElement>(null);
+  const belumTheadRef = useRef<HTMLTableSectionElement>(null);
+
+  useEffect(() => {
+    let rafId = 0;
+    const updateTheadStickyOffset = (
+      tableEl: HTMLTableElement | null,
+      theadEl: HTMLTableSectionElement | null
+    ) => {
+      if (!tableEl || !theadEl) return;
+      const navHeader = document.querySelector('header');
+      const navBottom = navHeader ? Math.max(0, navHeader.getBoundingClientRect().bottom) : 0;
+      const tableRect = tableEl.getBoundingClientRect();
+      const theadHeight = theadEl.getBoundingClientRect().height || 68;
+      const maxOffset = Math.max(0, tableRect.height - theadHeight);
+      const rawOffset = navBottom - tableRect.top;
+      const offset = Math.min(Math.max(0, rawOffset), maxOffset);
+      theadEl.style.transform = offset > 0.5 ? `translate3d(0, ${offset}px, 0)` : '';
+    };
+
+    const syncAllTables = () => {
+      rafId = 0;
+      updateTheadStickyOffset(orderTableRef.current, orderTheadRef.current);
+      updateTheadStickyOffset(belumTableRef.current, belumTheadRef.current);
+    };
+
+    const handleScrollOrResize = () => {
+      if (!rafId) {
+        rafId = window.requestAnimationFrame(syncAllTables);
+      }
+    };
+
+    syncAllTables();
+    window.addEventListener('scroll', handleScrollOrResize, { passive: true });
+    window.addEventListener('resize', handleScrollOrResize, { passive: true });
+    return () => {
+      if (rafId) window.cancelAnimationFrame(rafId);
+      window.removeEventListener('scroll', handleScrollOrResize);
+      window.removeEventListener('resize', handleScrollOrResize);
+    };
+  }, [activeTableTab, monitoringData, searchQuery, selectedSearchLocations, selectedWilayah, selectedStatusOpenClose, selectedStatusTanaman, selectedTanggalOrder, selectedPrioritas, selectedAktBk, selectedDsmBk, selectedDsmSt, orderMonthRange]);
   const [isLoading, setIsLoading] = useState<boolean>(!cachedMonitoringData);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
@@ -3052,11 +3097,11 @@ export default function MonitorGorongGorongView() {
       {/* 5. KONTEN TABEL */}
       {activeTableTab === 'order' ? (
         /* TABEL 1: LIST LOKASI ORDER LENGKAP DENGAN 4 DIAMETER */
-        <div className="relative z-10 isolate rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-hidden w-full max-w-full">
-          <div className="overflow-auto max-h-[68vh] sm:max-h-[640px] scrollbar-thin border border-slate-200 dark:border-slate-800 w-full max-w-full">
-            <table className="w-full text-center border-separate border-spacing-0 text-[11px] whitespace-nowrap">
-              {/* Header 2 Tingkat */}
-              <thead className="text-slate-700 dark:text-slate-200 font-bold">
+        <div className="relative z-10 isolate rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-x-clip w-full max-w-full">
+          <div className="overflow-x-auto scrollbar-thin border border-slate-200 dark:border-slate-800 w-full max-w-full">
+            <table ref={orderTableRef} className="w-full text-center border-separate border-spacing-0 text-[11px] whitespace-nowrap">
+              {/* Header 2 Tingkat (Freeze saat Scrollbar Halaman Luar ke Bawah + Scroll Horizontal) */}
+              <thead ref={orderTheadRef} className="relative z-40 text-slate-700 dark:text-slate-200 font-bold shadow-[0_2px_6px_-1px_rgba(0,0,0,0.08)]">
                 {/* Baris Header Atas */}
                 <tr className="h-[34px]">
                   {/* Kolom 1-11 Ter-Freeze dari No sampai Prioritas (Responsif Mobile & Desktop) */}
@@ -3653,7 +3698,7 @@ export default function MonitorGorongGorongView() {
             </div>
           </div>
 
-          <div className="relative z-10 isolate rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-hidden">
+          <div className="relative z-10 isolate rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-x-clip">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-amber-500/5 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-500" />
@@ -3666,9 +3711,9 @@ export default function MonitorGorongGorongView() {
               </span>
             </div>
 
-          <div className="overflow-auto max-h-[68vh] sm:max-h-[600px] scrollbar-thin border border-slate-200 dark:border-slate-800 w-full max-w-full">
-            <table className="w-full text-center border-separate border-spacing-0 text-xs whitespace-nowrap">
-              <thead className="text-slate-700 dark:text-slate-200 font-bold">
+          <div className="overflow-x-auto scrollbar-thin border border-slate-200 dark:border-slate-800 w-full max-w-full">
+            <table ref={belumTableRef} className="w-full text-center border-separate border-spacing-0 text-xs whitespace-nowrap">
+              <thead ref={belumTheadRef} className="relative z-40 text-slate-700 dark:text-slate-200 font-bold shadow-[0_2px_6px_-1px_rgba(0,0,0,0.08)]">
                 <tr className="h-[34px]">
                   <th className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700 px-4 py-2.5 text-center font-bold">No</th>
                   <th

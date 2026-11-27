@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ensureDefaultUsersInDb } from '@/lib/auth';
+import { hasMenuAccess, sanitizeAllowedMenus } from '@/lib/menuAccess';
 
 // Helper untuk memeriksa sesi admin dari header atau cookie
 function getAdminSession(req: Request) {
@@ -17,12 +18,19 @@ function getAdminSession(req: Request) {
       };
     }
 
-    // 2. Periksa cookie ggf_session
+    // 2. Periksa cookie ggf_session (termasuk user yang diberi akses kustom Manajemen User)
     const cookieHeader = req.headers.get('cookie') || '';
     const match = cookieHeader.match(/ggf_session=([^;]+)/);
     if (match) {
       const session = JSON.parse(decodeURIComponent(match[1]));
-      if (session && (session.role === 'admin' || session.role === 'super_admin')) {
+      if (
+        session &&
+        (session.role === 'admin' ||
+          session.role === 'super_admin' ||
+          hasMenuAccess(session, 'gorong_gorong', 'user_management') ||
+          hasMenuAccess(session, 'labita', 'user_management') ||
+          hasMenuAccess(session, 'sulam', 'user_management'))
+      ) {
         return session;
       }
     }
@@ -63,6 +71,7 @@ export async function GET(req: Request) {
         role: true,
         wilayah: true,
         avatar: true,
+        allowedMenus: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -96,6 +105,7 @@ export async function GET(req: Request) {
           role: u.role,
           wilayah: effectiveWilayah,
           avatar: u.avatar,
+          allowedMenus: sanitizeAllowedMenus(u.allowedMenus),
           createdAt: u.createdAt,
           updatedAt: u.updatedAt,
         };

@@ -5,6 +5,19 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import {
+  AllowedMenusMap,
+  PortalKey,
+  getDefaultPortalRoute,
+  hasMenuAccess,
+  hasPortalAccess,
+  sanitizeAllowedMenus,
+} from '@/lib/menuAccess';
+import {
+  parseGorongGorongPathname,
+  parseLabitaPathname,
+  parseSulamPathname,
+} from '@/lib/portalRoutes';
+import {
   Lock,
   User as UserIcon,
   Eye,
@@ -35,6 +48,11 @@ function LoginContent() {
 
   useEffect(() => {
     const paramCallback = searchParams.get('callbackUrl');
+    const paramError = searchParams.get('error');
+
+    if (paramError === 'unauthorized') {
+      setErrorMsg('Akses ditolak. Akun Anda tidak memiliki hak akses ke portal tersebut.');
+    }
 
     if (paramCallback && paramCallback !== '/') {
       setTargetUrl(paramCallback);
@@ -48,39 +66,74 @@ function LoginContent() {
     }
   }, [searchParams]);
 
+  const resolveLoginDestination = (
+    authUser: { role?: string | null; allowedMenus?: AllowedMenusMap | null } | null,
+    requestedTarget: string
+  ): { ok: true; url: string; external?: boolean } | { ok: false; error: string } => {
+    if (!authUser) {
+      return { ok: false, error: 'Sesi pengguna tidak valid.' };
+    }
+
+    const isSulamTarget = Boolean(requestedTarget && requestedTarget.startsWith('/sulam'));
+    const isLabitaTarget = Boolean(requestedTarget && requestedTarget.startsWith('/labita'));
+
+    const resolvePortalTarget = (portal: PortalKey, fallbackRoute: string): string | null => {
+      if (!hasPortalAccess(authUser, portal)) return null;
+      const rootPath = portal === 'labita' ? '/labita' : portal === 'sulam' ? '/sulam' : '/gorong-gorong';
+      if (requestedTarget && requestedTarget !== rootPath && requestedTarget.startsWith(rootPath)) {
+        const activeTab =
+          portal === 'labita'
+            ? parseLabitaPathname(requestedTarget).activeTab
+            : portal === 'sulam'
+            ? parseSulamPathname(requestedTarget).activeTab
+            : parseGorongGorongPathname(requestedTarget).activeTab;
+        if (hasMenuAccess(authUser, portal, activeTab)) {
+          return requestedTarget;
+        }
+      }
+      return getDefaultPortalRoute(authUser, portal) || fallbackRoute;
+    };
+
+    if (isLabitaTarget) {
+      const labitaDest = resolvePortalTarget('labita', '/labita/executive-summary/pengolahan-lahan');
+      if (!labitaDest) {
+        return { ok: false, error: 'Akses ditolak. Akun Anda tidak memiliki izin akses menu pada Portal Labita.' };
+      }
+      return { ok: true, url: labitaDest };
+    }
+
+    if (isSulamTarget) {
+      const sulamDest = resolvePortalTarget('sulam', '/sulam/form-order-sulam');
+      if (!sulamDest) {
+        return { ok: false, error: 'Akses ditolak. Akun Anda tidak memiliki izin akses menu pada Portal Sulam.' };
+      }
+      const fullUrl =
+        typeof window !== 'undefined' && window.location.hostname === 'localhost'
+          ? `http://localhost:3001${sulamDest}`
+          : sulamDest;
+      return { ok: true, url: fullUrl, external: true };
+    }
+
+    const gorongDest =
+      resolvePortalTarget('gorong_gorong', '/gorong-gorong') || '/gorong-gorong';
+    return { ok: true, url: gorongDest };
+  };
+
   // Redirect jika sudah login dan berhak mengakses targetUrl
   useEffect(() => {
     if (user) {
-      let finalTarget = targetUrl;
-      const isSulamTarget = finalTarget.startsWith('/sulam');
-      const isLabitaTarget = finalTarget.startsWith('/labita');
-
-      if ((isLabitaTarget || isSulamTarget) && !isSuperAdmin) {
-        setErrorMsg('Akses ditolak. Modul ini khusus untuk Super Administrator.');
+      const resolved = resolveLoginDestination(user, targetUrl);
+      if (!resolved.ok) {
+        setErrorMsg(resolved.error);
         return;
       }
-
-      // Mandor Wilayah dan User Planting: arahkan ke form order gorong-gorong
-      const isWilayahOrPlanting =
-        isUserPlanting ||
-        isUserWilayah ||
-        isMandorWilayah ||
-        user.role === 'user_planting' ||
-        user.role === 'user_wilayah' ||
-        user.role === 'user';
-
-      if (isWilayahOrPlanting) {
-        router.push('/gorong-gorong/form-input/order-gorong-gorong');
+      if (resolved.external) {
+        window.location.href = resolved.url;
         return;
       }
-
-      const canSeeMonitor = isSuperAdmin || isAdmin || isManagement || isKepalaWilayah;
-      if (!canSeeMonitor && (finalTarget === '/gorong-gorong/monitor-gorong-gorong' || finalTarget === '/gorong-gorong')) {
-        finalTarget = '/gorong-gorong/form-input/order-gorong-gorong';
-      }
-      router.push(finalTarget);
+      router.push(resolved.url);
     }
-  }, [user, isAdmin, isSuperAdmin, isManagement, isKepalaWilayah, isMandorWilayah, isUserWilayah, isUserPlanting, router, targetUrl]);
+  }, [user, router, targetUrl]);
 
   // Handle Submit Login Langsung
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -96,33 +149,29 @@ function LoginContent() {
     if (res.success) {
       setSuccessMsg('Login berhasil! Mengalihkan ke sistem...');
       setTimeout(() => {
-        let dest = targetUrl;
         const stored = typeof window !== 'undefined' ? localStorage.getItem('ggf_auth_user') : null;
-        let storedRole = '';
+        let parsedUser: { role?: string; allowedMenus?: AllowedMenusMap | null } | null = null;
         if (stored) {
           try {
-            storedRole = JSON.parse(stored).role;
+            const raw = JSON.parse(stored);
+            parsedUser = {
+              role: raw.role,
+              allowedMenus: sanitizeAllowedMenus(raw.allowedMenus),
+            };
           } catch (e) {}
         }
 
-        const isWilayahOrPlanting =
-          storedRole === 'user_planting' ||
-          storedRole === 'user_wilayah' ||
-          storedRole === 'user';
-        const isSulamTarget = Boolean(dest && dest.startsWith('/sulam'));
-        const isLabitaTarget = Boolean(dest && dest.startsWith('/labita'));
-
-        if ((isLabitaTarget || isSulamTarget) && storedRole !== 'super_admin') {
-          setErrorMsg('Akses ditolak. Modul ini khusus untuk Super Administrator.');
+        const resolved = resolveLoginDestination(parsedUser, targetUrl);
+        if (!resolved.ok) {
+          setSuccessMsg('');
+          setErrorMsg(resolved.error);
           return;
         }
-
-        if (isWilayahOrPlanting) {
-          dest = '/gorong-gorong/form-input/order-gorong-gorong';
-        } else if (!dest || dest === '/') {
-          dest = '/gorong-gorong/monitor-gorong-gorong';
+        if (resolved.external) {
+          window.location.href = resolved.url;
+          return;
         }
-        router.push(dest);
+        router.push(resolved.url);
       }, 350);
     } else {
       setErrorMsg(res.message || 'Username atau kata sandi tidak sesuai.');

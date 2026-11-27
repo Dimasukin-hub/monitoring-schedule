@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { hasMenuAccess } from '@/lib/menuAccess';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    // Validasi otorisasi: Hanya 6 role (Super Admin, Admin FE, Kabag FE, Manajer FE, Manajer FM, Manajer OSD)
+    // Validasi otorisasi: mengikuti default 6 role atau kustomisasi akses menu Control Board dari Super Admin
     const cookieHeader = request.headers.get('cookie') || '';
     const match = cookieHeader.match(/ggf_session=([^;]+)/);
     if (match) {
       try {
         const user = JSON.parse(decodeURIComponent(match[1]));
-        const allowedRoles = ['super_admin', 'admin', 'kepala_bagian_fe', 'manajer_fe', 'manajer_fm', 'manajer_osd'];
-        if (user && user.role && !allowedRoles.includes(user.role)) {
+        if (user && user.role && !hasMenuAccess(user, 'gorong_gorong', 'control_board')) {
           return NextResponse.json(
             { success: false, message: 'Akses ditolak: Anda tidak memiliki hak akses ke Control Board.' },
             { status: 403 }
@@ -106,10 +106,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 2. Data Grafik Harian Drop (MURNI transaksi Form Input pada rentang bulan yang dipilih)
-    let totalAllDrop = 0;
-    const dropByDateMap = new Map<string, { d40: number; d60: number; d80: number; d100: number; all: number }>();
-
     const formatDateDDMM = (d: Date) => {
       const day = String(d.getUTCDate()).padStart(2, '0');
       const month = String(d.getUTCMonth() + 1).padStart(2, '0');
@@ -119,16 +115,17 @@ export async function GET(request: NextRequest) {
 
     const formatDateKey = (d: Date) => d.toISOString().slice(0, 10);
 
-    // Kumpulkan Drop yang murni dari Form Input (transaksiGorongGorong jenis DROP atau master drop dengan transaksiId)
+    // Kumpulkan Drop yang murni dari Form Input (semua tanggal, lalu filter tampilan sesuai bulan)
     const recordedDropTrxIds = new Set<number>();
-    const formDropList: Array<{ tanggal: Date; d40: number; d60: number; d80: number; d100: number }> = [];
+    const formDropList: Array<{ tanggal: Date; lokasi: string; d40: number; d60: number; d80: number; d100: number }> = [];
 
     for (const t of allFormTrx) {
-      if (t.jenisTransaksi !== 'DROP' || !t.tanggal || !inRange(t.tanggal)) continue;
+      if (t.jenisTransaksi !== 'DROP' || !t.tanggal) continue;
       const tot = (t.qtyD40 || 0) + (t.qtyD60 || 0) + (t.qtyD80 || 0) + (t.qtyD100 || 0);
       if (tot <= 0) continue;
       formDropList.push({
         tanggal: new Date(t.tanggal),
+        lokasi: (t.lokasi || '').trim().toUpperCase(),
         d40: t.qtyD40 || 0,
         d60: t.qtyD60 || 0,
         d80: t.qtyD80 || 0,
@@ -140,11 +137,12 @@ export async function GET(request: NextRequest) {
     // Dukung juga jika ada drop form input yang tercatat di masterDataDropGorongGorong dengan transaksiId
     for (const d of allDrops) {
       if (!d.transaksiId || recordedDropTrxIds.has(d.transaksiId)) continue;
-      if (!d.tanggal || !inRange(d.tanggal)) continue;
+      if (!d.tanggal) continue;
       const tot = (d.diameter40 || 0) + (d.diameter60 || 0) + (d.diameter80 || 0) + (d.diameter100 || 0);
       if (tot <= 0) continue;
       formDropList.push({
         tanggal: new Date(d.tanggal),
+        lokasi: (d.lokasi || '').trim().toUpperCase(),
         d40: d.diameter40 || 0,
         d60: d.diameter60 || 0,
         d80: d.diameter80 || 0,
@@ -152,19 +150,11 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    let totalAllDrop = 0;
     for (const it of formDropList) {
-      const tot = it.d40 + it.d60 + it.d80 + it.d100;
-      totalAllDrop += tot;
-      const k = formatDateKey(it.tanggal);
-      if (!dropByDateMap.has(k)) {
-        dropByDateMap.set(k, { d40: 0, d60: 0, d80: 0, d100: 0, all: 0 });
+      if (inRange(it.tanggal)) {
+        totalAllDrop += it.d40 + it.d60 + it.d80 + it.d100;
       }
-      const entry = dropByDateMap.get(k)!;
-      entry.d40 += it.d40;
-      entry.d60 += it.d60;
-      entry.d80 += it.d80;
-      entry.d100 += it.d100;
-      entry.all += tot;
     }
 
     // 3. Data Tabel Verifikasi Pasang Manual vs SAP & Grafik Pasang Manual
@@ -184,14 +174,12 @@ export async function GET(request: NextRequest) {
     }>();
 
     let totalAllPasangManual = 0;
-    const pasangManualByDateMap = new Map<string, { d40: number; d60: number; d80: number; d100: number; all: number }>();
-
     const recordedManualTrxIds = new Set<number>();
     const formManualList: Array<{ tanggal: Date; lokasi: string; d40: number; d60: number; d80: number; d100: number }> = [];
 
     // 1. Dari transaksiGorongGorong (Form Input jenis PASANG_MANUAL)
     for (const t of allFormTrx) {
-      if (t.jenisTransaksi !== 'PASANG_MANUAL' || !t.tanggal || !inRange(t.tanggal)) continue;
+      if (t.jenisTransaksi !== 'PASANG_MANUAL' || !t.tanggal) continue;
       const tot = (t.qtyD40 || 0) + (t.qtyD60 || 0) + (t.qtyD80 || 0) + (t.qtyD100 || 0);
       if (tot <= 0) continue;
       formManualList.push({
@@ -208,7 +196,7 @@ export async function GET(request: NextRequest) {
     // 2. Dari masterDataPasangManual (mendukung data form input atau masterDataPasangManual yang ada)
     for (const m of allManual) {
       if (m.transaksiId && recordedManualTrxIds.has(m.transaksiId)) continue;
-      if (!m.tanggalPasangManual || !inRange(m.tanggalPasangManual)) continue;
+      if (!m.tanggalPasangManual) continue;
       const tot = (m.diameter40 || 0) + (m.diameter60 || 0) + (m.diameter80 || 0) + (m.diameter100 || 0);
       if (tot <= 0) continue;
       if (allFormTrx.some((t) => t.jenisTransaksi === 'PASANG_MANUAL') && !m.transaksiId) continue;
@@ -223,22 +211,13 @@ export async function GET(request: NextRequest) {
     }
 
     for (const it of formManualList) {
+      if (!inRange(it.tanggal)) continue;
       const tot = it.d40 + it.d60 + it.d80 + it.d100;
       totalAllPasangManual += tot;
 
       const rawDate = formatDateKey(it.tanggal);
       const lok = it.lokasi;
       const key = `${rawDate}_${lok}`;
-
-      if (!pasangManualByDateMap.has(rawDate)) {
-        pasangManualByDateMap.set(rawDate, { d40: 0, d60: 0, d80: 0, d100: 0, all: 0 });
-      }
-      const pEntry = pasangManualByDateMap.get(rawDate)!;
-      pEntry.d40 += it.d40;
-      pEntry.d60 += it.d60;
-      pEntry.d80 += it.d80;
-      pEntry.d100 += it.d100;
-      pEntry.all += tot;
 
       if (!tableMap.has(key)) {
         tableMap.set(key, {
@@ -347,6 +326,7 @@ export async function GET(request: NextRequest) {
     let openOrderSum = 0;
     let openDropSum = 0;
     let openPasangSum = 0;
+    const openDiaSet = new Set<string>();
 
     const openStats = {
       '40': { order: 0, drop: 0, pasang: 0 },
@@ -405,6 +385,7 @@ export async function GET(request: NextRequest) {
           const st = (d.status || '-').trim().toLowerCase();
           const isOpen = st === 'open' || st === '-';
           if (isOpen) {
+            openDiaSet.add(`${lok}_${d.dia}`);
             const bestPasang = Math.max(d.pman, d.psap);
             openOrderSum += d.ord;
             openDropSum += d.drop;
@@ -418,7 +399,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Rumus sesuai arahan pengguna:
+    // Rumus sesuai arahan pengguna (TIDAK DIUBAH):
     // %Kedatangan = Total Drop Fisik (Status Open) dibagi Total Order (Status Open) * 100%
     // %Pemasangan = Total Pasang Maksimal (Status Open) dibagi Total Drop Fisik (Status Open) * 100%
     const calcTargetValues = (ord: number, drp: number, psg: number) => ({
@@ -440,45 +421,104 @@ export async function GET(request: NextRequest) {
     const cardPctKedatangan = targets.ALL.pctKedatangan;
     const cardPctPemasangan = targets.ALL.pctPemasangan;
 
-    // 4. Data Grafik Harian % Kedatangan
-    const sortedDropDates = Array.from(dropByDateMap.keys()).sort();
-    const dailyKedatangan = sortedDropDates.map((dateStr) => {
-      const it = dropByDateMap.get(dateStr) || { d40: 0, d60: 0, d80: 0, d100: 0, all: 0 };
-      const dt = new Date(dateStr);
-      const label = `${dt.getUTCDate()}/${dt.getUTCMonth() + 1}`;
+    // Helper membangun series harian kumulatif menggunakan rumus Open yang sama + delta kontribusi harian
+    type DiaBucket = { d40: number; d60: number; d80: number; d100: number; all: number; open40: number; open60: number; open80: number; open100: number; openAll: number };
+    const buildDailyProgressSeries = (
+      items: Array<{ tanggal: Date; lokasi: string; d40: number; d60: number; d80: number; d100: number }>,
+      mode: 'kedatangan' | 'pemasangan'
+    ) => {
+      const dateMap = new Map<string, DiaBucket>();
+      for (const it of items) {
+        const k = formatDateKey(it.tanggal);
+        if (!dateMap.has(k)) {
+          dateMap.set(k, { d40: 0, d60: 0, d80: 0, d100: 0, all: 0, open40: 0, open60: 0, open80: 0, open100: 0, openAll: 0 });
+        }
+        const entry = dateMap.get(k)!;
+        entry.d40 += it.d40;
+        entry.d60 += it.d60;
+        entry.d80 += it.d80;
+        entry.d100 += it.d100;
+        entry.all += it.d40 + it.d60 + it.d80 + it.d100;
 
-      return {
-        dateStr,
-        label,
-        d40: it.d40,
-        d60: it.d60,
-        d80: it.d80,
-        d100: it.d100,
-        all: it.all,
-        // Backward-compatibility:
-        dropPcs: it.all,
-      };
-    });
+        const o40 = openDiaSet.has(`${it.lokasi}_40`) ? it.d40 : 0;
+        const o60 = openDiaSet.has(`${it.lokasi}_60`) ? it.d60 : 0;
+        const o80 = openDiaSet.has(`${it.lokasi}_80`) ? it.d80 : 0;
+        const o100 = openDiaSet.has(`${it.lokasi}_100`) ? it.d100 : 0;
+        entry.open40 += o40;
+        entry.open60 += o60;
+        entry.open80 += o80;
+        entry.open100 += o100;
+        entry.openAll += o40 + o60 + o80 + o100;
+      }
+
+      const sortedDates = Array.from(dateMap.keys()).sort();
+      const suffixAfter = { '40': 0, '60': 0, '80': 0, '100': 0, 'ALL': 0 };
+      const afterByDate = new Map<string, Record<'40' | '60' | '80' | '100' | 'ALL', number>>();
+
+      for (let i = sortedDates.length - 1; i >= 0; i--) {
+        const ds = sortedDates[i];
+        afterByDate.set(ds, { ...suffixAfter });
+        const ent = dateMap.get(ds)!;
+        suffixAfter['40'] += ent.open40;
+        suffixAfter['60'] += ent.open60;
+        suffixAfter['80'] += ent.open80;
+        suffixAfter['100'] += ent.open100;
+        suffixAfter['ALL'] += ent.openAll;
+      }
+
+      const diaKeys = ['40', '60', '80', '100', 'ALL'] as const;
+      return sortedDates
+        .filter((ds) => inRange(new Date(`${ds}T00:00:00.000Z`)))
+        .map((dateStr) => {
+          const ent = dateMap.get(dateStr)!;
+          const after = afterByDate.get(dateStr)!;
+          const dt = new Date(dateStr);
+          const label = `${dt.getUTCDate()}/${dt.getUTCMonth() + 1}`;
+
+          const pctByDia = {} as Record<'40' | '60' | '80' | '100' | 'ALL', number>;
+          const deltaPctByDia = {} as Record<'40' | '60' | '80' | '100' | 'ALL', number>;
+
+          for (const dk of diaKeys) {
+            const t = targets[dk];
+            const numeratorCurrent = mode === 'kedatangan' ? t.dropOpen : t.pasangOpen;
+            const denominator = mode === 'kedatangan' ? t.orderOpen : t.dropOpen;
+            const dayOpenQty =
+              dk === '40' ? ent.open40 : dk === '60' ? ent.open60 : dk === '80' ? ent.open80 : dk === '100' ? ent.open100 : ent.openAll;
+
+            const qtyAtEnd = Math.max(0, numeratorCurrent - after[dk]);
+            const qtyBefore = Math.max(0, qtyAtEnd - dayOpenQty);
+            const pctEnd = denominator > 0 ? parseFloat(((qtyAtEnd / denominator) * 100).toFixed(1)) : 0;
+            const pctBefore = denominator > 0 ? parseFloat(((qtyBefore / denominator) * 100).toFixed(1)) : 0;
+
+            pctByDia[dk] = pctEnd;
+            deltaPctByDia[dk] = parseFloat((pctEnd - pctBefore).toFixed(1));
+          }
+
+          return {
+            dateStr,
+            label,
+            d40: ent.d40,
+            d60: ent.d60,
+            d80: ent.d80,
+            d100: ent.d100,
+            all: ent.all,
+            pctByDia,
+            deltaPctByDia,
+          };
+        });
+    };
+
+    // 4. Data Grafik Harian % Kedatangan
+    const dailyKedatangan = buildDailyProgressSeries(formDropList, 'kedatangan').map((row) => ({
+      ...row,
+      dropPcs: row.all,
+    }));
 
     // 5. Data Grafik Harian % Pemasangan
-    const sortedPasangDates = Array.from(pasangManualByDateMap.keys()).sort();
-    const dailyPemasangan = sortedPasangDates.map((dateStr) => {
-      const it = pasangManualByDateMap.get(dateStr) || { d40: 0, d60: 0, d80: 0, d100: 0, all: 0 };
-      const dt = new Date(dateStr);
-      const label = `${dt.getUTCDate()}/${dt.getUTCMonth() + 1}`;
-
-      return {
-        dateStr,
-        label,
-        d40: it.d40,
-        d60: it.d60,
-        d80: it.d80,
-        d100: it.d100,
-        all: it.all,
-        // Backward-compatibility:
-        pasangPcs: it.all,
-      };
-    });
+    const dailyPemasangan = buildDailyProgressSeries(formManualList, 'pemasangan').map((row) => ({
+      ...row,
+      pasangPcs: row.all,
+    }));
 
     // KPI Summary
     const summary = {

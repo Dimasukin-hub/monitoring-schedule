@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
+import { hasPortalAccess } from '@/lib/menuAccess';
 
 /**
  * Hook untuk mengecek status akses Portal Labita:
@@ -39,8 +40,8 @@ export function usePortalAccess() {
   // Status Under Development berlaku di domain online jika bukan localhost
   const isLabitaUnderDev = isClient && !isLocalhost;
 
-  // Akses Portal Labita khusus untuk Super Administrator
-  const canAccessLabita = !authLoading && Boolean(user && isSuperAdmin);
+  // Akses Portal Labita sesuai hak akses role atau kustomisasi menu oleh Super Admin
+  const canAccessLabita = !authLoading && Boolean(user && hasPortalAccess(user, 'labita'));
 
   return {
     isClient,

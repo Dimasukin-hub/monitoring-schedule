@@ -15,6 +15,7 @@ import MasterDataPasangManualView from '@/components/MasterDataPasangManualView'
 import MasterPindahView from '@/components/MasterPindahView';
 import UserManagementView from '@/components/UserManagementView';
 import { useAuth } from '@/components/AuthProvider';
+import { getDefaultPortalRoute, hasMenuAccess, hasPortalAccess } from '@/lib/menuAccess';
 import {
   parseGorongGorongPathname,
   getGorongGorongRoute,
@@ -22,9 +23,12 @@ import {
 } from '@/lib/portalRoutes';
 
 export default function GorongGorongPage() {
-  const { user, isAdmin, canAccessMonitor, canAccessControlBoard, canAccessMasterData, isLoading: authLoading } = useAuth();
+  const { user, canAccessMonitor, canAccessControlBoard, canAccessMasterData, isLoading: authLoading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const canEnterGorong = Boolean(user && hasPortalAccess(user, 'gorong_gorong'));
+  const canFormInput = hasMenuAccess(user, 'gorong_gorong', 'form_input');
+  const canUserManagement = hasMenuAccess(user, 'gorong_gorong', 'user_management');
 
   // Guard login: jika pengguna belum login, arahkan ke halaman login
   useEffect(() => {
@@ -44,31 +48,16 @@ export default function GorongGorongPage() {
     if (!pathname) return;
     const parsed = parseGorongGorongPathname(pathname);
 
-    // Guard navigasi URL sesuai role
-    if (!authLoading && user) {
-      // 1. Guard user management: hanya Admin & Super Admin
-      if (!isAdmin && (pathname === GORONG_GORONG_ROUTES.userManagement || parsed.activeTab === 'user_management')) {
-        setActiveTab('form_input');
-        router.replace(GORONG_GORONG_ROUTES.formInput);
-        return;
-      }
-      // 2. Guard monitor gorong-gorong: hanya jika canAccessMonitor
-      if (!canAccessMonitor && (pathname === '/gorong-gorong' || pathname === GORONG_GORONG_ROUTES.monitor || parsed.activeTab === 'monitor_gorong_gorong')) {
-        setActiveTab('form_input');
-        router.replace(GORONG_GORONG_ROUTES.formInput);
-        return;
-      }
-      // 2.5 Guard control board: hanya jika canAccessControlBoard (6 role khusus)
-      if (!canAccessControlBoard && (pathname === GORONG_GORONG_ROUTES.controlBoard || parsed.activeTab === 'control_board')) {
-        setActiveTab('form_input');
-        router.replace(GORONG_GORONG_ROUTES.formInput);
-        return;
-      }
-      // 3. Guard master data: hanya jika canAccessMasterData
-      if (!canAccessMasterData && (pathname.startsWith('/gorong-gorong/master-data') || parsed.activeTab === 'master_data')) {
-        setActiveTab('form_input');
-        router.replace(GORONG_GORONG_ROUTES.formInput);
-        return;
+    // Guard navigasi URL sesuai hak akses role / kustomisasi menu Super Admin
+    if (!authLoading && user && canEnterGorong) {
+      if (pathname === '/gorong-gorong' || !hasMenuAccess(user, 'gorong_gorong', parsed.activeTab)) {
+        const fallback = getDefaultPortalRoute(user, 'gorong_gorong');
+        if (fallback && fallback !== pathname) {
+          const fallbackParsed = parseGorongGorongPathname(fallback);
+          setActiveTab(fallbackParsed.activeTab);
+          router.replace(fallback);
+          return;
+        }
       }
     }
 
@@ -85,7 +74,7 @@ export default function GorongGorongPage() {
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('ggf_active_portal', pathname);
     }
-  }, [pathname, router, authLoading, user, isAdmin, canAccessMonitor, canAccessMasterData]);
+  }, [pathname, router, authLoading, user, canEnterGorong]);
 
   // Dukung tombol Back / Forward browser tanpa reload
   useEffect(() => {
@@ -101,24 +90,19 @@ export default function GorongGorongPage() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Guard tab sesuai role pengguna
+  // Guard tab sesuai role & kustomisasi menu pengguna
   useEffect(() => {
-    if (!authLoading && user) {
-      if (!isAdmin && activeTab === 'user_management') {
-        setActiveTab('form_input');
-        router.replace(GORONG_GORONG_ROUTES.formInput);
-      } else if (!canAccessMonitor && activeTab === 'monitor_gorong_gorong') {
-        setActiveTab('form_input');
-        router.replace(GORONG_GORONG_ROUTES.formInput);
-      } else if (!canAccessControlBoard && activeTab === 'control_board') {
-        setActiveTab('form_input');
-        router.replace(GORONG_GORONG_ROUTES.formInput);
-      } else if (!canAccessMasterData && activeTab === 'master_data') {
-        setActiveTab('form_input');
-        router.replace(GORONG_GORONG_ROUTES.formInput);
+    if (!authLoading && user && canEnterGorong) {
+      if (!hasMenuAccess(user, 'gorong_gorong', activeTab)) {
+        const fallback = getDefaultPortalRoute(user, 'gorong_gorong');
+        if (fallback && fallback !== pathname) {
+          const fallbackParsed = parseGorongGorongPathname(fallback);
+          setActiveTab(fallbackParsed.activeTab);
+          router.replace(fallback);
+        }
       }
     }
-  }, [authLoading, user, isAdmin, canAccessMonitor, canAccessMasterData, activeTab, router]);
+  }, [authLoading, user, canEnterGorong, activeTab, pathname, router]);
 
   // Handler navigasi instan: ubah state langsung (0 ms jeda) dan perbarui URL di address bar
   const handleTabChange = (newTab: string) => {
@@ -182,7 +166,7 @@ export default function GorongGorongPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-blue-500/30 selection:text-blue-700 dark:selection:text-blue-200 transition-colors duration-200 w-full max-w-full overflow-x-hidden">
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-blue-500/30 selection:text-blue-700 dark:selection:text-blue-200 transition-colors duration-200 w-full max-w-full overflow-x-clip">
       {/* Top Header dengan Branding Gorong-Gorong & Navigasi Tab */}
       <Header
         currentPortal="gorong_gorong"
@@ -195,72 +179,98 @@ export default function GorongGorongPage() {
         activeTabTitle={getTabTitle()}
       />
 
-      {/* Main Content Area - Full Width Margin Sampai Samping */}
-      <main className="flex-1 p-2 sm:p-4 md:p-5 pb-20 sm:pb-8 space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
-        {/* 1. MENU: MONITOR GORONG-GORONG (Ringkasan Saldo, Kebutuhan & Dropping 4 Diameter) */}
-        <div className={activeTab === 'monitor_gorong_gorong' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
-          <MonitorGorongGorongView />
-        </div>
-
-        {/* 1.5. MENU: CONTROL BOARD */}
-        {canAccessControlBoard && (
-          <div className={activeTab === 'control_board' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
-            <ControlBoardGorongGorongView />
+      {/* Main Content Area - Offset Mini Sidebar di Desktop */}
+      <div className="flex-1 md:pl-16 flex flex-col w-full min-w-0">
+      <main className="flex-1 p-2 sm:p-4 md:p-5 pb-20 sm:pb-8 space-y-4 sm:space-y-6 w-full max-w-full overflow-x-clip">
+        {!authLoading && user && !canEnterGorong ? (
+          <div className="max-w-lg mx-auto mt-16 p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-center space-y-3">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+              Akses Menu Tidak Tersedia
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Tidak ada menu yang diizinkan untuk akun Anda pada Portal Gorong-Gorong. Silakan hubungi Super Admin.
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push('/')}
+              className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold cursor-pointer transition-colors"
+            >
+              Kembali ke Portal Utama
+            </button>
           </div>
-        )}
+        ) : (
+          <>
+            {/* 1. MENU: MONITOR GORONG-GORONG (Ringkasan Saldo, Kebutuhan & Dropping 4 Diameter) */}
+            {canAccessMonitor && (
+              <div className={activeTab === 'monitor_gorong_gorong' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
+                <MonitorGorongGorongView />
+              </div>
+            )}
 
-        {/* 2. MENU: FORM INPUT (Order Gorong-Gorong) */}
-        <div className={(activeTab === 'form_input' || activeTab === 'order_wilayah') ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
-          <FormOrderGorongGorongView />
-        </div>
+            {/* 1.5. MENU: CONTROL BOARD */}
+            {canAccessControlBoard && (
+              <div className={activeTab === 'control_board' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
+                <ControlBoardGorongGorongView />
+              </div>
+            )}
 
-        {/* 3. MENU: MASTER DATA */}
-        {canAccessMasterData && (
-          <div className={activeTab === 'master_data' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
-            {/* 3.1 SUB MENU: MASTER STATUS LOKASI */}
-            <div className={masterDataSubTab === 'master_status_lokasi' ? 'block' : 'hidden'}>
-              <MasterStatusLokasiView />
-            </div>
+            {/* 2. MENU: FORM INPUT (Order Gorong-Gorong) */}
+            {canFormInput && (
+              <div className={(activeTab === 'form_input' || activeTab === 'order_wilayah') ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
+                <FormOrderGorongGorongView />
+              </div>
+            )}
 
-            {/* 3.2 SUB MENU: MASTER WATERLOGGING */}
-            <div className={masterDataSubTab === 'master_waterlogging' ? 'block' : 'hidden'}>
-              <MasterWaterloggingView />
-            </div>
+            {/* 3. MENU: MASTER DATA */}
+            {canAccessMasterData && (
+              <div className={activeTab === 'master_data' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
+                {/* 3.1 SUB MENU: MASTER STATUS LOKASI */}
+                <div className={masterDataSubTab === 'master_status_lokasi' ? 'block' : 'hidden'}>
+                  <MasterStatusLokasiView />
+                </div>
 
-            {/* 3.3 SUB MENU: MASTER DATA ORDER */}
-            <div className={masterDataSubTab === 'master_order' ? 'block' : 'hidden'}>
-              <MasterOrderView />
-            </div>
+                {/* 3.2 SUB MENU: MASTER WATERLOGGING */}
+                <div className={masterDataSubTab === 'master_waterlogging' ? 'block' : 'hidden'}>
+                  <MasterWaterloggingView />
+                </div>
 
-            {/* 3.4 SUB MENU: MASTER DATA DROP */}
-            <div className={masterDataSubTab === 'master_drop' ? 'block' : 'hidden'}>
-              <MasterDropView />
-            </div>
+                {/* 3.3 SUB MENU: MASTER DATA ORDER */}
+                <div className={masterDataSubTab === 'master_order' ? 'block' : 'hidden'}>
+                  <MasterOrderView />
+                </div>
 
-            {/* 3.5 SUB MENU: MASTER DATA PASANG MANUAL */}
-            <div className={masterDataSubTab === 'master_pasang_manual' ? 'block' : 'hidden'}>
-              <MasterDataPasangManualView />
-            </div>
+                {/* 3.4 SUB MENU: MASTER DATA DROP */}
+                <div className={masterDataSubTab === 'master_drop' ? 'block' : 'hidden'}>
+                  <MasterDropView />
+                </div>
 
-            {/* 3.6 SUB MENU: MASTER DATA PINDAH LOKASI */}
-            <div className={masterDataSubTab === 'master_pindah' ? 'block' : 'hidden'}>
-              <MasterPindahView />
-            </div>
+                {/* 3.5 SUB MENU: MASTER DATA PASANG MANUAL */}
+                <div className={masterDataSubTab === 'master_pasang_manual' ? 'block' : 'hidden'}>
+                  <MasterDataPasangManualView />
+                </div>
 
-            {/* 3.6 SUB MENU: UPLOAD DATA REALISASI SAP */}
-            <div className={masterDataSubTab === 'master_sap' ? 'block' : 'hidden'}>
-              <MasterSapUploadView />
-            </div>
-          </div>
-        )}
+                {/* 3.6 SUB MENU: MASTER DATA PINDAH LOKASI */}
+                <div className={masterDataSubTab === 'master_pindah' ? 'block' : 'hidden'}>
+                  <MasterPindahView />
+                </div>
 
-        {/* 4. MENU: MANAJEMEN USER (Khusus Admin) */}
-        {isAdmin && (
-          <div className={activeTab === 'user_management' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
-            <UserManagementView portal="gorong-gorong" />
-          </div>
+                {/* 3.6 SUB MENU: UPLOAD DATA REALISASI SAP */}
+                <div className={masterDataSubTab === 'master_sap' ? 'block' : 'hidden'}>
+                  <MasterSapUploadView />
+                </div>
+              </div>
+            )}
+
+            {/* 4. MENU: MANAJEMEN USER */}
+            {canUserManagement && (
+              <div className={activeTab === 'user_management' ? 'space-y-8 animate-in fade-in duration-200' : 'hidden'}>
+                <UserManagementView portal="gorong-gorong" />
+              </div>
+            )}
+          </>
         )}
       </main>
+      </div>
     </div>
   );
 }

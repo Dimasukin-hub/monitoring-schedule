@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { sanitizeAllowedMenus } from '@/lib/menuAccess';
 
 export async function GET(req: Request) {
   try {
@@ -12,7 +13,7 @@ export async function GET(req: Request) {
         const sessionUser = JSON.parse(decoded);
 
         if (sessionUser && (sessionUser.id || sessionUser.email)) {
-          // Sinkronisasi data user terbaru dari database agar wilayah tugas selalu akurat
+          // Sinkronisasi data user terbaru dari database agar wilayah tugas & menu akses selalu akurat
           const dbUser = await prisma.user.findFirst({
             where: {
               OR: [
@@ -27,6 +28,7 @@ export async function GET(req: Request) {
               role: true,
               wilayah: true,
               avatar: true,
+              allowedMenus: true,
             },
           });
 
@@ -38,6 +40,7 @@ export async function GET(req: Request) {
               role: dbUser.role as any,
               wilayah: dbUser.wilayah || null,
               avatar: dbUser.avatar || null,
+              allowedMenus: sanitizeAllowedMenus(dbUser.allowedMenus),
             };
 
             const response = NextResponse.json({ success: true, user: freshUser });
