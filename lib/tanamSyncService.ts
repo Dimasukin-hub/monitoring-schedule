@@ -358,7 +358,10 @@ export async function syncAllPlantingsToStokLahan(): Promise<{ synced: number; f
  * serta memastikan urutan running total akumTanam & % Tanam di baris transaksi tetap akurat.
  * Kemudian meneruskan sinkronisasi otomatis ke StokLahanMaster dan Land.
  */
-export async function syncRawTransactionToPlanting(lokasi: string) {
+export async function syncRawTransactionToPlanting(
+  lokasi: string,
+  options?: { skipDetailRewrite?: boolean }
+) {
   const cleanLokasi = lokasi.trim();
   if (!cleanLokasi) return null;
 
@@ -508,19 +511,21 @@ export async function syncRawTransactionToPlanting(lokasi: string) {
   }
 
   // 11. Perbarui akumulasi dan persentase berurutan di baris transaksi PlantingDetail
-  let runningAkum = 0;
-  for (const tx of tanamTxs) {
-    runningAkum = Number((runningAkum + (tx.total || 0)).toFixed(2));
-    const runningPersen = targetLuas > 0 ? Number(((runningAkum / targetLuas) * 100).toFixed(1)) : 0;
-    if (tx.akumTanam !== runningAkum || tx.persenTanam !== runningPersen || (tx.luasNetto !== targetLuas && targetLuas > 0)) {
-      await prisma.plantingDetail.update({
-        where: { id: tx.id },
-        data: {
-          akumTanam: runningAkum,
-          persenTanam: runningPersen,
-          ...(tx.luasNetto !== targetLuas && targetLuas > 0 ? { luasNetto: targetLuas } : {}),
-        },
-      });
+  if (!options?.skipDetailRewrite) {
+    let runningAkum = 0;
+    for (const tx of tanamTxs) {
+      runningAkum = Number((runningAkum + (tx.total || 0)).toFixed(2));
+      const runningPersen = targetLuas > 0 ? Number(((runningAkum / targetLuas) * 100).toFixed(1)) : 0;
+      if (tx.akumTanam !== runningAkum || tx.persenTanam !== runningPersen || (tx.luasNetto !== targetLuas && targetLuas > 0)) {
+        await prisma.plantingDetail.update({
+          where: { id: tx.id },
+          data: {
+            akumTanam: runningAkum,
+            persenTanam: runningPersen,
+            ...(tx.luasNetto !== targetLuas && targetLuas > 0 ? { luasNetto: targetLuas } : {}),
+          },
+        });
+      }
     }
   }
 

@@ -16,6 +16,10 @@ import {
   Plus,
   Trash2,
   Undo2,
+  Upload,
+  FileText,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 import TableDatePicker from '@/components/TableDatePicker';
 import AddPlantingTransactionModal from '@/components/AddPlantingTransactionModal';
@@ -92,6 +96,14 @@ export default function InputRealTanamPetikView({
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [isAddTxModalOpen, setIsAddTxModalOpen] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Upload Excel Modal States
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
+  const [uploadMode, setUploadMode] = useState<'full_replace' | 'append'>('full_replace');
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [uploadMessage, setUploadMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const uploadFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Search state
   const [search, setSearch] = useState<string>('');
@@ -594,6 +606,44 @@ export default function InputRealTanamPetikView({
     }
   };
 
+  // Upload Excel (Replace All / Tambah Data)
+  const handleUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadFile) return;
+
+    try {
+      setIsUploading(true);
+      setUploadMessage(null);
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      formData.append('mode', uploadMode);
+
+      const res = await fetch('/api/planting/transactions/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const json = await res.json();
+
+      if (res.ok && json.success) {
+        setUploadMessage({ type: 'success', text: json.message || 'Data berhasil diunggah.' });
+        setUploadFile(null);
+        if (uploadFileInputRef.current) uploadFileInputRef.current.value = '';
+        await fetchData();
+        onDataChanged?.();
+        setTimeout(() => {
+          setIsUploadModalOpen(false);
+          setUploadMessage(null);
+        }, 1500);
+      } else {
+        setUploadMessage({ type: 'error', text: json.error || 'Gagal mengunggah file Excel.' });
+      }
+    } catch (err: any) {
+      setUploadMessage({ type: 'error', text: err?.message || 'Terjadi kesalahan saat mengunggah file.' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Top Filter & Toolbar Card (relative z-40 ensures popover stays above table) */}
@@ -610,7 +660,34 @@ export default function InputRealTanamPetikView({
           </div>
 
           {/* Sisi Kanan: Action Buttons */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            {isAdmin && (
+              <>
+                <a
+                  href="/api/planting/transactions/template"
+                  download
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/80 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all duration-150 cursor-pointer"
+                  title="Unduh template Excel kosong sesuai urutan kolom tabel"
+                >
+                  <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Template Excel</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUploadMessage(null);
+                    setIsUploadModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20 transition-all duration-150 cursor-pointer"
+                  title="Unggah data Excel (Replace All atau Tambah Data)"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Upload Excel</span>
+                </button>
+              </>
+            )}
+
             <button
               onClick={handleExportExcel}
               disabled={isExporting || total === 0}
@@ -1909,6 +1986,130 @@ export default function InputRealTanamPetikView({
           </div>
         </div>
       </div>
+
+      {/* Modal Upload Excel (Replace All / Tambah Data) */}
+      {isAdmin && isUploadModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in"
+          onClick={() => !isUploading && setIsUploadModalOpen(false)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <Upload className="w-4 h-4 text-emerald-600" />
+                <span>Upload Excel Input Real Tanam &amp; Petik</span>
+              </h3>
+              <button
+                type="button"
+                disabled={isUploading}
+                onClick={() => setIsUploadModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {uploadMessage && (
+              <div
+                className={`p-3 rounded-xl text-xs flex items-start gap-2 ${
+                  uploadMessage.type === 'success'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                    : 'bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                }`}
+              >
+                {uploadMessage.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                )}
+                <span>{uploadMessage.text}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleUploadSubmit} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Metode Unggah
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setUploadMode('full_replace')}
+                    className={`py-2 px-3 rounded-xl border font-bold text-center transition-all cursor-pointer ${
+                      uploadMode === 'full_replace'
+                        ? 'border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/40'
+                        : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    Replace All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUploadMode('append')}
+                    className={`py-2 px-3 rounded-xl border font-bold text-center transition-all cursor-pointer ${
+                      uploadMode === 'append'
+                        ? 'border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/40'
+                        : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    Tambah Data
+                  </button>
+                </div>
+                <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+                  {uploadMode === 'full_replace'
+                    ? 'Mengganti seluruh isi tabel Input Real Tanam & Petik Nanas di database dengan data baru dari file Excel.'
+                    : 'Menambahkan baris baru dari Excel tanpa mengubah data yang sudah ada di tabel.'}
+                </p>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Pilih Berkas Excel (.xlsx, .xls)
+                </label>
+                <input
+                  ref={uploadFileInputRef}
+                  type="file"
+                  accept=".xlsx, .xls"
+                  onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                  className="w-full text-xs text-slate-600 dark:text-slate-300 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-600 file:text-white hover:file:bg-emerald-700 cursor-pointer"
+                  required
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  disabled={isUploading}
+                  onClick={() => setIsUploadModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUploading || !uploadFile}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold transition-all shadow-sm cursor-pointer flex items-center gap-1.5"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Mengunggah...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Mulai Unggah</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal Tambah Transaksi Harian */}
       <AddPlantingTransactionModal

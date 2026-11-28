@@ -307,7 +307,7 @@ export default function LabitaDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-700 dark:selection:text-emerald-200 transition-colors duration-200 w-full max-w-full overflow-x-hidden">
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-700 dark:selection:text-emerald-200 transition-colors duration-200 w-full max-w-full overflow-x-clip">
       {/* Top Header with Brand, Controls, Main Menu Navigation & Sub-Menu Navigation */}
       <Header
         currentPortal="labita"
@@ -344,7 +344,7 @@ export default function LabitaDashboardPage() {
 
       {/* Main Full-Width Content Area - Margin Dipepetkan Rapi ke Sisi Layar (Offset Mini Sidebar di Desktop) */}
       <div className="flex-1 md:pl-16 flex flex-col w-full min-w-0">
-      <main className="flex-1 p-2 sm:p-4 md:p-5 space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
+      <main className="flex-1 p-2 sm:p-4 md:p-5 space-y-4 sm:space-y-6 w-full max-w-full overflow-x-clip">
         {/* 1. MENU: EXECUTIVE SUMMARY (Dengan 2 Sub-Menu: Pengolahan Lahan & Tanam) */}
         {canExecSummary && (
           <div className={activeTab === 'executive_summary' ? 'space-y-8 animate-in fade-in duration-150' : 'hidden'}>

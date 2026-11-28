@@ -153,8 +153,8 @@ function CardStockPopupTable({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       className={`absolute top-full mt-2 ${
-        align === 'right' ? 'right-0' : 'left-0'
-      } z-50 w-[420px] sm:w-[450px] max-w-[calc(100vw-24px)] rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 shadow-2xl p-3.5 animate-in fade-in-0 zoom-in-95 duration-150 select-none ring-1 ring-black/5 dark:ring-white/10`}
+        align === 'right' ? 'left-0 lg:left-auto lg:right-0' : 'left-0'
+      } z-[52] w-[420px] sm:w-[450px] max-w-[calc(100vw-24px)] rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 shadow-2xl p-3.5 animate-in fade-in-0 zoom-in-95 duration-150 select-none ring-1 ring-black/5 dark:ring-white/10`}
     >
       {/* Judul Pop-up Ditengah (Tanpa keterangan jumlah lokasi) */}
       <div className="text-center pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
@@ -737,7 +737,7 @@ export default function KpiCards({
   }
 
   return (
-    <div className="space-y-3 sm:space-y-4 w-full max-w-full overflow-hidden">
+    <div className="space-y-3 sm:space-y-4 w-full max-w-full overflow-visible">
       {/* 1. SUB MENU: PENGOLAHAN LAHAN (Urutan Opsi 1: Stok Bongkar & Stok Bajak Kompak di Kiri, Stok Siap Tanam Besar di Kanan) */}
       {(activeSubTab === 'pengolahan_lahan' || !activeSubTab) && (
         <div className="relative overflow-visible rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200/90 dark:border-emerald-500/25 p-3.5 sm:p-5 glass-panel shadow-xs transition-colors w-full max-w-full">
@@ -791,7 +791,7 @@ export default function KpiCards({
 
                 {/* Popover Dropdown */}
                 {isOpen && (
-                  <div className="absolute top-full mt-1.5 right-0 z-50 w-[320px] sm:w-[480px] max-w-[94vw] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-3.5 text-xs animate-in fade-in zoom-in-95 duration-100 select-none ring-1 ring-black/5 dark:ring-white/10">
+                  <div className="absolute top-full mt-1.5 left-0 sm:left-auto sm:right-0 z-[52] w-[320px] sm:w-[480px] max-w-[94vw] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-3.5 text-xs animate-in fade-in zoom-in-95 duration-100 select-none ring-1 ring-black/5 dark:ring-white/10">
                     {/* Year Quick Filter Tabs */}
                     <div className="flex items-center gap-1.5 mb-2.5 pb-2 border-b border-slate-100 dark:border-slate-800 flex-wrap">
                       <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 mr-1">Tahun:</span>

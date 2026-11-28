@@ -526,5 +526,181 @@ model MasterDataPindahGorongGorong {
   @@index([transaksiId])
 }
 
+// ==========================================
+// MODUL SULAM & MASTER DATA TERPADU SULAM
+// (Disinkronkan dengan sulam_project agar db push aman)
+// ==========================================
+
+model MasterSpekBibitSulam {
+  id             Int      @id @default(autoincrement())
+  spekBBSulamBtg String   @unique // 1. Spek BB Sulam Btg
+  cd             Int      @default(0) // 2. CD
+  fuso           Int      @default(0) // 3. Fuso
+  spesifikasi    String?  // 4. Spesifikasi
+  keterangan     String?  // 5. Keterangan
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([spekBBSulamBtg])
+}
+
+model ListSulam {
+  id                 Int       @id @default(autoincrement())
+  wilayah            String?   // 1. Wilayah
+  lokasi             String    @unique // 2. Lokasi
+  jenisBibit         String?   // 3. Jenis Bibit
+  kelasBibit         String?   // 4. Kelas Bibit
+  tglRawat           DateTime? // 5. Tanggal Rawat
+  tglStdForcing      DateTime? // 6. Tanggal STD Forcing
+  tglFProd           DateTime? // 7. Tanggal F Prod (Forcing Prod 26)
+  tglFMax            DateTime? // 8. Tanggal F Max (MAX(forcingStd, tglFProd))
+  tglOrder           DateTime? // 9. Tanggal Order
+  umurForcing        Int?      // 10. Umur Forcing (bulan)
+
+  // 11. Permintaan Ritase
+  permintaanJumlah   Int       @default(0) // Jumlah
+  permintaanRit      Float     @default(0) // Rit
+  permintaanRealRit  Float     @default(0) // Real Rit
+
+  // 12. Monitor Drop
+  dropReal           Float     @default(0) // Real
+  dropTotal          Float     @default(0) // Total
+  dropDev            Float     @default(0) // Dev
+  dropPct            Float     @default(0) // %Drop
+
+  // 13. Monitor Sulam
+  sulamReal          Float     @default(0) // Real
+  sulamManual        Float     @default(0) // Manual
+  sulamSaldo         Float     @default(0) // Saldo
+  sulamPct           Float?    // %Sulam
+  sulamLastDate      DateTime? // Last Sulam
+
+  // 14-17. Spek & Keterangan
+  spekBibit          String?   // 14. Spek Bibit
+  keteranganProses   String?   // 15. Keterangan Proses
+  keteranganMati     String?   // 16. Keterangan Mati
+  keteranganRitase   String?   // 17. Keterangan Ritase
+
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([lokasi])
+  @@index([wilayah])
+}
+
+model MasterDataOrderSulam {
+  id               Int       @id @default(autoincrement())
+  lokasi           String    // 1. Lokasi
+  wilayah          String?   // 2. Wilayah
+  tanggalOrder     DateTime? // 3. Tanggal Order
+  jumlah           Int       @default(0) // 4. Jumlah
+  rit              Float     @default(0) // 5. Rit
+  realRit          Float     @default(0) // 6. Real Rit
+  spekBibit        String?   // 7. Spek Bibit
+  manual           Float     @default(0) // 8. Manual
+  keteranganProses String?   // 9. Keterangan Proses
+  keteranganMati   String?   // 10. Keterangan Mati
+  keteranganRitase String?   // 11. Keterangan Ritase
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([lokasi])
+  @@index([wilayah])
+  @@index([tanggalOrder])
+}
+
+model MasterDataDropBibitSulam {
+  id           Int       @id @default(autoincrement())
+  lokasi       String    // 1. Lokasi
+  hasilHa      Float?    // 2. Hasil Ha
+  hasilBtg     Int       @default(0) // 3. Hasil Btg
+  tanggal      DateTime? // 4. Tanggal
+  bibitOrdered String?   // 5. Bibit Ordered
+  stdRit       Int?      // 6. Std Rit
+  jumlahRit    Int?      // 7. Jumlah Rit
+  jenisUnit    String?   // 8. Jenis Unit
+  tanggalOrder DateTime? // 9. Tanggal Order
+  statusDrop   String?   // 10. Status Drop
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([lokasi])
+  @@index([tanggal])
+  @@index([tanggalOrder])
+}
+
+model MasterDataRealSulam {
+  id           Int       @id @default(autoincrement())
+  lokasi       String
+  hasilHa      Float?
+  hasilBtg     Int       @default(0)
+  tanggal      DateTime?
+  bibitOrdered String?   // Spek BB dari List Sulam
+  stdRit       Int?      // Nilai CD dari MasterSpekBibitSulam
+  ritPlanted   Int?      // CEILING(hasilBtg / stdRit)
+  keterangan   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([lokasi])
+  @@index([tanggal])
+}
+
+model FormTiketOrderSulam {
+  id             Int       @id @default(autoincrement())
+  nomorTiket     String    @unique // SLM-YYYYMM-XXXX
+  lokasi         String
+  wilayah        String?
+  usia           Int?      // Umur Forcing dalam bulan: Math.round((today - tglFMax)/30.4)
+  kelasBibit     String    // Gabungan jenis bibit & kelas bibit (contoh: "Sucker No. 2")
+  ritFuso        Int       @default(0)
+  ritCD          Int       @default(0)
+  keterangan     String?   // Keterangan pangkas produksi, dll.
+  status         String    @default("DIAJUKAN") // DIAJUKAN -> APPROVED -> ANTRIAN -> REAL_DROP -> REAL_TANAM -> CLOSE
+  pemohonName    String?
+  pemohonRole    String?
+  approvedByName String?
+  approvedAt     DateTime?
+  catatan        String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([lokasi])
+  @@index([wilayah])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model FormDropSulam {
+  id         Int       @id @default(autoincrement())
+  lokasi     String    // 1. Lokasi
+  wilayah    String?   // 2. Wilayah
+  tanggal    DateTime? // 3. Tanggal
+  cd         Int       @default(0) // 4. CD
+  fuso       Int       @default(0) // 5. Fuso
+  kelasBibit String?   // 6. Kelas Bibit
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([lokasi])
+  @@index([wilayah])
+  @@index([tanggal])
+}
+
+model FormRealisasiSulam {
+  id          Int       @id @default(autoincrement())
+  lokasi      String    // 1. Lokasi
+  wilayah     String?   // 2. Wilayah
+  tanggal     DateTime? // 3. Tanggal
+  jumlahTk    Int       @default(0) // 4. Jumlah TK
+  jumlahBibit Int       @default(0) // 5. Jumlah Bibit
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([lokasi])
+  @@index([wilayah])
+  @@index([tanggal])
+}
+
 
 
